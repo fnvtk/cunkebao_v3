@@ -15,11 +15,11 @@ return [
     // 服务器地址
     'hostname'        => '127.0.0.1',
     // 数据库名
-    'database'        => 'xianyu_script',
+    'database'        => 'yishi',
     // 用户名
-    'username'        => 'xianyu_script',
+    'username'        => 'yishi',
     // 密码
-    'password'        => 'Mddfts7ex3LCMRWb',
+    'password'        => 'KcankSjjdZ5CsTC7',
     // 端口
     'hostport'        => '',
     // 连接dsn
