@@ -35,7 +35,7 @@
   </div>
 </template>
 <script>
-import { setToken } from '@/utils/auth'
+import { setToken, setUserInfo } from '@/utils/auth'
 import { ServeLogin } from '@/api/user'
 
 export default {
@@ -85,16 +85,24 @@ export default {
             let result = res.data
 
             // 保存授权信息到本地缓存
-            setToken(result.token, result.token_expired)
+            setToken(result.token, result.token_expired - Math.floor(Date.now() / 1000))
+            
+            // 保存用户信息到本地缓存
+            setUserInfo(result.member)
 
             this.$store.commit('UPDATE_USER_INFO', result.member)
-            this.$store.commit('UPDATE_LOGIN_STATUS')
+            this.$store.commit('UPDATE_LOGIN_STATUS', true)
 
-            // 登录成功后连接 WebSocket 服务器
+            this.$notify.success({
+              title: '成功',
+              message: '登录成功',
+            })
+
+            // 跳转到首页
             this.toLink('/')
           } else {
-            this.$notify.info({
-              title: '提示',
+            this.$notify.error({
+              title: '错误',
               message: res.msg,
             })
           }

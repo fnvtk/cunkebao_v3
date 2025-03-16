@@ -39,7 +39,8 @@ const errorHandler = error => {
 request.interceptors.request.use(config => {
   const token = getToken()
   if (token) {
-    config.headers['token'] = token
+    // 设置JWT认证头
+    config.headers['Authorization'] = 'Bearer ' + token
   }
 
   return config

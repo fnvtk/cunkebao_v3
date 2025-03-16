@@ -15,4 +15,12 @@
 return [
     // 默认中间件命名空间
     'default_namespace' => 'app\\http\\middleware\\',
+    
+    // 别名或分组
+    'alias' => [
+        'jwt' => 'JwtAuth',
+    ],
+    
+    // 优先级设置，此数组中的中间件会按照数组中的顺序优先执行
+    'priority' => [],
 ];

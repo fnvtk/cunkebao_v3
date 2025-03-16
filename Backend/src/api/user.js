@@ -1,12 +1,18 @@
-import { post } from '@/utils/request'
+import { post, get } from '@/utils/request'
 
 // 登录服务接口
 export const ServeLogin = data => {
-  return post('/backend/user/login', data)
+  return post('/api/auth/login', data)
 }
 
+// 获取用户信息
 export const ServeGetUser = () => {
-  return post('/backend/user/get')
+  return get('/api/auth/info')
+}
+
+// 刷新token
+export const ServeRefreshToken = () => {
+  return post('/api/auth/refresh')
 }
 
 export const ServeSetUserPassword = (data) => {
@@ -14,8 +20,9 @@ export const ServeSetUserPassword = (data) => {
 }
 
 // 退出登录服务接口
-export const ServeLogout = data => {
-  return post('/backend/user/logout', data)
+export const ServeLogout = () => {
+  // JWT不需要服务端登出，直接清除本地token即可
+  return Promise.resolve({ code: 200, msg: '退出成功' })
 }
 
 export const UserIndex = data => {
