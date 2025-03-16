@@ -13,6 +13,12 @@ const request = axios.create({
   timeout: 20000,
 })
 
+// 输出当前环境和API基础URL（仅在开发环境）
+if (process.env.NODE_ENV === 'development') {
+  console.log('当前环境:', process.env.NODE_ENV)
+  console.log('API基础URL:', config.BASE_API_URL)
+}
+
 /**
  * 异常拦截处理器
  *

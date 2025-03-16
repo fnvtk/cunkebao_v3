@@ -12,5 +12,13 @@ export default {
       },
       component: () => import('@/views/auth/login'),
     },
+    {
+      path: '/auth/mobile-login',
+      meta: {
+        title: '手机号登录',
+        needLogin: false,
+      },
+      component: () => import('@/views/auth/mobile-login'),
+    },
   ],
 }

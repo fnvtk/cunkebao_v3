@@ -86,3 +86,81 @@ server {
 QQ : 837215079
 
 ### 如果你觉得还不错，请 Star , Fork 给作者鼓励一下。
+
+## 环境变量配置
+
+本项目使用Vue CLI的环境变量配置功能，可以在不同环境下使用不同的配置。
+
+### 配置文件
+
+- `.env` - 所有环境的默认配置
+- `.env.development` - 开发环境配置
+- `.env.test` - 测试环境配置
+- `.env.production` - 生产环境配置
+
+### 环境变量
+
+项目中使用的主要环境变量：
+
+- `VUE_APP_WEBSITE_NAME` - 网站名称
+- `VUE_APP_API_BASE_URL` - API基础URL
+- `VUE_APP_WWW_BASE_URL` - 前端网站URL
+- `VUE_APP_WEB_SOCKET_URL` - WebSocket URL
+
+### 使用方法
+
+在代码中可以通过以下方式访问环境变量：
+
+```js
+// 直接访问
+console.log(process.env.VUE_APP_API_BASE_URL)
+
+// 通过配置文件访问
+import config from '@/config/config'
+console.log(config.BASE_API_URL)
+```
+
+### 运行与构建
+
+开发环境：
+```bash
+# 使用开发环境配置运行
+npm run serve:dev
+
+# 使用开发环境配置构建
+npm run build:dev
+```
+
+测试环境：
+```bash
+# 使用测试环境配置运行
+npm run serve:test
+
+# 使用测试环境配置构建
+npm run build:test
+```
+
+生产环境：
+```bash
+# 使用生产环境配置运行
+npm run serve:prod
+
+# 使用生产环境配置构建
+npm run build:prod
+```
+
+## 项目设置
+
+```bash
+# 安装依赖
+npm install
+
+# 启动开发服务器
+npm run serve
+
+# 构建生产版本
+npm run build
+
+# 代码检查
+npm run lint
+```

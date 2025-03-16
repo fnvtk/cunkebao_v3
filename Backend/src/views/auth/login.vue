@@ -30,6 +30,9 @@
             >立即登录
           </el-button>
         </el-form-item>
+        <div class="login-options">
+          <span @click="toMobileLogin">手机号登录</span>
+        </div>
       </el-form>
     </div>
   </div>
@@ -37,6 +40,7 @@
 <script>
 import { setToken, setUserInfo } from '@/utils/auth'
 import { ServeLogin } from '@/api/user'
+import CryptoUtil from '@/utils/crypto'
 
 export default {
   data() {
@@ -76,9 +80,13 @@ export default {
     },
 
     login() {
+      // 对密码进行加密
+      const encryptedPassword = CryptoUtil.encryptPassword(this.form.password)
+      
       ServeLogin({
         username: this.form.username,
-        password: this.form.password,
+        password: encryptedPassword,
+        is_encrypted: true // 标记密码已加密
       })
         .then(res => {
           if (res.code == 200) {
@@ -112,6 +120,10 @@ export default {
         })
     },
 
+    toMobileLogin() {
+      this.$router.push('/auth/mobile-login')
+    },
+
     toLink(url) {
       this.$router.push({
         path: url,
@@ -122,4 +134,12 @@ export default {
 </script>
 <style lang="less" scoped>
 @import '~@/assets/css/page/login-auth.less';
+
+.login-options {
+  text-align: right;
+  margin-top: 10px;
+  font-size: 14px;
+  color: #409EFF;
+  cursor: pointer;
+}
 </style>

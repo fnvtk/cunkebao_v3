@@ -29,19 +29,20 @@ class AuthService
     /**
      * 用户登录
      * @param string $username 用户名
-     * @param string $password 密码
+     * @param string $password 密码（可能是加密后的）
      * @param string $ip 登录IP
+     * @param bool $isEncrypted 密码是否已加密
      * @return array
      * @throws \Exception
      */
-    public function login($username, $password, $ip)
+    public function login($username, $password, $ip, $isEncrypted = false)
     {
         // 获取用户信息
-        $user = User::getAdminUser($username, $password);
+        $user = User::getAdminUser($username, $password, $isEncrypted);
         
         if (empty($user)) {
             // 记录登录失败
-            Log::info('登录失败', ['username' => $username, 'ip' => $ip]);
+            Log::info('登录失败', ['username' => $username, 'ip' => $ip, 'is_encrypted' => $isEncrypted]);
             throw new \Exception('用户名或密码错误');
         }
         
@@ -62,16 +63,17 @@ class AuthService
     /**
      * 手机号验证码登录
      * @param string $mobile 手机号
-     * @param string $code 验证码
+     * @param string $code 验证码（可能是加密后的）
      * @param string $ip 登录IP
+     * @param bool $isEncrypted 验证码是否已加密
      * @return array
      * @throws \Exception
      */
-    public function mobileLogin($mobile, $code, $ip)
+    public function mobileLogin($mobile, $code, $ip, $isEncrypted = false)
     {
         // 验证验证码
-        if (!$this->smsService->verifyCode($mobile, $code, 'login')) {
-            Log::info('验证码验证失败', ['mobile' => $mobile, 'ip' => $ip]);
+        if (!$this->smsService->verifyCode($mobile, $code, 'login', $isEncrypted)) {
+            Log::info('验证码验证失败', ['mobile' => $mobile, 'ip' => $ip, 'is_encrypted' => $isEncrypted]);
             throw new \Exception('验证码错误或已过期');
         }
 
