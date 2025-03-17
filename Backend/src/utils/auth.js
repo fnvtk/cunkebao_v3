@@ -7,8 +7,8 @@ const USER_SETTING = 'MANAGE_SETTING'
 /**
  * 设置用户授权token
  *
- * @param {String} token
- * @param {Number} expires
+ * @param {String} token - JWT令牌
+ * @param {Number} expires - 过期时间戳（秒）
  */
 export function setToken(token, expires) {
   expires = new Date().getTime() + expires * 1000
@@ -23,6 +23,7 @@ export function setToken(token, expires) {
 
 /**
  * 获取授权token
+ * @returns {String} token
  */
 export function getToken() {
   const result = JSON.parse(
@@ -33,7 +34,22 @@ export function getToken() {
       })
   )
 
+  // 检查token是否过期
+  if (result.expires > 0 && result.expires < new Date().getTime()) {
+    // token已过期，清除token
+    removeAll()
+    return ''
+  }
+
   return result.token
+}
+
+/**
+ * 检查用户是否登录
+ * @returns {Boolean}
+ */
+export function isLogin() {
+  return !!getToken()
 }
 
 /**
