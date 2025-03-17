@@ -92,7 +92,7 @@ class Auth extends Controller
         if (!$validate->scene('mobile_login')->check($params)) {
             return ResponseHelper::error($validate->getError());
         }
-        
+
         try {
             // 判断验证码是否已加密
             $isEncrypted = isset($params['is_encrypted']) && $params['is_encrypted'] === true;
@@ -104,6 +104,7 @@ class Auth extends Controller
                 Request::ip(),
                 $isEncrypted
             );
+            
             return ResponseHelper::success($result, '登录成功');
         } catch (\Exception $e) {
             return ResponseHelper::error($e->getMessage());

@@ -3,27 +3,8 @@
 
 use think\facade\Route;
 
-// 添加测试路由
-Route::get('api/test', function() {
-    return json([
-        'code' => 200,
-        'msg' => '路由测试成功',
-        'data' => [
-            'time' => date('Y-m-d H:i:s'),
-            'module' => 'common'
-        ]
-    ]);
-});
-
-// 数据库初始化路由
-Route::get('api/database/init', 'app\\common\\controller\\Database@init');
-Route::get('api/database/test', 'app\\common\\controller\\Database@test');
-Route::get('api/database/update-password', 'app\\common\\controller\\Database@updatePassword');
-Route::get('api/database/debug-password', 'app\\common\\controller\\Database@debugPassword');
-Route::get('api/database/reset-password', 'app\\common\\controller\\Database@resetPassword');
-
 // 定义RESTful风格的API路由 - 认证相关
-Route::group('api/auth', function () {
+Route::group('v1/auth', function () {
     // 无需认证的接口
     Route::post('login', 'app\\common\\controller\\Auth@login'); // 账号密码登录
     Route::post('mobile-login', 'app\\common\\controller\\Auth@mobileLogin'); // 手机号验证码登录
@@ -33,5 +14,3 @@ Route::group('api/auth', function () {
     Route::get('info', 'app\\common\\controller\\Auth@info')->middleware(['jwt']); // 获取用户信息
     Route::post('refresh', 'app\\common\\controller\\Auth@refresh')->middleware(['jwt']); // 刷新令牌
 });
-
-return []; 

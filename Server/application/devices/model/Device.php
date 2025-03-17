@@ -10,18 +10,30 @@ use think\Db;
 class Device extends Model
 {
     // 设置表名
-    protected $name = 'tk_device';
+    protected $name = 'device';
     
     // 设置主键
     protected $pk = 'id';
     
     // 自动写入时间戳
-    protected $autoWriteTimestamp = true;
+    protected $autoWriteTimestamp = 'int';
     
     // 定义时间戳字段名
     protected $createTime = 'createTime';
     protected $updateTime = 'updateTime';
     protected $deleteTime = 'deleteTime';
+    
+    // 定义字段类型
+    protected $type = [
+        'id' => 'integer',
+        'createTime' => 'integer',
+        'updateTime' => 'integer',
+        'deleteTime' => 'integer',
+        'alive' => 'integer',
+        'isDeleted' => 'integer',
+        'tenantId' => 'integer',
+        'groupId' => 'integer'
+    ];
     
     /**
      * 获取设备总数
@@ -105,7 +117,7 @@ class Device extends Model
         return self::where('id', $id)
             ->update([
                 'isDeleted' => 1,
-                'deleteTime' => date('Y-m-d H:i:s')
+                'deleteTime' => date('Y-m-d H:i:s', time())
             ]);
     }
     
