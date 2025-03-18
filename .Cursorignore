@@ -1,0 +1,9 @@
+Server/runtime/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.webp
+*.ico
+*.svg

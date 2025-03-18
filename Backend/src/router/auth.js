@@ -7,10 +7,18 @@ export default {
     {
       path: '/auth/login',
       meta: {
-        title: '账号登录？',
+        title: '账号登录',
         needLogin: false,
       },
       component: () => import('@/views/auth/login'),
+    },
+    {
+      path: '/auth/mobile-login',
+      meta: {
+        title: '手机号登录',
+        needLogin: false,
+      },
+      component: () => import('@/views/auth/mobile-login'),
     },
   ],
 }

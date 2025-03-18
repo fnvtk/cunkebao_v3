@@ -9,12 +9,12 @@
 // | Author: liu21st <liu21st@gmail.com>
 // +----------------------------------------------------------------------
 
-Route::get('think', function () {
-    return 'hello,ThinkPHP5!';
-});
+use think\facade\Route;
 
-Route::get('hello/:name', 'index/hello');
+// 加载Common模块路由配置
+include __DIR__ . '/../application/common/config/route.php';
 
-return [
+// 加载Devices模块路由配置
+include __DIR__ . '/../application/devices/config/route.php';
 
-];
+return [];
