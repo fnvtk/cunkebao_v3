@@ -251,19 +251,11 @@ class UserController extends BaseController
         }
 
         $headerData = ['client:' . self::CLIENT_TYPE];
-        $header = setHeader($headerData, $authorization, 'plain');
+        $header = setHeader($headerData, $authorization, 'system');
 
-        try {
-            // 获取当前用户信息
-            $currentUser = CompanyAccountModel::where('token', $authorization)->find();
-            
+        try { 
             // 调用外部退出登录接口
-            $result = requestCurl($this->baseUrl . 'api/Account/SignOut', [], 'POST', $header);
-            
-            if ($currentUser) {
-                recordUserLog($currentUser['id'], $currentUser['userName'], 'LOGOUT', '退出登录成功', [], 200, '退出成功');
-            }
-
+            $result = requestCurl($this->baseUrl . 'api/Account/SignOut', [], 'GET', $header);
             return successJson([] , '退出成功');
         } catch (\Exception $e) {
             recordUserLog(0, '', 'LOGOUT', '退出登录异常', [], 500, $e->getMessage());

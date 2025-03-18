@@ -4,7 +4,7 @@ namespace app\common\model;
 
 use think\Model;
 
-class CompanyAccountModel extends Model
+class WechatChatroomMemberModel extends Model
 {
-    
+
 } 

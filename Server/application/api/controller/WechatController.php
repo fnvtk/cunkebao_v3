@@ -57,7 +57,7 @@ class WechatController extends BaseController
         }
     }
 
-    public function getWechatAccountList()
+    public function getlist()
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', ''));
@@ -68,15 +68,15 @@ class WechatController extends BaseController
         try {
             // 构建请求参数
             $params = [
-                'wechatAlive' => input('wechatAlive', ''),
-                'keyword' => input('keyword', ''),
-                'groupId' => input('groupId', ''),
-                'departmentId' => input('departmentId', ''),
-                'hasDevice' => input('hasDevice', ''),
-                'deviceGroupId' => input('deviceGroupId', ''),
-                'containSubDepartment' => input('containSubDepartment', 'false'),
-                'pageIndex' => input('pageIndex', 0),
-                'pageSize' => input('pageSize', 10)
+                'wechatAlive' => $this->request->param('wechatAlive', ''),
+                'keyword' => $this->request->param('keyword', ''),
+                'groupId' => $this->request->param('groupId', ''),
+                'departmentId' => $this->request->param('departmentId', ''),
+                'hasDevice' => $this->request->param('hasDevice', ''),
+                'deviceGroupId' => $this->request->param('deviceGroupId', ''),
+                'containSubDepartment' => $this->request->param('containSubDepartment', 'false'),
+                'pageIndex' => $this->request->param('pageIndex', 0),
+                'pageSize' => $this->request->param('pageSize', 10)
             ];
 
             // 设置请求头

@@ -11,7 +11,7 @@ class WechatFriendController extends BaseController
      * 获取微信好友列表数据
      * @return \think\response\Json
      */
-    public function friendlistData()
+    public function getlist()
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', ''));
@@ -22,24 +22,18 @@ class WechatFriendController extends BaseController
         try {
             // 构建请求参数
             $params = [
-                'accountKeyword' => input('accountKeyword', ''),
-                'addFrom' => input('addFrom', []),
+                'accountKeyword' => '',
+                'addFrom' => '[]',
                 'allotAccountId' => input('allotAccountId', ''),
-                'containAllLabel' => input('containAllLabel', false),
-                'containSubDepartment' => input('containSubDepartment', false),
-                'departmentId' => input('departmentId', ''),
-                'extendFields' => input('extendFields', []),
-                'friendKeyword' => input('friendKeyword', ''),
-                'friendPhoneKeyword' => input('friendPhoneKeyword', ''),
-                'friendPinYinKeyword' => input('friendPinYinKeyword', ''),
-                'friendRegionKeyword' => input('friendRegionKeyword', ''),
-                'friendRemarkKeyword' => input('friendRemarkKeyword', ''),
-                'gender' => input('gender', ''),
-                'groupId' => input('groupId', null),
-                'isDeleted' => input('isDeleted', false),
-                'isPass' => input('isPass', true),
-                'keyword' => input('keyword', ''),
-                'labels' => input('labels', []),
+                'containSubDepartment' => false,
+                'departmentId' => '',
+                'extendFields' => '{}',
+                'gender' => '',
+                'groupId' => null,
+                'isDeleted' => null,
+                'isPass' => null,
+                'keyword' =>  input('keyword', ''),
+                'labels' => '[]',
                 'pageIndex' => input('pageIndex', 0),
                 'pageSize' => input('pageSize', 20),
                 'preFriendId' => input('preFriendId', ''),
@@ -48,15 +42,15 @@ class WechatFriendController extends BaseController
 
             // 设置请求头
             $headerData = ['client:system'];
-            $header = setHeader($headerData, $authorization, 'plain');
+            $header = setHeader($headerData, $authorization);
 
             // 发送请求获取好友列表
-            $result = requestCurl($this->baseUrl . 'api/WechatFriend/friendlistData', $params, 'GET', $header);
+            $result = requestCurl($this->baseUrl . 'api/WechatFriend/friendlistData', $params, 'POST', $header,'json');
             $response = handleApiResponse($result);
             
             // 保存数据到数据库
-            if (!empty($response['results'])) {
-                foreach ($response['results'] as $item) {
+            if (is_array($response)) {
+                foreach ($response as $item) {
                     $this->saveFriend($item);
                 }
             }
@@ -106,9 +100,9 @@ class WechatFriendController extends BaseController
             'additionalPicture' => $item['additionalPicture'],
             'desc' => $item['desc'],
             'country' => $item['country'],
-            'province' => $item['province'],
-            'city' => $item['city'],
-            'createTime' => $item['createTime']
+            'province' => isset($item['province']) ? $item['province'] : '',
+            'city' => isset($item['city']) ? $item['city'] : '',
+            'createTime' =>isset($item['createTime']) ? $item['createTime'] : '',
         ];
 
         // 使用三个字段的组合作为唯一性判断
