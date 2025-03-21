@@ -1,6 +1,6 @@
 <?php
 
-namespace app\common;
+namespace app\common\util;
 
 use Darabonba\OpenApi\Models\Config;
 use AlibabaCloud\SDK\Dysmsapi\V20170525\Dysmsapi;
@@ -62,4 +62,4 @@ class AliyunSMS {
 
         return FALSE;
     }
-}
+} 

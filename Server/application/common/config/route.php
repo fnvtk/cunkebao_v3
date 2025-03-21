@@ -14,3 +14,9 @@ Route::group('v1/auth', function () {
     Route::get('info', 'app\\common\\controller\\Auth@info')->middleware(['jwt']); // 获取用户信息
     Route::post('refresh', 'app\\common\\controller\\Auth@refresh')->middleware(['jwt']); // 刷新令牌
 });
+
+// 附件上传相关路由
+Route::group('v1/', function () {
+    Route::post('attachment/upload', 'app\\common\\controller\\Attachment@upload');  // 上传附件
+    Route::get('attachment/:id', 'app\\common\\controller\\Attachment@info');       // 获取附件信息
+})->middleware(['jwt']);
