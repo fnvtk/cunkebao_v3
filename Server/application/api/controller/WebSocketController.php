@@ -100,12 +100,13 @@ class WebSocketController extends BaseController
             $result = json_encode($result);
             $this->client->send($result);
             $message = $this->client->receive();
+            $message = json_decode($message, 1);
             //关闭WS链接
             $this->client->close();
-            Log::write('WS个人消息发送');
-            $this->success('消息成功发送', json_decode($message, 1), 200);
+            //Log::write('WS个人消息发送');
+            successJson($message, '消息成功发送');
         } else {
-            $this->error('非法请求');
+            errorJson('非法请求');
         }
     }
 
@@ -160,17 +161,16 @@ class WebSocketController extends BaseController
                 $message = $this->client->receive();
                 //关闭WS链接
                 $this->client->close();
-                Log::write('WS群消息发送');
-                Log::write($message);
+                //Log::write('WS群消息发送');
+                //Log::write($message);
                 $message = json_decode($message, 1);
             } catch (\Exception $e) {
                 $msg = $e->getMessage();
             }
-
-            $this->success($msg, $message, 200);
+            successJson($message,$msg);
 
         } else {
-            $this->error('非法请求');
+            errorJson('非法请求');
         }
     }
 
@@ -224,15 +224,14 @@ class WebSocketController extends BaseController
             $message = $this->client->receive();
             //关闭WS链接
             $this->client->close();
-            Log::write('WS群消息发送');
-            Log::write($message);
+            //Log::write('WS群消息发送');
+            //Log::write($message);
             $message = json_decode($message, 1);
         } catch (\Exception $e) {
             $msg = $e->getMessage();
         }
 
-        $this->success($msg, $message, 200);
-
+        successJson($message,$msg);
     }
 
 
@@ -274,10 +273,10 @@ class WebSocketController extends BaseController
                     "seq" => time(),
                 ];
                 $params = json_encode($params);
-                Log::write('WS获取朋友圈信息参数：' . json_encode($params, 256));
+                //Log::write('WS获取朋友圈信息参数：' . json_encode($params, 256));
                 $this->client->send($params);
                 $message = $this->client->receive();
-                Log::write('WS获取朋友圈信息成功，结果：' . $message);
+                //Log::write('WS获取朋友圈信息成功，结果：' . $message);
                 $message = json_decode($message, 1);
                 
                 // 存储朋友圈数据到数据库
@@ -290,9 +289,10 @@ class WebSocketController extends BaseController
             } catch (\Exception $e) {
                 $msg = $e->getMessage();
             }
-            $this->success($msg, $message, 200);
+
+            successJson($message,$msg);
         } else {
-            $this->error('非法请求');
+            errorJson('非法请求');
         }
     }
 
@@ -348,10 +348,10 @@ class WebSocketController extends BaseController
                 }
             }
             
-            Log::write('朋友圈数据已存入数据库，共' . count($momentList) . '条');
+            //Log::write('朋友圈数据已存入数据库，共' . count($momentList) . '条');
             return true;
         } catch (\Exception $e) {
-            Log::write('保存朋友圈数据失败：' . $e->getMessage(), 'error');
+            //Log::write('保存朋友圈数据失败：' . $e->getMessage(), 'error');
             return false;
         }
     }
@@ -396,15 +396,16 @@ class WebSocketController extends BaseController
                 $params = json_encode($params);
                 $this->client->send($params);
                 $message = $this->client->receive();
-                Log::write('WS获取朋友圈图片/视频链接成功，结果：' . json_encode($message, 256));
+                //Log::write('WS获取朋友圈图片/视频链接成功，结果：' . json_encode($message, 256));
                 //关闭WS链接
                 $this->client->close();
             } catch (\Exception $e) {
                 $msg = $e->getMessage();
             }
-            $this->success($msg, $message, 200);
+
+            successJson($message,$msg);
         } else {
-            $this->error('非法请求');
+            errorJson('非法请求');
         }
     }
 }

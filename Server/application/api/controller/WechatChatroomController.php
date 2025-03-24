@@ -2,8 +2,9 @@
 
 namespace app\api\controller;
 
-use app\common\model\WechatChatroomModel;
-use app\common\model\WechatChatroomMemberModel;
+use app\api\model\WechatChatroomModel;
+use app\api\model\WechatChatroomMemberModel;
+use app\job\WechatChatroomJob;
 use think\facade\Request;
 
 class WechatChatroomController extends BaseController
@@ -178,6 +179,34 @@ class WechatChatroomController extends BaseController
             $member->save($data);
         } else {
             WechatChatroomMemberModel::create($data);
+        }
+    }
+
+    /**
+     * 同步微信群聊数据
+     * 此方法用于手动触发微信群聊数据同步任务
+     * @return \think\response\Json
+     */
+    public function syncChatrooms()
+    {
+        try {
+            // 获取请求参数
+            $pageIndex = $this->request->param('pageIndex', 0);
+            $pageSize = $this->request->param('pageSize', 100);
+            $keyword = $this->request->param('keyword', '');
+            $wechatAccountKeyword = $this->request->param('wechatAccountKeyword', '');
+            $isDeleted = $this->request->param('isDeleted', '');
+            
+            // 添加同步任务到队列
+            $result = WechatChatroomJob::addSyncTask($pageIndex, $pageSize, $keyword, $wechatAccountKeyword, $isDeleted);
+            
+            if ($result) {
+                return successJson([], '微信群聊同步任务已添加到队列');
+            } else {
+                return errorJson('添加同步任务失败');
+            }
+        } catch (\Exception $e) {
+            return errorJson('添加同步任务异常：' . $e->getMessage());
         }
     }
 } 

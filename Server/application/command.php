@@ -10,6 +10,11 @@
 // +----------------------------------------------------------------------
 
 return [
-    'test' => 'app\common\command\TestCommand',
-    'device:list' => 'app\common\command\DeviceListCommand',
+    'device:list' => 'app\command\DeviceListCommand', // 设备列表
+    'wechatFriends:list' => 'app\command\WechatFriendCommand', // 微信好友列表
+    'wechatChatroom:list' => 'app\command\WechatChatroomCommand', // 微信群列表
+    'friendTask:list' => 'app\command\FriendTaskCommand', // 添加好友任务列表
+    'wechatList:list' => 'app\command\WechatListCommand', // 微信客服列表
+    'account:list' => 'app\command\AccountListCommand', // 公司账号列表
+    'sync:wechat:chatrooms' => 'app\command\SyncWechatChatrooms', // 同步微信群聊数据
 ];

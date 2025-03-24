@@ -2,7 +2,7 @@
 
 namespace app\api\controller;
 
-use app\common\model\WechatFriendModel;
+use app\api\model\WechatFriendModel;
 use think\facade\Request;
 
 class WechatFriendController extends BaseController

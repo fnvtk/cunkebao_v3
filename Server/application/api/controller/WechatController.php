@@ -2,7 +2,7 @@
 
 namespace app\api\controller;
 
-use app\common\model\WechatAccountModel;
+use app\api\model\WechatAccountModel;
 
 class WechatController extends BaseController
 {

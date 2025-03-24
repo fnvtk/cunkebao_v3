@@ -2,7 +2,7 @@
 
 namespace app\api\controller;
 
-use app\common\model\FriendTaskModel;
+use app\api\model\FriendTaskModel;
 use think\facade\Request;
 
 class FriendTaskController extends BaseController

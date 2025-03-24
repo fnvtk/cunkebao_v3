@@ -2,8 +2,6 @@
 
 namespace app\api\controller;
 
-use app\common\model\UserModel;
-use app\common\model\UserTokenModel;
 use think\Controller;
 use think\facade\Env;
 

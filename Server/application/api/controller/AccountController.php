@@ -2,7 +2,7 @@
 
 namespace app\api\controller;
 
-use app\common\model\CompanyAccountModel;
+use app\api\model\CompanyAccountModel;
 use think\facade\Request;
 
 class AccountController extends BaseController

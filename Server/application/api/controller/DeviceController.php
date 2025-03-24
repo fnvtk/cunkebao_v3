@@ -2,7 +2,7 @@
 
 namespace app\api\controller;
 
-use app\common\model\DeviceModel;
+use app\api\model\DeviceModel;
 use think\facade\Request;
 use think\facade\Env;
 use Endroid\QrCode\QrCode;
