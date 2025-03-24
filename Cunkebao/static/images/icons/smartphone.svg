@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="68" height="68" viewBox="0 0 68 68" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M18 20C18 17.7909 19.7909 16 22 16H46C48.2091 16 50 17.7909 50 20V48C50 50.2091 48.2091 52 46 52H22C19.7909 52 18 50.2091 18 48V20Z" 
+        stroke="#4080ff" 
+        stroke-width="4" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        fill="none" />
+  <line x1="18" y1="44" x2="50" y2="44" 
+        stroke="#4080ff" 
+        stroke-width="3" 
+        stroke-linecap="round" />
+  <line x1="18" y1="22" x2="50" y2="22" 
+        stroke="#4080ff" 
+        stroke-width="3" 
+        stroke-linecap="round" />
+  <rect x="30" y="46" width="8" height="3" rx="1.5"
+        stroke="#4080ff" 
+        stroke-width="2"
+        fill="none" />
+</svg> 
