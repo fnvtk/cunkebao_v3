@@ -1,14 +1,15 @@
 <?php
 
 // This file is auto-generated, don't edit it. Thanks.
-
 namespace Darabonba\OpenApi\Models;
 
-use AlibabaCloud\Credentials\Credential;
 use AlibabaCloud\Tea\Model;
+use AlibabaCloud\Credentials\Credential;
+
+use Darabonba\OpenApi\Models\GlobalParameters;
 
 /**
- * Model for initing client.
+ * Model for initing client
  */
 class Config extends Model
 {
@@ -16,6 +17,7 @@ class Config extends Model
         'accessKeyId' => '',
         'accessKeySecret' => '',
         'securityToken' => '',
+        'bearerToken' => '',
         'protocol' => 'http',
         'method' => '',
         'regionId' => '',
@@ -37,12 +39,13 @@ class Config extends Model
         'type' => '',
         'signatureVersion' => '',
         'signatureAlgorithm' => '',
+        'key' => '',
+        'cert' => '',
+        'ca' => '',
     ];
-
     public function validate()
     {
     }
-
     public function toMap()
     {
         $res = [];
@@ -54,6 +57,9 @@ class Config extends Model
         }
         if (null !== $this->securityToken) {
             $res['securityToken'] = $this->securityToken;
+        }
+        if (null !== $this->bearerToken) {
+            $res['bearerToken'] = $this->bearerToken;
         }
         if (null !== $this->protocol) {
             $res['protocol'] = $this->protocol;
@@ -121,13 +127,22 @@ class Config extends Model
         if (null !== $this->globalParameters) {
             $res['globalParameters'] = null !== $this->globalParameters ? $this->globalParameters->toMap() : null;
         }
-
+        if (null !== $this->key) {
+            $res['key'] = $this->key;
+        }
+        if (null !== $this->cert) {
+            $res['cert'] = $this->cert;
+        }
+        if (null !== $this->ca) {
+            $res['ca'] = $this->ca;
+        }
+        if (null !== $this->disableHttp2) {
+            $res['disableHttp2'] = $this->disableHttp2;
+        }
         return $res;
     }
-
     /**
      * @param array $map
-     *
      * @return Config
      */
     public static function fromMap($map = [])
@@ -141,6 +156,9 @@ class Config extends Model
         }
         if (isset($map['securityToken'])) {
             $model->securityToken = $map['securityToken'];
+        }
+        if (isset($map['bearerToken'])) {
+            $model->bearerToken = $map['bearerToken'];
         }
         if (isset($map['protocol'])) {
             $model->protocol = $map['protocol'];
@@ -208,226 +226,225 @@ class Config extends Model
         if (isset($map['globalParameters'])) {
             $model->globalParameters = GlobalParameters::fromMap($map['globalParameters']);
         }
-
+        if (isset($map['key'])) {
+            $model->key = $map['key'];
+        }
+        if (isset($map['cert'])) {
+            $model->cert = $map['cert'];
+        }
+        if (isset($map['ca'])) {
+            $model->ca = $map['ca'];
+        }
+        if (isset($map['disableHttp2'])) {
+            $model->disableHttp2 = $map['disableHttp2'];
+        }
         return $model;
     }
-
     /**
      * @description accesskey id
-     *
      * @var string
      */
     public $accessKeyId;
 
     /**
      * @description accesskey secret
-     *
      * @var string
      */
     public $accessKeySecret;
 
     /**
      * @description security token
-     *
      * @example a.txt
-     *
      * @var string
      */
     public $securityToken;
 
     /**
+     * @description bearer token
+     * @example the-bearer-token
+     * @var string
+     */
+    public $bearerToken;
+
+    /**
      * @description http protocol
-     *
      * @example http
-     *
      * @var string
      */
     public $protocol;
 
     /**
      * @description http method
-     *
      * @example GET
-     *
      * @var string
      */
     public $method;
 
     /**
      * @description region id
-     *
      * @example cn-hangzhou
-     *
      * @var string
      */
     public $regionId;
 
     /**
      * @description read timeout
-     *
      * @example 10
-     *
      * @var int
      */
     public $readTimeout;
 
     /**
      * @description connect timeout
-     *
      * @example 10
-     *
      * @var int
      */
     public $connectTimeout;
 
     /**
      * @description http proxy
-     *
      * @example http://localhost
-     *
      * @var string
      */
     public $httpProxy;
 
     /**
      * @description https proxy
-     *
      * @example https://localhost
-     *
      * @var string
      */
     public $httpsProxy;
 
     /**
      * @description credential
-     *
-     * @example
-     *
+     * @example 
      * @var Credential
      */
     public $credential;
 
     /**
      * @description endpoint
-     *
      * @example cs.aliyuncs.com
-     *
      * @var string
      */
     public $endpoint;
 
     /**
      * @description proxy white list
-     *
      * @example http://localhost
-     *
      * @var string
      */
     public $noProxy;
 
     /**
      * @description max idle conns
-     *
      * @example 3
-     *
      * @var int
      */
     public $maxIdleConns;
 
     /**
      * @description network for endpoint
-     *
      * @example public
-     *
      * @var string
      */
     public $network;
 
     /**
      * @description user agent
-     *
      * @example Alibabacloud/1
-     *
      * @var string
      */
     public $userAgent;
 
     /**
      * @description suffix for endpoint
-     *
      * @example aliyun
-     *
      * @var string
      */
     public $suffix;
 
     /**
      * @description socks5 proxy
-     *
      * @var string
      */
     public $socks5Proxy;
 
     /**
      * @description socks5 network
-     *
      * @example TCP
-     *
      * @var string
      */
     public $socks5NetWork;
 
     /**
      * @description endpoint type
-     *
      * @example internal
-     *
      * @var string
      */
     public $endpointType;
 
     /**
      * @description OpenPlatform endpoint
-     *
      * @example openplatform.aliyuncs.com
-     *
      * @var string
      */
     public $openPlatformEndpoint;
 
     /**
      * @description credential type
-     *
      * @example access_key
-     *
      * @deprecated
-     *
      * @var string
      */
     public $type;
 
     /**
      * @description Signature Version
-     *
      * @example v1
-     *
      * @var string
      */
     public $signatureVersion;
 
     /**
      * @description Signature Algorithm
-     *
      * @example ACS3-HMAC-SHA256
-     *
      * @var string
      */
     public $signatureAlgorithm;
 
     /**
      * @description Global Parameters
-     *
      * @var GlobalParameters
      */
     public $globalParameters;
+
+    /**
+     * @description privite key for client certificate
+     * @example MIIEvQ
+     * @var string
+     */
+    public $key;
+
+    /**
+     * @description client certificate
+     * @example -----BEGIN CERTIFICATE-----xxx-----END CERTIFICATE-----
+     * @var string
+     */
+    public $cert;
+
+    /**
+     * @description server certificate
+     * @example -----BEGIN CERTIFICATE-----xxx-----END CERTIFICATE-----
+     * @var string
+     */
+    public $ca;
+
+    /**
+     * @description disable HTTP/2
+     * @example false
+     * @var bool
+     */
+    public $disableHttp2;
+
 }

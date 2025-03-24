@@ -4,6 +4,8 @@ namespace AlibabaCloud\Tea\Utils\Tests;
 
 use AlibabaCloud\Tea\Model;
 use AlibabaCloud\Tea\Utils\Utils;
+use AlibabaCloud\Tea\Utils\Utils\ExtendsParameters;
+use AlibabaCloud\Tea\Utils\Utils\RuntimeOptions;
 use GuzzleHttp\Psr7\Stream;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\StreamInterface;
@@ -24,6 +26,11 @@ final class UtilsTest extends TestCase
         $this->assertEquals([
             115, 116, 114, 105, 110, 103,
         ], Utils::toBytes('string'));
+        $this->assertEquals([
+            115, 116, 114, 105, 110, 103,
+        ], Utils::toBytes([
+            115, 116, 114, 105, 110, 103,
+        ]));
     }
 
     public function testToString()
@@ -31,6 +38,7 @@ final class UtilsTest extends TestCase
         $this->assertEquals('string', Utils::toString([
             115, 116, 114, 105, 110, 103,
         ]));
+        $this->assertEquals('string', Utils::toString('string'));
     }
 
     public function testParseJSON()
@@ -108,12 +116,17 @@ final class UtilsTest extends TestCase
         $this->assertJson(Utils::toJSONString($object));
         $this->assertEquals('[]', Utils::toJSONString([]));
         $this->assertEquals('["foo"]', Utils::toJSONString(['foo']));
-        $this->assertEquals('{"str":"test","number":1,"bool":false,"null":null}', Utils::toJSONString([
-            'str'            => 'test',
-            'number'         => 1,
-            'bool'           => FALSE,
-            'null'           => null,
-        ]));
+        $this->assertEquals(
+            '{"str":"test","number":1,"bool":false,"null":null,"chinese":"中文","http":"https://aliyun.com:8080/zh/中文.html"}',
+            Utils::toJSONString([
+                'str'            => 'test',
+                'number'         => 1,
+                'bool'           => FALSE,
+                'null'           => null,
+                'chinese'        => '中文',
+                'http'           => 'https://aliyun.com:8080/zh/中文.html',
+            ])
+        );
         $this->assertEquals('1', Utils::toJSONString(1));
         $this->assertEquals('true', Utils::toJSONString(TRUE));
         $this->assertEquals('null', Utils::toJSONString(null));
@@ -250,6 +263,21 @@ final class UtilsTest extends TestCase
         }
     }
 
+    public function testAssertAsInteger()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('It is not a int value.');
+        Utils::assertAsInteger('is not int');
+
+        try {
+            $map = 123;
+            $this->assertEquals($map, Utils::assertAsInteger($map));
+        } catch (\Exception $e) {
+            // should not be here
+            $this->assertTrue(false);
+        }
+    }
+
     public function testAssertAsMap()
     {
         $this->expectException(\InvalidArgumentException::class);
@@ -369,6 +397,48 @@ final class UtilsTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('It is not a stream value.');
         Utils::assertAsReadable(0);
+    }
+
+    public function testRuntimeOptions()
+    {
+        $opts = new RuntimeOptions([
+            "autoretry" => false,
+            "ignoreSSL" => false,
+            "key" => "key",
+            "cert" => "cert",
+            "ca" => "ca",
+            "maxAttempts" => 3,
+            "backoffPolicy" => "backoffPolicy",
+            "backoffPeriod" => 10,
+            "readTimeout" => 3000,
+            "connectTimeout" => 3000,
+            "httpProxy" => "httpProxy",
+            "httpsProxy" => "httpsProxy",
+            "noProxy" => "noProxy",
+            "maxIdleConns" => 300,
+            "keepAlive" => true,
+            "extendsParameters" => new ExtendsParameters([
+                "headers" => ['key' => 'value'],
+                "queries" => ['key' => 'value'],
+            ]),
+        ]);
+        $this->assertEquals(false, $opts->autoretry);
+        $this->assertEquals(false, $opts->ignoreSSL);
+        $this->assertEquals("key", $opts->key);
+        $this->assertEquals("cert", $opts->cert);
+        $this->assertEquals("ca", $opts->ca);
+        $this->assertEquals(3, $opts->maxAttempts);
+        $this->assertEquals("backoffPolicy", $opts->backoffPolicy);
+        $this->assertEquals(10, $opts->backoffPeriod);
+        $this->assertEquals(3000, $opts->readTimeout);
+        $this->assertEquals(3000, $opts->connectTimeout);
+        $this->assertEquals("httpProxy", $opts->httpProxy);
+        $this->assertEquals("httpsProxy", $opts->httpsProxy);
+        $this->assertEquals("noProxy", $opts->noProxy);
+        $this->assertEquals(300, $opts->maxIdleConns);
+        $this->assertEquals(true, $opts->keepAlive);
+        $this->assertEquals('value', $opts->extendsParameters->headers['key']);
+        $this->assertEquals('value', $opts->extendsParameters->queries['key']);
     }
 
     private function convert($body, &$content)
