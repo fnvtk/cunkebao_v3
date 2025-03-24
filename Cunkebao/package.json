@@ -1,0 +1,28 @@
+{
+  "name": "cunkebao",
+  "version": "1.0.0",
+  "description": "村客宝 - 基于 uni-app 的跨平台应用",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "uni-app",
+    "vue",
+    "小程序",
+    "APP",
+    "H5"
+  ],
+  "author": "CunkeBao Team",
+  "license": "MIT",
+  "dependencies": {
+    "uview-ui": "^2.0.31"
+  },
+  "devDependencies": {
+    "sass": "^1.32.13",
+    "sass-loader": "^10.1.1",
+    "postcss-comment": "^2.0.0",
+    "postcss-import": "^14.0.2",
+    "autoprefixer": "^10.3.1"
+  }
+}

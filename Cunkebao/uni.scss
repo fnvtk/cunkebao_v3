@@ -1,0 +1,68 @@
+/* 主题色变量 */
+$primary-color: #4080ff;
+$success-color: #07c160;
+$warning-color: #ff9900;
+$error-color: #fa5151;
+$info-color: #909399;
+
+/* 文字颜色 */
+$text-color-main: #333333;
+$text-color-regular: #666666;
+$text-color-secondary: #999999;
+$text-color-placeholder: #c0c4cc;
+$text-color-white: #ffffff;
+
+/* 边框颜色 */
+$border-color-base: #dcdfe6;
+$border-color-light: #e4e7ed;
+$border-color-lighter: #ebeef5;
+$border-color-extra-light: #f2f6fc;
+
+/* 背景颜色 */
+$bg-color: #f7f7f7;
+$bg-color-white: #ffffff;
+$bg-color-primary: rgba(64, 128, 255, 0.1);
+$bg-color-success: rgba(7, 193, 96, 0.1);
+$bg-color-warning: rgba(255, 153, 0, 0.1);
+$bg-color-error: rgba(250, 81, 81, 0.1);
+
+/* 字体大小 */
+$font-size-xs: 20rpx;
+$font-size-sm: 24rpx;
+$font-size-base: 28rpx;
+$font-size-medium: 32rpx;
+$font-size-lg: 36rpx;
+$font-size-xl: 40rpx;
+$font-size-xxl: 48rpx;
+
+/* 圆角大小 */
+$border-radius-sm: 4rpx;
+$border-radius-base: 8rpx;
+$border-radius-lg: 16rpx;
+$border-radius-circle: 50%;
+
+/* 间距大小 */
+$spacing-xs: 10rpx;
+$spacing-sm: 20rpx;
+$spacing-base: 30rpx;
+$spacing-lg: 40rpx;
+$spacing-xl: 50rpx;
+
+/* 字体加粗 */
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-bold: 700;
+
+/* 阴影 */
+$shadow-sm: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+$shadow-base: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+$shadow-lg: 0 8rpx 16rpx rgba(0, 0, 0, 0.1);
+
+/* 基础动画 */
+$animation-duration-fast: 0.2s;
+$animation-duration-base: 0.3s;
+$animation-duration-slow: 0.4s;
+$animation-timing-function-base: ease-in-out;
+
+/* 导入uView的变量 */
+@import 'uview-ui/theme.scss'; 
