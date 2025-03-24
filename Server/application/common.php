@@ -113,12 +113,12 @@ if (!function_exists('errorJson')) {
 
 
 if (!function_exists('successJson')) {
-    function successJson($data = [] ,$error = '操作成功', $code = 200)
+    function successJson($data = [] ,$msg = '操作成功', $code = 200)
     {
         return json([
             'data' => $data,
             'code' => $code,
-            'msg' => $error,
+            'msg' => $msg,
         ]);
     }
 }
@@ -137,6 +137,7 @@ if (!function_exists('validateString')) {
         $config = [
             'password' => [
                 'min_length' => 6,
+                'max_length' => 20,
                 'pattern' => '/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9]+$/',
                 'error' => '密码必须包含英文和数字，不能包含特殊符号'
             ],

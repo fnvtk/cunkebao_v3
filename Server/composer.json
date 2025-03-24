@@ -23,7 +23,9 @@
         "alibabacloud/dysmsapi-20170525": "2.0.16",
         "hashids/hashids": "^3.0",
         "aliyuncs/oss-sdk-php": "^2.7",
-        "topthink/think-worker": "2.0.*"
+        "topthink/think-worker": "2.0.*",
+        "topthink/think-queue": "2.0.*",
+        "textalk/websocket": "^1.5"
     },
     "autoload": {
         "psr-4": {

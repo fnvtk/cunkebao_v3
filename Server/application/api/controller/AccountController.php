@@ -51,6 +51,142 @@ class AccountController extends BaseController
     }
 
     /**
+     * 创建部门
+     * @return \think\response\Json
+     */
+    public function createDepartment()
+    {
+        // 获取授权token
+        $authorization = trim($this->request->header('authorization', ''));
+        if (empty($authorization)) {
+            return errorJson('缺少授权信息');
+        }
+
+        try {
+            // 获取请求参数
+            $name = $this->request->param('name', '');
+            $memo = $this->request->param('memo', '');
+            if (empty($name)) {
+                return errorJson('请输入公司名称');
+            }
+
+
+            // 参数验证
+            if (empty($name)) {
+                return errorJson('部门名称不能为空');
+            }
+            
+            // 构建请求参数，设置固定的departmentIdArr和parentId
+            $params = [
+                'name' => $name,
+                'memo' => $memo,
+                'departmentIdArr' => [914],
+                'parentId' => 914
+            ];
+
+            // 设置请求头
+            $headerData = ['client:system'];
+            $header = setHeader($headerData, $authorization, 'json');
+
+            // 发送请求创建部门
+            $result = requestCurl($this->baseUrl . 'api/Department/createDepartment', $params, 'POST', $header,'json');
+
+            
+            // 尝试提取部门ID
+            if (is_int($result)) {
+                return successJson($result);
+            }else{
+                return errorJson($result);
+            }
+
+        } catch (\Exception $e) {
+            return response('创建部门失败：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 创建新账号
+     * @return \think\response\Json
+     */
+    public function createAccount()
+    {
+        // 获取授权token
+        $authorization = trim($this->request->header('authorization', ''));
+        if (empty($authorization)) {
+            return errorJson('缺少授权信息');
+        }
+
+        try {
+            // 获取请求参数
+            $userName = $this->request->param('userName', '');
+            $password = $this->request->param('password', '');
+            $realName = $this->request->param('realName', '');
+            $nickname = $this->request->param('nickname', '');
+            $memo = $this->request->param('memo', '');
+            $departmentId = $this->request->param('departmentId', 0);
+
+            // 用户名验证
+            if (empty($userName)) {
+                return errorJson('用户名不能为空');
+            }
+            
+            // 自定义用户名验证：只能使用英文字母或数字
+            if (!preg_match('/^[a-zA-Z][a-zA-Z0-9]{5,9}$/', $userName)) {
+                return errorJson('用户名必须以字母开头，只能包含字母和数字，长度6-10位');
+            }
+
+            // 密码验证
+            if (empty($password)) {
+                return errorJson('密码不能为空');
+            }
+            
+            // 使用validateString验证密码，添加自定义选项
+            $passwordValidation = validateString($password, 'password');
+            if (!$passwordValidation['status']) {
+                return errorJson($passwordValidation['message']);
+            }
+
+            // 真实姓名验证
+            if (empty($realName)) {
+                return errorJson('真实姓名不能为空');
+            }
+
+            
+            // 部门ID验证
+            if (empty($departmentId)) {
+                return errorJson('部门ID不能为空');
+            }
+
+            // 构建请求参数
+            $params = [
+                'userName' => $userName,
+                'password' => $password,
+                'realName' => $realName,
+                'nickname' => $nickname,
+                'memo' => $memo,
+                'departmentId' => $departmentId,
+                'departmentIdArr' => empty($departmentId) ? [914] : [914, $departmentId]
+            ];
+            // 设置请求头
+            $headerData = ['client:system'];
+            $header = setHeader($headerData, $authorization, 'json');
+
+            // 发送请求创建账号
+            $result = requestCurl($this->baseUrl . 'api/account/newAccount', $params, 'POST', $header, 'json');
+
+           
+            if (is_int($result)) {
+                return successJson($result);
+            }else{
+                return errorJson($result);
+            }
+
+        } catch (\Exception $e) {
+            return errorJson('创建账号失败：' . $e->getMessage());
+        }
+    }
+
+    /**
      * 保存账号数据到数据库
      * @param array $item 账号数据
      */

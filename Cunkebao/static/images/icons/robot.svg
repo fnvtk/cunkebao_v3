@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 机器人头部 -->
+  <rect x="8" y="4" width="12" height="14" rx="2" stroke="#4080ff" stroke-width="2" fill="none"/>
+  <!-- 天线 -->
+  <path d="M14 2L14 4" stroke="#4080ff" stroke-width="2" stroke-linecap="round"/>
+  <!-- 眼睛 -->
+  <circle cx="11" cy="9" r="1.5" fill="#4080ff"/>
+  <circle cx="17" cy="9" r="1.5" fill="#4080ff"/>
+  <!-- 显示屏/嘴巴 -->
+  <rect x="10" y="12" width="8" height="3" rx="1" stroke="#4080ff" stroke-width="1.5" fill="none"/>
+  <!-- 机器人身体 -->
+  <rect x="6" y="18" width="16" height="6" rx="2" stroke="#4080ff" stroke-width="2" fill="none"/>
+  <!-- 按钮/指示灯 -->
+  <circle cx="11" cy="21" r="1" fill="#4080ff"/>
+  <circle cx="14" cy="21" r="1" fill="#4080ff"/>
+  <circle cx="17" cy="21" r="1" fill="#4080ff"/>
+</svg> 
