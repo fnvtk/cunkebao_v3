@@ -11,4 +11,5 @@
 
 return [
     'test' => 'app\common\command\TestCommand',
+    'device:list' => 'app\common\command\DeviceListCommand',
 ];

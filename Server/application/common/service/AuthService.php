@@ -4,6 +4,9 @@ namespace app\common\service;
 use app\common\model\User;
 use app\common\util\JwtUtil;
 use think\facade\Log;
+use think\facade\Cache;
+use think\facade\Config;
+use think\facade\Env;
 
 class AuthService
 {
@@ -153,5 +156,72 @@ class AuthService
             'token' => $token,
             'token_expired' => $expireTime
         ];
+    }
+
+    /**
+     * 获取系统授权信息，使用缓存存储10分钟
+     * @return string
+     */
+    public static function getSystemAuthorization()
+    {
+        // 定义缓存键名
+        $cacheKey = 'system_authorization_token';
+        
+        // 尝试从缓存获取授权信息
+        $authorization = Cache::get($cacheKey);
+        
+        // 如果缓存中没有或已过期，则重新获取
+        if (empty($authorization)) {
+            try {
+                // 从环境变量中获取API用户名和密码
+                $username = Env::get('api.username', '');
+                $password = Env::get('api.password', '');
+                
+                if (empty($username) || empty($password)) {
+                    Log::error('缺少API用户名或密码配置');
+                    return '';
+                }
+                
+                // 构建登录参数
+                $params = [
+                    'grant_type' => 'password',
+                    'username' => $username,
+                    'password' => $password
+                ];
+                
+                // 获取API基础URL
+                $baseUrl = Env::get('api.wechat_url', '');
+                if (empty($baseUrl)) {
+                    Log::error('缺少API基础URL配置');
+                    return '';
+                }
+                
+                // 调用登录接口获取token
+                // 设置请求头
+                $headerData = ['client:system'];
+                $header = setHeader($headerData, '', 'plain');
+                $result = requestCurl($baseUrl . 'token', $params, 'POST',$header);
+                $result_array = handleApiResponse($result);
+
+                if (isset($result_array['access_token']) && !empty($result_array['access_token'])) {
+                    $authorization = $result_array['access_token'];
+                    
+                    // 存入缓存，有效期10分钟（600秒）
+                    Cache::set($cacheKey, $authorization, 600);
+                    Cache::set('system_refresh_token', $result_array['refresh_token'], 600);
+
+                    Log::info('已重新获取系统授权信息并缓存');
+                    return $authorization;
+                } else {
+                    Log::error('获取系统授权信息失败：' . ($response['message'] ?? '未知错误'));
+                    return '';
+                }
+            } catch (\Exception $e) {
+                Log::error('获取系统授权信息异常：' . $e->getMessage());
+                return '';
+            }
+        }
+        
+        return $authorization;
     }
 } 

@@ -51,6 +51,58 @@ class FriendTaskController extends BaseController
     }
 
     /**
+     * 添加好友任务
+     * @return \think\response\Json
+     */
+    public function addFriendTask()
+    {
+        // 获取授权token
+        $authorization = trim($this->request->header('authorization', ''));
+        if (empty($authorization)) {
+            return errorJson('缺少授权信息');
+        }
+
+        try {
+            // 获取请求参数
+            $phone = $this->request->param('phone', '');
+            $message = $this->request->param('message', '');
+            $remark = $this->request->param('remark', '');
+            $labels = $this->request->param('labels', []);
+            $wechatAccountId = $this->request->param('wechatAccountId', 0);
+
+            // 参数验证
+            if (empty($phone)) {
+                return errorJson('手机号不能为空');
+            }
+            
+            if (empty($wechatAccountId)) {
+                return errorJson('微信号不能为空');
+            }
+
+            // 构建请求参数
+            $params = [
+                'phone' => $phone,
+                'message' => $message,
+                'remark' => $remark,
+                'labels' => is_array($labels) ? $labels : [$labels],
+                'wechatAccountId' => (int)$wechatAccountId
+            ];
+
+            // 设置请求头
+            $headerData = ['client:system'];
+            $header = setHeader($headerData, $authorization, 'json');
+
+            // 发送请求添加好友任务
+            $result = requestCurl($this->baseUrl . 'api/AddFriendByPhoneTask/add', $params, 'POST', $header, 'json');
+            
+            // 处理响应
+            return successJson([], '添加好友任务创建成功');
+        } catch (\Exception $e) {
+            return errorJson('添加好友任务失败：' . $e->getMessage());
+        }
+    }
+
+    /**
      * 保存添加好友记录到数据库
      * @param array $item 添加好友记录数据
      */

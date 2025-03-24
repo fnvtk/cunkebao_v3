@@ -14,10 +14,10 @@ class DeviceController extends BaseController
      * 获取设备列表
      * @return \think\response\Json
      */
-    public function getlist()
+    public function getlist($pageIndex = '',$pageSize = '',$authorization = '')
     {
         // 获取授权token
-        $authorization = trim($this->request->header('authorization', ''));
+        $authorization = !empty($authorization) ? $authorization : trim($this->request->header('authorization', ''));
         if (empty($authorization)) {
             return errorJson('缺少授权信息');
         }
@@ -42,8 +42,8 @@ class DeviceController extends BaseController
                 'alive' => $this->request->param('alive', ''),
                 'hasWechat' => $this->request->param('hasWechat', ''),
                 'departmentId' => $this->request->param('departmentId', ''),
-                'pageIndex' => $this->request->param('pageIndex', 0),
-                'pageSize' => $this->request->param('pageSize', 20)
+                'pageIndex' => !empty($pageIndex) ? $pageIndex : $this->request->param('pageIndex', 0),
+                'pageSize' => !empty($pageSize) ? $pageSize : $this->request->param('pageSize', 20)
             ];
 
             // 设置请求头
