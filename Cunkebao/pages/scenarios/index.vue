@@ -124,7 +124,7 @@
       
       <!-- AI智能获客 版块标题 -->
       <view class="section-title">
-        <u-icon name="robot" size="28" color="#4080ff"></u-icon>
+        <image src="/static/images/icons/robot.svg" class="robot-icon"></image>
         <text>AI智能获客</text>
         <text class="beta-tag">Beta</text>
       </view>
@@ -480,7 +480,9 @@ export default {
   padding: 30rpx 20rpx 15rpx;
   margin: 15rpx 7.5rpx 5rpx;
   
-  u-icon {
+  .robot-icon {
+    width: 56rpx;
+    height: 56rpx;
     margin-right: 10rpx;
   }
   
