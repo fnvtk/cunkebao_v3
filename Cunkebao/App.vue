@@ -45,6 +45,9 @@
 	/* 导入全局样式变量 */
 	@import "./uni.scss";
 	
+	/* 导入字体 */
+	@import "./static/fonts/fonts.css";
+	
 	/* 全局样式 */
 	page {
 		background-color: $bg-color;

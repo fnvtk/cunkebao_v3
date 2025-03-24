@@ -2,9 +2,9 @@
   <view class="index-container">
     <!-- 顶部导航栏 -->
     <view class="header">
-      <view class="title">存客宝</view>
+      <view class="title align-left">存客宝</view>
       <view class="header-icons">
-        <u-icon name="bell" size="56" class="icon-bell" @click="goToNotification"></u-icon>
+        <u-icon name="bell" size="56" color="#000000" class="icon-bell" @click="goToNotification"></u-icon>
       </view>
     </view>
     
@@ -13,24 +13,24 @@
       <view class="data-card">
         <view class="data-title">设备数量</view>
         <view class="data-content">
-          <text class="data-number">42</text>
-          <u-icon name="phone" size="68" color="#4080ff"></u-icon>
+          <text class="data-number digital-number">42</text>
+          <image src="/static/images/icons/smartphone.svg" class="device-icon"></image>
         </view>
       </view>
       
       <view class="data-card">
         <view class="data-title">微信号数量</view>
         <view class="data-content">
-          <text class="data-number">42</text>
-          <u-icon name="weixin-fill" size="68" color="#4080ff"></u-icon>
+          <text class="data-number digital-number">42</text>
+          <image src="/static/images/icons/users.svg" class="team-icon"></image>
         </view>
       </view>
       
       <view class="data-card">
         <view class="data-title">在线微信号</view>
         <view class="data-content">
-          <text class="data-number">35</text>
-          <u-icon name="checkmark-circle" size="68" color="#4080ff"></u-icon>
+          <text class="data-number digital-number">35</text>
+          <image src="/static/images/icons/heartbeat.svg" class="heartbeat-icon"></image>
         </view>
         <view class="progress-container">
           <view class="progress-bar">
@@ -42,11 +42,11 @@
     
     <!-- 场景获客统计卡片 -->
     <view class="stat-card">
-      <view class="card-title">场景获客统计</view>
+      <view class="card-title align-left">场景获客统计</view>
       <view class="stat-grid">
         <view class="stat-item">
           <view class="stat-icon bg-green">
-            <u-icon name="integral-fill" size="32" color="#ffffff"></u-icon>
+            <u-icon name="integral-fill" size="38" color="#07c160"></u-icon>
           </view>
           <view class="stat-number">234</view>
           <view class="stat-label">公众号获客</view>
@@ -54,7 +54,7 @@
         
         <view class="stat-item">
           <view class="stat-icon bg-yellow">
-            <u-icon name="coupon" size="32" color="#ffffff"></u-icon>
+            <u-icon name="coupon" size="38" color="#ff9900"></u-icon>
           </view>
           <view class="stat-number">167</view>
           <view class="stat-label">海报获客</view>
@@ -62,7 +62,7 @@
         
         <view class="stat-item">
           <view class="stat-icon bg-black">
-            <u-icon name="play-right" size="32" color="#ffffff"></u-icon>
+            <u-icon name="play-right" size="38" color="#000000"></u-icon>
           </view>
           <view class="stat-number">156</view>
           <view class="stat-label">抖音获客</view>
@@ -70,7 +70,7 @@
         
         <view class="stat-item">
           <view class="stat-icon bg-red">
-            <u-icon name="heart" size="32" color="#ffffff"></u-icon>
+            <u-icon name="heart" size="38" color="#fa5151"></u-icon>
           </view>
           <view class="stat-number">89</view>
           <view class="stat-label">小红书获客</view>
@@ -80,13 +80,13 @@
     
     <!-- 每日获客趋势卡片 -->
     <view class="trend-card">
-      <view class="card-title">每日获客趋势</view>
+      <view class="card-title align-left">每日获客趋势</view>
       <view class="chart-container">
         <!-- 使用自定义LineChart组件代替uChart -->
         <LineChart
           :points="weekTrendData"
           :xAxisLabels="weekDays"
-          color="#4080ff"
+          color="#2563EB"
           class="custom-chart"
         ></LineChart>
       </view>
@@ -158,12 +158,16 @@ export default {
   align-items: center;
   padding: 25rpx 30rpx;
   background-color: #fff;
-  border-bottom: 1px solid #eeeeee;
+  border-bottom: 1px solid #e5e5e5;
   
   .title {
     font-size: 45rpx;
     font-weight: bold;
     color: #2664ec;
+    
+    &.align-left {
+      text-align: left;
+    }
   }
   
   .header-icons {
@@ -184,12 +188,12 @@ export default {
     border-radius: 30rpx;
     padding: 30rpx 30rpx;
     margin:  15rpx;
-    box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2rpx 7rpx rgba(0, 0, 0, 0.15);
     
     .data-title {
       font-size: 28rpx;
       color: black;
-      margin-bottom: 16rpx;
+      text-align: center;
     }
     
     .data-content {
@@ -198,9 +202,30 @@ export default {
       justify-content: space-between;
       
       .data-number {
-        font-size: 55rpx;
+        font-size: 58rpx;
         font-weight: bold;
-        color: #4080ff;
+        color: #2563EB;
+        height: 80rpx;
+        line-height: 80rpx;
+      }
+      
+      .device-icon {
+        width: 76rpx;
+        height: 60rpx;
+        margin-right: 6rpx;
+      }
+      
+      .team-icon {
+        width: 76rpx;
+        height: 60rpx;
+        margin-right: 6rpx;
+      }
+      
+      .heartbeat-icon {
+        width: 76rpx;
+        height: 60rpx;
+        margin-right: 6rpx;
+        animation: pulse 1.5s ease-in-out infinite;
       }
     }
     
@@ -235,15 +260,20 @@ export default {
 .stat-card, .trend-card {
   margin: 35rpx;
   background-color: #fff;
-  border-radius: 16rpx;
+  border-radius: 30rpx;
   padding: 25rpx 40rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2rpx 7rpx rgba(0, 0, 0, 0.15);
   
   .card-title {
     font-size: 36rpx;
     font-weight: bold;
     margin-bottom: 30rpx;
     color: #333;
+    text-align: center;
+    
+    &.align-left {
+      text-align: left;
+    }
   }
 }
 
@@ -259,8 +289,8 @@ export default {
     padding: 20rpx 0;
     
     .stat-icon {
-      width: 80rpx;
-      height: 80rpx;
+      width: 96rpx;
+      height: 96rpx;
       border-radius: 50%;
       display: flex;
       justify-content: center;
@@ -268,25 +298,25 @@ export default {
       margin-bottom: 16rpx;
       
       &.bg-green {
-        background-color: #07c160;
+        background-color: rgba(7, 193, 96, 0.2);
       }
       
       &.bg-yellow {
-        background-color: #ff9900;
+        background-color: rgba(255, 153, 0, 0.2);
       }
       
       &.bg-black {
-        background-color: #000000;
+        background-color: rgba(0, 0, 0, 0.2);
       }
       
       &.bg-red {
-        background-color: #fa5151;
+        background-color: rgba(250, 81, 81, 0.2);
       }
     }
     
     .stat-number {
-      font-size: 32rpx;
-      font-weight: bold;
+      font-size: 34rpx;
+      font-weight: normal;
       color: #333;
       margin-bottom: 8rpx;
     }

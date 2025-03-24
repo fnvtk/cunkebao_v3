@@ -1,0 +1,27 @@
+@font-face {
+  font-family: 'Digital-Bold';
+  src: url('https://cdn.jsdelivr.net/npm/alibaba-puhuiti@1.0.0/AlibabaPuHuiTi-Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Digital-Medium';
+  src: url('https://cdn.jsdelivr.net/npm/alibaba-puhuiti@1.0.0/AlibabaPuHuiTi-Medium.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.digital-text {
+  font-family: 'Digital-Bold', sans-serif;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.digital-number {
+  font-family: 'Digital-Bold', sans-serif;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+} 

@@ -68,7 +68,6 @@ export default {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 150rpx;
   background-color: #fff;
   display: flex;
   box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
@@ -85,7 +84,6 @@ export default {
     .tab-text {
       font-size: 26rpx;
       color: #999;
-      margin-top: 10rpx;
       
       &.active-text {
         color: #4080ff;
