@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 大脑图形 -->
+  <path d="M40 20C48.8366 20 56 27.1634 56 36C56 44.8366 48.8366 52 40 52C31.1634 52 24 44.8366 24 36C24 27.1634 31.1634 20 40 20Z" 
+        stroke="#4080ff" 
+        stroke-width="3"
+        fill="none"/>
+  
+  <!-- 连接线路 -->
+  <path d="M32 32C36 36 44 36 48 32M36 40C40 44 44 40 48 44" 
+        stroke="#4080ff" 
+        stroke-width="3"
+        stroke-linecap="round"/>
+  
+  <!-- 圆点装饰 -->
+  <circle cx="32" cy="32" r="2" fill="#4080ff"/>
+  <circle cx="48" cy="32" r="2" fill="#4080ff"/>
+  <circle cx="36" cy="44" r="2" fill="#4080ff"/>
+  <circle cx="48" cy="44" r="2" fill="#4080ff"/>
+  
+  <!-- 外圈光环效果 -->
+  <circle cx="40" cy="36" r="24" 
+          stroke="#4080ff" 
+          stroke-width="2"
+          stroke-dasharray="4 4"
+          fill="none"/>
+</svg> 

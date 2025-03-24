@@ -3,11 +3,12 @@
     <!-- 顶部导航栏 -->
     <view class="header">
       <view class="back-icon" @click="goBack">
-        <u-icon name="arrow-left" size="26"></u-icon>
+        <u-icon name="arrow-left" size="42" color="black"></u-icon>
       </view>
       <view class="title">场景获客</view>
       <view class="header-icons">
-        <u-icon name="plus" size="26" class="icon-add" @click="createNewPlan"></u-icon>
+        <u-icon name="plus" size="30" color="#fff" class="icon-add" @click="createNewPlan"></u-icon>
+        <text>新建计划</text>
       </view>
     </view>
     
@@ -25,7 +26,7 @@
             <view class="data-value">156</view>
           </view>
           <view class="data-trend up">
-            <u-icon name="arrow-up-fill" size="16" color="#2fc25b"></u-icon>
+            <image src="/static/images/icons/trend-up.svg" style="width: 32rpx; height: 32rpx;"></image>
             <text>+12.5%</text>
           </view>
         </view>
@@ -43,7 +44,7 @@
             <view class="data-value">89</view>
           </view>
           <view class="data-trend up">
-            <u-icon name="arrow-up-fill" size="16" color="#2fc25b"></u-icon>
+            <image src="/static/images/icons/trend-up.svg" style="width: 32rpx; height: 32rpx;"></image>
             <text>+8.3%</text>
           </view>
         </view>
@@ -61,7 +62,7 @@
             <view class="data-value">42</view>
           </view>
           <view class="data-trend up">
-            <u-icon name="arrow-up-fill" size="16" color="#2fc25b"></u-icon>
+            <image src="/static/images/icons/trend-up.svg" style="width: 32rpx; height: 32rpx;"></image>
             <text>+15.8%</text>
           </view>
         </view>
@@ -79,7 +80,7 @@
             <view class="data-value">234</view>
           </view>
           <view class="data-trend up">
-            <u-icon name="arrow-up-fill" size="16" color="#2fc25b"></u-icon>
+            <image src="/static/images/icons/trend-up.svg" style="width: 32rpx; height: 32rpx;"></image>
             <text>+15.7%</text>
           </view>
         </view>
@@ -97,7 +98,7 @@
             <view class="data-value">167</view>
           </view>
           <view class="data-trend up">
-            <u-icon name="arrow-up-fill" size="16" color="#2fc25b"></u-icon>
+            <image src="/static/images/icons/trend-up.svg" style="width: 32rpx; height: 32rpx;"></image>
             <text>+10.2%</text>
           </view>
         </view>
@@ -115,7 +116,7 @@
             <view class="data-value">145</view>
           </view>
           <view class="data-trend up">
-            <u-icon name="arrow-up-fill" size="16" color="#2fc25b"></u-icon>
+            <image src="/static/images/icons/trend-up.svg" style="width: 32rpx; height: 32rpx;"></image>
             <text>+11.2%</text>
           </view>
         </view>
@@ -129,9 +130,9 @@
       </view>
       
       <!-- AI智能加友 -->
-      <view class="channel-card" @click="navigateToDetail('ai-friend')">
-        <view class="channel-icon bg-blue">
-          <u-icon name="star" size="28" color="#ffffff"></u-icon>
+      <view class="channel-card channel-card-xw" @click="navigateToDetail('ai-friend')">
+        <view class="channel-icon">
+          <image src="/static/images/icons/aipa.svg" mode="aspectFit" class="ai-icon"></image>
         </view>
         <view class="channel-name">AI智能加友</view>
         <view class="channel-desc">智能分析目标用户画像，自动筛选优质客户</view>
@@ -141,35 +142,35 @@
             <view class="data-value">245</view>
           </view>
           <view class="data-trend up">
-            <u-icon name="arrow-up-fill" size="16" color="#2fc25b"></u-icon>
+            <image src="/static/images/icons/trend-up.svg" style="width: 32rpx; height: 32rpx;"></image>
             <text>+18.5%</text>
           </view>
         </view>
       </view>
       
-      <!-- AI群引流 -->
-      <view class="channel-card" @click="navigateToDetail('ai-group')">
-        <view class="channel-icon bg-blue">
-          <u-icon name="star" size="28" color="#ffffff"></u-icon>
+      <!-- AI智能群控 -->
+      <view class="channel-card channel-card-xw" @click="navigateToDetail('ai-group')">
+        <view class="channel-icon">
+          <image src="/static/images/icons/aipa.svg" mode="aspectFit" class="ai-icon"></image>
         </view>
-        <view class="channel-name">AI群引流</view>
-        <view class="channel-desc">智能推聊互动，提高群活跃度和转化率</view>
+        <view class="channel-name">AI智能群控</view>
+        <view class="channel-desc">一键管理多个群聊，自动回复，数据分析</view>
         <view class="channel-data">
           <view class="data-item">
             <view class="data-label">今日：</view>
-            <view class="data-value">178</view>
+            <view class="data-value">128</view>
           </view>
           <view class="data-trend up">
-            <u-icon name="arrow-up-fill" size="16" color="#2fc25b"></u-icon>
-            <text>+15.2%</text>
+            <image src="/static/images/icons/trend-up.svg" style="width: 32rpx; height: 32rpx;"></image>
+            <text>+9.7%</text>
           </view>
         </view>
       </view>
       
       <!-- AI场景转化 -->
-      <view class="channel-card" @click="navigateToDetail('ai-convert')">
-        <view class="channel-icon bg-blue">
-          <u-icon name="star" size="28" color="#ffffff"></u-icon>
+      <view class="channel-card channel-card-xw" @click="navigateToDetail('ai-convert')">
+        <view class="channel-icon">
+          <image src="/static/images/icons/aipa.svg" mode="aspectFit" class="ai-icon"></image>
         </view>
         <view class="channel-name">AI场景转化</view>
         <view class="channel-desc">多场景智能营销，提升获客转化效果</view>
@@ -179,7 +180,7 @@
             <view class="data-value">134</view>
           </view>
           <view class="data-trend up">
-            <u-icon name="arrow-up-fill" size="16" color="#2fc25b"></u-icon>
+            <image src="/static/images/icons/trend-up.svg" style="width: 32rpx; height: 32rpx;"></image>
             <text>+14.3%</text>
           </view>
         </view>
@@ -277,7 +278,7 @@ export default {
 <style lang="scss" scoped>
 .scenarios-container {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #f9fafb;
   position: relative;
   padding-bottom: 150rpx; /* 为底部导航栏预留空间 */
 }
@@ -286,26 +287,43 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 40rpx;
+  padding: 25rpx 30rpx;
   background-color: #fff;
-  position: relative;
+  border-bottom: 1px solid #e5e5e5;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
   
   .back-icon {
-    width: 48rpx;
+    width: 60rpx;
+    color: #000;
+    padding: 10rpx;
+    border-radius: 50%;
+    
+    &:active {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
   }
   
   .title {
     position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
     font-size: 40rpx;
     font-weight: bold;
-    color: #333;
+    color: #2563EB;
+    float: left;
+    margin-left: 70rpx;
   }
   
   .header-icons {
     display: flex;
     align-items: center;
+    background-color: #2563EB;
+    border-radius: 20rpx;
+    padding: 15rpx 30rpx;
+    color: #fff;
+    text-indent: 15rpx;
   }
 }
 
@@ -313,18 +331,24 @@ export default {
   display: flex;
   flex-wrap: wrap;
   padding: 15rpx;
+  margin-top: 130rpx;  // 添加顶部边距，为固定header留出空间
   
   .channel-card {
-    width: calc(50% - 15rpx);
-    margin: 7.5rpx;
+    width: calc(50% - 30rpx);
+    margin: 15rpx;
     background-color: #fff;
-    border-radius: 16rpx;
-    padding: 20rpx 15rpx;
+    border-radius: 35rpx;
+    padding: 35rpx 20rpx;
     box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
     display: flex;
     flex-direction: column;
     align-items: center;
     box-sizing: border-box;
+    
+    // AI智能获客栏目下的卡片特殊背景色
+    .section-title + & {
+      background-color: #F8FBFF;
+    }
     
     .channel-icon {
       width: 80rpx;
@@ -358,13 +382,16 @@ export default {
       &.bg-wechat {
         background-color: #07c160;
       }
+      
+      &.bg-purple {
+        background-color: #8a2be2;
+      }
     }
     
     .channel-name {
-      font-size: 28rpx;
-      font-weight: bold;
-      color: #333;
-      margin-bottom: 15rpx;
+      font-size: 30rpx;
+      color: #2563EB;
+      margin: 15rpx;
     }
     
     .channel-desc {
@@ -372,7 +399,7 @@ export default {
       color: #666;
       text-align: center;
       margin-bottom: 15rpx;
-      height: 68rpx;
+      height: 80rpx;
       display: -webkit-box;
       -webkit-box-orient: vertical;
       -webkit-line-clamp: 2;
@@ -381,21 +408,34 @@ export default {
     
     .channel-data {
       width: 100%;
+      padding: 0 10rpx;
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
       align-items: center;
       
       .data-item {
         display: flex;
         align-items: center;
+        margin-bottom: 10rpx;
         
         .data-label {
+          display: flex;
+          align-items: center;
           font-size: 24rpx;
           color: #999;
+          
+          &::before {
+            content: '';
+            display: inline-block;
+            width: 36rpx;
+            height: 36rpx;
+            margin-right: 6rpx;
+            background: url('/static/images/icons/user-label.svg') no-repeat center/contain;
+          }
         }
         
         .data-value {
-          font-size: 32rpx;
+          font-size: 38rpx;
           font-weight: bold;
           color: #333;
         }
@@ -404,7 +444,8 @@ export default {
       .data-trend {
         display: flex;
         align-items: center;
-        font-size: 22rpx;
+        font-size: 28rpx;
+        text-indent: 15rpx;
         
         &.up {
           color: #2fc25b;
@@ -413,6 +454,20 @@ export default {
         &.down {
           color: #fa3534;
         }
+      }
+    }
+  }
+
+  .channel-card-xw {
+    background-color: #F8FBFF !important;
+    border: 6rpx solid #DBEAFE !important;
+
+    .channel-icon {
+      background: none !important;
+      
+      .ai-icon {
+        width: 90rpx;
+        height: 90rpx;
       }
     }
   }
@@ -436,12 +491,12 @@ export default {
   }
   
   .beta-tag {
-    font-size: 22rpx;
+    font-size: 25rpx;
     color: #4080ff;
     background-color: #ecf5ff;
-    padding: 2rpx 10rpx;
-    border-radius: 10rpx;
-    margin-left: 10rpx;
+    padding: 5rpx 20rpx;
+    border-radius: 20rpx;
+    margin-left: 20rpx;
   }
 }
 </style> 
