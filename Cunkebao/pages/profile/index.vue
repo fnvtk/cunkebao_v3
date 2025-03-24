@@ -4,8 +4,8 @@
     <view class="header">
       <view class="title">我的</view>
       <view class="header-icons">
-        <u-icon name="setting" size="26" class="icon-setting" @click="goToSetting"></u-icon>
-        <u-icon name="bell" size="26" class="icon-bell" @click="goToNotification"></u-icon>
+        <u-icon name="setting" size="50" color="#000000" class="icon-setting" @click="goToSetting"></u-icon>
+        <u-icon name="bell" size="50" color="#000000" class="icon-bell" @click="goToNotification"></u-icon>
       </view>
     </view>
     
@@ -24,9 +24,9 @@
       <view class="user-info">
         <view class="username">卡若</view>
         <view class="account">账号: 84675209</view>
-      </view>
-      <view class="edit-profile-btn" @click="editProfile">
-        编辑资料
+        <view class="edit-profile-btn" @click="editProfile">
+          编辑资料
+        </view>
       </view>
     </view>
     
@@ -34,40 +34,36 @@
     <view class="menu-list">
       <view class="menu-item" @click="navigateTo('/pages/device/index')">
         <view class="menu-left">
-          <u-icon name="setting" size="28" color="#4080ff" class="menu-icon"></u-icon>
           <text class="menu-title">设备管理</text>
         </view>
-        <u-icon name="arrow-right" size="20" color="#c8c9cc"></u-icon>
+        <u-icon name="arrow-right" size="30" color="#9fa6b1"></u-icon>
       </view>
       
       <view class="menu-item" @click="navigateTo('/pages/wechat/index')">
         <view class="menu-left">
-          <u-icon name="weixin-fill" size="28" color="#07c160" class="menu-icon"></u-icon>
           <text class="menu-title">微信号管理</text>
         </view>
-        <u-icon name="arrow-right" size="20" color="#c8c9cc"></u-icon>
+        <u-icon name="arrow-right" size="30" color="#9fa6b1"></u-icon>
       </view>
       
       <view class="menu-item" @click="navigateTo('/pages/traffic/index')">
         <view class="menu-left">
-          <u-icon name="wifi" size="28" color="#fa3534" class="menu-icon"></u-icon>
           <text class="menu-title">流量池</text>
         </view>
-        <u-icon name="arrow-right" size="20" color="#c8c9cc"></u-icon>
+        <u-icon name="arrow-right" size="30" color="#9fa6b1"></u-icon>
       </view>
       
       <view class="menu-item" @click="navigateTo('/pages/content/index')">
         <view class="menu-left">
-          <u-icon name="folder" size="28" color="#ff9900" class="menu-icon"></u-icon>
           <text class="menu-title">内容库</text>
         </view>
-        <u-icon name="arrow-right" size="20" color="#c8c9cc"></u-icon>
+        <u-icon name="arrow-right" size="30" color="#9fa6b1"></u-icon>
       </view>
     </view>
     
     <!-- 退出登录按钮 -->
     <view class="logout-btn" @click="handleLogout">
-      <u-icon name="arrow-left" color="#ff3c2a" size="18"></u-icon>
+      <image src="/static/images/icons/logout.svg" class="logout-icon"></image>
       <text class="logout-text">退出登录</text>
     </view>
     
@@ -103,7 +99,7 @@ export default {
       console.log('获取用户信息');
       // 示例数据，实际应从API获取
       this.userInfo = {
-        avatar: null, // 设置为 null，使用默认图标
+        avatar: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400&h=400&auto=format&fit=crop',
         username: '卡若',
         account: '84675209'
       };
@@ -162,23 +158,29 @@ export default {
 
 <style lang="scss" scoped>
 .profile-container {
-  min-height: 100vh;
-  background-color: #f5f5f5;
+  min-height: 90vh;
+  background-color: #f9fafb;
   position: relative;
-  padding-bottom: 150rpx; /* 为底部导航栏预留空间，从110rpx更新为150rpx */
+  padding-top: 50rpx;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 40rpx;
+  padding: 25rpx 30rpx;
   background-color: #fff;
+  border-bottom: 1px solid #e5e5e5;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
   
   .title {
-    font-size: 40rpx;
+    font-size: 45rpx;
     font-weight: bold;
-    color: #333;
+    color: #2664ec;
   }
   
   .header-icons {
@@ -186,23 +188,24 @@ export default {
     align-items: center;
     
     .icon-setting {
-      margin-right: 30rpx;
+      margin-right: 40rpx;
     }
   }
 }
 
 .user-card {
-  margin: 20rpx;
+  margin: 35rpx;
+  margin-top: 120rpx;
   background-color: #fff;
   border-radius: 16rpx;
-  padding: 40rpx;
+  padding: 50rpx;
   display: flex;
   align-items: center;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
   
   .avatar-wrap {
-    width: 120rpx;
-    height: 120rpx;
+    width: 180rpx;
+    height: 180rpx;
     margin-right: 30rpx;
     
     .avatar {
@@ -226,29 +229,31 @@ export default {
     flex: 1;
     
     .username {
-      font-size: 36rpx;
+      font-size: 45rpx;
       font-weight: bold;
-      color: #333;
-      margin-bottom: 8rpx;
+      color: #2664ec;
+      margin-bottom: 4rpx;
     }
     
     .account {
-      font-size: 28rpx;
-      color: #999;
+      font-size: 32rpx;
+      color: #6b7280;
+      margin-bottom: 10rpx;
     }
-  }
-  
-  .edit-profile-btn {
-    padding: 12rpx 30rpx;
-    background-color: #f5f5f5;
-    border-radius: 30rpx;
-    font-size: 28rpx;
-    color: #333;
+    
+    .edit-profile-btn {
+      display: inline-block;
+      padding: 10rpx 25rpx;
+      background-color: #f5f5f5;
+      border-radius: 30rpx;
+      font-size: 28rpx;
+      color: #333;
+    }
   }
 }
 
 .menu-list {
-  margin: 20rpx;
+  margin: 35rpx;
   background-color: #fff;
   border-radius: 16rpx;
   overflow: hidden;
@@ -259,7 +264,7 @@ export default {
     justify-content: space-between;
     align-items: center;
     padding: 30rpx 40rpx;
-    border-bottom: 2rpx solid #f5f5f5;
+    border-bottom: 2rpx solid #e5e5e5;
     
     &:last-child {
       border-bottom: none;
@@ -268,10 +273,6 @@ export default {
     .menu-left {
       display: flex;
       align-items: center;
-      
-      .menu-icon {
-        margin-right: 20rpx;
-      }
       
       .menu-title {
         font-size: 32rpx;
@@ -288,10 +289,15 @@ export default {
   margin: 60rpx auto;
   width: 200rpx;
   
+  .logout-icon {
+    width: 42rpx;
+    height: 42rpx;
+    margin-right: 10rpx;
+  }
+  
   .logout-text {
     font-size: 32rpx;
     color: #ff3c2a;
-    margin-left: 10rpx;
   }
 }
 </style> 
