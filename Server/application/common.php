@@ -104,7 +104,7 @@ if (!function_exists('setHeader')) {
 if (!function_exists('errorJson')) {
     function errorJson($error = '', $code = 500)
     {
-        return json_encode([
+        return json([
             'code' => $code,
             'msg' => $error,
         ]);
@@ -115,7 +115,7 @@ if (!function_exists('errorJson')) {
 if (!function_exists('successJson')) {
     function successJson($data = [] ,$msg = '操作成功', $code = 200)
     {
-        return json_encode([
+        return json([
             'data' => $data,
             'code' => $code,
             'msg' => $msg,
