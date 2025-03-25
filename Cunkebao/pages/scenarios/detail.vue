@@ -329,7 +329,7 @@ export default {
       
       .channel-desc {
         font-size: 28rpx;
-        color: #999;
+        color: #777;
       }
     }
   }
@@ -351,7 +351,7 @@ export default {
       
       .data-label {
         font-size: 28rpx;
-        color: #999;
+        color: #777;
       }
     }
   }
@@ -467,7 +467,7 @@ export default {
       
       .customer-time {
         font-size: 24rpx;
-        color: #999;
+        color: #777;
       }
     }
   }
@@ -475,8 +475,30 @@ export default {
   .empty-tip {
     text-align: center;
     padding: 40rpx 0;
-    color: #999;
+    color: #777;
     font-size: 28rpx;
   }
+}
+
+.progress-label {
+  font-size: 24rpx;
+  color: #777;
+  margin-bottom: 10rpx;
+}
+
+.stat-label {
+  font-size: 24rpx;
+  color: #777;
+}
+
+.timeline-time {
+  font-size: 24rpx;
+  color: #777;
+  margin-bottom: 8rpx;
+}
+
+.timeline-meta {
+  font-size: 22rpx;
+  color: #777;
 }
 </style> 

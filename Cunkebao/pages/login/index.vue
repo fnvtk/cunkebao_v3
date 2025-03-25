@@ -3,7 +3,7 @@
     <!-- 登录方式切换 -->
     <u-tabs
       :list="tabsList"
-      :current="current"
+      :current="Number(current)"
       @change="handleTabChange"
       activeStyle="color: #4080ff; font-size: 36rpx"
       inactiveStyle="color: #e9e9e9; font-size: 36rpx"
@@ -37,7 +37,7 @@
       </view>
       
       <!-- 验证码输入 -->
-      <view v-if="current === 0" class="input-box code-box">
+      <view v-if="current == 0" class="input-box code-box">
         <u--input
           v-model="form.code"
           placeholder="验证码"
@@ -61,7 +61,7 @@
       </view>
       
       <!-- 密码输入 -->
-      <view v-if="current === 1" class="input-box">
+      <view v-if="current == 1" class="input-box">
         <u--input
           v-model="form.password"
           placeholder="密码"
@@ -71,17 +71,25 @@
           fontSize="30rpx"
           suffixIcon="eye"
           @clickSuffixIcon="showPassword = !showPassword"
+          suffixIconStyle="font-size: 45rpx;"
         ></u--input>
       </view>
       
       <!-- 用户协议 -->
       <view class="agreement">
-        <u-checkbox
+        <u-checkbox-group
           v-model="isAgree"
-          shape="circle"
-          activeColor="#4080ff"
-          iconSize="48"
-        ></u-checkbox>
+          placement="column"
+          @change="checkboxChange"
+        >
+          <u-checkbox
+            key="1"
+            shape="circle"
+            activeColor="#4080ff"
+            size="35" 
+            iconSize="30"
+          ></u-checkbox>
+      </u-checkbox-group>
         <text class="agreement-text">
           已阅读并同意 
           <text class="link" @click="goToUserAgreement">用户协议</text> 
@@ -95,7 +103,7 @@
         text="登录"
         type="primary"
         @click="handleLogin"
-        customStyle="width: 100%; margin-top: 40rpx; height: 96rpx; border-radius: 24rpx; font-size: 70rpx;"
+        customStyle="width: 100%; margin-top: 40rpx; height: 96rpx; border-radius: 24rpx; font-size: 32rpx; font-weight: 500;"
       ></u-button>
       
       <!-- 分割线 -->
@@ -131,8 +139,8 @@ export default {
   data() {
     return {
       tabsList: [
-        { name: '验证码登录' },
-        { name: '密码登录' }
+        { text: '验证码登录', name: '验证码登录', id: 0 },
+        { text: '密码登录', name: '密码登录', id: 1 }
       ],
       current: 0,
       form: {
@@ -146,18 +154,34 @@ export default {
       codeTips: '发送验证码'
     }
   },
+  onLoad() {
+    // 确保初始状态下表单字段正确
+    this.current = 0;
+    this.form.password = '';
+  },
   computed: {
     isValidMobile() {
       return /^1\d{10}$/.test(this.form.mobile)
     },
     canLogin() {
       if (!this.isAgree || !this.isValidMobile) return false
-      return this.current === 0 ? !!this.form.code : !!this.form.password
+      return this.current == 0 ? !!this.form.code : !!this.form.password
     }
   },
   methods: {
+    checkboxChange(value) {
+      console.log('checkboxChange', value)
+    },
     handleTabChange(index) {
-      this.current = index
+      this.current = Number(index.index);
+      // 清除不相关的表单字段
+      if (this.current == 0) {
+        this.form.password = '';
+      } else {
+        this.form.code = '';
+      }
+      // 确保密码输入框的可见状态正确重置
+      this.showPassword = false; 
     },
     getCode() {
       if (this.sending || !this.isValidMobile) return
@@ -175,17 +199,96 @@ export default {
       }, 1000)
     },
     handleLogin() {
-      if (!this.canLogin) return
-      uni.showToast({
-        title: '登录成功',
-        icon: 'success'
+      if (!this.canLogin) {
+        if (!this.isAgree) {
+          uni.showToast({
+            title: '请先同意用户协议和隐私政策',
+            icon: 'none'
+          })
+          return
+        }
+        if (!this.isValidMobile) {
+          uni.showToast({
+            title: '请输入有效的手机号',
+            icon: 'none'
+          })
+          return
+        }
+        if (this.current == 0 && !this.form.code) {
+          uni.showToast({
+            title: '请输入验证码',
+            icon: 'none'
+          })
+          return
+        }
+        if (this.current == 1 && !this.form.password) {
+          uni.showToast({
+            title: '请输入密码',
+            icon: 'none'
+          })
+          return
+        }
+        return
+      }
+      
+      // 显示加载中
+      uni.showLoading({
+        title: '登录中...',
+        mask: true
       })
+      
+      // 模拟登录成功
+      setTimeout(() => {
+        // 隐藏加载提示
+        uni.hideLoading()
+        
+        // 保存登录状态和用户信息
+        uni.setStorageSync('token', 'mock_token_' + Date.now())
+        uni.setStorageSync('userInfo', {
+          mobile: this.form.mobile,
+          loginTime: Date.now()
+        })
+        
+        // 显示登录成功提示
+        uni.showToast({
+          title: '登录成功',
+          icon: 'success',
+          duration: 1500
+        })
+        
+        // 延迟跳转到首页
+        setTimeout(() => {
+          uni.reLaunch({
+            url: '/pages/index/index',
+            success: () => {
+              console.log('跳转到首页成功')
+            },
+            fail: (err) => {
+              console.error('跳转失败:', err)
+              uni.showToast({
+                title: '跳转失败，请重试',
+                icon: 'none'
+              })
+            }
+          })
+        }, 1500)
+      }, 1000)
     },
     handleWechatLogin() {
       console.log('微信登录')
+      // 仅模拟
+      uni.showToast({
+        title: '微信登录',
+        icon: 'none'
+      })
     },
     handleAppleLogin() {
       console.log('Apple登录')
+      // 仅模拟
+      uni.showToast({
+        title: 'Apple登录',
+        icon: 'none'
+      })
     },
     goToUserAgreement() {
       uni.navigateTo({
@@ -266,7 +369,7 @@ export default {
   
   .agreement-text {
     font-size: 28rpx;
-    color: #999999;
+    color: #777777;
     margin-left: 12rpx;
   }
   
@@ -288,7 +391,7 @@ export default {
   }
   
   .text {
-    color: #999999;
+    color: #777777;
     padding: 0 30rpx;
     font-size: 28rpx;
   }
@@ -331,8 +434,8 @@ export default {
 
 .contact-us {
   text-align: center;
-  font-size: 28rpx;
-  color: #999999;
+  font-size: 26rpx;
+  color: #777777;
   margin-top: 60rpx;
   padding-bottom: 40rpx;
 }

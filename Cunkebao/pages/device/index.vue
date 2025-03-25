@@ -157,6 +157,39 @@
       title="选择状态"
     ></u-picker>
     
+    <!-- 添加设备弹窗 -->
+    <view class="add-device-modal" v-if="showAddDeviceModal">
+      <view class="modal-mask" @click="cancelAddDevice"></view>
+      <view class="modal-content">
+        <view class="modal-header">
+          <text class="modal-title">添加设备</text>
+          <view class="modal-close" @click="cancelAddDevice">
+            <text class="close-icon">×</text>
+          </view>
+        </view>
+        <view class="modal-body">
+          <view class="qr-container">
+            <image class="qr-image" src="/static/images/qr-placeholder.png" mode="aspectFit"></image>
+          </view>
+          <view class="qr-hint">请使用设备扫描二维码进行添加</view>
+          <view class="qr-hint">或手动输入设备ID</view>
+          <view class="device-id-input">
+            <u-input
+              v-model="deviceId"
+              placeholder="请输入设备ID"
+              shape="circle"
+              border="surround"
+              clearable
+            ></u-input>
+          </view>
+        </view>
+        <view class="modal-actions">
+          <view class="cancel-btn" @click="cancelAddDevice">取消</view>
+          <view class="confirm-btn" @click="confirmAddDevice">确认添加</view>
+        </view>
+      </view>
+    </view>
+    
     <!-- 底部导航栏 -->
     <CustomTabBar active="profile"></CustomTabBar>
   </view>
@@ -183,7 +216,10 @@ export default {
         { text: '在线', value: 'online' },
         { text: '离线', value: 'offline' }
       ],
-      currentStatus: 'all'
+      currentStatus: 'all',
+      // 添加设备相关数据
+      showAddDeviceModal: false,
+      deviceId: ''
     }
   },
   computed: {
@@ -203,10 +239,37 @@ export default {
     
     // 添加设备
     addDevice() {
-      uni.showToast({
-        title: '添加设备功能待实现',
-        icon: 'none'
+      this.showAddDeviceModal = true;
+    },
+    
+    // 取消添加设备
+    cancelAddDevice() {
+      this.showAddDeviceModal = false;
+      this.deviceId = '';
+    },
+    
+    // 确认添加设备
+    confirmAddDevice() {
+      if (!this.deviceId.trim()) {
+        uni.showToast({
+          title: '请输入设备ID',
+          icon: 'none'
+        });
+        return;
+      }
+      
+      uni.showLoading({
+        title: '添加中'
       });
+      
+      setTimeout(() => {
+        uni.hideLoading();
+        uni.showToast({
+          title: '添加成功',
+          icon: 'success'
+        });
+        this.cancelAddDevice();
+      }, 1500);
     },
     
     // 刷新列表
@@ -375,7 +438,7 @@ export default {
     border-radius: 35rpx;
     padding: 30rpx;
     margin: 15rpx;
-    box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
     
     .stat-label {
       font-size: 28rpx;
@@ -404,6 +467,7 @@ export default {
   border-radius: 35rpx;
   overflow: hidden;
   border: 2rpx solid #e9e9e9;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .search-bar {
@@ -498,6 +562,7 @@ export default {
     margin: 25rpx;
     border-radius: 20rpx;
     border: 2rpx solid #e9e9e9;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
     
     &:last-child {
       border-bottom: none;
@@ -551,6 +616,119 @@ export default {
         justify-content: space-between;
         font-size: 32rpx;
         color: #666;
+      }
+    }
+  }
+}
+
+/* 添加设备弹窗样式 */
+.add-device-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  
+  .modal-mask {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+  
+  .modal-content {
+    position: relative;
+    width: 650rpx;
+    background-color: #fff;
+    border-radius: 20rpx;
+    overflow: hidden;
+    box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 30rpx 40rpx;
+      
+      .modal-title {
+        font-size: 36rpx;
+        font-weight: bold;
+        color: #333;
+      }
+      
+      .modal-close {
+        padding: 10rpx;
+        
+        .close-icon {
+          font-size: 44rpx;
+          color: #777;
+          line-height: 1;
+        }
+      }
+    }
+    
+    .modal-body {
+      padding: 0rpx 40rpx;
+      padding-bottom: 30rpx;
+      
+      .qr-container {
+        width: 450rpx;
+        height: 450rpx;
+        margin: 0 auto 30rpx;
+        background-color: #f5f5f5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10rpx;
+        
+        .qr-image {
+          width: 400rpx;
+          height: 400rpx;
+        }
+      }
+      
+      .qr-hint {
+        text-align: center;
+        color: #666;
+        font-size: 28rpx;
+      }
+      
+      .device-id-input {
+        margin-top: 40rpx;
+      }
+    }
+    
+    .modal-actions {
+      display: flex;
+      justify-content: center;
+      padding: 20rpx 40rpx 40rpx;
+      
+      .cancel-btn, .confirm-btn {
+        width: 180rpx;
+        height: 80rpx;
+        border-radius: 25rpx;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28rpx;
+        margin: 0 15rpx;
+      }
+      
+      .cancel-btn {
+        background-color: #ffffff;
+        color: #333;
+        border: 1px solid #e5e5e5;
+      }
+      
+      .confirm-btn {
+        background-color: #4080ff;
+        color: #fff;
       }
     }
   }

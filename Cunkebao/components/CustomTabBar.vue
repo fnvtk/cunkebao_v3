@@ -5,7 +5,7 @@
       :class="{ active: active === 'home' }" 
       @click="switchTab('/pages/index/index', 'home')"
     >
-      <u-icon :name="active === 'home' ? 'home-fill' : 'home'" :size="48" :color="active === 'home' ? '#4080ff' : '#e9e9e9'"></u-icon>
+      <u-icon :name="active === 'home' ? 'home-fill' : 'home'" :size="48" :color="active === 'home' ? '#4080ff' : '#999999'"></u-icon>
       <text class="tab-text" :class="{ 'active-text': active === 'home' }">首页</text>
     </view>
     
@@ -14,7 +14,7 @@
       :class="{ active: active === 'market' }" 
       @click="switchTab('/pages/scenarios/index', 'market')"
     >
-      <u-icon :name="active === 'market' ? 'tags-fill' : 'tags'" :size="48" :color="active === 'market' ? '#4080ff' : '#e9e9e9'"></u-icon>
+      <u-icon :name="active === 'market' ? 'tags-fill' : 'tags'" :size="48" :color="active === 'market' ? '#4080ff' : '#999999'"></u-icon>
       <text class="tab-text" :class="{ 'active-text': active === 'market' }">场景获客</text>
     </view>
     
@@ -23,7 +23,7 @@
       :class="{ active: active === 'work' }" 
       @click="switchTab('/pages/work/index', 'work')"
     >
-      <u-icon :name="active === 'work' ? 'grid-fill' : 'grid'" :size="48" :color="active === 'work' ? '#4080ff' : '#e9e9e9'"></u-icon>
+      <u-icon :name="active === 'work' ? 'grid-fill' : 'grid'" :size="48" :color="active === 'work' ? '#4080ff' : '#999999'"></u-icon>
       <text class="tab-text" :class="{ 'active-text': active === 'work' }">工作台</text>
     </view>
     
@@ -32,7 +32,7 @@
       :class="{ active: active === 'profile' }" 
       @click="switchTab('/pages/profile/index', 'profile')"
     >
-      <u-icon :name="active === 'profile' ? 'account-fill' : 'account'" :size="48" :color="active === 'profile' ? '#4080ff' : '#e9e9e9'"></u-icon>
+      <u-icon :name="active === 'profile' ? 'account-fill' : 'account'" :size="48" :color="active === 'profile' ? '#4080ff' : '#999999'"></u-icon>
       <text class="tab-text" :class="{ 'active-text': active === 'profile' }">我的</text>
     </view>
   </view>
@@ -83,7 +83,7 @@ export default {
     
     .tab-text {
       font-size: 26rpx;
-      color: #999;
+      color: #777;
       
       &.active-text {
         color: #4080ff;

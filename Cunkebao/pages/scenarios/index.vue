@@ -499,4 +499,14 @@ export default {
     margin-left: 20rpx;
   }
 }
+
+.tab-text {
+  font-size: 26rpx;
+  color: #777;
+  margin-top: 10rpx;
+  
+  &.active-text {
+    color: #4080ff;
+  }
+}
 </style> 
