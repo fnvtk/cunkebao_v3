@@ -310,8 +310,6 @@ export default {
   .title {
     position: absolute;
     font-size: 40rpx;
-    font-weight: bold;
-    color: #2563EB;
     float: left;
     margin-left: 70rpx;
   }

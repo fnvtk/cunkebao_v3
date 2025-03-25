@@ -4,7 +4,7 @@
     <view class="header">
       <view class="title">我的</view>
       <view class="header-icons">
-        <u-icon name="setting" size="50" color="#000000" class="icon-setting" @click="goToSetting"></u-icon>
+        <u-icon name="setting" size="45" color="#000000" class="icon-setting" @click="goToSetting"></u-icon>
         <u-icon name="bell" size="50" color="#000000" class="icon-bell" @click="goToNotification"></u-icon>
       </view>
     </view>
@@ -161,14 +161,14 @@ export default {
   min-height: 90vh;
   background-color: #f9fafb;
   position: relative;
-  padding-top: 50rpx;
+  padding-top: 46rpx;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 25rpx 30rpx;
+  padding: 30rpx 30rpx;
   background-color: #fff;
   border-bottom: 1px solid #e9e9e9;
   position: fixed;
@@ -178,9 +178,7 @@ export default {
   z-index: 999;
   
   .title {
-    font-size: 45rpx;
-    font-weight: bold;
-    color: #2664ec;
+    font-size: 40rpx;
   }
   
   .header-icons {
@@ -197,7 +195,7 @@ export default {
   margin: 35rpx;
   margin-top: 120rpx;
   background-color: #fff;
-  border-radius: 16rpx;
+  border-radius: 35rpx;
   padding: 50rpx;
   display: flex;
   align-items: center;
@@ -255,7 +253,7 @@ export default {
 .menu-list {
   margin: 35rpx;
   background-color: #fff;
-  border-radius: 16rpx;
+  border-radius: 35rpx;
   overflow: hidden;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
   
