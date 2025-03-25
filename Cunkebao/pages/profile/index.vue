@@ -170,7 +170,7 @@ export default {
   align-items: center;
   padding: 25rpx 30rpx;
   background-color: #fff;
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid #e9e9e9;
   position: fixed;
   top: 0;
   left: 0;
@@ -264,7 +264,7 @@ export default {
     justify-content: space-between;
     align-items: center;
     padding: 30rpx 40rpx;
-    border-bottom: 2rpx solid #e5e5e5;
+    border-bottom: 2rpx solid #e9e9e9;
     
     &:last-child {
       border-bottom: none;

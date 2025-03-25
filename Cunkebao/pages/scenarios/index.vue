@@ -289,7 +289,7 @@ export default {
   align-items: center;
   padding: 25rpx 30rpx;
   background-color: #fff;
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid #e9e9e9;
   position: fixed;
   top: 0;
   left: 0;
