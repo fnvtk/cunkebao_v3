@@ -4,7 +4,7 @@
     <view class="header">
       <view class="title align-left">存客宝</view>
       <view class="header-icons">
-        <u-icon name="bell" size="56" color="#000000" class="icon-bell" @click="goToNotification"></u-icon>
+        <u-icon name="bell" size="50" color="#000000" class="icon-bell" @click="goToNotification"></u-icon>
       </view>
     </view>
     
