@@ -83,7 +83,7 @@ export default {
     
     .tab-text {
       font-size: 26rpx;
-      color: #999;
+      color: #777;
       
       &.active-text {
         color: #4080ff;

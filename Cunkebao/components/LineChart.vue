@@ -135,7 +135,7 @@ export default {
     
     .axis-label {
       font-size: 22rpx;
-      color: #999;
+      color: #777;
       text-align: right;
       padding-right: 10rpx;
     }
@@ -244,7 +244,7 @@ export default {
       position: absolute;
       transform: translateX(-50%);
       font-size: 22rpx;
-      color: #999;
+      color: #777;
       text-align: center;
       top: 10rpx;
     }

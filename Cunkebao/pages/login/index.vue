@@ -1,20 +1,18 @@
 <template>
   <view class="login-container">
     <!-- 登录方式切换 -->
-    <view class="tabs-container">
-      <u-tabs
-        :list="tabsList"
-        :current="current"
-        @change="handleTabChange"
-        activeStyle="color: #4080ff; font-weight: bold; font-size: 36rpx"
-        inactiveStyle="color: #999999; font-size: 36rpx"
-        itemStyle="height: 96rpx; padding: 0 30rpx;"
-        lineColor="#4080ff"
-        lineWidth="48rpx"
-        lineHeight="4rpx"
-        :itemWidth="300"
-      ></u-tabs>
-    </view>
+    <u-tabs
+      :list="tabsList"
+      :current="Number(current)"
+      @change="handleTabChange"
+      activeStyle="color: #4080ff; font-size: 36rpx"
+      inactiveStyle="color: #e9e9e9; font-size: 36rpx"
+      itemStyle="height: 96rpx; padding: 0 30rpx;"
+      lineColor="#4080ff"
+      lineWidth="48rpx"
+      lineHeight="4rpx"
+      :itemWidth="500"
+    ></u-tabs>
     
     <!-- 提示文字 -->
     <view class="login-hint">
@@ -24,7 +22,7 @@
     <!-- 表单区域 -->
     <view class="login-form">
       <!-- 手机号输入 -->
-      <u-form-item>
+      <view class="input-box">
         <u--input
           v-model="form.mobile"
           placeholder="+86手机号"
@@ -34,12 +32,12 @@
           type="number"
           maxlength="11"
           border="none"
-          fontSize="36rpx"
+          fontSize="30rpx"
         ></u--input>
-      </u-form-item>
+      </view>
       
       <!-- 验证码输入 -->
-      <u-form-item v-if="current === 0">
+      <view v-if="current == 0" class="input-box code-box">
         <u--input
           v-model="form.code"
           placeholder="验证码"
@@ -48,67 +46,64 @@
           maxlength="6"
           border="none"
           inputAlign="left"
-          fontSize="36rpx"
+          fontSize="30rpx"
         ></u--input>
-        <template #right>
-          <view class="code-btn-wrap">
-            <u-button 
-              @tap="getCode" 
-              :text="codeTips" 
-              type="primary" 
-              size="mini" 
-              :disabled="!isValidMobile || sending"
-              customStyle="width: 200rpx;height: 76rpx;font-size: 32rpx;"
-            ></u-button>
-          </view>
-        </template>
-      </u-form-item>
+        <view class="code-btn-wrap">
+          <u-button 
+            @tap="getCode" 
+            :text="codeTips" 
+            type="primary" 
+            size="mini" 
+            :disabled="!isValidMobile || sending"
+            customStyle="width: 180rpx;height: 68rpx;font-size: 28rpx;"
+          ></u-button>
+        </view>
+      </view>
       
       <!-- 密码输入 -->
-      <u-form-item v-if="current === 1">
+      <view v-if="current == 1" class="input-box">
         <u--input
           v-model="form.password"
           placeholder="密码"
-          prefixIcon="lock"
-          prefixIconStyle="font-size: 52rpx;color: #909399;padding-right: 16rpx;"
           :password="!showPassword"
           clearable
           border="none"
-          fontSize="36rpx"
+          fontSize="30rpx"
+          suffixIcon="eye"
+          @clickSuffixIcon="showPassword = !showPassword"
+          suffixIconStyle="font-size: 45rpx;"
         ></u--input>
-        <template #right>
-          <u-icon
-            :name="showPassword ? 'eye' : 'eye-off'"
-            color="#909399"
-            size="52"
-            @click="showPassword = !showPassword"
-          ></u-icon>
-        </template>
-      </u-form-item>
+      </view>
       
       <!-- 用户协议 -->
       <view class="agreement">
-        <u-checkbox
+        <u-checkbox-group
           v-model="isAgree"
-          shape="circle"
-          activeColor="#4080ff"
-          iconSize="24"
-        ></u-checkbox>
+          placement="column"
+          @change="checkboxChange"
+        >
+          <u-checkbox
+            key="1"
+            shape="circle"
+            activeColor="#4080ff"
+            size="35" 
+            iconSize="30"
+          ></u-checkbox>
+      </u-checkbox-group>
         <text class="agreement-text">
           已阅读并同意 
-          <text class="link" @click="goToUserAgreement"> 用户协议 </text> 
+          <text class="link" @click="goToUserAgreement">用户协议</text> 
           与 
-          <text class="link" @click="goToPrivacyPolicy"> 隐私政策 </text>
+          <text class="link" @click="goToPrivacyPolicy">隐私政策</text>
         </text>
       </view>
       
       <!-- 登录按钮 -->
       <u-button
         text="登录"
-        type="info"
-        :disabled="!canLogin"
+        type="primary"
         @click="handleLogin"
-        customStyle="width: 100%; margin-top: 40rpx; height: 96rpx; border-radius: 24rpx; font-size: 40rpx; font-weight: bold; background-color: #2563eb;"
+        customStyle="width: 100%; margin-top: 40rpx; height: 96rpx; border-radius: 24rpx; font-size: 32rpx; font-weight: 500;"
       ></u-button>
       
       <!-- 分割线 -->
@@ -121,26 +116,16 @@
       <!-- 第三方登录 -->
       <view class="other-login">
         <!-- 微信登录 -->
-        <u-button
-          text="使用微信登录"
-          @click="handleWechatLogin"
-          icon="weixin-fill"
-          iconSize="52"
-          plain
-          customStyle="width: 100%; margin-bottom: 20rpx; height: 96rpx; border-radius: 24rpx; border-color: #07c160; color: #07c160; font-size: 40rpx;"
-        ></u-button>
+        <button class="wechat-btn" @click="handleWechatLogin">
+          <u-icon name="weixin-fill" size="56" color="#07c160" class="wechat-icon"></u-icon>
+          <text>使用微信登录</text>
+        </button>
         
         <!-- Apple登录 -->
-        <u-button
-          text="使用 Apple 登录"
-          @click="handleAppleLogin"
-          plain
-          customStyle="width: 100%; margin-bottom: 20rpx; height: 96rpx; border-radius: 24rpx; border-color: #333333; color: #333333; font-size: 40rpx;"
-        >
-          <template #icon>
-            <image src="/static/images/apple.png" class="apple-icon"></image>
-          </template>
-        </u-button>
+        <button class="apple-btn" @click="handleAppleLogin">
+          <u-icon name="apple-fill" size="56" color="#333333" class="apple-icon"></u-icon>
+          <text>使用 Apple 登录</text>
+        </button>
       </view>
       
       <!-- 联系我们 -->
@@ -154,214 +139,173 @@ export default {
   data() {
     return {
       tabsList: [
-        {
-          name: '验证码登录'
-        },
-        {
-          name: '密码登录'
-        }
+        { text: '验证码登录', name: '验证码登录', id: 0 },
+        { text: '密码登录', name: '密码登录', id: 1 }
       ],
-      current: 0, // 当前选中的选项卡索引
+      current: 0,
       form: {
         mobile: '',
-        password: '',
-        code: ''
+        code: '',
+        password: ''
       },
-      showPassword: false, // 是否显示密码
-      isAgree: false, // 是否同意协议
-      sending: false, // 是否正在发送验证码
-      codeTips: '发送验证码' // 验证码按钮文字
+      showPassword: false,
+      isAgree: false,
+      sending: false,
+      codeTips: '发送验证码'
     }
   },
+  onLoad() {
+    // 确保初始状态下表单字段正确
+    this.current = 0;
+    this.form.password = '';
+  },
   computed: {
-    // 手机号是否有效
     isValidMobile() {
-      return /^1\d{10}$/.test(this.form.mobile);
+      return /^1\d{10}$/.test(this.form.mobile)
     },
-    // 是否可以登录
     canLogin() {
-      if (!this.isAgree || !this.isValidMobile) return false;
-      
-      if (this.current === 1) {
-        return !!this.form.password;
-      } else {
-        return !!this.form.code;
-      }
+      if (!this.isAgree || !this.isValidMobile) return false
+      return this.current == 0 ? !!this.form.code : !!this.form.password
     }
   },
   methods: {
-    // 处理选项卡切换
+    checkboxChange(value) {
+      console.log('checkboxChange', value)
+    },
     handleTabChange(index) {
-      this.current = index;
-    },
-    
-    // 处理登录
-    handleLogin() {
-      if (!this.canLogin) return;
-      
-      if (this.current === 1) {
-        this.passwordLogin();
+      this.current = Number(index.index);
+      // 清除不相关的表单字段
+      if (this.current == 0) {
+        this.form.password = '';
       } else {
-        this.codeLogin();
+        this.form.code = '';
       }
+      // 确保密码输入框的可见状态正确重置
+      this.showPassword = false; 
     },
-    
-    // 密码登录
-    passwordLogin() {
-      uni.showLoading({
-        title: '登录中...'
-      });
-      
-      // 这里替换为实际的登录API调用
-      setTimeout(() => {
-        uni.hideLoading();
-        uni.showToast({
-          title: '登录成功',
-          icon: 'success'
-        });
-        // 登录成功后跳转到个人中心页面
-        uni.switchTab({
-          url: '/pages/profile/index'
-        });
-      }, 1500);
-    },
-    
-    // 验证码登录
-    codeLogin() {
-      uni.showLoading({
-        title: '登录中...'
-      });
-      
-      // 这里替换为实际的登录API调用
-      setTimeout(() => {
-        uni.hideLoading();
-        uni.showToast({
-          title: '登录成功',
-          icon: 'success'
-        });
-        // 登录成功后跳转到个人中心页面
-        uni.switchTab({
-          url: '/pages/profile/index'
-        });
-      }, 1500);
-    },
-    
-    // 获取验证码
     getCode() {
-      if (this.sending) return;
-      
-      // 验证手机号
-      if (!this.isValidMobile) {
-        uni.showToast({
-          title: '请输入正确的手机号',
-          icon: 'none'
-        });
-        return;
+      if (this.sending || !this.isValidMobile) return
+      this.sending = true
+      this.codeTips = '60s'
+      let seconds = 60
+      const timer = setInterval(() => {
+        seconds--
+        this.codeTips = `${seconds}s`
+        if (seconds <= 0) {
+          clearInterval(timer)
+          this.sending = false
+          this.codeTips = '发送验证码'
+        }
+      }, 1000)
+    },
+    handleLogin() {
+      if (!this.canLogin) {
+        if (!this.isAgree) {
+          uni.showToast({
+            title: '请先同意用户协议和隐私政策',
+            icon: 'none'
+          })
+          return
+        }
+        if (!this.isValidMobile) {
+          uni.showToast({
+            title: '请输入有效的手机号',
+            icon: 'none'
+          })
+          return
+        }
+        if (this.current == 0 && !this.form.code) {
+          uni.showToast({
+            title: '请输入验证码',
+            icon: 'none'
+          })
+          return
+        }
+        if (this.current == 1 && !this.form.password) {
+          uni.showToast({
+            title: '请输入密码',
+            icon: 'none'
+          })
+          return
+        }
+        return
       }
       
+      // 显示加载中
       uni.showLoading({
-        title: '发送中...'
-      });
+        title: '登录中...',
+        mask: true
+      })
       
-      this.sending = true;
-      this.codeTips = '60s';
-      
-      let secondsLeft = 60;
-      const timer = setInterval(() => {
-        secondsLeft--;
-        this.codeTips = `${secondsLeft}s`;
-        
-        if (secondsLeft <= 0) {
-          clearInterval(timer);
-          this.sending = false;
-          this.codeTips = '发送验证码';
-        }
-      }, 1000);
-      
-      // 这里替换为实际的发送验证码API调用
+      // 模拟登录成功
       setTimeout(() => {
-        uni.hideLoading();
+        // 隐藏加载提示
+        uni.hideLoading()
+        
+        // 保存登录状态和用户信息
+        uni.setStorageSync('token', 'mock_token_' + Date.now())
+        uni.setStorageSync('userInfo', {
+          mobile: this.form.mobile,
+          loginTime: Date.now()
+        })
+        
+        // 显示登录成功提示
         uni.showToast({
-          title: '验证码已发送',
-          icon: 'success'
-        });
-      }, 1000);
-    },
-    
-    // 微信登录
-    handleWechatLogin() {
-      // #ifdef MP-WEIXIN
-      uni.login({
-        provider: 'weixin',
-        success: (res) => {
-          console.log('微信登录成功', res);
-          // 获取用户信息
-          uni.getUserInfo({
-            provider: 'weixin',
-            success: (infoRes) => {
-              console.log('获取用户信息成功', infoRes);
-              // 处理登录逻辑
+          title: '登录成功',
+          icon: 'success',
+          duration: 1500
+        })
+        
+        // 延迟跳转到首页
+        setTimeout(() => {
+          uni.reLaunch({
+            url: '/pages/index/index',
+            success: () => {
+              console.log('跳转到首页成功')
+            },
+            fail: (err) => {
+              console.error('跳转失败:', err)
+              uni.showToast({
+                title: '跳转失败，请重试',
+                icon: 'none'
+              })
             }
-          });
-        },
-        fail: (err) => {
-          console.error('微信登录失败', err);
-        }
-      });
-      // #endif
-      
-      // #ifdef H5 || APP-PLUS
-      uni.showToast({
-        title: '请在微信中打开',
-        icon: 'none'
-      });
-      // #endif
+          })
+        }, 1500)
+      }, 1000)
     },
-    
-    // Apple登录
+    handleWechatLogin() {
+      console.log('微信登录')
+      // 仅模拟
+      uni.showToast({
+        title: '微信登录',
+        icon: 'none'
+      })
+    },
     handleAppleLogin() {
-      // #ifdef APP-PLUS
-      uni.login({
-        provider: 'apple',
-        success: (res) => {
-          console.log('Apple登录成功', res);
-          // 处理登录逻辑
-        },
-        fail: (err) => {
-          console.error('Apple登录失败', err);
-        }
-      });
-      // #endif
-      
-      // #ifdef H5 || MP-WEIXIN
+      console.log('Apple登录')
+      // 仅模拟
       uni.showToast({
-        title: '请在iOS设备上使用',
+        title: 'Apple登录',
         icon: 'none'
-      });
-      // #endif
+      })
     },
-    
-    // 前往用户协议
     goToUserAgreement() {
       uni.navigateTo({
         url: '/pages/agreement/user'
-      });
+      })
     },
-    
-    // 前往隐私政策
     goToPrivacyPolicy() {
       uni.navigateTo({
         url: '/pages/agreement/privacy'
-      });
+      })
     },
-    
-    // 联系我们
     handleContact() {
       uni.showModal({
         title: '联系我们',
-        content: '客服电话：400-123-4567\n工作时间：9:00-18:00',
+        content: '客服电话：400-xxx-xxxx',
         showCancel: false
-      });
+      })
     }
   }
 }
@@ -369,30 +313,52 @@ export default {
 
 <style lang="scss" scoped>
 .login-container {
-  padding: 40rpx;
-  background-color: #ffffff;
   min-height: 100vh;
-}
-
-.tabs-container {
-  display: flex;
-  justify-content: center;
+  background-color: #ffffff;
+  padding: 0 40rpx;
 }
 
 .login-hint {
   font-size: 32rpx;
-  color: #999999;
-  margin: 30rpx 0 60rpx;
   text-align: center;
+  margin: 30rpx 0;
 }
 
 .login-form {
-  .u-form-item {
+  margin-top: 40rpx;
+  
+  .input-box {
+    height: 96rpx;
+    border: 2rpx solid #e9e9e9;
+    border-radius: 16rpx;
+    padding: 0 24rpx;
     margin-bottom: 30rpx;
+    display: flex;
+    align-items: center;
+    
+    .u-form-item {
+      flex: 1;
+      margin-bottom: 0;
+    }
   }
   
-  .code-btn-wrap {
-    margin-left: 20rpx;
+  .code-box {
+    display: flex;
+    align-items: center;
+    padding-right: 12rpx;
+    
+    .u--input {
+      flex: 1;
+    }
+    
+    .code-btn-wrap {
+      margin-left: 12rpx;
+      height: 68rpx;
+      
+      .u-button {
+        margin: 0;
+      }
+    }
   }
 }
 
@@ -402,13 +368,14 @@ export default {
   margin: 40rpx 0;
   
   .agreement-text {
-    font-size: 32rpx;
-    color: #999999;
+    font-size: 28rpx;
+    color: #777777;
     margin-left: 12rpx;
   }
   
   .link {
-    color: $primary-color;
+    color: #4080ff;
+    margin: 0 8rpx;
   }
 }
 
@@ -419,27 +386,57 @@ export default {
   
   .line {
     flex: 1;
-    height: 2px;
+    height: 2rpx;
     background-color: #eeeeee;
   }
   
   .text {
-    color: #999999;
+    color: #777777;
     padding: 0 30rpx;
-    font-size: 32rpx;
+    font-size: 28rpx;
   }
 }
 
-.apple-icon {
-  width: 52rpx;
-  height: 52rpx;
-  margin-right: 16rpx;
+.other-login {
+  .wechat-btn, .apple-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 96rpx;
+    margin-bottom: 20rpx;
+    border-radius: 24rpx;
+    font-size: 32rpx;
+    background-color: #ffffff;
+    border: 2rpx solid #dddddd;
+    
+    text {
+      color: #333333;
+      margin-left: 16rpx;
+    }
+  }
+  
+  .wechat-btn {
+    text {
+      font-size: 32rpx;
+      font-weight: 500;
+    }
+  }
+  
+  .apple-btn {
+    text {
+      color: #333333;
+      font-size: 32rpx;
+      font-weight: 500;
+    }
+  }
 }
 
 .contact-us {
   text-align: center;
-  font-size: 32rpx;
-  color: #666666;
+  font-size: 26rpx;
+  color: #777777;
   margin-top: 60rpx;
+  padding-bottom: 40rpx;
 }
 </style> 

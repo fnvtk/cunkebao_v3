@@ -63,14 +63,12 @@ class OpenApiUtilClientTest extends TestCase
 
     public function testToForm()
     {
-        $this->assertEquals('bool=true&client=test&strs.1=str1&strs.2=str2&strs.3=false&tag.key=value', OpenApiUtilClient::toForm([
+        $this->assertEquals('client=test&strs.1=str1&strs.2=str2&tag.key=value', OpenApiUtilClient::toForm([
             'client' => 'test',
             'tag'    => [
                 'key' => 'value',
             ],
-            'strs'   => ['str1', 'str2', false],
-            'bool'  => true,
-            'null'  => null,
+            'strs'   => ['str1', 'str2'],
         ]));
     }
 
@@ -85,7 +83,6 @@ class OpenApiUtilClientTest extends TestCase
         $model    = new MockModel();
         $model->a = 'foo';
         $model->c = 'boo';
-        $model->r = true;
 
         $array = [
             'a'  => 'a',
@@ -98,9 +95,7 @@ class OpenApiUtilClientTest extends TestCase
             'c'  => ['x', 'y', 'z'],
             'd' => [
                 $model
-            ],
-            'e'  => true,
-            'f'  => null,
+            ]
         ];
         $this->assertEquals([
             'a'    => 'a',
@@ -112,10 +107,6 @@ class OpenApiUtilClientTest extends TestCase
             'd.1.A'  => 'foo',
             'd.1.b'  => '',
             'd.1.c'  => 'boo',
-            'd.1.c' => 'boo',
-            'd.1.r' => 'true',
-            'e' => 'true',
-            'f' => null
         ], OpenApiUtilClient::query($array));
     }
 
@@ -146,48 +137,6 @@ class OpenApiUtilClientTest extends TestCase
             '["ok","test",2,3]',
             OpenApiUtilClient::arrayToStringWithSpecifiedStyle(
                 $data,
-                'instance',
-                'json'
-            )
-        );
-
-        $test     = new ParseModel([
-            'str'   => 'A',
-            'model' => new ParseModel(['str' => 'sub model']),
-            'array' => [1, 2, 3],
-        ]);
-        $this->assertEquals(
-            '{"str":"A","model":{"str":"sub model","model":null,"array":null},"array":[1,2,3]}',
-            OpenApiUtilClient::arrayToStringWithSpecifiedStyle(
-                $test,
-                'instance',
-                'json'
-            )
-        );
-        // model item in array
-        $test     = [
-            new ParseModel([
-                'str' => 'A',
-            ]),
-        ];
-        $this->assertEquals(
-            '[{"str":"A","model":null,"array":null}]',
-            OpenApiUtilClient::arrayToStringWithSpecifiedStyle(
-                $test,
-                'instance',
-                'json'
-            )
-        );
-        // model item in map
-        $test = [
-            'model' => new ParseModel([
-                'str' => 'A',
-            ]),
-        ];
-        $this->assertEquals(
-            '{"model":{"str":"A","model":null,"array":null}}',
-            OpenApiUtilClient::arrayToStringWithSpecifiedStyle(
-                $test,
                 'instance',
                 'json'
             )
@@ -346,8 +295,7 @@ class OpenApiUtilClientTest extends TestCase
             'b9ff646822f41ef647c1416fa2b8408923828abc0464af6706e18db3e8553da8',
             OpenApiUtilClient::hexEncode(OpenApiUtilClient::sign('secret', 'source', 'ACS3-HMAC-SM3'))
         );
-        $this->assertEquals(
-            '1d93c62698a1c26427265668e79fac099aa26c1df873669599a2fb2f272e64c9',
+        $this->assertEquals('1d93c62698a1c26427265668e79fac099aa26c1df873669599a2fb2f272e64c9',
             OpenApiUtilClient::hexEncode(OpenApiUtilClient::sign('secret', 'source', 'ACS3-HMAC-SHA256'))
         );
     }
@@ -363,14 +311,14 @@ class OpenApiUtilClientTest extends TestCase
                     'array' => [1, 2, 3],
                 ]),
                 [ // model item in array
-                    new ParseModel([
-                        'str' => 'A',
-                    ]),
+                  new ParseModel([
+                      'str' => 'A',
+                  ]),
                 ],
                 [ // model item in map
-                    'model' => new ParseModel([
-                        'str' => 'A',
-                    ]),
+                  'model' => new ParseModel([
+                      'str' => 'A',
+                  ]),
                 ],
             ],
             'expected' => [
@@ -398,12 +346,6 @@ class OpenApiUtilClientTest extends TestCase
                         'array' => null,
                     ],
                 ],
-            ],
-            'expectedJsonStr' => [
-                '["NotArray"]',
-                'NotArray',
-                'NotArray',
-                'NotArray',
             ],
         ];
     }

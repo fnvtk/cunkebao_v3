@@ -13,9 +13,6 @@ class TeaError extends RuntimeException
     public $code    = 0;
     public $data;
     public $name    = '';
-    public $statusCode;
-    public $description;
-    public $accessDeniedDetail;
     private $errorInfo;
 
     /**
@@ -31,13 +28,10 @@ class TeaError extends RuntimeException
         parent::__construct((string) $message, (int) $code, $previous);
         $this->errorInfo = $errorInfo;
         if (!empty($errorInfo)) {
-            $properties = ['name', 'message', 'code', 'data', 'description', 'accessDeniedDetail'];
+            $properties = ['name', 'message', 'code', 'data'];
             foreach ($properties as $property) {
                 if (isset($errorInfo[$property])) {
                     $this->{$property} = $errorInfo[$property];
-                    if ($property === 'data' && isset($errorInfo['data']['statusCode'])) {
-                        $this->statusCode = $errorInfo['data']['statusCode'];
-                    }
                 }
             }
         }

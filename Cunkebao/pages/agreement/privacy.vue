@@ -175,7 +175,7 @@ export default {
 
 .date {
   font-size: 24rpx;
-  color: #999999;
+  color: #e9e9e9;
   text-align: center;
   margin-bottom: 60rpx;
 }

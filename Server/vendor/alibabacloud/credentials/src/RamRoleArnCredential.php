@@ -2,16 +2,13 @@
 
 namespace AlibabaCloud\Credentials;
 
-use AlibabaCloud\Credentials\Providers\RamRoleArnCredentialsProvider;
-use AlibabaCloud\Credentials\Credential\CredentialModel;
+use AlibabaCloud\Credentials\Providers\RamRoleArnProvider;
 use AlibabaCloud\Credentials\Signature\ShaHmac1Signature;
-use AlibabaCloud\Credentials\Utils\Filter;
 use Exception;
 use GuzzleHttp\Exception\GuzzleException;
 use InvalidArgumentException;
 
 /**
- * @deprecated
  * Use the AssumeRole of the RAM account to complete  the authentication.
  */
 class RamRoleArnCredential implements CredentialsInterface
@@ -60,10 +57,10 @@ class RamRoleArnCredential implements CredentialsInterface
 
         Filter::accessKey($credential['access_key_id'], $credential['access_key_secret']);
 
-        $this->config = $config;
-        $this->accessKeyId = $credential['access_key_id'];
+        $this->config          = $config;
+        $this->accessKeyId     = $credential['access_key_id'];
         $this->accessKeySecret = $credential['access_key_secret'];
-        $this->roleArn = $credential['role_arn'];
+        $this->roleArn         = $credential['role_arn'];
         $this->roleSessionName = $credential['role_session_name'];
     }
 
@@ -180,20 +177,13 @@ class RamRoleArnCredential implements CredentialsInterface
     }
 
     /**
-     * @return AlibabaCloud\Credentials\Providers\Credentials
+     * @return StsCredential
      * @throws Exception
      * @throws GuzzleException
      */
     protected function getSessionCredential()
     {
-        $params = [
-            'accessKeyId' => $this->accessKeyId,
-            'accessKeySecret' => $this->accessKeyId,
-            'roleArn' => $this->roleArn,
-            'roleSessionName' => $this->roleSessionName,
-            'policy' => $this->policy,
-        ];
-        return (new RamRoleArnCredentialsProvider($params))->getCredentials();
+        return (new RamRoleArnProvider($this))->get();
     }
 
     /**
@@ -224,19 +214,5 @@ class RamRoleArnCredential implements CredentialsInterface
     public function getExpiration()
     {
         return $this->getSessionCredential()->getExpiration();
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getCredential()
-    {
-        $credentials = $this->getSessionCredential();
-        return new CredentialModel([
-            'accessKeyId' => $credentials->getAccessKeyId(),
-            'accessKeySecret' => $credentials->getAccessKeySecret(),
-            'securityToken' => $credentials->getSecurityToken(),
-            'type' => 'ram_role_arn',
-        ]);
     }
 }

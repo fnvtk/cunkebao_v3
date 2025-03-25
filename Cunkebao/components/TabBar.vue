@@ -84,7 +84,7 @@ export default {
     
     .tab-text {
       font-size: 26rpx;
-      color: #999;
+      color: #777;
       margin-top: 10rpx;
       
       &.active-text {

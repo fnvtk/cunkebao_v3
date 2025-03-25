@@ -289,7 +289,7 @@ export default {
   align-items: center;
   padding: 25rpx 30rpx;
   background-color: #fff;
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid #e9e9e9;
   position: fixed;
   top: 0;
   left: 0;
@@ -310,8 +310,6 @@ export default {
   .title {
     position: absolute;
     font-size: 40rpx;
-    font-weight: bold;
-    color: #2563EB;
     float: left;
     margin-left: 70rpx;
   }
@@ -499,6 +497,16 @@ export default {
     padding: 5rpx 20rpx;
     border-radius: 20rpx;
     margin-left: 20rpx;
+  }
+}
+
+.tab-text {
+  font-size: 26rpx;
+  color: #777;
+  margin-top: 10rpx;
+  
+  &.active-text {
+    color: #4080ff;
   }
 }
 </style> 

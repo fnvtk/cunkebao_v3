@@ -158,7 +158,7 @@ export default {
   align-items: center;
   padding: 25rpx 30rpx;
   background-color: #fff;
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid #e9e9e9;
   
   .title {
     font-size: 45rpx;
@@ -323,7 +323,7 @@ export default {
     
     .stat-label {
       font-size: 24rpx;
-      color: #999;
+      color: #777;
     }
   }
 }
@@ -337,6 +337,16 @@ export default {
   .custom-chart {
     width: 100%;
     height: 100%;
+  }
+}
+
+.tab-text {
+  font-size: 26rpx;
+  color: #777;
+  margin-top: 10rpx;
+  
+  &.active-text {
+    color: #4080ff;
   }
 }
 </style> 
