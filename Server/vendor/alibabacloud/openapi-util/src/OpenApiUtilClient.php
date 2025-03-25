@@ -160,26 +160,26 @@ class OpenApiUtilClient
     }
 
     /**
-     * Parse object into a string with specified style.
+     * Parse array into a string with specified style.
      *
      * @style specified style e.g. repeatList
      *
-     * @param mixed  $object  the object
+     * @param mixed  $array  the array
      * @param string $prefix the prefix string
      * @param string $style
      *
      * @return string the string
      */
-    public static function arrayToStringWithSpecifiedStyle($object, $prefix, $style)
+    public static function arrayToStringWithSpecifiedStyle($array, $prefix, $style)
     {
-        if (null === $object) {
+        if (null === $array) {
             return '';
         }
         if ('repeatList' === $style) {
-            return self::toForm([$prefix => $object]);
+            return self::toForm([$prefix => $array]);
         }
         if ('simple' == $style || 'spaceDelimited' == $style || 'pipeDelimited' == $style) {
-            $strs = self::flatten($object);
+            $strs = self::flatten($array);
 
             switch ($style) {
                 case 'spaceDelimited':
@@ -192,8 +192,7 @@ class OpenApiUtilClient
                     return implode(',', $strs);
             }
         } elseif ('json' === $style) {
-            self::parse($object, $parsed);
-            return json_encode($parsed);
+            return json_encode($array);
         }
 
         return '';
@@ -424,7 +423,7 @@ class OpenApiUtilClient
 
         foreach ($items as $key => $value) {
             $pos = \is_int($key) ? $key + 1 : $key;
-
+            
             if ($value instanceof Model) {
                 $value = $value->toMap();
             } elseif (\is_object($value)) {
@@ -437,9 +436,6 @@ class OpenApiUtilClient
                     self::flatten($value, $delimiter, $prepend . $pos . $delimiter)
                 );
             } else {
-                if (\is_bool($value)) {
-                    $value = true === $value ? 'true' : 'false';
-                }
                 $flatten[$prepend . $pos] = $value;
             }
         }

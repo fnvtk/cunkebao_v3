@@ -8,14 +8,14 @@ class XML
     {
         $res    = self::parse($xmlStr);
         if ($response === null) {
-            return $res;
+            return $ref;
         } else {
             if (\is_string($response)) {
                 $response = new $response();
             }
             $prop   = get_object_vars($response);
             $target = [];
-
+    
             foreach ($res as $k => $v) {
                 if (isset($prop[$k])) {
                     $target[$k] = $v;
@@ -45,9 +45,7 @@ class XML
 
     private static function parse($xml)
     {
-        if (\PHP_VERSION_ID < 80000) {
-            libxml_disable_entity_loader(true);
-        }
+        libxml_disable_entity_loader(true);
 
         return json_decode(
             json_encode(

@@ -19,9 +19,6 @@ class Utils
      */
     public static function toBytes($string)
     {
-        if (self::is_bytes($string)) {
-            return $string;
-        }
         $bytes = [];
         for ($i = 0; $i < \strlen($string); ++$i) {
             $bytes[] = \ord($string[$i]);
@@ -39,9 +36,6 @@ class Utils
      */
     public static function toString($bytes)
     {
-        if (\is_string($bytes)) {
-            return $bytes;
-        }
         $str = '';
         foreach ($bytes as $ch) {
             $str .= \chr($ch);
@@ -191,7 +185,7 @@ class Utils
             $object = $object->toMap();
         }
 
-        return json_encode($object, JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES);
+        return json_encode($object);
     }
 
     /**
@@ -386,7 +380,7 @@ class Utils
      *
      * @param mixed $value
      *
-     * @return int the number value
+     * @return bool the number value
      */
     public static function assertAsNumber($value)
     {
@@ -395,19 +389,6 @@ class Utils
         }
 
         throw new \InvalidArgumentException('It is not a number value.');
-    }
-
-    /**
-     * Assert a value, if it is a integer, return it, otherwise throws
-     * @param mixed $value
-     * @return int the integer value
-     */
-    public static function assertAsInteger($value){
-        if (\is_int($value)) {
-            return $value;
-        }
-
-        throw new \InvalidArgumentException('It is not a int value.');
     }
 
     /**
