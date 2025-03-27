@@ -68,9 +68,9 @@
       <!-- 设备列表 -->
       <view class="device-list">
         <!-- 设备项 1 -->
-        <view class="device-item">
+        <view class="device-item" @click="goToDeviceDetail(1)">
           <view class="device-checkbox">
-            <u-checkbox size="40" iconSize="35" v-model="device1Selected" shape="circle" activeColor="#4080ff"></u-checkbox>
+            <u-checkbox size="40" iconSize="35" v-model="device1Selected" shape="circle" activeColor="#4080ff" @click.stop></u-checkbox>
           </view>
           <view class="device-info">
             <view class="device-header">
@@ -87,10 +87,10 @@
         </view>
         
         <!-- 设备项 2 -->
-        <view class="device-item">
+        <view class="device-item" @click="goToDeviceDetail(2)">
           <view class="device-checkbox">
             <u-checkbox v-model="device2Selected" shape="circle" activeColor="#4080ff"
-            size="40" iconSize="35"
+            size="40" iconSize="35" @click.stop
             ></u-checkbox>
           </view>
           <view class="device-info">
@@ -108,9 +108,9 @@
         </view>
         
         <!-- 设备项 3 -->
-        <view class="device-item">
+        <view class="device-item" @click="goToDeviceDetail(3)">
           <view class="device-checkbox">
-            <u-checkbox size="40" iconSize="35" v-model="device3Selected" shape="circle" activeColor="#4080ff"></u-checkbox>
+            <u-checkbox size="40" iconSize="35" v-model="device3Selected" shape="circle" activeColor="#4080ff" @click.stop></u-checkbox>
           </view>
           <view class="device-info">
             <view class="device-header">
@@ -127,9 +127,9 @@
         </view>
         
         <!-- 设备项 4 -->
-        <view class="device-item">
+        <view class="device-item" @click="goToDeviceDetail(4)">
           <view class="device-checkbox">
-            <u-checkbox size="40" iconSize="35" v-model="device4Selected" shape="circle" activeColor="#4080ff"></u-checkbox>
+            <u-checkbox size="40" iconSize="35" v-model="device4Selected" shape="circle" activeColor="#4080ff" @click.stop></u-checkbox>
           </view>
           <view class="device-info">
             <view class="device-header">
@@ -355,6 +355,13 @@ export default {
             this.selectAll = false;
           }
         }
+      });
+    },
+    
+    // 跳转到设备详情页
+    goToDeviceDetail(deviceId) {
+      uni.navigateTo({
+        url: `/pages/device/detail?id=${deviceId}`
       });
     }
   },

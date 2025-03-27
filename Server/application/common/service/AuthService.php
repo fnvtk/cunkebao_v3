@@ -31,22 +31,21 @@ class AuthService
 
     /**
      * 用户登录
-     * @param string $username 用户名
+     * @param string $account 账号（手机号）
      * @param string $password 密码（可能是加密后的）
      * @param string $ip 登录IP
-     * @param bool $isEncrypted 密码是否已加密
      * @return array
      * @throws \Exception
      */
-    public function login($username, $password, $ip, $isEncrypted = false)
+    public function login($account, $password, $typeId, $ip)
     {
         // 获取用户信息
-        $user = User::getAdminUser($username, $password, $isEncrypted);
-        
+        $user = User::getAdminUser($account, $password, $typeId);
+
         if (empty($user)) {
             // 记录登录失败
-            Log::info('登录失败', ['username' => $username, 'ip' => $ip, 'is_encrypted' => $isEncrypted]);
-            throw new \Exception('用户名或密码错误');
+            Log::info('登录失败', ['account' => $account, 'ip' => $ip, 'is_encrypted' => true]);
+            throw new \Exception('账号或密码错误');
         }
         
         // 生成JWT令牌
@@ -54,7 +53,7 @@ class AuthService
         $expireTime = time() + self::TOKEN_EXPIRE;
         
         // 记录登录成功
-        Log::info('登录成功', ['username' => $username, 'ip' => $ip]);
+        Log::info('登录成功', ['account' => $account, 'ip' => $ip]);
         
         return [
             'token' => $token,
@@ -65,25 +64,25 @@ class AuthService
 
     /**
      * 手机号验证码登录
-     * @param string $mobile 手机号
+     * @param string $account 手机号
      * @param string $code 验证码（可能是加密后的）
      * @param string $ip 登录IP
      * @param bool $isEncrypted 验证码是否已加密
      * @return array
      * @throws \Exception
      */
-    public function mobileLogin($mobile, $code, $ip, $isEncrypted = false)
+    public function mobileLogin($account, $code, $ip, $isEncrypted = false)
     {
         // 验证验证码
-        if (!$this->smsService->verifyCode($mobile, $code, 'login', $isEncrypted)) {
-            Log::info('验证码验证失败', ['mobile' => $mobile, 'ip' => $ip, 'is_encrypted' => $isEncrypted]);
+        if (!$this->smsService->verifyCode($account, $code, 'login', $isEncrypted)) {
+            Log::info('验证码验证失败', ['account' => $account, 'ip' => $ip, 'is_encrypted' => $isEncrypted]);
             throw new \Exception('验证码错误或已过期');
         }
 
         // 获取用户信息
-        $user = User::getUserByMobile($mobile);
+        $user = User::getUserByMobile($account);
         if (empty($user)) {
-            Log::info('用户不存在', ['mobile' => $mobile, 'ip' => $ip]);
+            Log::info('用户不存在', ['account' => $account, 'ip' => $ip]);
             throw new \Exception('用户不存在');
         }
 
@@ -92,7 +91,7 @@ class AuthService
         $expireTime = time() + self::TOKEN_EXPIRE;
 
         // 记录登录成功
-        Log::info('手机号登录成功', ['mobile' => $mobile, 'ip' => $ip]);
+        Log::info('手机号登录成功', ['account' => $account, 'ip' => $ip]);
 
         return [
             'token' => $token,
@@ -103,14 +102,14 @@ class AuthService
 
     /**
      * 发送登录验证码
-     * @param string $mobile 手机号
+     * @param string $account 手机号
      * @param string $type 验证码类型
      * @return array
      * @throws \Exception
      */
-    public function sendLoginCode($mobile, $type)
+    public function sendLoginCode($account, $type)
     {
-        return $this->smsService->sendCode($mobile, $type);
+        return $this->smsService->sendCode($account, $type);
     }
 
     /**

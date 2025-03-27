@@ -3,14 +3,14 @@ import request from '@/utils/request'
 /**
  * 用户登录
  * @param {Object} data 登录数据
- * @param {string} data.username 用户名
+ * @param {string} data.account 账号（手机号）
  * @param {string} data.password 密码
- * @param {boolean} data.is_encrypted 密码是否已加密
+ * @param {number} data.typeId 用户类型
  * @returns {Promise} 登录结果
  */
 export function login(data) {
   return request({
-    url: '/api/auth/login',
+    url: '/v1/auth/login',
     method: 'POST',
     data
   })
@@ -19,13 +19,14 @@ export function login(data) {
 /**
  * 手机号验证码登录
  * @param {Object} data 登录数据
- * @param {string} data.mobile 手机号
+ * @param {string} data.account 手机号
  * @param {string} data.code 验证码
+ * @param {number} data.typeId 用户类型
  * @returns {Promise} 登录结果
  */
 export function mobileLogin(data) {
   return request({
-    url: '/api/auth/mobile-login',
+    url: '/v1/auth/mobile-login',
     method: 'POST',
     data
   })
@@ -34,13 +35,13 @@ export function mobileLogin(data) {
 /**
  * 发送验证码
  * @param {Object} data 数据
- * @param {string} data.mobile 手机号
+ * @param {string} data.account 手机号
  * @param {string} data.type 验证码类型(login:登录,register:注册)
  * @returns {Promise} 发送结果
  */
 export function sendCode(data) {
   return request({
-    url: '/api/auth/code',
+    url: '/v1/auth/code',
     method: 'POST',
     data
   })
@@ -52,7 +53,7 @@ export function sendCode(data) {
  */
 export function getUserInfo() {
   return request({
-    url: '/api/auth/info',
+    url: '/v1/auth/info',
     method: 'GET'
   })
 }
@@ -63,7 +64,7 @@ export function getUserInfo() {
  */
 export function refreshToken() {
   return request({
-    url: '/api/auth/refresh',
+    url: '/v1/auth/refresh',
     method: 'POST'
   })
 }
@@ -86,7 +87,7 @@ export function logout() {
  */
 export function wechatLogin(data) {
   return request({
-    url: '/api/auth/wechat-login',
+    url: '/v1/auth/wechat-login',
     method: 'POST',
     data
   })
@@ -100,7 +101,7 @@ export function wechatLogin(data) {
  */
 export function appleLogin(data) {
   return request({
-    url: '/api/auth/apple-login',
+    url: '/v1/auth/apple-login',
     method: 'POST',
     data
   })

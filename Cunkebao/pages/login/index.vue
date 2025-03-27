@@ -24,10 +24,10 @@
       <!-- 手机号输入 -->
       <view class="input-box">
         <u--input
-          v-model="form.mobile"
+          v-model="form.account"
           placeholder="+86手机号"
           prefixIcon="phone"
-          prefixIconStyle="font-size: 52rpx;color: #909399;padding-right: 16rpx;"
+          prefixIconStyle="font-size: 40rpx; color: #909399; padding-right: 16rpx;"
           clearable
           type="number"
           maxlength="11"
@@ -71,7 +71,7 @@
           fontSize="30rpx"
           suffixIcon="eye"
           @clickSuffixIcon="showPassword = !showPassword"
-          suffixIconStyle="font-size: 45rpx;"
+          suffixIconStyle="font-size: 40rpx;"
         ></u--input>
       </view>
       
@@ -101,9 +101,10 @@
       <!-- 登录按钮 -->
       <u-button
         text="登录"
-        type="primary"
+        type="info"
+        :disabled="!canLogin"
         @click="handleLogin"
-        customStyle="width: 100%; margin-top: 40rpx; height: 96rpx; border-radius: 24rpx; font-size: 32rpx; font-weight: 500;"
+        customStyle="width: 100%; margin-top: 40rpx; height: 96rpx; border-radius: 24rpx; font-size: 40rpx; font-weight: bold; background-color: #2563eb; color: #fff;"
       ></u-button>
       
       <!-- 分割线 -->
@@ -117,13 +118,13 @@
       <view class="other-login">
         <!-- 微信登录 -->
         <button class="wechat-btn" @click="handleWechatLogin">
-          <u-icon name="weixin-fill" size="56" color="#07c160" class="wechat-icon"></u-icon>
+          <u-icon name="weixin-fill" size="44" color="#07c160" class="wechat-icon"></u-icon>
           <text>使用微信登录</text>
         </button>
         
         <!-- Apple登录 -->
         <button class="apple-btn" @click="handleAppleLogin">
-          <u-icon name="apple-fill" size="56" color="#333333" class="apple-icon"></u-icon>
+          <u-icon name="apple-fill" size="44" color="#333333" class="apple-icon"></u-icon>
           <text>使用 Apple 登录</text>
         </button>
       </view>
@@ -135,6 +136,9 @@
 </template>
 
 <script>
+import { login, mobileLogin, sendCode } from '@/api/user'
+import Auth from '@/utils/auth'
+
 export default {
   data() {
     return {
@@ -144,9 +148,10 @@ export default {
       ],
       current: 0,
       form: {
-        mobile: '',
+        account: '',
         code: '',
-        password: ''
+        password: '',
+        typeId: 1 // 默认账号类型为运营后台/操盘手
       },
       showPassword: false,
       isAgree: false,
@@ -161,7 +166,7 @@ export default {
   },
   computed: {
     isValidMobile() {
-      return /^1\d{10}$/.test(this.form.mobile)
+      return /^1\d{10}$/.test(this.form.account)
     },
     canLogin() {
       if (!this.isAgree || !this.isValidMobile) return false
@@ -185,18 +190,48 @@ export default {
     },
     getCode() {
       if (this.sending || !this.isValidMobile) return
-      this.sending = true
-      this.codeTips = '60s'
-      let seconds = 60
-      const timer = setInterval(() => {
-        seconds--
-        this.codeTips = `${seconds}s`
-        if (seconds <= 0) {
-          clearInterval(timer)
+      
+      // 发送验证码接口调用
+      sendCode({
+        account: this.form.account,
+        type: 'login'
+      }).then(res => {
+        if (res.code === 200) {
+          // 发送成功，开始倒计时
+          this.sending = true
+          this.codeTips = '60s'
+          let seconds = 60
+          const timer = setInterval(() => {
+            seconds--
+            this.codeTips = `${seconds}s`
+            if (seconds <= 0) {
+              clearInterval(timer)
+              this.sending = false
+              this.codeTips = '发送验证码'
+            }
+          }, 1000)
+          
+          // 提示用户
+          uni.showToast({
+            title: '验证码已发送',
+            icon: 'success'
+          })
+        } else {
+          // 发送失败
+          uni.showToast({
+            title: res.msg || '验证码发送失败',
+            icon: 'none'
+          })
           this.sending = false
-          this.codeTips = '发送验证码'
         }
-      }, 1000)
+      }).catch(err => {
+        console.error('发送验证码失败:', err)
+        uni.showToast({
+          title: '验证码发送失败，请重试',
+          icon: 'none'
+        })
+        this.sending = false
+      })
     },
     handleLogin() {
       if (!this.canLogin) {
@@ -237,42 +272,69 @@ export default {
         mask: true
       })
       
-      // 模拟登录成功
-      setTimeout(() => {
+      // 根据当前登录方式选择不同的登录API
+      const loginAction = this.current === 0 ? 
+        mobileLogin({ 
+          account: this.form.account, 
+          code: this.form.code,
+          typeId: this.form.typeId
+        }) : 
+        login({ 
+          account: this.form.account, 
+          password: this.form.password,
+          typeId: this.form.typeId
+        });
+      
+      // 调用登录接口
+      loginAction.then(res => {
         // 隐藏加载提示
         uni.hideLoading()
         
-        // 保存登录状态和用户信息
-        uni.setStorageSync('token', 'mock_token_' + Date.now())
-        uni.setStorageSync('userInfo', {
-          mobile: this.form.mobile,
-          loginTime: Date.now()
-        })
-        
-        // 显示登录成功提示
-        uni.showToast({
-          title: '登录成功',
-          icon: 'success',
-          duration: 1500
-        })
-        
-        // 延迟跳转到首页
-        setTimeout(() => {
-          uni.reLaunch({
-            url: '/pages/index/index',
-            success: () => {
-              console.log('跳转到首页成功')
-            },
-            fail: (err) => {
-              console.error('跳转失败:', err)
-              uni.showToast({
-                title: '跳转失败，请重试',
-                icon: 'none'
-              })
-            }
+        if (res.code === 200) {
+          // 登录成功，保存token和用户信息
+          Auth.setToken(res.data.token, res.data.token_expired - Math.floor(Date.now() / 1000));
+          Auth.setUserInfo(res.data.member);
+          
+          // 显示登录成功提示
+          uni.showToast({
+            title: '登录成功',
+            icon: 'success',
+            duration: 1500
           })
-        }, 1500)
-      }, 1000)
+          
+          // 延迟跳转到首页
+          setTimeout(() => {
+            uni.reLaunch({
+              url: '/pages/index/index',
+              success: () => {
+                console.log('跳转到首页成功')
+              },
+              fail: (err) => {
+                console.error('跳转失败:', err)
+                uni.showToast({
+                  title: '跳转失败，请重试',
+                  icon: 'none'
+                })
+              }
+            })
+          }, 1500)
+        } else {
+          // 登录失败
+          uni.showToast({
+            title: res.msg || '登录失败',
+            icon: 'none'
+          })
+        }
+      }).catch(err => {
+        // 隐藏加载提示
+        uni.hideLoading()
+        
+        console.error('登录失败:', err)
+        uni.showToast({
+          title: '登录失败，请重试',
+          icon: 'none'
+        })
+      })
     },
     handleWechatLogin() {
       console.log('微信登录')

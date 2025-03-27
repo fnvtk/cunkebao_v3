@@ -53,8 +53,8 @@ class Auth extends Controller
     public function login()
     {
         // 获取登录参数
-        $params = Request::only(['username', 'password', 'is_encrypted']);
-        
+        $params = Request::only(['account', 'password', 'typeId']);
+
         // 参数验证
         $validate = validate('common/Auth');
         if (!$validate->scene('login')->check($params)) {
@@ -62,16 +62,14 @@ class Auth extends Controller
         }
         
         try {
-            // 判断密码是否已加密
-            $isEncrypted = isset($params['is_encrypted']) && $params['is_encrypted'] === true;
-            
             // 调用登录服务
             $result = $this->authService->login(
-                $params['username'],
+                $params['account'],
                 $params['password'],
-                Request::ip(),
-                $isEncrypted
+                $params['typeId'],
+                Request::ip()
             );
+
             return ResponseHelper::success($result, '登录成功');
         } catch (\Exception $e) {
             return ResponseHelper::error($e->getMessage());
@@ -85,7 +83,7 @@ class Auth extends Controller
     public function mobileLogin()
     {
         // 获取登录参数
-        $params = Request::only(['mobile', 'code', 'is_encrypted']);
+        $params = Request::only(['account', 'code', 'typeId']);
         
         // 参数验证
         $validate = validate('common/Auth');
@@ -99,7 +97,7 @@ class Auth extends Controller
             
             // 调用手机号登录服务
             $result = $this->authService->mobileLogin(
-                $params['mobile'],
+                $params['account'],
                 $params['code'],
                 Request::ip(),
                 $isEncrypted
@@ -118,7 +116,7 @@ class Auth extends Controller
     public function sendCode()
     {
         // 获取参数
-        $params = Request::only(['mobile', 'type']);
+        $params = Request::only(['account', 'type']);
         
         // 参数验证
         $validate = validate('common/Auth');
@@ -129,7 +127,7 @@ class Auth extends Controller
         try {
             // 调用发送验证码服务
             $result = $this->authService->sendLoginCode(
-                $params['mobile'],
+                $params['account'],
                 $params['type']
             );
             return ResponseHelper::success($result, '验证码发送成功');

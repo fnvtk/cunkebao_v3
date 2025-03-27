@@ -1,6 +1,7 @@
 /**
  * 认证相关工具函数
  */
+import { refreshToken } from '@/api/user';
 
 const TOKEN_KEY = 'token';
 const TOKEN_EXPIRES_KEY = 'token_expires';
@@ -68,6 +69,28 @@ function removeAll() {
 }
 
 /**
+ * 刷新Token
+ * @returns {Promise} 刷新结果
+ */
+function refreshTokenAsync() {
+  return new Promise((resolve, reject) => {
+    refreshToken()
+      .then(res => {
+        if (res.code === 200) {
+          // 更新Token
+          setToken(res.data.token, res.data.token_expired - Math.floor(Date.now() / 1000));
+          resolve(res);
+        } else {
+          reject(res);
+        }
+      })
+      .catch(err => {
+        reject(err);
+      });
+  });
+}
+
+/**
  * 判断是否已登录
  * @returns {boolean} 是否已登录
  */
@@ -84,6 +107,24 @@ function isLogin() {
   return nowTime < expiresTime;
 }
 
+/**
+ * 获取用户类型
+ * @returns {number} 用户类型ID
+ */
+function getUserType() {
+  const userInfo = getUserInfo();
+  return userInfo ? userInfo.typeId || 0 : 0;
+}
+
+/**
+ * 是否为管理员
+ * @returns {boolean} 是否为管理员
+ */
+function isAdmin() {
+  const userInfo = getUserInfo();
+  return userInfo ? !!userInfo.isAdmin : false;
+}
+
 export default {
   setToken,
   getToken,
@@ -92,5 +133,8 @@ export default {
   getUserInfo,
   removeUserInfo,
   removeAll,
-  isLogin
+  isLogin,
+  refreshToken: refreshTokenAsync,
+  getUserType,
+  isAdmin
 };
