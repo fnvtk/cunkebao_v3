@@ -6,5 +6,6 @@ use think\Model;
 
 class WechatAccountModel extends Model
 {
-
+    // 设置表名
+    protected $name = 'wechat_account'; 
 } 

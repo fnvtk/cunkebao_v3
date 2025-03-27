@@ -5,6 +5,7 @@ namespace app\store\controller;
 use app\common\controller\Api;
 use app\store\model\FlowPackageModel;
 use app\store\model\UserFlowPackageModel;
+use app\store\model\FlowPackageOrderModel;
 use think\facade\Config;
 
 /**
@@ -108,7 +109,7 @@ class FlowPackageController extends Api
         $params = $this->request->param();
         
         // 获取用户ID，通常应该从会话或令牌中获取
-        $userId = isset($params['userId']) ? intval($params['userId']) : 0;
+        $userId = isset($params['userId']) ? intval($params['userId']) : 1;
         
         if (empty($userId)) {
             return errorJson('请先登录');
@@ -160,5 +161,133 @@ class FlowPackageController extends Api
         ];
         
         return successJson($result, '获取成功');
+    }
+    
+    /**
+     * 创建流量采购订单
+     * 
+     * @return \think\Response
+     */
+    public function createOrder()
+    {
+        $params = $this->request->param();
+        
+        // 获取用户ID，通常应该从会话或令牌中获取
+        $userId = isset($params['userId']) ? intval($params['userId']) : 1;
+        
+        if (empty($userId)) {
+            return errorJson('请先登录');
+        }
+        
+        // 获取套餐ID
+        $packageId = isset($params['packageId']) ? intval($params['packageId']) : 0;
+        
+        if (empty($packageId)) {
+            return errorJson('请选择套餐');
+        }
+        
+        // 查询套餐信息
+        $flowPackage = FlowPackageModel::where('id', $packageId)->where('isDel', 0)->find();
+        
+        if (empty($flowPackage)) {
+            return errorJson('套餐不存在');
+        }
+        
+        // 获取支付方式（可选）
+        $payType = isset($params['payType']) ? $params['payType'] : 'wechat';
+        
+        // 套餐价格和信息
+        $amount = floatval($flowPackage['price']);
+        $packageName = $flowPackage['name'];
+        $duration = intval($flowPackage['duration']);
+        $remark = isset($params['remark']) ? $params['remark'] : '';
+        
+        // 处理金额为0的特殊情况
+        if ($amount <= 0) {
+            // 金额为0，无需支付，直接创建订单并设置为已支付
+            $order = FlowPackageOrderModel::createOrder(
+                $userId, 
+                $packageId, 
+                $packageName, 
+                0, 
+                $duration, 
+                'nopay', 
+                $remark
+            );
+            
+            if (!$order) {
+                return errorJson('订单创建失败');
+            }
+            
+            // 创建用户流量套餐记录
+            $this->createUserFlowPackage($userId, $packageId, $order['id']);
+            
+            // 返回成功信息
+            return successJson(['orderNo' => $order['orderNo'],'status' => 'success'], '购买成功');
+        } else {
+            // 创建正常需要支付的订单
+            $order = FlowPackageOrderModel::createOrder(
+                $userId, 
+                $packageId, 
+                $packageName, 
+                $amount, 
+                $duration, 
+                $payType, 
+                $remark
+            );
+            
+            if (!$order) {
+                return errorJson('订单创建失败');
+            }
+            
+            // 返回订单信息，前端需要跳转到支付页面
+            return successJson([
+                'orderNo' => $order['orderNo'],
+                'amount' => $amount,
+                'payType' => $payType,
+                'status' => 'pending'
+            ], '订单创建成功');
+        }
+    }
+    
+    /**
+     * 创建用户流量套餐记录
+     * 
+     * @param int $userId 用户ID
+     * @param int $packageId 套餐ID
+     * @param int $orderId 订单ID
+     * @return bool
+     */
+    private function createUserFlowPackage($userId, $packageId, $orderId)
+    {
+        // 获取套餐信息
+        $flowPackage = FlowPackageModel::where('id', $packageId)->where('isDel', 0)->find();
+        
+        if (empty($flowPackage)) {
+            return false;
+        }
+        
+        // 计算到期时间（当前时间 + 套餐时长(月) * 30天）
+        $now = time();
+        $expireTime = $now + (intval($flowPackage['duration']) * 30 * 86400);
+        
+        // 用户流量套餐数据
+        $data = [
+            'userId' => $userId,
+            'packageId' => $packageId,
+            'orderId' => $orderId,
+            'packageName' => $flowPackage['name'],
+            'monthlyFlow' => $flowPackage['monthlyFlow'],
+            'duration' => $flowPackage['duration'],
+            'totalFlow' => $flowPackage->totalFlow, // 使用计算属性获取总流量
+            'usedFlow' => 0,
+            'startTime' => $now,
+            'expireTime' => $expireTime,
+            'status' => 1, // 1:有效 0:无效
+            'isDel' => 0
+        ];
+        
+        // 创建用户流量套餐记录
+        return UserFlowPackageModel::create($data) ? true : false;
     }
 }

@@ -8,7 +8,14 @@ Route::group('v1/store', function () {
     // 流量套餐相关路由
     Route::group('flow-packages', function () {
         Route::get('', 'app\\store\\controller\\FlowPackageController@getList');  // 获取流量套餐列表
-        Route::get(':id', 'app\\store\\controller\\FlowPackageController@detail'); // 获取流量套餐详情
         Route::get('remaining-flow', 'app\\store\\controller\\FlowPackageController@remainingFlow'); // 获取用户剩余流量
+        Route::get(':id', 'app\\store\\controller\\FlowPackageController@detail'); // 获取流量套餐详情
+        Route::post('order', 'app\\store\\controller\\FlowPackageController@createOrder'); // 创建流量采购订单
+    });
+    
+    // 流量订单相关路由
+    Route::group('flow-orders', function () {
+        Route::get('list', 'app\\store\\controller\\FlowPackageController@getOrderList'); // 获取订单列表
+        Route::get(':orderNo', 'app\\store\\controller\\FlowPackageController@getOrderDetail'); // 获取订单详情
     });
 })/*->middleware(['jwt'])*/;

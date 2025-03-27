@@ -150,18 +150,17 @@ class UserController extends BaseController
         }
 
         $headerData = ['client:' . self::CLIENT_TYPE];
-        $header = setHeader($headerData, $authorization, 'plain');
+        $header = setHeader($headerData, $authorization, 'json');
 
         try {
-            $result = requestCurl($this->baseUrl . 'api/Account/self', [], 'GET', $header);
+            $result = requestCurl($this->baseUrl . 'api/Account/self', [], 'GET', $header,'json');
             $response = handleApiResponse($result);
-
             if (!empty($response['account'])) {
                 $accountData = $response['account'];
                 
                 // 准备数据库字段映射，保持驼峰命名
                 $dbData = [
-                    'accountId' => $accountData['id'],
+                    'tenantId' => $accountData['id'],
                     'realName' => $accountData['realName'],
                     'nickname' => $accountData['nickname'],
                     'memo' => $accountData['memo'],
@@ -169,7 +168,7 @@ class UserController extends BaseController
                     'userName' => $accountData['userName'],
                     'secret' => $accountData['secret'],
                     'accountType' => $accountData['accountType'],
-                    'departmentId' => $accountData['departmentId'],
+                    'companyId' => $accountData['departmentId'],
                     'useGoogleSecretKey' => $accountData['useGoogleSecretKey'],
                     'hasVerifyGoogleSecret' => $accountData['hasVerifyGoogleSecret'],
                     'updateTime' => time()

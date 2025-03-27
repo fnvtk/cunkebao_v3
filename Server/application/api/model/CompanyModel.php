@@ -4,7 +4,7 @@ namespace app\api\model;
 
 use think\Model;
 
-class DeviceModel extends Model {
+class CompanyModel extends Model {
     // 设置表名
-    protected $name = 'device';
+    protected $name = 'company';
 }

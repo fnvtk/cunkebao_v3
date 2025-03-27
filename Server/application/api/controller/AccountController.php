@@ -3,6 +3,7 @@
 namespace app\api\controller;
 
 use app\api\model\CompanyAccountModel;
+use app\api\model\CompanyModel;
 use think\facade\Request;
 
 class AccountController extends BaseController
@@ -185,6 +186,73 @@ class AccountController extends BaseController
             return errorJson('创建账号失败：' . $e->getMessage());
         }
     }
+
+    /**
+     * 获取部门列表
+     * @return \think\response\Json
+     */
+    public function getDepartmentList()
+    {
+        // 获取授权token
+        $authorization = trim($this->request->header('authorization', ''));
+        if (empty($authorization)) {
+            return errorJson('缺少授权信息');
+        }
+
+        try {
+            // 设置请求参数
+            $isAll = $this->request->param('isAll', 'false');
+            
+            // 设置请求头
+            $headerData = ['client:system'];
+            $header = setHeader($headerData, $authorization, 'json');
+
+            // 发送请求获取部门列表
+            $url = $this->baseUrl . 'api/Department/tenantDepartmentsForSelect?isAll=' . $isAll;
+            $result = requestCurl($url, [], 'GET', $header, 'json');
+            
+            // 处理返回结果
+            $response = handleApiResponse($result);
+            
+            
+            // 保存数据到数据库
+            if (!empty($response)) {
+                foreach ($response as $item) {
+                    $this->saveDepartment($item);
+                }
+            }
+            
+            return successJson($response, '获取部门列表成功');
+        } catch (\Exception $e) {
+            return errorJson('获取部门列表失败：' . $e->getMessage());
+        }
+    }
+
+  /**
+     * 保存部门数据到数据库
+     * @param array $item 部门数据
+     */
+    private function saveDepartment($item)
+    {
+        $data = [
+            'id' => isset($item['id']) ? $item['id'] : 0,
+            'name' => isset($item['name']) ? $item['name'] : '',
+            'memo' => isset($item['memo']) ? $item['memo'] : '',  
+        ];
+
+        // 使用imei作为唯一性判断
+        $department= CompanyModel::where('id', $item['id'])->find();
+
+        if ($department) {
+            $department->save($data);
+        } else {
+            CompanyModel::create($data);
+        }
+    }
+
+
+
+
 
     /**
      * 保存账号数据到数据库

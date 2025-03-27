@@ -11,6 +11,9 @@
 
 use think\facade\Route;
 
+// 加载Store模块路由配置
+include __DIR__ . '/../application/api/config/route.php';
+
 // 加载Common模块路由配置
 include __DIR__ . '/../application/common/config/route.php';
 
