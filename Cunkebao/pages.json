@@ -29,6 +29,55 @@
       }
     },
     {
+      "path": "pages/device/detail",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "设备详情"
+      }
+    },
+    {
+      "path": "pages/wechat/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "微信号管理"
+      }
+    },
+    {
+      "path": "pages/wechat/detail",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "账号详情"
+      }
+    },
+    {
+      "path": "pages/traffic/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "流量池"
+      }
+    },
+    {
+      "path": "pages/traffic/create",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "新建分发"
+      }
+    },
+    {
+      "path": "pages/content/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "内容库"
+      }
+    },
+    {
+      "path": "pages/content/detail",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "内容库详情"
+      }
+    },
+    {
       "path": "pages/scenarios/index",
       "style": {
         "navigationStyle": "custom",
