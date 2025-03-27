@@ -13,12 +13,10 @@ class Auth extends Validate
      * @var array
      */
     protected $rule = [
-        'username' => 'require|length:3,20',
+        'account' => 'require|mobile',
         'password' => 'require|length:6,64',
-        'mobile' => 'require|mobile',
         'code' => 'require|length:4,6',
-        'is_encrypted' => 'boolean',
-        'type' => 'require|in:login,register',
+        'typeId' => 'require|in:1,2',
     ];
 
     /**
@@ -26,17 +24,14 @@ class Auth extends Validate
      * @var array
      */
     protected $message = [
-        'username.require' => '用户名不能为空',
-        'username.length' => '用户名长度必须在3-20个字符之间',
+        'account.require' => '账号不能为空',
+        'account.mobile' => '账号格式不正确（需要是手机号）',
         'password.require' => '密码不能为空',
         'password.length' => '密码长度必须在6-64个字符之间',
-        'mobile.require' => '手机号不能为空',
-        'mobile.mobile' => '手机号格式不正确',
         'code.require' => '验证码不能为空',
         'code.length' => '验证码长度必须在4-6个字符之间',
-        'is_encrypted.boolean' => '加密标志必须为布尔值',
-        'type.require' => '验证码类型不能为空',
-        'type.in' => '验证码类型不正确',
+        'typeId.require' => '用户类型不能为空',
+        'typeId.in' => '用户类型错误',
     ];
 
     /**
@@ -44,9 +39,9 @@ class Auth extends Validate
      * @var array
      */
     protected $scene = [
-        'login' => ['username', 'password', 'is_encrypted'],
-        'mobile_login' => ['mobile', 'code', 'is_encrypted'],
+        'login' => ['account', 'password', 'typeId'],
+        'mobile_login' => ['account', 'code', 'typeId'],
         'refresh' => [],
-        'send_code' => ['mobile', 'type'],
+        'send_code' => ['account', 'type'],
     ];
 } 
