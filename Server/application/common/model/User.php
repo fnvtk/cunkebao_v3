@@ -110,9 +110,14 @@ class User extends Model
         $user->lastLoginTime = time();
         $user->save();
         
+        // 用手机号当做默认用户名（如果没有设置用户名）
+        $username = $user->username ?: $user->account;
+        
         return [
             'id' => $user->id,
+            'username' => $username,
             'account' => $user->account,
+            'avatar' => $user->avatar,
             'isAdmin' => $user->isAdmin,
             'companyId' => $user->companyId,
             'typeId' => $user->typeId,
@@ -137,14 +142,21 @@ class User extends Model
             return null;
         }
         
+        // 用手机号当做默认用户名（如果没有设置用户名）
+        $username = $user->username ?: $user->account;
+        // 默认头像地址
+        $avatar = $user->avatar ?: '';
+        
         return [
             'id' => $user->id,
+            'username' => $username,
             'account' => $user->account,
+            'avatar' => $avatar,
             'isAdmin' => $user->isAdmin,
             'companyId' => $user->companyId,
             'typeId' => $user->typeId,
-            'role' => $user->isAdmin ? 'admin' : 'user',
-            'permissions' => $user->isAdmin ? ['*'] : ['user']
+            'lastLoginIp' => $user->lastLoginIp,
+            'lastLoginTime' => $user->lastLoginTime
         ];
     }
     

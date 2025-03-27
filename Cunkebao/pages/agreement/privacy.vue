@@ -6,13 +6,13 @@
     ></u-navbar>
     
     <view class="content">
-      <view class="title">村客宝隐私政策</view>
+      <view class="title">存客宝隐私政策</view>
       <view class="date">生效日期：2023年1月1日</view>
       
       <view class="section">
         <view class="section-title">一、引言</view>
         <view class="paragraph">
-          村客宝（以下简称"我们"）非常重视您的隐私和个人信息保护。本隐私政策旨在向您说明我们如何收集、使用、存储、共享和保护您的个人信息，以及您享有的相关权利。
+          存客宝（以下简称"我们"）非常重视您的隐私和个人信息保护。本隐私政策旨在向您说明我们如何收集、使用、存储、共享和保护您的个人信息，以及您享有的相关权利。
         </view>
         <view class="paragraph">
           请您在使用我们的服务前，仔细阅读并了解本隐私政策的全部内容。如您对本隐私政策有任何疑问，可随时联系我们的客服。

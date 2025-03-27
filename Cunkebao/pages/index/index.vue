@@ -100,6 +100,8 @@
 <script>
 import LineChart from '@/components/LineChart.vue'
 import CustomTabBar from '@/components/CustomTabBar.vue'
+import Auth from '@/utils/auth'
+import { getUserInfo, logout } from '@/api/user'
 
 export default {
   components: {
@@ -119,14 +121,42 @@ export default {
         { icon: 'coupon', color: 'yellow', count: 167, label: '海报获客' },
         { icon: 'play-right', color: 'black', count: 156, label: '抖音获客' },
         { icon: 'heart', color: 'red', count: 89, label: '小红书获客' }
-      ]
+      ],
+      userInfo: null
     }
   },
   onLoad() {
+    // 检查登录状态
+    if (!Auth.isLogin()) {
+      uni.reLaunch({
+        url: '/pages/login/index'
+      });
+      return;
+    }
+    
+    // 获取用户信息
+    this.fetchUserInfo();
+    
     // 加载数据
     this.loadData();
   },
   methods: {
+    // 获取用户信息
+    fetchUserInfo() {
+      // 先尝试从缓存获取
+      this.userInfo = Auth.getUserInfo();
+      
+      // 然后从服务器获取最新信息
+      getUserInfo().then(res => {
+        if (res.code === 200) {
+          this.userInfo = res.data;
+          Auth.setUserInfo(res.data);
+        }
+      }).catch(err => {
+        console.error('获取用户信息失败:', err);
+      });
+    },
+    
     // 加载数据
     loadData() {
       // 这里可以添加API调用获取实际数据
@@ -138,6 +168,34 @@ export default {
     goToNotification() {
       uni.navigateTo({
         url: '/pages/notification/index'
+      });
+    },
+    
+    // 退出登录
+    handleLogout() {
+      uni.showModal({
+        title: '提示',
+        content: '确认退出登录吗？',
+        success: (res) => {
+          if (res.confirm) {
+            // 直接清除本地保存的登录信息
+            Auth.removeAll();
+            
+            // 显示退出成功提示
+            uni.showToast({
+              title: '退出成功',
+              icon: 'success',
+              duration: 1500
+            });
+            
+            // 跳转到登录页面
+            setTimeout(() => {
+              uni.reLaunch({
+                url: '/pages/login/index'
+              });
+            }, 1500);
+          }
+        }
       });
     }
   }
@@ -174,6 +232,25 @@ export default {
     display: flex;
     color: black;
     align-items: center;
+    
+    .user-info {
+      display: flex;
+      align-items: center;
+      margin-right: 20rpx;
+      padding: 8rpx 20rpx;
+      background-color: #f5f5f5;
+      border-radius: 30rpx;
+      
+      .user-name {
+        font-size: 28rpx;
+        color: #333;
+        margin-right: 8rpx;
+      }
+    }
+    
+    .icon-bell {
+      margin-left: 10rpx;
+    }
   }
 }
 

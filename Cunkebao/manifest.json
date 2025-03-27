@@ -1,7 +1,7 @@
 {
-    "name" : "村客宝",
+    "name" : "存客宝",
     "appid" : "",
-    "description" : "村客宝应用",
+    "description" : "存客宝应用",
     "versionName" : "1.0.0",
     "versionCode" : "100",
     "transformPx" : false,
@@ -69,6 +69,6 @@
                 "enable" : true
             }
         },
-        "title" : "村客宝"
+        "title" : "存客宝"
     }
 } 

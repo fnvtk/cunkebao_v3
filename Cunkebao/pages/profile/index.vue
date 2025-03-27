@@ -12,7 +12,7 @@
     <!-- 用户信息卡片 -->
     <view class="user-card">
       <view class="avatar-wrap">
-        <template v-if="userInfo.avatar">
+        <template v-if="userInfo && userInfo.avatar">
           <image class="avatar" :src="userInfo.avatar"></image>
         </template>
         <template v-else>
@@ -22,8 +22,8 @@
         </template>
       </view>
       <view class="user-info">
-        <view class="username">卡若</view>
-        <view class="account">账号: 84675209</view>
+        <view class="username">{{ userInfo && userInfo.username ? userInfo.username : '未设置昵称' }}</view>
+        <view class="account">账号: {{ userInfo && userInfo.account ? userInfo.account : '未登录' }}</view>
         <view class="edit-profile-btn" @click="editProfile">
           编辑资料
         </view>
@@ -74,6 +74,8 @@
 
 <script>
 import CustomTabBar from '@/components/CustomTabBar.vue'
+import Auth from '@/utils/auth'
+import { getUserInfo, logout } from '@/api/user'
 
 export default {
   components: {
@@ -81,28 +83,48 @@ export default {
   },
   data() {
     return {
-      userInfo: {
-        avatar: null,
-        username: '卡若',
-        account: '84675209'
-      }
+      userInfo: null
     }
   },
+  onShow() {
+    // 每次显示页面时获取最新的用户信息
+    this.getUserInfo();
+  },
   onLoad() {
+    // 检查登录状态
+    if (!Auth.isLogin()) {
+      uni.reLaunch({
+        url: '/pages/login/index'
+      });
+      return;
+    }
+    
     // 获取用户信息
     this.getUserInfo();
   },
   methods: {
     // 获取用户信息
     getUserInfo() {
-      // 这里可以添加获取用户信息的API调用
-      console.log('获取用户信息');
-      // 示例数据，实际应从API获取
-      this.userInfo = {
-        avatar: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400&h=400&auto=format&fit=crop',
-        username: '卡若',
-        account: '84675209'
-      };
+      // 先从本地缓存获取
+      const cachedUserInfo = Auth.getUserInfo();
+      if (cachedUserInfo) {
+        this.userInfo = cachedUserInfo;
+      }
+      
+      // 同时从服务器获取最新信息
+      getUserInfo().then(res => {
+        if (res.code === 200) {
+          this.userInfo = res.data;
+          // 更新本地缓存
+          Auth.setUserInfo(res.data);
+        }
+      }).catch(err => {
+        console.error('获取用户信息失败:', err);
+        // 如果获取失败但有缓存，使用缓存数据
+        if (!this.userInfo) {
+          this.userInfo = Auth.getUserInfo();
+        }
+      });
     },
     
     // 跳转到设置页面
@@ -140,14 +162,22 @@ export default {
         content: '确定要退出登录吗？',
         success: (res) => {
           if (res.confirm) {
-            // 清除登录状态
-            // uni.removeStorageSync('token');
-            // uni.removeStorageSync('userInfo');
+            // 直接清除本地保存的登录信息
+            Auth.removeAll();
+            
+            // 显示退出成功提示
+            uni.showToast({
+              title: '退出成功',
+              icon: 'success',
+              duration: 1500
+            });
             
             // 跳转到登录页面
-            uni.reLaunch({
-              url: '/pages/login/index'
-            });
+            setTimeout(() => {
+              uni.reLaunch({
+                url: '/pages/login/index'
+              });
+            }, 1500);
           }
         }
       });
@@ -178,7 +208,9 @@ export default {
   z-index: 999;
   
   .title {
-    font-size: 40rpx;
+    font-size: 45rpx;
+    font-weight: bold;
+    color: #2664ec;
   }
   
   .header-icons {

@@ -1,9 +1,7 @@
 import Auth from './auth';
 
 // 服务器地址
-const BASE_URL = process.env.NODE_ENV === 'development' 
-  ? 'http://localhost:8080' 
-  : 'https://api.example.com';
+const BASE_URL = process.env.VUE_APP_BASE_API || 'http://yishi.com'; 
 
 // 请求超时时间
 const TIMEOUT = 10000;
@@ -17,7 +15,7 @@ function requestInterceptor(config) {
   // 获取 token
   const token = uni.getStorageSync('token');
   
-  // 如果有 token，则带上请求头
+  // 如果有 token，则带上请求头 Authorization: Bearer + token
   if (token) {
     config.header = {
       ...config.header,
@@ -39,11 +37,8 @@ function requestInterceptor(config) {
 function responseInterceptor(response) {
   // 未登录或token失效 - 取消登录拦截
   if (response.data.code === 401) {
-    // 只在控制台打印信息，不进行拦截
-    console.log('登录已过期，但不进行拦截');
+    console.log('登录已过期，需要重新登录');
     
-    /*
-    // 以下代码已注释，取消登录拦截
     // 清除登录信息
     Auth.removeToken();
     Auth.removeUserInfo();
@@ -54,29 +49,43 @@ function responseInterceptor(response) {
     });
     
     return Promise.reject(new Error('登录已过期，请重新登录'));
-    */
-    
-    // 直接返回响应，不拦截
-    return response.data;
   }
   
-  // token需要刷新 - 取消登录拦截
+  // token需要刷新 - 410 状态码
   if (response.data.code === 410) {
-    // 只在控制台打印信息，不进行拦截
-    console.log('Token需要刷新，但不进行拦截');
-    
-    /*
-    // 以下代码已注释，取消登录拦截
-    // 处理token刷新逻辑，这里简化处理
-    uni.reLaunch({
-      url: '/pages/login/index'
-    });
-    
-    return Promise.reject(new Error('登录已过期，请重新登录'));
-    */
-    
-    // 直接返回响应，不拦截
-    return response.data;
+    // 尝试刷新 token
+    return Auth.refreshToken()
+      .then(res => {
+        if (res.code === 200) {
+          // 更新本地token
+          Auth.setToken(res.data.token, res.data.token_expired - Math.floor(Date.now() / 1000));
+          
+          // 使用新token重试原请求
+          const config = response.config;
+          config.header.Authorization = `Bearer ${res.data.token}`;
+          
+          // 重新发起请求
+          return request(config);
+        } else {
+          // 刷新失败，跳转到登录页
+          uni.reLaunch({
+            url: '/pages/login/index'
+          });
+          return Promise.reject(new Error('登录已过期，请重新登录'));
+        }
+      })
+      .catch(err => {
+        console.error('刷新token失败', err);
+        // 清除登录信息
+        Auth.removeToken();
+        Auth.removeUserInfo();
+        
+        // 跳转到登录页
+        uni.reLaunch({
+          url: '/pages/login/index'
+        });
+        return Promise.reject(new Error('登录已过期，请重新登录'));
+      });
   }
   
   return response.data;
