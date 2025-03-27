@@ -24,7 +24,7 @@ class AccountController extends BaseController
             $params = [
                 'showNormalAccount' => $this->request->param('showNormalAccount', ''),
                 'keyword' => $this->request->param('keyword', ''),
-                'departmentId' => $this->request->param('departmentId', ''),
+                'departmentId' => $this->request->param('companyId', ''),
                 'pageIndex' => $this->request->param('pageIndex', 0),
                 'pageSize' => $this->request->param('pageSize', 12)
             ];
@@ -123,7 +123,7 @@ class AccountController extends BaseController
             $realName = $this->request->param('realName', '');
             $nickname = $this->request->param('nickname', '');
             $memo = $this->request->param('memo', '');
-            $departmentId = $this->request->param('departmentId', 0);
+            $companyId = $this->request->param('companyId', 0);
 
             // 用户名验证
             if (empty($userName)) {
@@ -154,7 +154,7 @@ class AccountController extends BaseController
             
             // 部门ID验证
             if (empty($departmentId)) {
-                return errorJson('部门ID不能为空');
+                return errorJson('公司ID不能为空');
             }
 
             // 构建请求参数
@@ -164,8 +164,8 @@ class AccountController extends BaseController
                 'realName' => $realName,
                 'nickname' => $nickname,
                 'memo' => $memo,
-                'departmentId' => $departmentId,
-                'departmentIdArr' => empty($departmentId) ? [914] : [914, $departmentId]
+                'departmentId' => $companyId,
+                'departmentIdArr' => empty($companyId) ? [914] : [914, $companyId]
             ];
             // 设置请求头
             $headerData = ['client:system'];
@@ -197,7 +197,7 @@ class AccountController extends BaseController
         $deleteTime = isset($item['deleteTime']) ? strtotime($item['deleteTime']) : null;
 
         $data = [
-            'accountId' => $item['id'],
+            'tenantId' => $item['id'],
             'accountType' => isset($item['accountType']) ? $item['accountType'] : 0,
             'status' => isset($item['status']) ? $item['status'] : 0,
             'tenantId' => isset($item['tenantId']) ? $item['tenantId'] : 0,
@@ -211,7 +211,7 @@ class AccountController extends BaseController
             'creator' => isset($item['creator']) ? $item['creator'] : 0,
             'creatorUserName' => isset($item['creatorUserName']) ? $item['creatorUserName'] : '',
             'creatorRealName' => isset($item['creatorRealName']) ? $item['creatorRealName'] : '',
-            'departmentId' => isset($item['departmentId']) ? $item['departmentId'] : 0,
+            'companyId' => isset($item['departmentId']) ? $item['departmentId'] : 0,
             'departmentName' => isset($item['departmentName']) ? $item['departmentName'] : '',
             'privilegeIds' => isset($item['privilegeIds']) ? $item['privilegeIds'] : [],
             'alive' => isset($item['alive']) ? $item['alive'] : false,
@@ -220,8 +220,8 @@ class AccountController extends BaseController
             'deleteTime' => $deleteTime
         ];
 
-        // 使用accountId作为唯一性判断
-        $account = CompanyAccountModel::where('accountId', $item['id'])->find();
+        // 使用tenantId作为唯一性判断
+        $account = CompanyAccountModel::where('tenantId', $item['id'])->find();
 
         if ($account) {
             $account->save($data);

@@ -70,7 +70,10 @@ class Api extends Controller
         header('Access-Control-Allow-Origin: *');
         header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
         header('Access-Control-Allow-Headers: Authorization, Content-Type, If-Match, If-Modified-Since, If-None-Match, If-Unmodified-Since, X-Requested-With');
-        
+        header('Access-Control-Max-Age: 1728000');
+        header('Access-Control-Allow-Credentials: true');
+
+
         // 对OPTIONS请求直接返回
         if ($this->requestType === 'OPTIONS') {
             Response::create()->send();

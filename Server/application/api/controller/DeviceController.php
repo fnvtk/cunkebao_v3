@@ -81,7 +81,7 @@ class DeviceController extends BaseController
             'wechatAccounts' => isset($item['wechatAccounts']) ? json_encode($item['wechatAccounts']) : json_encode([]),
             'alive' => isset($item['alive']) ? $item['alive'] : false,
             'lastAliveTime' => isset($item['lastAliveTime']) ? $item['lastAliveTime'] : null,
-            'tenantId' => isset($item['tenantId']) ? $item['tenantId'] : 0,
+            'companyId' => isset($item['tenantId']) ? $item['tenantId'] : 0,
             'groupId' => isset($item['groupId']) ? $item['groupId'] : 0,
             'currentAccountId' => isset($item['currentAccountId']) ? $item['currentAccountId'] : 0,
             'imei' => $item['imei'],
