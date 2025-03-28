@@ -67,13 +67,13 @@ class User extends Model
     ];
 
     /**
-     * 获取管理员用户信息
+     * 获取用户信息
      * @param string $account 账号（手机号）
      * @param string $password 密码（可能是加密后的）
      * @param int $typeId 身份信息
      * @return array|null
      */
-    public static function getAdminUser($account, $password, $typeId)
+    public static function getUser($account, $password, $typeId)
     {
         // 查询用户
         $user = self::where('account', $account)

@@ -40,7 +40,7 @@ class AuthService
     public function login($account, $password, $typeId, $ip)
     {
         // 获取用户信息
-        $user = User::getAdminUser($account, $password, $typeId);
+        $user = User::getUser($account, $password, $typeId);
 
         if (empty($user)) {
             // 记录登录失败

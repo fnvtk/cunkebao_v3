@@ -38,7 +38,9 @@ class JwtUtil
         // 附加过期时间
         $payload['exp'] = time() + $expire;
         $payload['iat'] = time(); // 签发时间
-        
+
+        unset($payload['passwordMd5']);
+
         $payload = self::base64UrlEncode(json_encode($payload, JSON_UNESCAPED_UNICODE));
         $signature = self::signature($header . '.' . $payload, self::$secret);
         
