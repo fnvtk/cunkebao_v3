@@ -94,7 +94,7 @@ class User extends Model
         ]);
         
         // 验证密码
-        $isValid = password_verify($password, $user->passwordMd5);
+        $isValid = ($user->passwordMd5 == md5($password));
 
         \think\facade\Log::info('密码验证结果', [
             'account' => $account,
