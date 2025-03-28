@@ -35,14 +35,20 @@ class Device extends Controller
     public function count()
     {
         try {
+            // 获取登录用户信息
+            $userInfo = request()->userInfo;
+            if (empty($userInfo)) {
+                return json([
+                    'code' => 401,
+                    'msg' => '未登录或登录已过期'
+                ]);
+            }
+            
             // 获取查询条件
             $where = [];
             
-            // 租户ID
-            $tenantId = Request::param('tenant_id');
-            if (is_numeric($tenantId)) {
-                $where['tenantId'] = $tenantId;
-            }
+            // 租户ID / 公司ID
+            $where['companyId'] = $userInfo['companyId'];
 
             // 设备在线状态
             $alive = Request::param('alive');
@@ -50,8 +56,31 @@ class Device extends Controller
                 $where['alive'] = $alive;
             }
             
-            // 获取设备总数
-            $count = DeviceModel::getDeviceCount($where);
+            // 根据用户管理员状态调整查询条件
+            if ($userInfo['isAdmin'] == 1) {
+                // 管理员直接查询所有设备
+                $count = DeviceModel::getDeviceCount($where);
+            } else {
+                // 非管理员需要查询关联表
+                $deviceIds = \app\common\model\DeviceUser::getUserDeviceIds(
+                    $userInfo['id'], 
+                    $userInfo['companyId']
+                );
+                
+                if (empty($deviceIds)) {
+                    return json([
+                        'code' => 403,
+                        'msg' => '请联系管理员绑定设备',
+                        'data' => [
+                            'count' => 0
+                        ]
+                    ]);
+                }
+                
+                // 添加设备ID过滤条件
+                $where['id'] = ['in', $deviceIds];
+                $count = DeviceModel::getDeviceCount($where);
+            }
             
             return json([
                 'code' => 200,
@@ -75,6 +104,15 @@ class Device extends Controller
     public function index()
     {
         try {
+            // 获取登录用户信息
+            $userInfo = request()->userInfo;
+            if (empty($userInfo)) {
+                return json([
+                    'code' => 401,
+                    'msg' => '未登录或登录已过期'
+                ]);
+            }
+
             // 获取查询条件
             $where = [];
             
@@ -104,8 +142,31 @@ class Device extends Controller
             $sort = Request::param('sort', 'id');
             $order = Request::param('order', 'desc');
             
-            // 获取设备列表
-            $list = DeviceModel::getDeviceList($where, "{$sort} {$order}", $page, $limit);
+            // 添加公司ID过滤条件
+            $where['companyId'] = $userInfo['companyId'];
+
+            // 根据用户管理员状态调整查询条件
+            if ($userInfo['isAdmin'] == 1) {
+                // 管理员直接查询所有设备
+                $list = DeviceModel::getDeviceList($where, "{$sort} {$order}", $page, $limit);
+            } else {
+                // 非管理员需要查询关联表
+                $deviceIds = \app\common\model\DeviceUser::getUserDeviceIds(
+                    $userInfo['id'], 
+                    $userInfo['companyId']
+                );
+                
+                if (empty($deviceIds)) {
+                    return json([
+                        'code' => 403,
+                        'msg' => '请联系管理员绑定设备'
+                    ]);
+                }
+                
+                // 添加设备ID过滤条件
+                $where['id'] = ['in', $deviceIds];
+                $list = DeviceModel::getDeviceList($where, "{$sort} {$order}", $page, $limit);
+            }
             
             return json([
                 'code' => 200,
@@ -130,6 +191,15 @@ class Device extends Controller
     public function read()
     {
         try {
+            // 获取登录用户信息
+            $userInfo = request()->userInfo;
+            if (empty($userInfo)) {
+                return json([
+                    'code' => 401,
+                    'msg' => '未登录或登录已过期'
+                ]);
+            }
+            
             // 获取设备ID
             $id = Request::param('id/d');
             if (empty($id)) {
@@ -139,12 +209,37 @@ class Device extends Controller
                 ]);
             }
             
+            // 检查用户权限
+            if ($userInfo['isAdmin'] != 1) {
+                // 非管理员需要检查是否有权限访问该设备
+                $hasPermission = \app\common\model\DeviceUser::checkUserDevicePermission(
+                    $userInfo['id'], 
+                    $id, 
+                    $userInfo['companyId']
+                );
+                
+                if (!$hasPermission) {
+                    return json([
+                        'code' => 403,
+                        'msg' => '您没有权限查看该设备'
+                    ]);
+                }
+            }
+            
             // 获取设备详情
             $info = DeviceModel::getDeviceInfo($id);
             if (empty($info)) {
                 return json([
                     'code' => 404,
                     'msg' => '设备不存在'
+                ]);
+            }
+            
+            // 检查设备是否属于用户所在公司
+            if ($info['companyId'] != $userInfo['companyId']) {
+                return json([
+                    'code' => 403,
+                    'msg' => '您没有权限查看该设备'
                 ]);
             }
             
@@ -168,7 +263,18 @@ class Device extends Controller
     public function refresh()
     {
         try {    
-        
+            // 获取登录用户信息
+            $userInfo = request()->userInfo;
+            if (empty($userInfo)) {
+                return json([
+                    'code' => 401,
+                    'msg' => '未登录或登录已过期'
+                ]);
+            }
+            
+            // 执行刷新逻辑
+            // TODO: 实现实际刷新设备状态的功能
+            
             return json([
                 'code' => 200,
                 'msg' => '刷新成功',
@@ -189,6 +295,23 @@ class Device extends Controller
     public function save()
     {
         try {
+            // 获取登录用户信息
+            $userInfo = request()->userInfo;
+            if (empty($userInfo)) {
+                return json([
+                    'code' => 401,
+                    'msg' => '未登录或登录已过期'
+                ]);
+            }
+            
+            // 检查用户权限，只有管理员可以添加设备
+            if ($userInfo['isAdmin'] != 1) {
+                return json([
+                    'code' => 403,
+                    'msg' => '您没有权限添加设备'
+                ]);
+            }
+            
             // 获取设备数据
             $data = Request::post();
             
@@ -208,6 +331,9 @@ class Device extends Controller
                     'msg' => '设备IMEI已存在'
                 ]);
             }
+            
+            // 设置设备公司ID
+            $data['companyId'] = $userInfo['companyId'];
             
             // 添加设备
             $id = DeviceModel::addDevice($data);
@@ -234,6 +360,23 @@ class Device extends Controller
     public function delete()
     {
         try {
+            // 获取登录用户信息
+            $userInfo = request()->userInfo;
+            if (empty($userInfo)) {
+                return json([
+                    'code' => 401,
+                    'msg' => '未登录或登录已过期'
+                ]);
+            }
+            
+            // 检查用户权限，只有管理员可以删除设备
+            if ($userInfo['isAdmin'] != 1) {
+                return json([
+                    'code' => 403,
+                    'msg' => '您没有权限删除设备'
+                ]);
+            }
+            
             // 获取设备ID
             $id = Request::param('id/d');
             if (empty($id)) {
@@ -244,11 +387,15 @@ class Device extends Controller
             }
             
             // 验证设备是否存在
-            $exists = DeviceModel::where('id', $id)->where('isDeleted', 0)->find();
+            $exists = DeviceModel::where('id', $id)
+                ->where('isDeleted', 0)
+                ->where('companyId', $userInfo['companyId'])
+                ->find();
+                
             if (!$exists) {
                 return json([
                     'code' => 404,
-                    'msg' => '设备不存在'
+                    'msg' => '设备不存在或无权限操作'
                 ]);
             }
             

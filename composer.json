@@ -1,6 +1,7 @@
 {
     "require": {
-        "topthink/think-queue": "2.0.*"
+        "topthink/think-queue": "2.0.*",
+        "symfony/var-dumper": "^5.4"
     },
     "config": {
         "allow-plugins": {

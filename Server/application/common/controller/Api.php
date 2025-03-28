@@ -73,7 +73,6 @@ class Api extends Controller
         header('Access-Control-Max-Age: 1728000');
         header('Access-Control-Allow-Credentials: true');
 
-
         // 对OPTIONS请求直接返回
         if ($this->requestType === 'OPTIONS') {
             Response::create()->send();

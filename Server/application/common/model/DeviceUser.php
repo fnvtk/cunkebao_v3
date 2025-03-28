@@ -141,7 +141,7 @@ class DeviceUser extends Model
      * @param int $deviceId 设备ID
      * @return bool 是否删除成功
      */
-    public static function removeRelation($companyId, $userId, $deviceId)
+    public static function removeDeviceUserRelation($companyId, $userId, $deviceId)
     {
         return self::where([
             'companyId' => $companyId,
