@@ -74,6 +74,7 @@ class DeviceController extends BaseController
     private function saveDevice($item)
     {
         $data = [
+            'deviceId' => isset($item['id']) ? $item['id'] : '',
             'userName' => isset($item['userName']) ? $item['userName'] : '',
             'nickname' => isset($item['nickname']) ? $item['nickname'] : '',
             'realName' => isset($item['realName']) ? $item['realName'] : '',
