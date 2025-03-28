@@ -19,11 +19,11 @@
     <view class="stats-cards">
       <view class="stat-card">
         <view class="stat-label">总设备数</view>
-        <view class="stat-value blue">42</view>
+        <view class="stat-value blue">{{ totalDeviceCount }}</view>
       </view>
       <view class="stat-card">
         <view class="stat-label">在线设备</view>
-        <view class="stat-value green">35</view>
+        <view class="stat-value green">{{ onlineDeviceCount }}</view>
       </view>
     </view>
     
@@ -40,6 +40,9 @@
             bgColor="#fff"
             searchIconSize="50"
             shape="round"
+            @search="handleSearch"
+            @clear="handleClearSearch"
+            @input="handleSearchInput"
           ></u-search>
         </view>
         <view class="filter-btn" @click="showFilter">
@@ -56,8 +59,20 @@
           <text>{{ statusText }}</text>
           <u-icon name="arrow-down" size="28" color="#333"></u-icon>
         </view>
-        <view class="select-all">
-          <u-checkbox v-model="selectAll" size="40" iconSize="35" shape="circle" activeColor="#4080ff"></u-checkbox>
+        <!-- 添加搜索过滤标签 -->
+        <view class="filter-tag" v-if="searchKeyword">
+          <text>{{ searchKeyword }}</text>
+          <text class="close-icon" @click.stop="clearSearch">×</text>
+        </view>
+        <view class="select-all" v-if="deviceList.length > 0">
+          <u-checkbox 
+            v-model="selectAll" 
+            size="40" 
+            iconSize="35" 
+            shape="circle" 
+            activeColor="#4080ff" 
+            @change="handleSelectAllChange"
+          ></u-checkbox>
           <text class="select-text">全选</text>
         </view>
         <view class="delete-btn" @click="deleteDevices" :class="{disabled: !hasSelected}">
@@ -67,83 +82,66 @@
       
       <!-- 设备列表 -->
       <view class="device-list">
-        <!-- 设备项 1 -->
-        <view class="device-item" @click="goToDeviceDetail(1)">
-          <view class="device-checkbox">
-            <u-checkbox size="40" iconSize="35" v-model="device1Selected" shape="circle" activeColor="#4080ff" @click.stop></u-checkbox>
-          </view>
-          <view class="device-info">
-            <view class="device-header">
-              <view class="device-name">设备 1</view>
-              <view class="device-status online">在线</view>
-            </view>
-            <view class="device-imei">IMEI: sd123123</view>
-            <view class="device-wx">微信号: wxid_hxdxdoal</view>
-            <view class="device-likes">
-              <text>好友数: 435</text>
-              <text class="today-stats">今日新增: +20</text>
-            </view>
-          </view>
+        <!-- 加载中 -->
+        <view v-if="loading && page === 1" class="loading-container">
+          <u-loading-icon mode="circle" size="36"></u-loading-icon>
+          <text class="loading-text">加载中...</text>
         </view>
         
-        <!-- 设备项 2 -->
-        <view class="device-item" @click="goToDeviceDetail(2)">
-          <view class="device-checkbox">
-            <u-checkbox v-model="device2Selected" shape="circle" activeColor="#4080ff"
-            size="40" iconSize="35" @click.stop
-            ></u-checkbox>
-          </view>
-          <view class="device-info">
-            <view class="device-header">
-              <view class="device-name">设备 2</view>
-              <view class="device-status online">在线</view>
-            </view>
-            <view class="device-imei">IMEI: sd123124</view>
-            <view class="device-wx">微信号: wxid_2i7sncgq</view>
-            <view class="device-likes">
-              <text>好友数: 143</text>
-              <text class="today-stats">今日新增: +26</text>
-            </view>
-          </view>
+        <!-- 空状态 -->
+        <view v-else-if="deviceList.length === 0" class="empty-container">
+          <u-empty mode="list" text="暂无设备"></u-empty>
         </view>
         
-        <!-- 设备项 3 -->
-        <view class="device-item" @click="goToDeviceDetail(3)">
-          <view class="device-checkbox">
-            <u-checkbox size="40" iconSize="35" v-model="device3Selected" shape="circle" activeColor="#4080ff" @click.stop></u-checkbox>
-          </view>
-          <view class="device-info">
-            <view class="device-header">
-              <view class="device-name">设备 3</view>
-              <view class="device-status online">在线</view>
+        <!-- 设备列表内容 -->
+        <template v-else>
+          <!-- 设备项 -->
+          <view 
+            class="device-item" 
+            v-for="(device, index) in deviceList" 
+            :key="device.id"
+            @click="goToDeviceDetail(device.id)"
+          >
+            <view class="device-checkbox">
+              <u-checkbox 
+                :size="40" 
+                :iconSize="35" 
+                v-model="device.selected" 
+                shape="circle" 
+                activeColor="#4080ff" 
+                @click.stop
+                @change="handleDeviceSelectChange"
+              ></u-checkbox>
             </view>
-            <view class="device-imei">IMEI: sd123125</view>
-            <view class="device-wx">微信号: wxid_yunzn4lp</view>
-            <view class="device-likes">
-              <text>好友数: 707</text>
-              <text class="today-stats">今日新增: +48</text>
+            <view class="device-info">
+              <view class="device-header">
+                <view class="device-name">{{ device.memo || '未命名设备' }}</view>
+                <view :class="['device-status', device.alive === 1 ? 'online' : 'offline']">
+                  {{ device.alive === 1 ? '在线' : '离线' }}
+                </view>
+              </view>
+              <view class="device-imei" @click.stop="showImeiDetail(device.imei)">
+                IMEI: <text class="imei-text">{{ formatImei(device.imei) }}</text>
+              </view>
+              <view class="device-wx">微信号: {{ device.wechatId || '未登录' }}</view>
+              <view class="device-likes">
+                <text>好友数: {{ device.totalFriend || 0 }}</text>
+              </view>
             </view>
           </view>
-        </view>
-        
-        <!-- 设备项 4 -->
-        <view class="device-item" @click="goToDeviceDetail(4)">
-          <view class="device-checkbox">
-            <u-checkbox size="40" iconSize="35" v-model="device4Selected" shape="circle" activeColor="#4080ff" @click.stop></u-checkbox>
+          
+          <!-- 加载更多 -->
+          <view v-if="hasMoreData && !loadingMore" class="load-more" @click="loadMore">
+            <text class="load-more-text">点击加载更多</text>
           </view>
-          <view class="device-info">
-            <view class="device-header">
-              <view class="device-name">设备 4</view>
-              <view class="device-status offline">离线</view>
-            </view>
-            <view class="device-imei">IMEI: sd123126</view>
-            <view class="device-wx">微信号: wxid_4k39dnsc</view>
-            <view class="device-likes">
-              <text>好友数: 529</text>
-              <text class="today-stats">今日新增: +0</text>
-            </view>
+          <view v-else-if="loadingMore" class="load-more">
+            <u-loading-icon mode="circle" size="24"></u-loading-icon>
+            <text class="load-more-text">加载中...</text>
           </view>
-        </view>
+          <view v-else-if="deviceList.length >= 20" class="load-more">
+            <text class="load-more-text">没有更多数据了</text>
+          </view>
+        </template>
       </view>
     </view>
     
@@ -190,13 +188,37 @@
       </view>
     </view>
     
+    <!-- IMEI详情模态框 -->
+    <view class="imei-modal" v-if="showImeiModal">
+      <view class="modal-mask" @click="closeImeiModal"></view>
+      <view class="modal-content">
+        <view class="modal-header">
+          <text class="modal-title">IMEI详情</text>
+          <view class="modal-close" @click="closeImeiModal">
+            <text class="close-icon">×</text>
+          </view>
+        </view>
+        <view class="modal-body">
+          <view class="imei-detail">
+            <text class="imei-label">IMEI:</text>
+            <text class="imei-value">{{ currentImei }}</text>
+          </view>
+          <view class="copy-btn" @click="copyImei">
+            <text class="copy-text">复制IMEI</text>
+          </view>
+        </view>
+      </view>
+    </view>
+    
     <!-- 底部导航栏 -->
-    <CustomTabBar active="profile"></CustomTabBar>
+    <CustomTabBar active="device"></CustomTabBar>
   </view>
 </template>
 
 <script>
 import CustomTabBar from '@/components/CustomTabBar.vue'
+import * as DeviceApi from '@/api/device'
+import Auth from '@/utils/auth'
 
 export default {
   components: {
@@ -204,12 +226,29 @@ export default {
   },
   data() {
     return {
+      // 搜索相关
       searchKeyword: '',
+      prevSearchKeyword: '', // 添加前一次搜索关键词
+      searchTimer: null, // 添加搜索防抖定时器
+      
+      // 设备列表相关
+      deviceList: [],
+      page: 1,
+      limit: 20,
+      total: 0,
+      loading: false,
+      loadingMore: false,
+      hasMoreData: false,
+      
+      // 统计相关
+      totalDeviceCount: 0,
+      onlineDeviceCount: 0,
+      
+      // 选择相关
       selectAll: false,
-      device1Selected: false,
-      device2Selected: false,
-      device3Selected: false,
-      device4Selected: false,
+      selectedIds: [],
+      
+      // 筛选相关
       statusPickerShow: false,
       statusOptions: [
         { text: '全部状态', value: 'all' },
@@ -217,24 +256,308 @@ export default {
         { text: '离线', value: 'offline' }
       ],
       currentStatus: 'all',
-      // 添加设备相关数据
+      
+      // 添加设备相关
       showAddDeviceModal: false,
-      deviceId: ''
+      deviceId: '',
+      
+      // IMEI详情相关
+      showImeiModal: false,
+      currentImei: '',
     }
   },
   computed: {
     hasSelected() {
-      return this.device1Selected || this.device2Selected || this.device3Selected || this.device4Selected;
+      return this.selectedIds.length > 0;
     },
     statusText() {
       const selected = this.statusOptions.find(option => option.value === this.currentStatus);
       return selected ? selected.text : '全部状态';
+    },
+    queryParams() {
+      const params = {
+        page: this.page,
+        limit: this.limit
+      };
+      
+      // 添加搜索关键词（添加trim，避免空格干扰）
+      if (this.searchKeyword && this.searchKeyword.trim()) {
+        // 同时搜索IMEI和备注（使用OR关系）
+        params.keyword = this.searchKeyword.trim();
+      }
+      
+      // 添加状态筛选
+      if (this.currentStatus === 'online') {
+        params.alive = 1;
+      } else if (this.currentStatus === 'offline') {
+        params.alive = 0;
+      }
+      
+      console.log('请求参数:', params); // 调试输出，观察参数
+      return params;
     }
   },
+  onLoad() {
+    // 检查登录状态
+    if (!Auth.isLogin()) {
+      uni.reLaunch({
+        url: '/pages/login/index'
+      });
+      return;
+    }
+    
+    // 获取设备统计数据
+    this.loadDeviceStats();
+    
+    // 加载设备列表
+    this.loadDeviceList();
+  },
   methods: {
+    // 加载设备统计数据
+    async loadDeviceStats() {
+      try {
+        // 获取设备总数
+        const totalRes = await DeviceApi.getDeviceCount();
+        if (totalRes.code === 200) {
+          this.totalDeviceCount = totalRes.data.count || 0;
+        }
+        
+        // 获取在线设备数
+        const onlineRes = await DeviceApi.getDeviceCount({ alive: 1 });
+        if (onlineRes.code === 200) {
+          this.onlineDeviceCount = onlineRes.data.count || 0;
+        }
+      } catch (error) {
+        console.error('加载设备统计数据失败', error);
+        uni.showToast({
+          title: '加载统计数据失败',
+          icon: 'none'
+        });
+      }
+    },
+    
+    // 加载设备列表
+    async loadDeviceList(isLoadMore = false) {
+      try {
+        if (isLoadMore) {
+          this.loadingMore = true;
+        } else {
+          this.loading = true;
+          
+          if (!isLoadMore) {
+            // 重置页码
+            this.page = 1;
+            this.deviceList = [];
+          }
+        }
+        
+        console.log('发送请求参数:', this.queryParams); // 查看请求参数
+        const res = await DeviceApi.getDeviceList(this.queryParams);
+        
+        if (res.code === 200) {
+          const newDevices = res.data.list.map(item => ({
+            ...item,
+            selected: false
+          }));
+          
+          if (isLoadMore) {
+            this.deviceList = [...this.deviceList, ...newDevices];
+          } else {
+            this.deviceList = newDevices;
+          }
+          
+          this.total = res.data.total || 0;
+          this.hasMoreData = this.deviceList.length < this.total;
+        } else {
+          uni.showToast({
+            title: res.msg || '加载设备列表失败',
+            icon: 'none'
+          });
+        }
+      } catch (error) {
+        console.error('加载设备列表失败', error);
+        uni.showToast({
+          title: '加载设备列表失败',
+          icon: 'none'
+        });
+      } finally {
+        this.loading = false;
+        this.loadingMore = false;
+      }
+    },
+    
+    // 加载更多
+    loadMore() {
+      if (this.hasMoreData && !this.loadingMore) {
+        this.page++;
+        this.loadDeviceList(true);
+      }
+    },
+    
+    // 处理搜索输入（带防抖）
+    handleSearchInput(value) {
+      // 清除之前的定时器
+      if (this.searchTimer) {
+        clearTimeout(this.searchTimer);
+      }
+      
+      // 设置新的定时器（300ms防抖）
+      this.searchTimer = setTimeout(() => {
+        // 如果搜索关键词与前一次相同，不重新加载
+        if (this.searchKeyword.trim() === this.prevSearchKeyword.trim()) {
+          return;
+        }
+        
+        this.prevSearchKeyword = this.searchKeyword.trim();
+        this.loadDeviceList();
+      }, 300);
+    },
+    
+    // 处理搜索
+    handleSearch() {
+      if (this.searchKeyword.trim() === this.prevSearchKeyword.trim()) {
+        return;
+      }
+      this.prevSearchKeyword = this.searchKeyword.trim();
+      this.loadDeviceList();
+    },
+    
+    // 清除搜索关键词
+    clearSearch() {
+      this.searchKeyword = '';
+      this.prevSearchKeyword = '';
+      this.loadDeviceList();
+    },
+    
+    // 处理清除搜索（组件clear按钮触发）
+    handleClearSearch() {
+      this.searchKeyword = '';
+      this.prevSearchKeyword = '';
+      this.loadDeviceList();
+    },
+    
+    // 刷新列表
+    refreshList() {
+      uni.showLoading({
+        title: '刷新中...'
+      });
+      
+      Promise.all([
+        DeviceApi.refreshDevices(),
+        this.loadDeviceStats(),
+        this.loadDeviceList()
+      ]).finally(() => {
+        uni.hideLoading();
+        uni.showToast({
+          title: '刷新成功',
+          icon: 'success'
+        });
+      });
+    },
+    
+    // 显示状态筛选
+    showStatusPopup() {
+      this.statusPickerShow = true;
+    },
+    
+    // 确认状态筛选
+    confirmStatus(e) {
+      this.currentStatus = e.value[0];
+      this.statusPickerShow = false;
+      
+      // 重新加载设备列表
+      this.loadDeviceList();
+    },
+    
+    // 取消状态筛选
+    cancelStatus() {
+      this.statusPickerShow = false;
+    },
+    
+    // 处理全选状态变化
+    handleSelectAllChange(value) {
+      // 注意：这里的value是uView的checkbox传递的布尔值
+      console.log('全选状态变更为:', value);
+      
+      // 更新所有设备的选择状态
+      this.deviceList.forEach(device => {
+        device.selected = value;
+      });
+      
+      // 更新已选择的设备ID数组
+      this.selectedIds = value ? this.deviceList.map(device => device.id) : [];
+    },
+    
+    // 处理设备选择状态变化
+    handleDeviceSelectChange() {
+      // 更新已选择的设备ID数组
+      this.selectedIds = this.deviceList
+        .filter(device => device.selected)
+        .map(device => device.id);
+      
+      // 更新全选状态
+      this.selectAll = this.deviceList.length > 0 && this.selectedIds.length === this.deviceList.length;
+      console.log('更新全选状态为:', this.selectAll, '选中设备数:', this.selectedIds.length);
+    },
+    
+    // 删除设备
+    deleteDevices() {
+      if (!this.hasSelected) return;
+      
+      uni.showModal({
+        title: '删除设备',
+        content: `确定要删除已选择的 ${this.selectedIds.length} 台设备吗？`,
+        confirmColor: '#f56c6c',
+        success: async (res) => {
+          if (res.confirm) {
+            uni.showLoading({
+              title: '删除中...'
+            });
+            
+            try {
+              const deletePromises = this.selectedIds.map(id => DeviceApi.deleteDevice(id));
+              await Promise.all(deletePromises);
+              
+              // 刷新列表和统计
+              await this.loadDeviceStats();
+              await this.loadDeviceList();
+              
+              uni.showToast({
+                title: '删除成功',
+                icon: 'success'
+              });
+            } catch (error) {
+              console.error('删除设备失败', error);
+              uni.showToast({
+                title: '删除设备失败',
+                icon: 'none'
+              });
+            } finally {
+              uni.hideLoading();
+            }
+          }
+        }
+      });
+    },
+    
     // 返回上一页
     goBack() {
       uni.navigateBack();
+    },
+    
+    // 前往设备详情页
+    goToDeviceDetail(id) {
+      uni.navigateTo({
+        url: `/pages/device/detail?id=${id}`
+      });
+    },
+    
+    // 显示筛选
+    showFilter() {
+      uni.showToast({
+        title: '筛选功能开发中',
+        icon: 'none'
+      });
     },
     
     // 添加设备
@@ -242,15 +565,9 @@ export default {
       this.showAddDeviceModal = true;
     },
     
-    // 取消添加设备
-    cancelAddDevice() {
-      this.showAddDeviceModal = false;
-      this.deviceId = '';
-    },
-    
     // 确认添加设备
-    confirmAddDevice() {
-      if (!this.deviceId.trim()) {
+    async confirmAddDevice() {
+      if (!this.deviceId) {
         uni.showToast({
           title: '请输入设备ID',
           icon: 'none'
@@ -259,119 +576,87 @@ export default {
       }
       
       uni.showLoading({
-        title: '添加中'
+        title: '添加中...'
       });
       
-      setTimeout(() => {
-        uni.hideLoading();
-        uni.showToast({
-          title: '添加成功',
-          icon: 'success'
+      try {
+        const res = await DeviceApi.addDevice({
+          imei: this.deviceId,
+          memo: `设备-${this.deviceId.slice(-6)}`
         });
-        this.cancelAddDevice();
-      }, 1500);
-    },
-    
-    // 刷新列表
-    refreshList() {
-      uni.showLoading({
-        title: '刷新中'
-      });
-      
-      setTimeout(() => {
-        uni.hideLoading();
-        uni.showToast({
-          title: '刷新成功',
-          icon: 'success'
-        });
-      }, 1000);
-    },
-    
-    // 显示筛选
-    showFilter() {
-      uni.showToast({
-        title: '筛选功能待实现',
-        icon: 'none'
-      });
-    },
-    
-    // 显示状态选择
-    showStatusPopup() {
-      this.statusPickerShow = true;
-    },
-    
-    // 确认状态选择
-    confirmStatus(e) {
-      this.currentStatus = e.value[0];
-      this.statusPickerShow = false;
-      
-      // 应用筛选逻辑
-      this.applyStatusFilter();
-    },
-    
-    // 应用状态筛选
-    applyStatusFilter() {
-      uni.showLoading({
-        title: '筛选中'
-      });
-      
-      // 模拟筛选过程
-      setTimeout(() => {
-        uni.hideLoading();
         
-        // 提示用户
+        if (res.code === 200) {
+          uni.showToast({
+            title: '添加成功',
+            icon: 'success'
+          });
+          
+          this.showAddDeviceModal = false;
+          this.deviceId = '';
+          
+          // 刷新列表和统计
+          await this.loadDeviceStats();
+          await this.loadDeviceList();
+        } else {
+          uni.showToast({
+            title: res.msg || '添加失败',
+            icon: 'none'
+          });
+        }
+      } catch (error) {
+        console.error('添加设备失败', error);
         uni.showToast({
-          title: `已筛选: ${this.statusText}`,
+          title: '添加设备失败',
           icon: 'none'
         });
-        
-        // 这里可以添加实际的设备筛选逻辑
-        // 根据 this.currentStatus 对设备列表进行筛选
-      }, 500);
+      } finally {
+        uni.hideLoading();
+      }
     },
     
-    // 取消状态选择
-    cancelStatus() {
-      this.statusPickerShow = false;
+    // 取消添加设备
+    cancelAddDevice() {
+      this.showAddDeviceModal = false;
+      this.deviceId = '';
     },
     
-    // 删除设备
-    deleteDevices() {
-      if (!this.hasSelected) return;
+    // 格式化IMEI，超过一定长度显示省略号
+    formatImei(imei) {
+      if (!imei) return '';
       
-      uni.showModal({
-        title: '确认删除',
-        content: '确定要删除选中的设备吗？',
-        success: (res) => {
-          if (res.confirm) {
-            uni.showToast({
-              title: '删除成功',
-              icon: 'success'
-            });
-            this.device1Selected = false;
-            this.device2Selected = false;
-            this.device3Selected = false;
-            this.device4Selected = false;
-            this.selectAll = false;
-          }
+      // 如果IMEI长度超过16个字符，则截取前16个字符并添加省略号
+      if (imei.length > 16) {
+        return imei.substring(0, 16) + '...';
+      }
+      
+      return imei;
+    },
+    
+    // 显示IMEI详情
+    showImeiDetail(imei) {
+      this.currentImei = imei;
+      this.showImeiModal = true;
+    },
+    
+    // 关闭IMEI详情模态框
+    closeImeiModal() {
+      this.showImeiModal = false;
+      this.currentImei = '';
+    },
+    
+    // 复制IMEI到剪贴板
+    copyImei() {
+      uni.setClipboardData({
+        data: this.currentImei,
+        success: () => {
+          uni.showToast({
+            title: 'IMEI已复制',
+            icon: 'success'
+          });
+          this.closeImeiModal();
         }
       });
     },
-    
-    // 跳转到设备详情页
-    goToDeviceDetail(deviceId) {
-      uni.navigateTo({
-        url: `/pages/device/detail?id=${deviceId}`
-      });
-    }
-  },
-  watch: {
-    selectAll(newVal) {
-      this.device1Selected = newVal;
-      this.device2Selected = newVal;
-      this.device3Selected = newVal;
-      this.device4Selected = newVal;
-    }
   }
 }
 </script>
@@ -518,8 +803,8 @@ export default {
     color: #333;
     padding: 10rpx 20rpx;
     border-radius: 20rpx;
-    background-color: #fff;
-    border: 1rpx solid #e5e5e5;
+    background-color: #f0f5ff;
+    border: 1rpx solid #d6e4ff;
     min-width: 180rpx;
     justify-content: space-between;
     
@@ -528,7 +813,35 @@ export default {
     }
     
     &:active {
-      background-color: #f8f8f8;
+      background-color: #e0ebff;
+    }
+  }
+  
+  .filter-tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 24rpx;
+    color: #4080ff;
+    padding: 6rpx 16rpx;
+    border-radius: 16rpx;
+    background-color: #f0f5ff;
+    border: 1rpx solid #d6e4ff;
+    margin-left: 16rpx;
+    margin-right: auto;
+    max-width: 250rpx;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    
+    .close-icon {
+      margin-left: 12rpx;
+      font-size: 28rpx;
+      line-height: 24rpx;
+      color: #999;
+      
+      &:active {
+        color: #666;
+      }
     }
   }
   
@@ -618,12 +931,53 @@ export default {
         color: #666;
       }
       
+      .device-imei {
+        cursor: pointer;
+        
+        .imei-text {
+          color: #4080ff;
+          padding-left: 10rpx;
+          font-size: 32rpx;
+        }
+        
+        &:active {
+          opacity: 0.7;
+        }
+      }
+      
       .device-likes {
         display: flex;
         justify-content: space-between;
         font-size: 32rpx;
         color: #666;
       }
+    }
+  }
+  
+  .loading-container, .empty-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 100rpx 0;
+    
+    .loading-text {
+      font-size: 28rpx;
+      color: #999;
+      margin-top: 20rpx;
+    }
+  }
+  
+  .load-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30rpx 0;
+    
+    .load-more-text {
+      font-size: 28rpx;
+      color: #999;
+      margin-left: 10rpx;
     }
   }
 }
@@ -736,6 +1090,106 @@ export default {
       .confirm-btn {
         background-color: #4080ff;
         color: #fff;
+      }
+    }
+  }
+}
+
+/* IMEI详情模态框样式 */
+.imei-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  
+  .modal-mask {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+  
+  .modal-content {
+    position: relative;
+    width: 600rpx;
+    background-color: #fff;
+    border-radius: 20rpx;
+    overflow: hidden;
+    box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 30rpx 40rpx;
+      
+      .modal-title {
+        font-size: 36rpx;
+        font-weight: bold;
+        color: #333;
+      }
+      
+      .modal-close {
+        padding: 10rpx;
+        
+        .close-icon {
+          font-size: 44rpx;
+          color: #777;
+          line-height: 1;
+        }
+      }
+    }
+    
+    .modal-body {
+      padding: 20rpx 40rpx 40rpx;
+      
+      .imei-detail {
+        background-color: #f5f7fa;
+        padding: 30rpx;
+        border-radius: 10rpx;
+        margin-bottom: 30rpx;
+        
+        .imei-label {
+          display: block;
+          font-size: 28rpx;
+          color: #666;
+          margin-bottom: 10rpx;
+        }
+        
+        .imei-value {
+          display: block;
+          font-size: 32rpx;
+          color: #333;
+          word-break: break-all;
+          font-family: monospace;
+          line-height: 1.5;
+        }
+      }
+      
+      .copy-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #4080ff;
+        color: #fff;
+        padding: 20rpx 0;
+        border-radius: 10rpx;
+        
+        .copy-text {
+          margin-left: 10rpx;
+          font-size: 28rpx;
+        }
+        
+        &:active {
+          opacity: 0.8;
+        }
       }
     }
   }

@@ -92,6 +92,25 @@ function responseInterceptor(response) {
 }
 
 /**
+ * 构建完整的URL，包括查询参数
+ * @param {string} baseUrl 基础URL
+ * @param {Object} params 查询参数
+ * @returns {string} 完整的URL
+ */
+function buildUrlWithParams(baseUrl, params) {
+  if (!params || Object.keys(params).length === 0) {
+    return baseUrl;
+  }
+  
+  const queryString = Object.keys(params)
+    .filter(key => params[key] !== undefined && params[key] !== null)
+    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+    .join('&');
+  
+  return queryString ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}${queryString}` : baseUrl;
+}
+
+/**
  * 统一请求函数
  * @param {Object} options 请求选项
  * @returns {Promise} 请求结果
@@ -110,12 +129,24 @@ function request(options) {
   // 请求拦截
   const interceptedConfig = requestInterceptor(config);
   
+  // 处理GET请求参数
+  let url = `${interceptedConfig.baseURL}${interceptedConfig.url}`;
+  const method = interceptedConfig.method || 'GET';
+  
+  // 如果是GET请求并且有params参数，将其转换为URL查询字符串
+  if (method.toUpperCase() === 'GET' && interceptedConfig.params) {
+    url = buildUrlWithParams(url, interceptedConfig.params);
+    
+    // 打印完整请求URL（便于调试）
+    console.log('完整请求URL:', url);
+  }
+  
   // 发起请求
   return new Promise((resolve, reject) => {
     uni.request({
-      url: `${interceptedConfig.baseURL}${interceptedConfig.url}`,
-      method: interceptedConfig.method || 'GET',
-      data: interceptedConfig.data,
+      url: url,
+      method: method,
+      data: method.toUpperCase() === 'GET' ? undefined : interceptedConfig.data,
       header: interceptedConfig.header,
       timeout: interceptedConfig.timeout,
       success: (res) => {
@@ -127,12 +158,25 @@ function request(options) {
         }
       },
       fail: (err) => {
+        // 显示提示
         uni.showToast({
           title: '网络请求失败',
           icon: 'none',
           duration: 2000
         });
-        reject(err);
+        
+        // 增强错误对象，添加更多信息便于调试
+        const enhancedError = {
+          ...err,
+          url: url,
+          method: method,
+          params: method.toUpperCase() === 'GET' ? interceptedConfig.params : undefined,
+          data: method.toUpperCase() === 'GET' ? undefined : interceptedConfig.data,
+          message: err.errMsg || '网络请求失败'
+        };
+        
+        console.error('请求失败详情:', enhancedError);
+        reject(enhancedError);
       }
     });
   });
