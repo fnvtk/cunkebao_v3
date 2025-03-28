@@ -43,11 +43,25 @@ class Device extends Model
     public static function getDeviceCount($where = [])
     {
         // 默认只统计未删除的设备
-        if (!isset($where['isDeleted'])) {
+        if (!isset($where['isDeleted']) && !isset($where['d.isDeleted'])) {
             $where['isDeleted'] = 0;
         }
         
-        return self::where($where)->count();
+        // 确定是否使用了表别名
+        $hasAlias = false;
+        foreach ($where as $key => $value) {
+            if (strpos($key, '.') !== false) {
+                $hasAlias = true;
+                break;
+            }
+        }
+        
+        // 如果使用了表别名，则需要使用查询构造器
+        if ($hasAlias) {
+            return self::alias('d')->where($where)->count();
+        } else {
+            return self::where($where)->count();
+        }
     }
     
     /**
@@ -58,15 +72,39 @@ class Device extends Model
      * @param int $limit 每页数量
      * @return \think\Paginator 分页对象
      */
-    public static function getDeviceList($where = [], $order = 'id desc', $page = 1, $limit = 10)
+    public static function getDeviceList($where = [], $order = 'd.id desc', $page = 1, $limit = 10)
     {
         // 默认只查询未删除的设备
         if (!isset($where['isDeleted'])) {
-            $where['isDeleted'] = 0;
+            $where['d.isDeleted'] = 0;
         }
-        
-        return self::where($where)
-            ->order($order)
+
+        // 处理查询条件，避免排序规则冲突
+        $conditions = [];
+        foreach ($where as $key => $value) {
+            // 对于涉及 JOIN 的字段特殊处理
+            if (strpos($key, 'imei') !== false) {
+                // 删除原本的 imei 条件，避免直接使用它
+                continue;
+            }
+            $conditions[$key] = $value;
+        }
+
+        $query = self::alias('d')
+            ->field(['d.id', 'd.imei', 'd.memo', 'w.wechatId', 'd.alive', 'w.totalFriend'])
+            ->leftJoin('tk_wechat_account w', 'd.imei = w.imei COLLATE utf8mb4_unicode_ci')
+            ->where($conditions);
+
+        // 单独处理 imei 搜索条件，确保使用相同的排序规则
+        if (isset($where['imei'])) {
+            if (is_array($where['imei']) && isset($where['imei'][0]) && $where['imei'][0] === 'like') {
+                $query->where('d.imei', 'like', $where['imei'][1]);
+            } else {
+                $query->where('d.imei', $where['imei']);
+            }
+        }
+
+        return $query->order($order)
             ->paginate($limit, false, ['page' => $page]);
     }
     

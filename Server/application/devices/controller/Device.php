@@ -119,19 +119,19 @@ class Device extends Controller
             // 设备IMEI
             $imei = Request::param('imei');
             if (!empty($imei)) {
-                $where['imei'] = ['like', "%{$imei}%"];
+                $where['d.imei'] = ['like', "%{$imei}%"];
             }
             
             // 设备备注
             $memo = Request::param('memo');
             if (!empty($memo)) {
-                $where['memo'] = ['like', "%{$memo}%"];
+                $where['d.memo'] = ['like', "%{$memo}%"];
             }
 
             // 设备在线状态
             $alive = Request::param('alive');
             if (is_numeric($alive)) {
-                $where['alive'] = $alive;
+                $where['d.alive'] = $alive;
             }
             
             // 获取分页参数
@@ -139,11 +139,11 @@ class Device extends Controller
             $limit = (int)Request::param('limit', 10);
             
             // 获取排序参数
-            $sort = Request::param('sort', 'id');
+            $sort = Request::param('sort', 'd.id');
             $order = Request::param('order', 'desc');
             
             // 添加公司ID过滤条件
-            $where['companyId'] = $userInfo['companyId'];
+            $where['d.companyId'] = $userInfo['companyId'];
 
             // 根据用户管理员状态调整查询条件
             if ($userInfo['isAdmin'] == 1) {
@@ -164,7 +164,7 @@ class Device extends Controller
                 }
                 
                 // 添加设备ID过滤条件
-                $where['id'] = ['in', $deviceIds];
+                $where['d.id'] = ['in', $deviceIds];
                 $list = DeviceModel::getDeviceList($where, "{$sort} {$order}", $page, $limit);
             }
             
