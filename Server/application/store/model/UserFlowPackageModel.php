@@ -7,7 +7,7 @@ use think\Model;
 class UserFlowPackageModel extends Model
 {
     
-    
+    protected $table = 'user_flow_package';
     /**
      * 获取用户当前有效的流量套餐
      *

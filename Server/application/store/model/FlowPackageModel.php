@@ -6,7 +6,8 @@ use think\Model;
 
 class FlowPackageModel extends Model
 {
-    
+    protected $table = 'flow_package';
+
     // 定义字段自动转换
     protected $type = [
         // 将特权字段从多行文本转换为数组
