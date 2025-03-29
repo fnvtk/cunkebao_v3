@@ -112,7 +112,7 @@ class FriendTaskController extends BaseController
         $createTime = isset($item['createTime']) ? strtotime($item['createTime']) : null;
 
         $data = [
-            'taskId' => $item['id'],
+            'id' => $item['id'],
             'tenantId' => $item['tenantId'],
             'operatorAccountId' => $item['operatorAccountId'],
             'status' => $item['status'],
@@ -134,7 +134,7 @@ class FriendTaskController extends BaseController
         ];
 
         // 使用taskId作为唯一性判断
-        $task = FriendTaskModel::where('taskId', $item['id'])->find();
+        $task = FriendTaskModel::where('id', $item['id'])->find();
 
         if ($task) {
             $task->save($data);

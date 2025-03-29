@@ -108,9 +108,10 @@ class FlowPackageController extends Api
     {
         $params = $this->request->param();
         
+        $userInfo = request()->userInfo;
         // 获取用户ID，通常应该从会话或令牌中获取
-        $userId = isset($params['userId']) ? intval($params['userId']) : 1;
-        
+         $userId = $userInfo['id'];
+   
         if (empty($userId)) {
             return errorJson('请先登录');
         }
@@ -172,8 +173,9 @@ class FlowPackageController extends Api
     {
         $params = $this->request->param();
         
+        $userInfo = request()->userInfo;
         // 获取用户ID，通常应该从会话或令牌中获取
-        $userId = isset($params['userId']) ? intval($params['userId']) : 1;
+        $userId = $userInfo['id'];
         
         if (empty($userId)) {
             return errorJson('请先登录');

@@ -1,3 +1,4 @@
 .idea
 Backend/dist
 Backend/node_modules
+vue_store/*

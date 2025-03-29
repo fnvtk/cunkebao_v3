@@ -68,6 +68,7 @@ class WechatFriendController extends BaseController
     private function saveFriend($item)
     {
         $data = [
+            'id' => $item['id'],
             'wechatAccountId' => $item['wechatAccountId'],
             'alias' => $item['alias'],
             'wechatId' => $item['wechatId'],
@@ -106,11 +107,7 @@ class WechatFriendController extends BaseController
         ];
 
         // 使用三个字段的组合作为唯一性判断
-        $friend = WechatFriendModel::where([
-            ['ownerWechatId', '=', $item['ownerWechatId']],
-            ['wechatId', '=', $item['wechatId']],
-            ['wechatAccountId', '=', $item['wechatAccountId']]
-        ])->find();
+        $friend = WechatFriendModel::where('id',$item['id'])->find();
 
         if ($friend) {
             $friend->save($data);
