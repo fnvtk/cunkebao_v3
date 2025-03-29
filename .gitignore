@@ -2,4 +2,4 @@
 Backend/dist
 Backend/node_modules
 vue_store/*
-Server/vendor/*
+Server/vendor
