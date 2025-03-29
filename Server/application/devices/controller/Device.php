@@ -106,26 +106,14 @@ class Device extends Controller
         try {
             // 获取登录用户信息
             $userInfo = request()->userInfo;
-            if (empty($userInfo)) {
-                return json([
-                    'code' => 401,
-                    'msg' => '未登录或登录已过期'
-                ]);
-            }
-
             // 获取查询条件
             $where = [];
             
-            // 设备IMEI
-            $imei = Request::param('imei');
-            if (!empty($imei)) {
-                $where['d.imei'] = ['like', "%{$imei}%"];
-            }
-            
-            // 设备备注
-            $memo = Request::param('memo');
-            if (!empty($memo)) {
-                $where['d.memo'] = ['like', "%{$memo}%"];
+            // 关键词搜索（同时搜索IMEI和备注）
+            $keyword = Request::param('keyword');
+            if (!empty($keyword)) {
+                // 使用复杂条件实现OR查询
+                $where[] = ['exp', "d.imei LIKE '%{$keyword}%' OR d.memo LIKE '%{$keyword}%'"];
             }
 
             // 设备在线状态

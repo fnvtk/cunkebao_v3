@@ -79,31 +79,25 @@ class Device extends Model
             $where['d.isDeleted'] = 0;
         }
 
-        // 处理查询条件，避免排序规则冲突
-        $conditions = [];
-        foreach ($where as $key => $value) {
-            // 对于涉及 JOIN 的字段特殊处理
-            if (strpos($key, 'imei') !== false) {
-                // 删除原本的 imei 条件，避免直接使用它
-                continue;
-            }
-            $conditions[$key] = $value;
-        }
-
+        // 构建查询对象
         $query = self::alias('d')
             ->field(['d.id', 'd.imei', 'd.memo', 'w.wechatId', 'd.alive', 'w.totalFriend'])
-            ->leftJoin('tk_wechat_account w', 'd.imei = w.imei COLLATE utf8mb4_unicode_ci')
-            ->where($conditions);
+            ->leftJoin('tk_wechat_account w', 'd.imei = w.imei COLLATE utf8mb4_unicode_ci');
 
-        // 单独处理 imei 搜索条件，确保使用相同的排序规则
-        if (isset($where['imei'])) {
-            if (is_array($where['imei']) && isset($where['imei'][0]) && $where['imei'][0] === 'like') {
-                $query->where('d.imei', 'like', $where['imei'][1]);
-            } else {
-                $query->where('d.imei', $where['imei']);
+        // 处理查询条件
+        foreach ($where as $key => $value) {
+            // 处理特殊的exp表达式条件
+            if (is_numeric($key) && is_array($value) && isset($value[0]) && $value[0] === 'exp') {
+                // 直接添加原始SQL表达式
+                $query->whereExp('', $value[1]);
+                continue;
             }
+            
+            // 处理普通条件
+            $query->where($key, $value);
         }
 
+        // 返回分页结果
         return $query->order($order)
             ->paginate($limit, false, ['page' => $page]);
     }
