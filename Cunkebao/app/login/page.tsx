@@ -11,19 +11,10 @@ import { useRouter } from "next/navigation"
 import { WeChatIcon } from "@/components/icons/wechat-icon"
 import { AppleIcon } from "@/components/icons/apple-icon"
 import { useToast } from "@/components/ui/use-toast"
+import { useAuth } from "@/app/components/AuthProvider"
+import { loginApi } from "@/lib/api"
 
-// 使用环境变量获取API域名
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.example.com"
-
-// 定义登录响应类型
-interface LoginResponse {
-  code: number
-  message: string
-  data?: {
-    token: string
-  }
-}
-
+// 定义登录表单类型
 interface LoginForm {
   phone: string
   password: string
@@ -44,6 +35,7 @@ export default function LoginPage() {
 
   const router = useRouter()
   const { toast } = useToast()
+  const { login, isAuthenticated } = useAuth()
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -101,38 +93,40 @@ export default function LoginPage() {
 
     setIsLoading(true)
     try {
-      // 创建FormData对象
-      const formData = new FormData()
-      formData.append("phone", form.phone)
-
       if (activeTab === "password") {
-        formData.append("password", form.password)
+        // 发送账号密码登录请求
+        const response = await loginApi.login(form.phone, form.password)
+
+        if (response.code === 200 && response.data) {
+          // 获取用户信息和token
+          const { token, token_expired, member } = response.data
+          
+          // 保存token和用户信息
+          login(token, {
+            id: member.id,
+            username: member.username || member.account || '',
+            account: member.account,
+            avatar: member.avatar
+          })
+
+          // 显示成功提示
+          toast({
+            title: "登录成功",
+            description: "欢迎回来！",
+          })
+
+          // 跳转到首页
+          router.push("/")
+        } else {
+          throw new Error(response.msg || "登录失败")
+        }
       } else {
-        formData.append("verificationCode", form.verificationCode)
-      }
-
-      // 发送登录请求
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: "POST",
-        body: formData,
-        // 不需要设置Content-Type，浏览器会自动设置为multipart/form-data并添加boundary
-      })
-
-      const result: LoginResponse = await response.json()
-
-      if (result.code === 10000 && result.data?.token) {
-        // 保存token到localStorage
-        localStorage.setItem("token", result.data.token)
-
-        // 成功后跳转
-        router.push("/profile")
-
+        // 验证码登录逻辑保持原样，未来可以实现
         toast({
-          title: "登录成功",
-          description: "欢迎回来！",
+          variant: "destructive",
+          title: "功能未实现",
+          description: "验证码登录功能尚未实现，请使用密码登录",
         })
-      } else {
-        throw new Error(result.message || "登录失败")
       }
     } catch (error) {
       toast({
@@ -155,46 +149,19 @@ export default function LoginPage() {
       return
     }
 
-    setIsLoading(true)
-    try {
-      // 创建FormData对象
-      const formData = new FormData()
-      formData.append("phone", form.phone)
-
-      // 发送验证码请求
-      const response = await fetch(`${API_BASE_URL}/auth/send-code`, {
-        method: "POST",
-        body: formData,
-      })
-
-      const result = await response.json()
-
-      if (result.code === 10000) {
-        toast({
-          title: "验证码已发送",
-          description: "请查看手机短信",
-        })
-      } else {
-        throw new Error(result.message || "发送失败")
-      }
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "发送失败",
-        description: error instanceof Error ? error.message : "请稍后重试",
-      })
-    } finally {
-      setIsLoading(false)
-    }
+    toast({
+      variant: "destructive",
+      title: "功能未实现",
+      description: "验证码发送功能尚未实现",
+    })
   }
 
   useEffect(() => {
-    // 检查是否已登录
-    const token = localStorage.getItem("token")
-    if (token) {
-      router.push("/profile")
+    // 检查是否已登录，如果已登录则跳转到首页
+    if (isAuthenticated) {
+      router.push("/")
     }
-  }, [router])
+  }, [isAuthenticated, router])
 
   return (
     <div className="min-h-screen bg-white text-gray-900 flex flex-col px-4 py-8">
@@ -261,25 +228,24 @@ export default function LoginPage() {
               </TabsContent>
 
               <TabsContent value="verification" className="m-0">
-                <div className="flex gap-3">
+                <div className="relative">
                   <Input
                     type="text"
                     name="verificationCode"
                     value={form.verificationCode}
                     onChange={handleInputChange}
                     placeholder="验证码"
-                    className="border-gray-300 text-gray-900 h-12"
+                    className="pr-32 border-gray-300 text-gray-900 h-12"
                     disabled={isLoading}
                   />
-                  <Button
+                  <button
                     type="button"
-                    variant="outline"
-                    className="w-32 h-12 border-gray-300 text-gray-600 hover:text-gray-900"
                     onClick={handleSendVerificationCode}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 px-4 h-8 bg-blue-50 text-blue-500 rounded text-sm font-medium"
                     disabled={isLoading}
                   >
-                    发送验证码
-                  </Button>
+                    获取验证码
+                  </button>
                 </div>
               </TabsContent>
 
@@ -288,65 +254,35 @@ export default function LoginPage() {
                   id="terms"
                   checked={form.agreeToTerms}
                   onCheckedChange={handleCheckboxChange}
-                  className="border-gray-300 data-[state=checked]:bg-blue-500"
                   disabled={isLoading}
                 />
-                <label htmlFor="terms" className="text-sm text-gray-600">
-                  已阅读并同意
-                  <a href="#" className="text-blue-500 mx-1">
-                    用户协议
-                  </a>
-                  与
-                  <a href="#" className="text-blue-500 ml-1">
-                    隐私政策
-                  </a>
+                <label
+                  htmlFor="terms"
+                  className="text-sm text-gray-500 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  同意《存客宝用户协议》和《隐私政策》
                 </label>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white"
-                disabled={isLoading}
-              >
+              <Button type="submit" className="w-full h-12 bg-blue-500 hover:bg-blue-600" disabled={isLoading}>
                 {isLoading ? "登录中..." : "登录"}
               </Button>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-gray-300"></span>
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-gray-500">或</span>
-                </div>
+              <div className="flex items-center space-x-2 justify-center">
+                <hr className="w-full border-gray-200" />
+                <span className="px-2 text-gray-400 text-sm whitespace-nowrap">其他登录方式</span>
+                <hr className="w-full border-gray-200" />
               </div>
 
-              <div className="space-y-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-12 border-gray-300 text-gray-700 hover:bg-gray-50"
-                  disabled={isLoading}
-                >
-                  <WeChatIcon className="w-6 h-6 mr-2 text-[#07C160]" />
-                  使用微信登录
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-12 border-gray-300 text-gray-700 hover:bg-gray-50"
-                  disabled={isLoading}
-                >
-                  <AppleIcon className="w-6 h-6 mr-2" />
-                  使用 Apple 登录
-                </Button>
+              <div className="flex justify-center space-x-6">
+                <button type="button" className="p-2 text-gray-500 hover:text-gray-700">
+                  <WeChatIcon className="h-8 w-8" />
+                </button>
+                <button type="button" className="p-2 text-gray-500 hover:text-gray-700">
+                  <AppleIcon className="h-8 w-8" />
+                </button>
               </div>
             </form>
-
-            <div className="mt-8 text-center">
-              <a href="#" className="text-sm text-gray-500">
-                联系我们
-              </a>
-            </div>
           </div>
         </Tabs>
       </div>
