@@ -468,3 +468,34 @@ if (!function_exists('getUserAction')) {
         ];
     }
 }
+
+
+if (!function_exists('exit_data')) {
+
+    /**
+     * 截断输出
+     * @param array $data
+     * @param string $type
+     * @param bool $exit
+     */
+    function exit_data($data = [], $type = 'pr', $exit = true)
+    {
+        switch ($type) {
+            case 'pr':
+                $func = 'print_r';
+                break;
+            case 'vd':
+                $func = 'var_dump';
+                break;
+            default:
+                $func = 'print_r';
+                break;
+        }
+        if ($func == 'print_r') {
+            echo '<pre>';
+        }
+        call_user_func($func, $data);
+        if ($exit)
+            exit();
+    }
+}

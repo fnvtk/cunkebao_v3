@@ -18,4 +18,9 @@ Route::group('v1/store', function () {
         Route::get('list', 'app\\store\\controller\\FlowPackageController@getOrderList'); // 获取订单列表
         Route::get(':orderNo', 'app\\store\\controller\\FlowPackageController@getOrderDetail'); // 获取订单详情
     });
-})/*->middleware(['jwt'])*/;
+
+    // 客户相关路由
+    Route::group('customers', function () {
+        Route::get('list', 'app\\store\\controller\\CustomerController@getList'); // 获取客户列表
+    });
+})->middleware(['jwt']);

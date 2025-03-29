@@ -74,7 +74,7 @@ class DeviceController extends BaseController
     private function saveDevice($item)
     {
         $data = [
-            'deviceId' => isset($item['id']) ? $item['id'] : '',
+            'id' => isset($item['id']) ? $item['id'] : '',
             'userName' => isset($item['userName']) ? $item['userName'] : '',
             'nickname' => isset($item['nickname']) ? $item['nickname'] : '',
             'realName' => isset($item['realName']) ? $item['realName'] : '',
@@ -103,11 +103,25 @@ class DeviceController extends BaseController
         ];
 
         // 使用imei作为唯一性判断
-        $device = DeviceModel::where('imei', $item['imei'])->find();
+        $device = DeviceModel::where('id', $item['id'])->find();
 
         if ($device) {
             $device->save($data);
         } else {
+
+            // autoLike：自动点赞
+            // momentsSync：朋友圈同步
+            // autoCustomerDev：自动开发客户
+            // groupMessageDeliver：群消息推送
+            // autoGroup：自动建群
+
+            $data['taskConfig'] = json_encode([
+                'autoLike' => true,
+                'momentsSync' => true,
+                'autoCustomerDev' => true,
+                'groupMessageDeliver' => true,
+                'autoGroup' => true,
+            ]);
             DeviceModel::create($data);
         }
     }

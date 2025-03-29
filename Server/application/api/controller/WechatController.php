@@ -13,6 +13,7 @@ class WechatController extends BaseController
     private function saveWechatAccount($item)
     {
         $data = [
+            'id' => $item['id'],
             'wechatId' => $item['wechatId'],
             'deviceAccountId' => $item['deviceAccountId'],
             'imei' => $item['imei'],
@@ -49,7 +50,7 @@ class WechatController extends BaseController
             'labels' => $item['labels']
         ];
 
-        $account = WechatAccountModel::where('wechatId', $item['wechatId'])->find();
+        $account = WechatAccountModel::where('id', $item['id'])->find();
         if ($account) {
             $account->save($data);
         } else {
