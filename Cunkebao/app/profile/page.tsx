@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useRouter } from "next/navigation"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useAuth } from "@/app/components/AuthProvider"
 
 const menuItems = [
   { href: "/devices", label: "设备管理" },
@@ -17,12 +18,12 @@ const menuItems = [
 
 export default function ProfilePage() {
   const router = useRouter()
-  const [isAuthenticated, setIsAuthenticated] = useState(true) // 模拟认证状态
+  const { isAuthenticated, user, logout } = useAuth()
   const [showLogoutDialog, setShowLogoutDialog] = useState(false)
-  const [accountId] = useState(() => Math.floor(10000000 + Math.random() * 90000000).toString())
+  const [accountId] = useState(() => user?.account || Math.floor(10000000 + Math.random() * 90000000).toString())
 
   const handleLogout = () => {
-    setIsAuthenticated(false)
+    logout() // 使用AuthProvider中的logout方法删除本地保存的用户信息
     setShowLogoutDialog(false)
     router.push("/login")
   }
@@ -53,12 +54,12 @@ export default function ProfilePage() {
         <Card className="p-6">
           <div className="flex items-center space-x-4">
             <Avatar className="w-20 h-20">
-              <AvatarImage src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400&h=400&auto=format&fit=crop" />
-              <AvatarFallback>KR</AvatarFallback>
+              <AvatarImage src={user?.avatar || "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400&h=400&auto=format&fit=crop"} />
+              <AvatarFallback>{user?.username?.slice(0, 2) || "KR"}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <h2 className="text-xl font-semibold text-blue-600">卡若</h2>
-              <p className="text-gray-500">账号: {accountId}</p>
+              <h2 className="text-xl font-semibold text-blue-600">{user?.username || "用户"}</h2>
+              <p className="text-gray-500">账号: {user?.account || accountId}</p>
               <div className="mt-2">
                 <Button variant="outline" size="sm">
                   编辑资料
