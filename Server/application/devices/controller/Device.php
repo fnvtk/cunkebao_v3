@@ -396,4 +396,73 @@ class Device extends Controller
             ]);
         }
     }
+
+    /**
+     * 更新设备任务配置
+     * @return \think\response\Json
+     */
+    public function updateTaskConfig()
+    {
+        // 获取请求参数
+        $data = $this->request->post();
+        
+        // 验证参数
+        if (empty($data['id'])) {
+            return json(['code' => 400, 'msg' => '设备ID不能为空']);
+        }
+        
+        // 转换为整型，确保ID格式正确
+        $deviceId = intval($data['id']);
+        
+        // 先获取设备信息，确认设备存在且未删除
+        $device = \app\devices\model\Device::where('id', $deviceId)
+            ->where('isDeleted', 0)
+            ->find();
+            
+        if (!$device) {
+            return json(['code' => 404, 'msg' => '设备不存在或已删除']);
+        }
+        
+        // 读取原taskConfig，如果存在则解析
+        $taskConfig = [];
+        if (!empty($device['taskConfig'])) {
+            $taskConfig = json_decode($device['taskConfig'], true) ?: [];
+        }
+        
+        // 更新需要修改的配置项
+        $updateFields = ['autoAddFriend', 'autoReply', 'momentsSync', 'aiChat'];
+        $hasUpdate = false;
+        
+        foreach ($updateFields as $field) {
+            if (isset($data[$field])) {
+                // 将值转换为布尔类型存储
+                $taskConfig[$field] = (bool)$data[$field];
+                $hasUpdate = true;
+            }
+        }
+        
+        // 如果没有需要更新的字段，直接返回成功
+        if (!$hasUpdate) {
+            return json(['code' => 200, 'msg' => '更新成功', 'data' => ['taskConfig' => $taskConfig]]);
+        }
+        
+        // 更新设备taskConfig字段
+        $result = \app\devices\model\Device::where('id', $deviceId)
+            ->update([
+                'taskConfig' => json_encode($taskConfig),
+                'updateTime' => time()
+            ]);
+            
+        if ($result) {
+            return json([
+                'code' => 200, 
+                'msg' => '更新任务配置成功',
+                'data' => [
+                    'taskConfig' => $taskConfig
+                ]
+            ]);
+        } else {
+            return json(['code' => 500, 'msg' => '更新任务配置失败']);
+        }
+    }
 } 
