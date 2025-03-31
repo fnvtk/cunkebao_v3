@@ -33,6 +33,22 @@ export const fetchDeviceDetail = async (id: string | number): Promise<ApiRespons
   return api.get<ApiResponse<any>>(`/v1/devices/${id}`);
 };
 
+// 更新设备任务配置
+export const updateDeviceTaskConfig = async (
+  id: string | number, 
+  config: {
+    autoAddFriend?: boolean;
+    autoReply?: boolean;
+    momentsSync?: boolean;
+    aiChat?: boolean;
+  }
+): Promise<ApiResponse<any>> => {
+  return api.post<ApiResponse<any>>(`/v1/devices/task-config`, {
+    id,
+    ...config
+  });
+};
+
 // 删除设备
 export const deleteDevice = async (id: number): Promise<ApiResponse<any>> => {
   return api.delete<ApiResponse<any>>(`/v1/devices/${id}`);

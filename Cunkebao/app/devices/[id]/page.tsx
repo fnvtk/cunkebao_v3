@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { fetchDeviceDetail } from "@/api/devices"
+import { fetchDeviceDetail, updateDeviceTaskConfig } from "@/api/devices"
 import { toast } from "sonner"
 
 interface WechatAccount {
@@ -37,7 +37,7 @@ interface Device {
   features: {
     autoAddFriend: boolean
     autoReply: boolean
-    contentSync: boolean
+    momentsSync: boolean
     aiChat: boolean
   }
   history: {
@@ -68,6 +68,12 @@ export default function DeviceDetailPage() {
   const [device, setDevice] = useState<Device | null>(null)
   const [activeTab, setActiveTab] = useState("info")
   const [loading, setLoading] = useState(true)
+  const [savingFeatures, setSavingFeatures] = useState({
+    autoAddFriend: false,
+    autoReply: false,
+    momentsSync: false,
+    aiChat: false
+  })
 
   useEffect(() => {
     if (!params.id) return
@@ -91,14 +97,45 @@ export default function DeviceDetailPage() {
             historicalIds: [], // 服务端暂无此数据
             wechatAccounts: [], // 默认空数组
             history: [], // 服务端暂无此数据
-            features: serverData.features || {
+            features: {
               autoAddFriend: false,
               autoReply: false,
-              contentSync: false,
+              momentsSync: false,
               aiChat: false
             },
             totalFriend: serverData.totalFriend || 0,
             thirtyDayMsgCount: serverData.thirtyDayMsgCount || 0
+          }
+          
+          // 解析features
+          if (serverData.features) {
+            // 如果后端直接返回了features对象，使用它
+            formattedDevice.features = {
+              autoAddFriend: Boolean(serverData.features.autoAddFriend),
+              autoReply: Boolean(serverData.features.autoReply),
+              momentsSync: Boolean(serverData.features.momentsSync || serverData.features.contentSync),
+              aiChat: Boolean(serverData.features.aiChat)
+            }
+          } else if (serverData.taskConfig) {
+            try {
+              // 解析taskConfig字段
+              let taskConfig = serverData.taskConfig
+              if (typeof taskConfig === 'string') {
+                taskConfig = JSON.parse(taskConfig)
+              }
+              
+              if (taskConfig) {
+                console.log('解析的taskConfig:', taskConfig);
+                formattedDevice.features = {
+                  autoAddFriend: Boolean(taskConfig.autoAddFriend),
+                  autoReply: Boolean(taskConfig.autoReply),
+                  momentsSync: Boolean(taskConfig.momentsSync),
+                  aiChat: Boolean(taskConfig.aiChat)
+                }
+              }
+            } catch (err) {
+              console.error('解析taskConfig失败:', err)
+            }
           }
           
           // 如果有微信账号信息，构建微信账号对象
@@ -169,7 +206,7 @@ export default function DeviceDetailPage() {
         features: {
           autoAddFriend: true,
           autoReply: true,
-          contentSync: false,
+          momentsSync: false,
           aiChat: true,
         },
         history: [
@@ -192,6 +229,74 @@ export default function DeviceDetailPage() {
     
     fetchDevice()
   }, [params.id])
+
+  // 处理功能开关状态变化
+  const handleFeatureChange = async (feature: keyof Device['features'], checked: boolean) => {
+    if (!device) return
+    
+    // 避免已经在处理中的功能被重复触发
+    if (savingFeatures[feature]) {
+      return
+    }
+    
+    setSavingFeatures(prev => ({ ...prev, [feature]: true }))
+    
+    try {
+      // 准备更新后的功能状态
+      const updatedFeatures = { ...device.features, [feature]: checked }
+      
+      // 创建API请求参数
+      const configUpdate = { [feature]: checked }
+      
+      // 立即更新UI状态，提供即时反馈
+      setDevice(prev => prev ? {
+        ...prev,
+        features: updatedFeatures
+      } : null)
+      
+      // 调用API更新服务器配置
+      const response = await updateDeviceTaskConfig(device.id, configUpdate)
+      
+      if (response && response.code === 200) {
+        toast.success(`${getFeatureName(feature)}${checked ? '已启用' : '已禁用'}`)
+      } else {
+        // 如果请求失败，回滚UI变更
+        setDevice(prev => prev ? {
+          ...prev,
+          features: { ...prev.features, [feature]: !checked }
+        } : null)
+        
+        // 处理错误信息，使用类型断言解决字段不一致问题
+        const anyResponse = response as any;
+        const errorMsg = anyResponse ? (anyResponse.message || anyResponse.msg || '未知错误') : '未知错误';
+        toast.error(`更新失败: ${errorMsg}`)
+      }
+    } catch (error) {
+      console.error(`更新${getFeatureName(feature)}失败:`, error)
+      
+      // 异常情况下也回滚UI变更
+      setDevice(prev => prev ? {
+        ...prev,
+        features: { ...prev.features, [feature]: !checked }
+      } : null)
+      
+      toast.error('更新失败，请稍后重试')
+    } finally {
+      setSavingFeatures(prev => ({ ...prev, [feature]: false }))
+    }
+  }
+  
+  // 获取功能中文名称
+  const getFeatureName = (feature: string): string => {
+    const nameMap: Record<string, string> = {
+      autoAddFriend: '自动加好友',
+      autoReply: '自动回复',
+      momentsSync: '朋友圈同步',
+      aiChat: 'AI会话'
+    }
+    
+    return nameMap[feature] || feature
+  }
 
   if (loading || !device) {
     return <div>加载中...</div>
@@ -261,28 +366,68 @@ export default function DeviceDetailPage() {
                       <Label>自动加好友</Label>
                       <div className="text-sm text-gray-500">自动通过好友验证</div>
                     </div>
-                    <Switch checked={device.features.autoAddFriend} />
+                    <div className="flex items-center">
+                      {savingFeatures.autoAddFriend && (
+                        <div className="w-4 h-4 mr-2 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
+                      )}
+                      <Switch 
+                        checked={Boolean(device.features.autoAddFriend)} 
+                        onCheckedChange={(checked) => handleFeatureChange('autoAddFriend', checked)}
+                        disabled={savingFeatures.autoAddFriend}
+                        className="data-[state=checked]:bg-blue-500 transition-all duration-200"
+                      />
+                    </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label>自动回复</Label>
                       <div className="text-sm text-gray-500">自动回复好友消息</div>
                     </div>
-                    <Switch checked={device.features.autoReply} />
+                    <div className="flex items-center">
+                      {savingFeatures.autoReply && (
+                        <div className="w-4 h-4 mr-2 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
+                      )}
+                      <Switch 
+                        checked={Boolean(device.features.autoReply)} 
+                        onCheckedChange={(checked) => handleFeatureChange('autoReply', checked)}
+                        disabled={savingFeatures.autoReply}
+                        className="data-[state=checked]:bg-blue-500 transition-all duration-200"
+                      />
+                    </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label>朋友圈同步</Label>
                       <div className="text-sm text-gray-500">自动同步朋友圈内容</div>
                     </div>
-                    <Switch checked={device.features.contentSync} />
+                    <div className="flex items-center">
+                      {savingFeatures.momentsSync && (
+                        <div className="w-4 h-4 mr-2 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
+                      )}
+                      <Switch 
+                        checked={Boolean(device.features.momentsSync)} 
+                        onCheckedChange={(checked) => handleFeatureChange('momentsSync', checked)}
+                        disabled={savingFeatures.momentsSync}
+                        className="data-[state=checked]:bg-blue-500 transition-all duration-200"
+                      />
+                    </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label>AI会话</Label>
                       <div className="text-sm text-gray-500">启用AI智能对话</div>
                     </div>
-                    <Switch checked={device.features.aiChat} />
+                    <div className="flex items-center">
+                      {savingFeatures.aiChat && (
+                        <div className="w-4 h-4 mr-2 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
+                      )}
+                      <Switch 
+                        checked={Boolean(device.features.aiChat)} 
+                        onCheckedChange={(checked) => handleFeatureChange('aiChat', checked)}
+                        disabled={savingFeatures.aiChat}
+                        className="data-[state=checked]:bg-blue-500 transition-all duration-200"
+                      />
+                    </div>
                   </div>
                 </div>
               </Card>

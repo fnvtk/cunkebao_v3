@@ -38,7 +38,8 @@ class WechatAccount extends Model
         'gender' => 'integer',
         'currentDeviceId' => 'integer',
         'isDeleted' => 'integer',
-        'groupId' => 'integer'
+        'groupId' => 'integer',
+        'status' => 'integer'
     ];
     
     /**
