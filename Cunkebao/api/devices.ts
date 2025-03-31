@@ -28,6 +28,11 @@ export const fetchDeviceList = async (page: number = 1, limit: number = 20, keyw
   return api.get<ServerDevicesResponse>(`/v1/devices?${params.toString()}`);
 };
 
+// 获取设备详情 - 连接到服务器/v1/devices/:id接口
+export const fetchDeviceDetail = async (id: string | number): Promise<ApiResponse<any>> => {
+  return api.get<ApiResponse<any>>(`/v1/devices/${id}`);
+};
+
 // 删除设备
 export const deleteDevice = async (id: number): Promise<ApiResponse<any>> => {
   return api.delete<ApiResponse<any>>(`/v1/devices/${id}`);

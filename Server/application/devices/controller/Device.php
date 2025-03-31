@@ -222,15 +222,7 @@ class Device extends Controller
                     'msg' => '设备不存在'
                 ]);
             }
-            
-            // 检查设备是否属于用户所在公司
-            if ($info['companyId'] != $userInfo['companyId']) {
-                return json([
-                    'code' => 403,
-                    'msg' => '您没有权限查看该设备'
-                ]);
-            }
-            
+
             return json([
                 'code' => 200,
                 'msg' => '获取成功',
