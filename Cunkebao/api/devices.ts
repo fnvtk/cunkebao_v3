@@ -1,3 +1,4 @@
+import { api } from "@/lib/api";
 import type {
   ApiResponse,
   Device,
@@ -7,10 +8,30 @@ import type {
   QueryDeviceParams,
   CreateDeviceParams,
   UpdateDeviceParams,
-  DeviceStatus, // Added DeviceStatus import
+  DeviceStatus,
+  ServerDevice,
+  ServerDevicesResponse
 } from "@/types/device"
 
 const API_BASE = "/api/devices"
+
+// 获取设备列表 - 连接到服务器/v1/devices接口
+export const fetchDeviceList = async (page: number = 1, limit: number = 20, keyword?: string): Promise<ServerDevicesResponse> => {
+  const params = new URLSearchParams();
+  params.append('page', page.toString());
+  params.append('limit', limit.toString());
+  
+  if (keyword) {
+    params.append('keyword', keyword);
+  }
+  
+  return api.get<ServerDevicesResponse>(`/v1/devices?${params.toString()}`);
+};
+
+// 删除设备
+export const deleteDevice = async (id: number): Promise<ApiResponse<any>> => {
+  return api.delete<ApiResponse<any>>(`/v1/devices/${id}`);
+};
 
 // 设备管理API
 export const deviceApi = {
@@ -46,12 +67,22 @@ export const deviceApi = {
 
   // 查询设备列表
   async query(params: QueryDeviceParams): Promise<ApiResponse<PaginatedResponse<Device>>> {
-    const queryString = new URLSearchParams({
-      ...params,
-      tags: params.tags ? JSON.stringify(params.tags) : "",
-      dateRange: params.dateRange ? JSON.stringify(params.dateRange) : "",
-    }).toString()
-
+    // 创建一个新对象，用于构建URLSearchParams
+    const queryParams: Record<string, string> = {};
+    
+    // 按需将params中的属性添加到queryParams
+    if (params.keyword) queryParams.keyword = params.keyword;
+    if (params.status) queryParams.status = params.status;
+    if (params.type) queryParams.type = params.type;
+    if (params.page) queryParams.page = params.page.toString();
+    if (params.pageSize) queryParams.pageSize = params.pageSize.toString();
+    
+    // 特殊处理需要JSON序列化的属性
+    if (params.tags) queryParams.tags = JSON.stringify(params.tags);
+    if (params.dateRange) queryParams.dateRange = JSON.stringify(params.dateRange);
+    
+    // 构建查询字符串
+    const queryString = new URLSearchParams(queryParams).toString();
     const response = await fetch(`${API_BASE}?${queryString}`)
     return response.json()
   },

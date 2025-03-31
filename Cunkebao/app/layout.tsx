@@ -9,7 +9,7 @@ import LayoutWrapper from "./components/LayoutWrapper"
 export const metadata: Metadata = {
   title: "存客宝",
   description: "智能客户管理系统",
-    generator: 'v0.dev'
+  generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -18,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" suppressHydrationWarning>
       <body className="bg-gray-100">
         <AuthProvider>
           <ErrorBoundary>

@@ -7,8 +7,11 @@ export const handleTokenExpired = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     
-    // 跳转到登录页
-    window.location.href = '/login';
+    // 使用客户端导航而不是直接修改window.location
+    // 避免在服务端渲染时执行
+    setTimeout(() => {
+      window.location.href = '/login';
+    }, 0);
   }
 };
 
@@ -16,7 +19,10 @@ export const handleTokenExpired = () => {
 export const handleApiResponse = <T>(response: Response, result: any): T => {
   // 处理token过期情况
   if (result && (result.code === 401 || result.msg?.includes('token'))) {
-    handleTokenExpired();
+    // 仅在客户端处理token过期
+    if (typeof window !== 'undefined') {
+      handleTokenExpired();
+    }
     throw new Error(result.msg || '登录已过期，请重新登录');
   }
   
@@ -30,7 +36,10 @@ export const handleApiError = (error: unknown): never => {
   if (error instanceof Error) {
     // 如果是未授权错误，可能是token过期
     if (error.message.includes('401') || error.message.includes('token') || error.message.includes('授权')) {
-      handleTokenExpired();
+      // 仅在客户端处理token过期
+      if (typeof window !== 'undefined') {
+        handleTokenExpired();
+      }
     }
     throw error;
   }

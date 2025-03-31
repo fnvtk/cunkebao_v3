@@ -40,6 +40,7 @@ interface AuthContextType {
   updateToken: (newToken: string) => void
 }
 
+// 创建默认上下文
 const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   token: null,
@@ -56,20 +57,25 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
+  // 避免在服务端渲染时设置初始状态
   const [token, setToken] = useState<string | null>(null)
   const [user, setUser] = useState<User | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  // 初始页面加载时显示为false，避免在服务端渲染和客户端水合时不匹配
+  const [isLoading, setIsLoading] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
   const router = useRouter()
 
-  // 检查token有效性并初始化认证状态
+  // 初始化认证状态
   useEffect(() => {
+    // 仅在客户端执行初始化
+    setIsLoading(true)
+    
     const initAuth = async () => {
-      setIsLoading(true)
-      const storedToken = safeLocalStorage.getItem("token")
-      
-      if (storedToken) {
-        try {
+      try {
+        const storedToken = safeLocalStorage.getItem("token")
+        
+        if (storedToken) {
           // 验证token是否有效
           const isValid = await validateToken()
           
@@ -89,17 +95,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
             // token无效，清除
             handleLogout()
           }
-        } catch (error) {
-          console.error("验证token时出错:", error)
-          handleLogout()
         }
+      } catch (error) {
+        console.error("验证token时出错:", error)
+        handleLogout()
+      } finally {
+        setIsLoading(false)
+        setIsInitialized(true)
       }
-      
-      setIsLoading(false)
     }
 
     initAuth()
-  }, [])
+  }, []) // 空依赖数组，仅在组件挂载时执行一次
 
   const handleLogout = () => {
     safeLocalStorage.removeItem("token")
@@ -131,7 +138,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   return (
     <AuthContext.Provider value={{ isAuthenticated, token, user, login, logout, updateToken }}>
-      {isLoading ? <div className="flex h-screen w-screen items-center justify-center">加载中...</div> : children}
+      {isLoading && isInitialized ? (
+        <div className="flex h-screen w-screen items-center justify-center">加载中...</div>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   )
 }
