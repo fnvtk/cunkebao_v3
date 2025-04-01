@@ -14,12 +14,16 @@ class DeviceController extends BaseController
      * 获取设备列表
      * @return \think\response\Json
      */
-    public function getlist($pageIndex = '',$pageSize = '',$authorization = '')
+    public function getlist($pageIndex = '',$pageSize = '',$authorization = '',$isJob = false)
     {
         // 获取授权token
         $authorization = !empty($authorization) ? $authorization : trim($this->request->header('authorization', ''));
         if (empty($authorization)) {
-            return errorJson('缺少授权信息');
+            if($isJob){
+                return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
+            }else{
+                return errorJson('缺少授权信息');
+            }
         }
 
         try {
@@ -61,9 +65,17 @@ class DeviceController extends BaseController
                 }
             }
             
-            return successJson($response);
+            if($isJob){
+                return json_encode(['code'=>200,'msg'=>'success','data'=>$response]);
+            }else{
+                return successJson($response);
+            }
         } catch (\Exception $e) {
-            return errorJson('获取设备列表失败：' . $e->getMessage());
+            if($isJob){
+                return json_encode(['code'=>500,'msg'=>'获取设备列表失败：' . $e->getMessage()]);
+            }else{
+                return errorJson('获取设备列表失败：' . $e->getMessage());
+            }
         }
     }
 

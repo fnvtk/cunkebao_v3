@@ -56,7 +56,8 @@ class WechatFriendJob
     {
         // 获取参数
         $pageIndex = isset($data['pageIndex']) ? $data['pageIndex'] : 0;
-        $pageSize = isset($data['pageSize']) ? $data['pageSize'] : 100;
+        $pageSize = isset($data['pageSize']) ? $data['pageSize'] : 1000;
+        $preFriendId = isset($data['preFriendId']) ? $data['preFriendId'] : '';
         
         Log::info('开始获取微信列表，页码：' . $pageIndex . '，页大小：' . $pageSize);
         
@@ -66,7 +67,8 @@ class WechatFriendJob
         // 构建请求参数
         $params = [
             'pageIndex' => $pageIndex,
-            'pageSize' => $pageSize
+            'pageSize' => $pageSize,
+            'preFriendId' => $preFriendId
         ];
         
         // 设置请求信息
@@ -81,7 +83,7 @@ class WechatFriendJob
         }
 
         // 调用设备列表获取方法
-        $result = $wechatFriendController->getlist($pageIndex,$pageSize,$authorization);
+        $result = $wechatFriendController->getlist($pageIndex,$pageSize,$preFriendId,$authorization,true);
         $response = json_decode($result,true);
 
         
@@ -90,10 +92,10 @@ class WechatFriendJob
             $data = $response['data'];
             
             // 判断是否有下一页
-            if (!empty($data) && count($data['results']) > 0) {
+            if (!empty($data) && count($data) > 0) {
                 // 有下一页，将下一页任务添加到队列
                 $nextPageIndex = $pageIndex + 1;
-                $this->addNextPageToQueue($nextPageIndex, $pageSize);
+                $this->addNextPageToQueue($nextPageIndex, $pageSize,$data[count($data)-1]['id']);
                 Log::info('添加下一页任务到队列，页码：' . $nextPageIndex);
             }
             
@@ -110,11 +112,12 @@ class WechatFriendJob
      * @param int $pageIndex 页码
      * @param int $pageSize 每页大小
      */
-    protected function addNextPageToQueue($pageIndex, $pageSize)
+    protected function addNextPageToQueue($pageIndex, $pageSize,$preFriendId)
     {
         $data = [
             'pageIndex' => $pageIndex,
-            'pageSize' => $pageSize
+            'pageSize' => $pageSize,
+            'preFriendId' => $preFriendId
         ];
         
         // 添加到队列，设置任务名为 wechat_friends

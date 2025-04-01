@@ -4,6 +4,7 @@ namespace app\api\controller;
 
 use app\api\model\WechatFriendModel;
 use think\facade\Request;
+use think\facade\Log;
 
 class WechatFriendController extends BaseController
 {
@@ -11,13 +12,17 @@ class WechatFriendController extends BaseController
      * 获取微信好友列表数据
      * @return \think\response\Json
      */
-    public function getlist()
+    public function getlist($pageIndex = '',$pageSize = '',$preFriendId = '',$authorization = '',$isJob = false)
     {
-        // 获取授权token
-        $authorization = trim($this->request->header('authorization', ''));
-        if (empty($authorization)) {
+       // 获取授权token
+       $authorization = !empty($authorization) ? $authorization : trim($this->request->header('authorization', ''));
+       if (empty($authorization)) {
+        if($isJob){
+            return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
+        }else{
             return errorJson('缺少授权信息');
         }
+       }
 
         try {
             // 构建请求参数
@@ -34,12 +39,11 @@ class WechatFriendController extends BaseController
                 'isPass' => null,
                 'keyword' =>  input('keyword', ''),
                 'labels' => '[]',
-                'pageIndex' => input('pageIndex', 0),
-                'pageSize' => input('pageSize', 20),
-                'preFriendId' => input('preFriendId', ''),
+                'pageIndex' => !empty($pageIndex) ? $pageIndex : input('pageIndex', 0),
+                'pageSize' => !empty($pageSize) ? $pageSize : input('pageSize', 20),
+                'preFriendId' => !empty($preFriendId) ? $preFriendId : input('preFriendId', ''),
                 'wechatAccountKeyword' => input('wechatAccountKeyword', '')
             ];
-
             // 设置请求头
             $headerData = ['client:system'];
             $header = setHeader($headerData, $authorization);
@@ -55,9 +59,19 @@ class WechatFriendController extends BaseController
                 }
             }
             
-            return successJson($response);
+            if($isJob){
+                return json_encode(['code'=>200,'msg'=>'success','data'=>$response]);
+            }else{
+                return successJson($response);
+            }
+            
+            
         } catch (\Exception $e) {
-            return errorJson('获取微信好友列表失败：' . $e->getMessage());
+            if($isJob){
+                return json_encode(['code'=>500,'msg'=>'获取微信好友列表失败：' . $e->getMessage()]);
+            }else{
+                return errorJson('获取微信好友列表失败：' . $e->getMessage());
+            }
         }
     }
 
@@ -104,6 +118,7 @@ class WechatFriendController extends BaseController
             'province' => isset($item['province']) ? $item['province'] : '',
             'city' => isset($item['city']) ? $item['city'] : '',
             'createTime' =>isset($item['createTime']) ? $item['createTime'] : '',
+            'updateTime' => time()
         ];
 
         // 使用三个字段的组合作为唯一性判断

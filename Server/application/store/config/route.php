@@ -23,4 +23,11 @@ Route::group('v1/store', function () {
     Route::group('customers', function () {
         Route::get('list', 'app\\store\\controller\\CustomerController@getList'); // 获取客户列表
     });
+
+
+    // 系统配置相关路由
+    Route::group('system-config', function () {
+        Route::get('switch-status', 'app\\store\\controller\\SystemConfigController@getSwitchStatus'); // 获取系统开关状态
+        Route::post('update-switch-status', 'app\\store\\controller\\SystemConfigController@updateSwitchStatus'); // 更新系统开关状态
+    });
 })->middleware(['jwt']);

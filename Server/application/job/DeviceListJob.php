@@ -81,7 +81,7 @@ class DeviceListJob
         }
 
         // 调用设备列表获取方法
-        $result = $deviceController->getlist($pageIndex,$pageSize,$authorization);
+        $result = $deviceController->getlist($pageIndex,$pageSize,$authorization,true);
         $response = json_decode($result,true);
 
         
