@@ -1,6 +1,7 @@
 <?php
 namespace app\devices\controller;
 
+use app\common\model\CompanyAccount;
 use think\Controller;
 use app\devices\model\WechatAccount;
 use think\facade\Request;
@@ -88,6 +89,8 @@ class DeviceWechat extends Controller
     public function index()
     {
         try {
+            // 获取登录用户信息
+            $userInfo = request()->userInfo;
             // 获取查询条件
             $where = [];
             
@@ -102,7 +105,7 @@ class DeviceWechat extends Controller
             if (!empty($nickname)) {
                 $where['nickname|accountNickname'] = ['like', "%{$nickname}%"];
             }
-            
+
             // 获取分页参数
             $page = (int)Request::param('page', 1);
             $limit = (int)Request::param('limit', 10);
@@ -110,22 +113,74 @@ class DeviceWechat extends Controller
             // 获取排序参数
             $sort = Request::param('sort', 'id');
             $order = Request::param('order', 'desc');
-            
-            // 获取在线微信账号列表
-            $list = WechatAccount::getOnlineWechatList($where, "{$sort} {$order}", $page, $limit);
+
+            // 公司账户表没有 companyId，需要转换一下
+            $acountInfo = CompanyAccount::getAccountByCompanyId($userInfo['companyId']);
+
+            // 先用账号进行查询
+            $where['accountUserName'] = $acountInfo['userName'];
+
+            // 根据用户权限不同实现不同的查询逻辑
+            if ($userInfo['isAdmin'] == 1) {
+                // 管理员直接查询tk_wechat_account表
+                $list = WechatAccount::getOnlineWechatList($where, "{$sort} {$order}", $page, $limit);
+            } else {
+                // 非管理员先查询tk_device_user表
+                $deviceIds = Db::table('tk_device_user')
+                    ->where('companyId', $userInfo['companyId'])
+                    ->where('userId', $userInfo['id'])
+                    ->column('deviceId');
+                
+                if (empty($deviceIds)) {
+                    // 如果没有绑定设备，返回提示信息
+                    return json([
+                        'code' => 403,
+                        'msg' => '请联系管理员绑定设备微信',
+                        'data' => [
+                            'total' => 0,
+                            'list' => []
+                        ]
+                    ]);
+                }
+
+                // 获取这些设备关联的微信ID
+                $wechatIds = Db::table('tk_device_wechat_login')
+                    ->where('companyId', $userInfo['companyId'])
+                    ->whereIn('deviceId', $deviceIds)
+                    ->column('wechatId');
+                
+                if (empty($wechatIds)) {
+                    return json([
+                        'code' => 200,
+                        'msg' => '获取成功',
+                        'data' => [
+                            'total' => 0,
+                            'list' => []
+                        ]
+                    ]);
+                }
+                
+                // 将微信ID添加到查询条件中
+                $where['id'] = ['in', $wechatIds];
+                
+                // 查询微信账号
+                $list = WechatAccount::getOnlineWechatList($where, "{$sort} {$order}", $page, $limit);
+            }
             
             // 处理返回数据
             $data = [];
             foreach ($list->items() as $item) {
                 // 计算今日可添加好友数量（这里使用一个示例算法，你可以根据实际需求修改）
-                $canAddFriendCount = 30 - (isset($item['yesterdayMsgCount']) ? intval($item['yesterdayMsgCount']) : 0);
+                $canAddFriendCount = 20 - Db::table('tk_friend_task')->where('wechatId', $item['wechatId'])->count('*');
                 if ($canAddFriendCount < 0) {
                     $canAddFriendCount = 0;
                 }
-                
+
                 // 计算今日新增好友数量（示例数据，实际需要从数据库获取或通过其他方式计算）
                 // 这里只是一个示例，你需要根据实际情况替换
-                $todayNewFriendCount = mt_rand(0, 10); // 随机生成0-10的数字作为示例
+                $todayNewFriendCount = Db::table('tk_friend_task')->where('wechatId', $item['wechatId'])
+                    ->where('status', 3)
+                    ->count('*');
                 
                 $data[] = [
                     'id' => $item['id'],
