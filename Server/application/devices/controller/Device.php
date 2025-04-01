@@ -1,8 +1,10 @@
 <?php
 namespace app\devices\controller;
 
+use app\devices\model\DeviceHandleLog;
 use think\Controller;
 use app\devices\model\Device as DeviceModel;
+use think\Db;
 use think\facade\Request;
 use app\common\util\JwtUtil;
 
@@ -305,8 +307,30 @@ class Device extends Controller
             $data['companyId'] = $userInfo['companyId'];
             $data['id'] = time();
 
-            // 添加设备
-            $id = DeviceModel::addDevice($data);
+            try {
+                Db::startTrans();
+
+                // 添加设备
+                $id = DeviceModel::addDevice($data);
+
+                // 添加设备操作记录
+                DeviceHandleLog::addLog(
+                    [
+                        'imei' => $data['imei'],
+                        'userId' => $userInfo['id'],
+                        'content' => '添加设备',
+                        'companyId' => $userInfo['companyId'],
+                    ]
+                );
+                Db::commit();
+            } catch (\Exception $e) {
+                Db::rollback();
+
+                return json([
+                    'code' => 500,
+                    'msg' => '添加失败：' . $e->getMessage()
+                ]);
+            }
 
             // 此处调用底层API
             return json([
@@ -333,12 +357,6 @@ class Device extends Controller
         try {
             // 获取登录用户信息
             $userInfo = request()->userInfo;
-            if (empty($userInfo)) {
-                return json([
-                    'code' => 401,
-                    'msg' => '未登录或登录已过期'
-                ]);
-            }
             
             // 检查用户权限，只有管理员可以删除设备
             if ($userInfo['isAdmin'] != 1) {
@@ -396,6 +414,9 @@ class Device extends Controller
     {
         // 获取请求参数
         $data = $this->request->post();
+
+        // 获取登录用户信息
+        $userInfo = request()->userInfo;
         
         // 验证参数
         if (empty($data['id'])) {
@@ -436,14 +457,53 @@ class Device extends Controller
         if (!$hasUpdate) {
             return json(['code' => 200, 'msg' => '更新成功', 'data' => ['taskConfig' => $taskConfig]]);
         }
-        
-        // 更新设备taskConfig字段
-        $result = \app\devices\model\Device::where('id', $deviceId)
-            ->update([
-                'taskConfig' => json_encode($taskConfig),
-                'updateTime' => time()
-            ]);
+
+        try {
+            Db::startTrans();
+
+            // 更新设备taskConfig字段
+            $result = \app\devices\model\Device::where('id', $deviceId)
+                ->update([
+                    'taskConfig' => json_encode($taskConfig),
+                    'updateTime' => time()
+                ]);
+
+            if (isset($data['autoAddFriend'])) {
+                $content = $data['autoAddFriend'] ? '开启自动添加好友' : '关闭自动添加好友';
+            }
+
+            if (isset($data['autoReply'])) {
+                $content = $data['autoReply'] ? '开启自动回复' : '关闭自动回复';
+            }
+
+            if (isset($data['momentsSync'])) {
+                $content = $data['momentsSync'] ? '开启朋友圈同步' : '关闭朋友圈同步';
+            }
+
+            if (isset($data['aiChat'])) {
+                $content = $data['aiChat'] ? '开启AI会话' : '关闭AI会话';
+            }
+
+            // 添加设备操作记录
+            DeviceHandleLog::addLog(
+                [
+                    'imei' => $device['imei'],
+                    'deviceId' => $deviceId,
+                    'userId' => $userInfo['id'],
+                    'content' => $content,
+                    'companyId' => $userInfo['companyId'],
+                ]
+            );
+            Db::commit();
+        } catch (\Exception $e) {
+            Db::rollback();
             
+            return json([
+                'code' => 500,
+                'msg' => '更新任务配置失败'
+            ]);
+        }
+
         if ($result) {
             return json([
                 'code' => 200, 
@@ -515,6 +575,100 @@ class Device extends Controller
                     'deviceId' => $deviceId,
                     'accounts' => $wechatAccounts,
                     'total' => count($wechatAccounts)
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return json([
+                'code' => 500,
+                'msg' => '获取失败：' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * 获取设备操作记录
+     * @return \think\response\Json
+     */
+    public function handleLogs()
+    {
+        try {
+            // 获取登录用户信息
+            $userInfo = request()->userInfo;
+            
+            // 获取设备ID
+            $deviceId = $this->request->param('id/d');
+            if (empty($deviceId)) {
+                return json([
+                    'code' => 400,
+                    'msg' => '设备ID不能为空'
+                ]);
+            }
+            
+            // 检查用户是否有权限访问该设备
+            if ($userInfo['isAdmin'] != 1) {
+                // 非管理员需要检查是否有权限访问该设备
+                $hasPermission = \app\common\model\DeviceUser::checkUserDevicePermission(
+                    $userInfo['id'], 
+                    $deviceId, 
+                    $userInfo['companyId']
+                );
+                
+                if (!$hasPermission) {
+                    return json([
+                        'code' => 403,
+                        'msg' => '您没有权限查看该设备'
+                    ]);
+                }
+            }
+            
+            // 获取设备信息，确认设备存在
+            $device = DeviceModel::where('id', $deviceId)
+                ->where('isDeleted', 0)
+                ->find();
+                
+            if (!$device) {
+                return json([
+                    'code' => 404,
+                    'msg' => '设备不存在或已删除'
+                ]);
+            }
+            
+            // 获取分页参数
+            $page = (int)Request::param('page', 1);
+            $limit = (int)Request::param('limit', 10);
+            
+            // 查询设备操作记录，并关联用户表获取操作人信息
+            $logs = Db::table('tk_device_handle_log')
+                ->alias('l')
+                ->join('tk_users u', 'l.userId = u.id', 'left')
+                ->where('l.imei', $device['imei'])
+                ->where('l.companyId', $userInfo['companyId'])
+                ->field([
+                    'l.id', 
+                    'l.content', 
+                    'l.createTime', 
+                    'u.username'
+                ])
+                ->order('l.createTime desc')
+                ->paginate($limit, false, ['page' => $page]);
+            
+            // 格式化返回数据
+            $items = [];
+            foreach ($logs as $log) {
+                $items[] = [
+                    'id' => $log['id'],
+                    'content' => $log['content'],
+                    'username' => $log['username'] ? $log['username'] : '未知用户',
+                    'createTime' => $log['createTime']
+                ];
+            }
+            
+            return json([
+                'code' => 200,
+                'msg' => '获取成功',
+                'data' => [
+                    'total' => $logs->total(),
+                    'list' => $items
                 ]
             ]);
         } catch (\Exception $e) {

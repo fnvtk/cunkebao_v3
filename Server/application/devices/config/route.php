@@ -11,6 +11,7 @@ Route::group('v1/', function () {
     // 设备管理相关
     Route::group('devices', function () {
         Route::get(':id/related-accounts', 'app\\devices\\controller\\Device@getRelatedAccounts');   // 设备关联微信账号路由
+        Route::get(':id/handle-logs', 'app\\devices\\controller\\Device@handleLogs');    // 获取设备操作记录
         Route::get('', 'app\\devices\\controller\\Device@index');           // 获取设备列表
         Route::get('count', 'app\\devices\\controller\\Device@count');      // 获取设备总数
         Route::get(':id', 'app\\devices\\controller\\Device@read');         // 获取设备详情

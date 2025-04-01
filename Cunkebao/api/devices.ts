@@ -38,6 +38,11 @@ export const fetchDeviceRelatedAccounts = async (id: string | number): Promise<A
   return api.get<ApiResponse<any>>(`/v1/devices/${id}/related-accounts`);
 };
 
+// 获取设备操作记录
+export const fetchDeviceHandleLogs = async (id: string | number, page: number = 1, limit: number = 10): Promise<ApiResponse<any>> => {
+  return api.get<ApiResponse<any>>(`/v1/devices/${id}/handle-logs?page=${page}&limit=${limit}`);
+};
+
 // 更新设备任务配置
 export const updateDeviceTaskConfig = async (
   id: string | number, 

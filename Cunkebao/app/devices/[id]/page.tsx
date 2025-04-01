@@ -4,13 +4,13 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, Smartphone, Battery, Wifi, MessageCircle, Users, Settings, History, RefreshCw } from "lucide-react"
+import { ChevronLeft, Smartphone, Battery, Wifi, MessageCircle, Users, Settings, History, RefreshCw, Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { fetchDeviceDetail, fetchDeviceRelatedAccounts, updateDeviceTaskConfig } from "@/api/devices"
+import { fetchDeviceDetail, fetchDeviceRelatedAccounts, updateDeviceTaskConfig, fetchDeviceHandleLogs } from "@/api/devices"
 import { toast } from "sonner"
 
 interface WechatAccount {
@@ -65,6 +65,14 @@ function getBadgeVariant(status: string): "default" | "destructive" | "outline" 
   }
 }
 
+// 添加操作记录接口
+interface HandleLog {
+  id: string | number;
+  content: string;  // 操作说明
+  username: string; // 操作人
+  createTime: string; // 操作时间
+}
+
 export default function DeviceDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -72,6 +80,8 @@ export default function DeviceDetailPage() {
   const [activeTab, setActiveTab] = useState("info")
   const [loading, setLoading] = useState(true)
   const [accountsLoading, setAccountsLoading] = useState(false)
+  const [logsLoading, setLogsLoading] = useState(false)
+  const [handleLogs, setHandleLogs] = useState<HandleLog[]>([])
   const [savingFeatures, setSavingFeatures] = useState({
     autoAddFriend: false,
     autoReply: false,
@@ -284,6 +294,34 @@ export default function DeviceDetailPage() {
     }
   }
 
+  // 获取设备操作记录
+  const fetchHandleLogs = async () => {
+    if (!params.id || logsLoading) return
+    
+    try {
+      setLogsLoading(true)
+      const response = await fetchDeviceHandleLogs(params.id as string)
+      
+      if (response && response.code === 200 && response.data) {
+        const logs = response.data.list || []
+        setHandleLogs(logs)
+        
+        if (logs.length > 0) {
+          console.log('获取到操作记录:', logs.length)
+        } else {
+          console.log('设备暂无操作记录')
+        }
+      } else {
+        toast.error("获取操作记录失败")
+      }
+    } catch (error) {
+      console.error("获取操作记录失败:", error)
+      toast.error("获取操作记录失败，请稍后重试")
+    } finally {
+      setLogsLoading(false)
+    }
+  }
+
   // 处理标签页切换
   const handleTabChange = (value: string) => {
     setActiveTab(value)
@@ -291,6 +329,11 @@ export default function DeviceDetailPage() {
     // 当切换到"关联账号"标签时，获取最新的关联微信账号信息
     if (value === "accounts") {
       fetchRelatedAccounts()
+    }
+    
+    // 当切换到"操作记录"标签时，获取最新的操作记录
+    if (value === "history") {
+      fetchHandleLogs()
     }
   }
 
@@ -580,18 +623,45 @@ export default function DeviceDetailPage() {
 
             <TabsContent value="history">
               <Card className="p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-md font-medium">操作记录</h3>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={fetchHandleLogs}
+                    disabled={logsLoading}
+                  >
+                    {logsLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        加载中
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-1" />
+                        刷新
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
                 <ScrollArea className="h-[calc(100vh-300px)]">
-                  {device.history && device.history.length > 0 ? (
+                  {logsLoading && handleLogs.length === 0 ? (
+                    <div className="flex justify-center items-center py-8">
+                      <div className="w-6 h-6 rounded-full border-2 border-blue-500 border-t-transparent animate-spin mr-2"></div>
+                      <span className="text-gray-500">加载操作记录中...</span>
+                    </div>
+                  ) : handleLogs.length > 0 ? (
                     <div className="space-y-4">
-                      {device.history.map((record, index) => (
-                        <div key={index} className="flex items-start space-x-3">
+                      {handleLogs.map((log) => (
+                        <div key={log.id} className="flex items-start space-x-3">
                           <div className="p-2 bg-blue-50 rounded-full">
                             <History className="w-4 h-4 text-blue-600" />
                           </div>
                           <div className="flex-1">
-                            <div className="text-sm font-medium">{record.action}</div>
+                            <div className="text-sm font-medium">{log.content}</div>
                             <div className="text-xs text-gray-500 mt-1">
-                              操作人: {record.operator} · {record.time}
+                              操作人: {log.username} · {log.createTime}
                             </div>
                           </div>
                         </div>
@@ -600,6 +670,15 @@ export default function DeviceDetailPage() {
                   ) : (
                     <div className="text-center py-8 text-gray-500">
                       <p>暂无操作记录</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-2"
+                        onClick={fetchHandleLogs}
+                      >
+                        <RefreshCw className="h-4 w-4 mr-1" />
+                        刷新
+                      </Button>
                     </div>
                   )}
                 </ScrollArea>
