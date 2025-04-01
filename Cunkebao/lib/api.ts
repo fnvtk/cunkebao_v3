@@ -97,6 +97,11 @@ export const loginApi = {
 
 // 验证 Token 是否有效
 export const validateToken = async (): Promise<boolean> => {
+  // 如果在服务端，直接返回false，避免在服务端发起不必要的请求
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  
   try {
     const response = await loginApi.getUserInfo();
     return response.code === 200;
@@ -107,6 +112,11 @@ export const validateToken = async (): Promise<boolean> => {
 
 // 刷新令牌
 export const refreshAuthToken = async (): Promise<boolean> => {
+  // 如果在服务端，直接返回false
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  
   try {
     const response = await loginApi.refreshToken();
     if (response.code === 200 && response.data?.token) {

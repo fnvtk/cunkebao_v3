@@ -12,6 +12,28 @@ export enum DeviceType {
   IOS = "ios",
 }
 
+// 服务端API返回的设备类型
+export interface ServerDevice {
+  id: number;
+  imei: string;
+  memo: string;
+  wechatId: string;
+  alive: number;
+  totalFriend: number;
+}
+
+// 服务端API返回的设备列表响应
+export interface ServerDevicesResponse {
+  code: number;
+  msg: string;
+  data: {
+    list: ServerDevice[];
+    total: number;
+    page: number;
+    limit: number;
+  };
+}
+
 // 设备基础信息
 export interface Device {
   id: string

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ChevronRight, Settings, Bell, LogOut } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -8,6 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useRouter } from "next/navigation"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useAuth } from "@/app/components/AuthProvider"
+import ClientOnly from "@/components/ClientOnly"
+import { getClientRandomId } from "@/lib/utils"
 
 const menuItems = [
   { href: "/devices", label: "设备管理" },
@@ -20,17 +22,18 @@ export default function ProfilePage() {
   const router = useRouter()
   const { isAuthenticated, user, logout } = useAuth()
   const [showLogoutDialog, setShowLogoutDialog] = useState(false)
-  const [accountId] = useState(() => user?.account || Math.floor(10000000 + Math.random() * 90000000).toString())
+
+  // 处理身份验证状态，将路由重定向逻辑移至useEffect
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push("/login")
+    }
+  }, [isAuthenticated, router])
 
   const handleLogout = () => {
     logout() // 使用AuthProvider中的logout方法删除本地保存的用户信息
     setShowLogoutDialog(false)
     router.push("/login")
-  }
-
-  if (!isAuthenticated) {
-    router.push("/login")
-    return null
   }
 
   return (
@@ -54,12 +57,16 @@ export default function ProfilePage() {
         <Card className="p-6">
           <div className="flex items-center space-x-4">
             <Avatar className="w-20 h-20">
-              <AvatarImage src={user?.avatar || "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400&h=400&auto=format&fit=crop"} />
-              <AvatarFallback>{user?.username?.slice(0, 2) || "KR"}</AvatarFallback>
+              <AvatarImage src={user?.avatar || ""} />
+              <AvatarFallback>{user?.username ? user.username.slice(0, 2) : "用户"}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
               <h2 className="text-xl font-semibold text-blue-600">{user?.username || "用户"}</h2>
-              <p className="text-gray-500">账号: {user?.account || accountId}</p>
+              <p className="text-gray-500">
+                账号: <ClientOnly fallback="加载中...">
+                  {user?.account || Math.floor(10000000 + Math.random() * 90000000).toString()}
+                </ClientOnly>
+              </p>
               <div className="mt-2">
                 <Button variant="outline" size="sm">
                   编辑资料
@@ -78,7 +85,6 @@ export default function ProfilePage() {
               onClick={() => (item.href ? router.push(item.href) : null)}
             >
               <div className="flex items-center">
-                {item.icon && <span className="mr-2">{item.icon}</span>}
                 <span>{item.label}</span>
               </div>
               <ChevronRight className="w-5 h-5 text-gray-400" />
