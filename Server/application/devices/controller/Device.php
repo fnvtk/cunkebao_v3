@@ -1,8 +1,10 @@
 <?php
 namespace app\devices\controller;
 
+use app\devices\model\DeviceHandleLog;
 use think\Controller;
 use app\devices\model\Device as DeviceModel;
+use think\Db;
 use think\facade\Request;
 use app\common\util\JwtUtil;
 
@@ -305,8 +307,30 @@ class Device extends Controller
             $data['companyId'] = $userInfo['companyId'];
             $data['id'] = time();
 
-            // 添加设备
-            $id = DeviceModel::addDevice($data);
+            try {
+                Db::startTrans();
+
+                // 添加设备
+                $id = DeviceModel::addDevice($data);
+
+                // 添加设备操作记录
+                DeviceHandleLog::addLog(
+                    [
+                        'imei' => $data['imei'],
+                        'userId' => $userInfo['id'],
+                        'content' => '添加设备',
+                        'companyId' => $userInfo['companyId'],
+                    ]
+                );
+                Db::commit();
+            } catch (\Exception $e) {
+                Db::rollback();
+
+                return json([
+                    'code' => 500,
+                    'msg' => '添加失败：' . $e->getMessage()
+                ]);
+            }
 
             // 此处调用底层API
             return json([
@@ -333,12 +357,6 @@ class Device extends Controller
         try {
             // 获取登录用户信息
             $userInfo = request()->userInfo;
-            if (empty($userInfo)) {
-                return json([
-                    'code' => 401,
-                    'msg' => '未登录或登录已过期'
-                ]);
-            }
             
             // 检查用户权限，只有管理员可以删除设备
             if ($userInfo['isAdmin'] != 1) {
@@ -396,6 +414,9 @@ class Device extends Controller
     {
         // 获取请求参数
         $data = $this->request->post();
+
+        // 获取登录用户信息
+        $userInfo = request()->userInfo;
         
         // 验证参数
         if (empty($data['id'])) {
@@ -436,14 +457,52 @@ class Device extends Controller
         if (!$hasUpdate) {
             return json(['code' => 200, 'msg' => '更新成功', 'data' => ['taskConfig' => $taskConfig]]);
         }
-        
-        // 更新设备taskConfig字段
-        $result = \app\devices\model\Device::where('id', $deviceId)
-            ->update([
-                'taskConfig' => json_encode($taskConfig),
-                'updateTime' => time()
-            ]);
+
+        try {
+            Db::startTrans();
+
+            // 更新设备taskConfig字段
+            $result = \app\devices\model\Device::where('id', $deviceId)
+                ->update([
+                    'taskConfig' => json_encode($taskConfig),
+                    'updateTime' => time()
+                ]);
+
+            if (isset($data['autoAddFriend'])) {
+                $content = $data['autoAddFriend'] ? '开启自动添加好友' : '关闭自动添加好友';
+            }
+
+            if (isset($data['autoReply'])) {
+                $content = $data['autoReply'] ? '开启自动回复' : '关闭自动回复';
+            }
+
+            if (isset($data['momentsSync'])) {
+                $content = $data['momentsSync'] ? '开启朋友圈同步' : '关闭朋友圈同步';
+            }
+
+            if (isset($data['aiChat'])) {
+                $content = $data['aiChat'] ? '开启AI会话' : '关闭AI会话';
+            }
+
+            // 添加设备操作记录
+            DeviceHandleLog::addLog(
+                [
+                    'imei' => $device['imei'],
+                    'userId' => $userInfo['id'],
+                    'content' => $content,
+                    'companyId' => $userInfo['companyId'],
+                ]
+            );
+            Db::commit();
+        } catch (\Exception $e) {
+            Db::rollback();
             
+            return json([
+                'code' => 500,
+                'msg' => '更新任务配置失败'
+            ]);
+        }
+
         if ($result) {
             return json([
                 'code' => 200, 
