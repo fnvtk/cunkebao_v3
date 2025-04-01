@@ -13,13 +13,17 @@ class WechatChatroomController extends BaseController
      * 获取微信群聊列表
      * @return \think\response\Json
      */
-    public function getlist()
+    public function getlist($pageIndex = '',$pageSize = '',$authorization = '',$isJob = false)
     {
         // 获取授权token
-        $authorization = trim($this->request->header('authorization', ''));
-        if (empty($authorization)) {
+       $authorization = !empty($authorization) ? $authorization : trim($this->request->header('authorization', ''));
+       if (empty($authorization)) {
+        if($isJob){
+            return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
+        }else{
             return errorJson('缺少授权信息');
         }
+       }
 
         try {
             // 构建请求参数
@@ -31,16 +35,16 @@ class WechatChatroomController extends BaseController
                 'groupId' => $this->request->param('groupId', ''),
                 'wechatChatroomId' => $this->request->param('wechatChatroomId', 0),
                 'memberKeyword' => $this->request->param('memberKeyword', ''),
-                'pageIndex' => $this->request->param('pageIndex', 0),
-                'pageSize' => $this->request->param('pageSize', 20)
+                'pageIndex' => !empty($pageIndex) ? $pageIndex : input('pageIndex', 0),
+                'pageSize' => !empty($pageSize) ? $pageSize : input('pageSize', 20)
             ];
 
             // 设置请求头
             $headerData = ['client:system'];
-            $header = setHeader($headerData, $authorization, 'plain');
+            $header = setHeader($headerData, $authorization, 'json');
 
             // 发送请求获取群聊列表
-            $result = requestCurl($this->baseUrl . 'api/WechatChatroom/pagelist', $params, 'GET', $header);
+            $result = requestCurl($this->baseUrl . 'api/WechatChatroom/pagelist', $params, 'GET', $header,'json');
             $response = handleApiResponse($result);
             
             // 保存数据到数据库
@@ -50,7 +54,11 @@ class WechatChatroomController extends BaseController
                 }
             }
 
-            return successJson($response);
+            if($isJob){
+                return json_encode(['code'=>200,'msg'=>'success','data'=>$response]);
+            }else{
+                return successJson($response);
+            }
         } catch (\Exception $e) {
             return errorJson('获取微信群聊列表失败：' . $e->getMessage());
         }
@@ -63,6 +71,7 @@ class WechatChatroomController extends BaseController
     private function saveChatroom($item)
     {
         $data = [
+            'id' => $item['id'],
             'wechatAccountId' => $item['wechatAccountId'],
             'wechatAccountAlias' => $item['wechatAccountAlias'],
             'wechatAccountWechatId' => $item['wechatAccountWechatId'],
@@ -70,29 +79,27 @@ class WechatChatroomController extends BaseController
             'wechatAccountNickname' => $item['wechatAccountNickname'],
             'chatroomId' => $item['chatroomId'],
             'hasMe' => $item['hasMe'],
-            'chatroomOwnerNickname' => $item['chatroomOwnerNickname'],
-            'chatroomOwnerAvatar' => $item['chatroomOwnerAvatar'],
+            'chatroomOwnerNickname' => isset($item['chatroomOwnerNickname']) ? $item['chatroomOwnerNickname'] : '',
+            'chatroomOwnerAvatar' => isset($item['chatroomOwnerAvatar']) ? $item['chatroomOwnerAvatar'] : '',
             'conRemark' => isset($item['conRemark']) ? $item['conRemark'] : '',
-            'nickname' => $item['nickname'],
-            'pyInitial' => $item['pyInitial'],
-            'quanPin' => $item['quanPin'],
-            'chatroomAvatar' => $item['chatroomAvatar'],
+            'nickname' => isset($item['nickname']) ? $item['nickname'] : '',
+            'pyInitial' => isset($item['pyInitial']) ? $item['pyInitial'] : '',
+            'quanPin' => isset($item['quanPin']) ? $item['quanPin'] : '',
+            'chatroomAvatar' => isset($item['chatroomAvatar']) ? $item['chatroomAvatar'] : '',
             'members' => is_array($item['members']) ? json_encode($item['members']) : json_encode([]),
-            'isDeleted' => $item['isDeleted'],
-            'deleteTime' => $item['deleteTime'],
-            'createTime' => $item['createTime'],
-            'accountId' => $item['accountId'],
-            'accountUserName' => $item['accountUserName'],   
-            'accountRealName' => $item['accountRealName'],
-            'accountNickname' => $item['accountNickname'],
-            'groupId' => $item['groupId']
+            'isDeleted' => isset($item['isDeleted']) ? $item['isDeleted'] : 0,
+            'deleteTime' => isset($item['deleteTime']) ? $item['deleteTime'] : 0,
+            'createTime' => isset($item['createTime']) ? $item['createTime'] : time(),
+            'accountId' => isset($item['accountId']) ? $item['accountId'] : 0,
+            'accountUserName' => isset($item['accountUserName']) ? $item['accountUserName'] : '',   
+            'accountRealName' => isset($item['accountRealName']) ? $item['accountRealName'] : '',
+            'accountNickname' => isset($item['accountNickname']) ? $item['accountNickname'] : '',
+            'groupId' => isset($item['groupId']) ? $item['groupId'] : 0,
+            'updateTime' => time()
         ];
 
         // 使用chatroomId和wechatAccountId的组合作为唯一性判断
-        $chatroom = WechatChatroomModel::where([
-            ['chatroomId', '=', $item['chatroomId']],
-            ['wechatAccountId', '=', $item['wechatAccountId']]
-        ])->find();
+        $chatroom = WechatChatroomModel::where('id',$item['id'])->find();
 
         if ($chatroom) {
             $chatroom->save($data);
@@ -161,12 +168,13 @@ class WechatChatroomController extends BaseController
     {
         $data = [
             'chatroomId' => $wechatChatroomId,
-            'wechatId' => $item['wechatId'],
-            'nickname' => $item['nickname'],
-            'avatar' => $item['avatar'],
+            'wechatId' => isset($item['wechatId']) ? $item['wechatId'] : '',
+            'nickname' => isset($item['nickname']) ? $item['nickname'] : '',
+            'avatar' => isset($item['avatar']) ? $item['avatar'] : '',
             'conRemark' => isset($item['conRemark']) ? $item['conRemark'] : '',
             'alias' => isset($item['alias']) ? $item['alias'] : '',
-            'friendType' => isset($item['friendType']) ? $item['friendType'] : false
+            'friendType' => isset($item['friendType']) ? $item['friendType'] : false,
+            'updateTime' => time()
         ];
 
         // 使用chatroomId和wechatId的组合作为唯一性判断
@@ -178,6 +186,7 @@ class WechatChatroomController extends BaseController
         if ($member) {
             $member->save($data);
         } else {
+            $data['createTime'] = time();
             WechatChatroomMemberModel::create($data);
         }
     }
