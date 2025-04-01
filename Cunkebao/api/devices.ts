@@ -33,6 +33,11 @@ export const fetchDeviceDetail = async (id: string | number): Promise<ApiRespons
   return api.get<ApiResponse<any>>(`/v1/devices/${id}`);
 };
 
+// 获取设备关联的微信账号
+export const fetchDeviceRelatedAccounts = async (id: string | number): Promise<ApiResponse<any>> => {
+  return api.get<ApiResponse<any>>(`/v1/devices/${id}/related-accounts`);
+};
+
 // 更新设备任务配置
 export const updateDeviceTaskConfig = async (
   id: string | number, 

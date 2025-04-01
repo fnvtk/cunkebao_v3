@@ -181,12 +181,6 @@ class Device extends Controller
         try {
             // 获取登录用户信息
             $userInfo = request()->userInfo;
-            if (empty($userInfo)) {
-                return json([
-                    'code' => 401,
-                    'msg' => '未登录或登录已过期'
-                ]);
-            }
             
             // 获取设备ID
             $id = Request::param('id/d');
@@ -277,13 +271,7 @@ class Device extends Controller
         try {
             // 获取登录用户信息
             $userInfo = request()->userInfo;
-            if (empty($userInfo)) {
-                return json([
-                    'code' => 401,
-                    'msg' => '未登录或登录已过期'
-                ]);
-            }
-            
+
             // 检查用户权限，只有管理员可以添加设备
             if ($userInfo['isAdmin'] != 1) {
                 return json([
@@ -305,6 +293,7 @@ class Device extends Controller
             
             // 验证IMEI是否已存在
             $exists = DeviceModel::where('imei', $data['imei'])->where('isDeleted', 0)->find();
+
             if ($exists) {
                 return json([
                     'code' => 400,
@@ -314,10 +303,12 @@ class Device extends Controller
             
             // 设置设备公司ID
             $data['companyId'] = $userInfo['companyId'];
-            
+            $data['id'] = time();
+
             // 添加设备
             $id = DeviceModel::addDevice($data);
-            
+
+            // 此处调用底层API
             return json([
                 'code' => 200,
                 'msg' => '添加成功',
@@ -463,6 +454,74 @@ class Device extends Controller
             ]);
         } else {
             return json(['code' => 500, 'msg' => '更新任务配置失败']);
+        }
+    }
+
+    /**
+     * 获取设备关联的微信账号
+     * @return \think\response\Json
+     */
+    public function getRelatedAccounts()
+    {
+        try {
+            // 获取登录用户信息
+            $userInfo = request()->userInfo;
+
+            // 获取设备ID
+            $deviceId = $this->request->param('id/d');
+            if (empty($deviceId)) {
+                return json([
+                    'code' => 400,
+                    'msg' => '设备ID不能为空'
+                ]);
+            }
+            
+            // 检查用户是否有权限访问该设备
+            if ($userInfo['isAdmin'] != 1) {
+                // 非管理员需要检查是否有权限访问该设备
+                $hasPermission = \app\common\model\DeviceUser::checkUserDevicePermission(
+                    $userInfo['id'], 
+                    $deviceId, 
+                    $userInfo['companyId']
+                );
+                
+                if (!$hasPermission) {
+                    return json([
+                        'code' => 403,
+                        'msg' => '您没有权限查看该设备'
+                    ]);
+                }
+            }
+            
+            // 获取设备信息，确认设备存在
+            $device = DeviceModel::where('id', $deviceId)
+                ->where('isDeleted', 0)
+                ->find();
+                
+            if (!$device) {
+                return json([
+                    'code' => 404,
+                    'msg' => '设备不存在或已删除'
+                ]);
+            }
+            
+            // 获取设备关联的微信账号
+            $wechatAccounts = \app\devices\model\DeviceWechatLogin::getDeviceRelatedAccounts($deviceId, $userInfo['companyId']);
+            
+            return json([
+                'code' => 200,
+                'msg' => '获取成功',
+                'data' => [
+                    'deviceId' => $deviceId,
+                    'accounts' => $wechatAccounts,
+                    'total' => count($wechatAccounts)
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return json([
+                'code' => 500,
+                'msg' => '获取失败：' . $e->getMessage()
+            ]);
         }
     }
 } 

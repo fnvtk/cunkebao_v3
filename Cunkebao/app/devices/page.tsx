@@ -5,14 +5,16 @@ import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ChevronLeft, Plus, Filter, Search, RefreshCw, QrCode } from "lucide-react"
+import { ChevronLeft, Plus, Filter, Search, RefreshCw, QrCode, Smartphone, Loader2, AlertTriangle } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/components/ui/use-toast"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { fetchDeviceList, deleteDevice } from "@/api/devices"
 import { ServerDevice } from "@/types/device"
+import { api } from "@/lib/api"
 
 // 设备接口更新为与服务端接口对应的类型
 interface Device extends ServerDevice {
@@ -37,6 +39,13 @@ export default function DevicesPage() {
   const observerTarget = useRef<HTMLDivElement>(null)
   // 使用ref来追踪当前页码，避免依赖effect循环
   const pageRef = useRef(1)
+  // 添加设备相关状态
+  const [deviceImei, setDeviceImei] = useState("")
+  const [deviceName, setDeviceName] = useState("")
+  const [qrCodeImage, setQrCodeImage] = useState("")
+  const [isLoadingQRCode, setIsLoadingQRCode] = useState(false)
+  const [isSubmittingImei, setIsSubmittingImei] = useState(false)
+  const [activeTab, setActiveTab] = useState("scan")
 
   const devicesPerPage = 20 // 每页显示20条记录
 
@@ -155,6 +164,259 @@ export default function DevicesPage() {
     }
   }, [hasMore, isLoading, loadNextPage])
 
+  // 获取设备二维码
+  const fetchDeviceQRCode = async () => {
+    try {
+      setIsLoadingQRCode(true)
+      setQrCodeImage("") // 清空当前二维码
+      
+      console.log("正在请求二维码...");
+      
+      // 发起请求获取二维码 - 直接使用fetch避免api工具添加基础URL
+      const response = await fetch('http://yi.54word.com/v1/api/device/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({})
+      })
+      
+      console.log("二维码请求响应状态:", response.status);
+      
+      // 保存原始响应文本以便调试
+      const responseText = await response.text();
+      console.log("原始响应内容:", responseText);
+      
+      // 尝试将响应解析为JSON
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        console.error("响应不是有效的JSON:", e);
+        toast({
+          title: "获取二维码失败",
+          description: "服务器返回的数据格式无效",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      console.log("二维码响应数据:", result);
+      
+      if (result && result.code === 200) {
+        // 尝试多种可能的返回数据结构
+        let qrcodeData = null;
+        
+        if (result.data?.qrCode) {
+          qrcodeData = result.data.qrCode;
+          console.log("找到二维码数据在 result.data.qrCode");
+        } else if (result.data?.qrcode) {
+          qrcodeData = result.data.qrcode;
+          console.log("找到二维码数据在 result.data.qrcode");
+        } else if (result.data?.image) {
+          qrcodeData = result.data.image;
+          console.log("找到二维码数据在 result.data.image");
+        } else if (result.data?.url) {
+          // 如果返回的是URL而不是base64
+          qrcodeData = result.data.url;
+          console.log("找到二维码URL在 result.data.url");
+          setQrCodeImage(qrcodeData);
+          
+          toast({
+            title: "二维码已更新",
+            description: "请使用手机扫描新的二维码添加设备",
+          });
+          
+          return; // 直接返回，不进行base64处理
+        } else if (typeof result.data === 'string') {
+          // 如果data直接是字符串
+          qrcodeData = result.data;
+          console.log("二维码数据直接在 result.data 字符串中");
+        } else {
+          console.error("无法找到二维码数据:", result);
+          toast({
+            title: "获取二维码失败",
+            description: "返回数据格式不正确",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // 检查数据是否为空
+        if (!qrcodeData) {
+          console.error("二维码数据为空");
+          toast({
+            title: "获取二维码失败",
+            description: "服务器返回的二维码数据为空",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        console.log("处理前的二维码数据:", qrcodeData);
+        
+        // 检查是否已经是完整的data URL
+        if (qrcodeData.startsWith('data:image')) {
+          console.log("数据已包含data:image前缀");
+          setQrCodeImage(qrcodeData);
+        } 
+        // 检查是否是URL
+        else if (qrcodeData.startsWith('http')) {
+          console.log("数据是HTTP URL");
+          setQrCodeImage(qrcodeData);
+        }
+        // 尝试作为base64处理
+        else {
+          try {
+            // 确保base64字符串没有空格等干扰字符
+            const cleanedBase64 = qrcodeData.trim();
+            console.log("处理后的base64数据:", cleanedBase64.substring(0, 30) + "...");
+            
+            // 直接以图片src格式设置
+            setQrCodeImage(`data:image/png;base64,${cleanedBase64}`);
+            
+            // 预加载图片，确认是否有效
+            const img = new Image();
+            img.onload = () => {
+              console.log("二维码图片加载成功");
+            };
+            img.onerror = (e) => {
+              console.error("二维码图片加载失败:", e);
+              toast({
+                title: "二维码加载失败",
+                description: "服务器返回的数据无法显示为图片",
+                variant: "destructive",
+              });
+            };
+            img.src = `data:image/png;base64,${cleanedBase64}`;
+          } catch (e) {
+            console.error("处理base64数据出错:", e);
+            toast({
+              title: "获取二维码失败",
+              description: "图片数据处理失败",
+              variant: "destructive",
+            });
+            return;
+          }
+        }
+        
+        toast({
+          title: "二维码已更新",
+          description: "请使用手机扫描新的二维码添加设备",
+        });
+      } else {
+        console.error("获取二维码失败:", result);
+        toast({
+          title: "获取二维码失败",
+          description: result?.msg || "请稍后重试",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("获取二维码失败", error);
+      toast({
+        title: "获取二维码失败",
+        description: "请检查网络连接后重试",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingQRCode(false);
+    }
+  }
+
+  // 打开添加设备模态框时获取二维码
+  const handleOpenAddDeviceModal = () => {
+    setIsAddDeviceOpen(true)
+    setDeviceImei("")
+    setDeviceName("")
+    fetchDeviceQRCode()
+  }
+
+  // 通过IMEI添加设备
+  const handleAddDeviceByImei = async () => {
+    if (!deviceImei) {
+      toast({
+        title: "IMEI不能为空",
+        description: "请输入有效的设备IMEI",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      setIsSubmittingImei(true);
+      console.log("正在添加设备，IMEI:", deviceImei, "设备名称:", deviceName);
+      
+      // 使用api.post发送请求到/v1/devices
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/devices`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ 
+          imei: deviceImei,
+          memo: deviceName 
+        })
+      });
+      
+      console.log("添加设备响应状态:", response.status);
+      
+      // 保存原始响应文本以便调试
+      const responseText = await response.text();
+      console.log("原始响应内容:", responseText);
+      
+      // 尝试将响应解析为JSON
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        console.error("响应不是有效的JSON:", e);
+        toast({
+          title: "添加设备失败",
+          description: "服务器返回的数据格式无效",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      console.log("添加设备响应:", result);
+      
+      if (result && result.code === 200) {
+        toast({
+          title: "设备添加成功",
+          description: result.data?.msg || "设备已成功添加",
+        });
+        
+        // 清空输入并关闭弹窗
+        setDeviceImei("");
+        setDeviceName("");
+        setIsAddDeviceOpen(false);
+        
+        // 刷新设备列表
+        loadDevices(1, true);
+      } else {
+        console.error("添加设备失败:", result);
+        toast({
+          title: "添加设备失败",
+          description: result?.msg || "请检查设备信息是否正确",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("添加设备请求失败:", error);
+      toast({
+        title: "请求失败",
+        description: "网络错误，请稍后重试",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingImei(false);
+    }
+  }
+
   // 刷新设备列表
   const handleRefresh = () => {
     setCurrentPage(1)
@@ -231,7 +493,7 @@ export default function DevicesPage() {
             </Button>
             <h1 className="text-lg font-medium">设备管理</h1>
           </div>
-          <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setIsAddDeviceOpen(true)}>
+          <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleOpenAddDeviceModal}>
             <Plus className="h-4 w-4 mr-2" />
             添加设备
           </Button>
@@ -359,22 +621,128 @@ export default function DevicesPage() {
           <DialogHeader>
             <DialogTitle>添加设备</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">设备名称</label>
-              <Input placeholder="请输入设备名称" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">IMEI</label>
-              <Input placeholder="请输入设备IMEI" />
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsAddDeviceOpen(false)}>
-                取消
-              </Button>
-              <Button>添加</Button>
-            </div>
-          </div>
+          
+          <Tabs defaultValue="scan" value={activeTab} onValueChange={setActiveTab} className="mt-4">
+            <TabsList className="grid grid-cols-2 w-full">
+              <TabsTrigger value="scan" className="flex items-center">
+                <QrCode className="h-4 w-4 mr-2" />
+                扫码添加
+              </TabsTrigger>
+              <TabsTrigger value="manual" className="flex items-center">
+                <Smartphone className="h-4 w-4 mr-2" />
+                手动添加
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="scan" className="space-y-4 py-4">
+              <div className="flex flex-col items-center justify-center p-6 space-y-4">
+                <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200 w-full max-w-[280px] min-h-[280px] flex flex-col items-center justify-center">
+                  {isLoadingQRCode ? (
+                    <div className="flex flex-col items-center justify-center space-y-3">
+                      <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                      <p className="text-sm text-gray-500">正在获取二维码...</p>
+                    </div>
+                  ) : qrCodeImage ? (
+                    <div id="qrcode-container" className="flex flex-col items-center space-y-3">
+                      <div className="relative w-64 h-64 flex items-center justify-center">
+                        <img 
+                          src={qrCodeImage} 
+                          alt="设备添加二维码" 
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            console.error("二维码图片加载失败");
+                            // 隐藏图片
+                            e.currentTarget.style.display = 'none';
+                            // 显示错误信息
+                            const container = document.getElementById('qrcode-container');
+                            if (container) {
+                              const errorEl = container.querySelector('.qrcode-error');
+                              if (errorEl) {
+                                errorEl.classList.remove('hidden');
+                              }
+                            }
+                          }}
+                        />
+                        <div className="qrcode-error hidden absolute inset-0 flex flex-col items-center justify-center text-center text-red-500 bg-white">
+                          <AlertTriangle className="h-10 w-10 mb-2" />
+                          <p>未能加载二维码，请点击刷新按钮重试</p>
+                        </div>
+                      </div>
+                      <p className="text-sm text-center text-gray-600 mt-2">
+                        请使用手机扫描此二维码添加设备
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-500">
+                      <QrCode className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p>点击下方按钮获取二维码</p>
+                    </div>
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  onClick={fetchDeviceQRCode}
+                  disabled={isLoadingQRCode}
+                  className="w-48"
+                >
+                  {isLoadingQRCode ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      获取中...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      刷新二维码
+                    </>
+                  )}
+                </Button>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="manual" className="space-y-4 py-4">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">设备名称</label>
+                  <Input 
+                    placeholder="请输入设备名称" 
+                    value={deviceName}
+                    onChange={(e) => setDeviceName(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-500">
+                    为设备添加一个便于识别的名称
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">设备IMEI</label>
+                  <Input 
+                    placeholder="请输入设备IMEI" 
+                    value={deviceImei}
+                    onChange={(e) => setDeviceImei(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-500">
+                    请输入设备IMEI码，可在设备信息中查看
+                  </p>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={() => setIsAddDeviceOpen(false)}>
+                    取消
+                  </Button>
+                  <Button 
+                    onClick={handleAddDeviceByImei} 
+                    disabled={isSubmittingImei || !deviceImei.trim()}
+                  >
+                    {isSubmittingImei ? (
+                      <>
+                        <div className="w-4 h-4 mr-2 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+                        提交中...
+                      </>
+                    ) : "添加"}
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </div>

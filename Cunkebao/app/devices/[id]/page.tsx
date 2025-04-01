@@ -4,13 +4,13 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, Smartphone, Battery, Wifi, MessageCircle, Users, Settings, History } from "lucide-react"
+import { ChevronLeft, Smartphone, Battery, Wifi, MessageCircle, Users, Settings, History, RefreshCw } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { fetchDeviceDetail, updateDeviceTaskConfig } from "@/api/devices"
+import { fetchDeviceDetail, fetchDeviceRelatedAccounts, updateDeviceTaskConfig } from "@/api/devices"
 import { toast } from "sonner"
 
 interface WechatAccount {
@@ -18,10 +18,13 @@ interface WechatAccount {
   avatar: string
   nickname: string
   wechatId: string
-  gender: "male" | "female"
-  status: "normal" | "abnormal"
-  addFriendStatus: "enabled" | "disabled"
-  friendCount: number
+  gender: number
+  status: number
+  statusText: string
+  wechatAlive: number
+  wechatAliveText: string
+  addFriendStatus: number
+  totalFriend: number
   lastActive: string
 }
 
@@ -68,6 +71,7 @@ export default function DeviceDetailPage() {
   const [device, setDevice] = useState<Device | null>(null)
   const [activeTab, setActiveTab] = useState("info")
   const [loading, setLoading] = useState(true)
+  const [accountsLoading, setAccountsLoading] = useState(false)
   const [savingFeatures, setSavingFeatures] = useState({
     autoAddFriend: false,
     autoReply: false,
@@ -146,16 +150,24 @@ export default function DeviceDetailPage() {
                 avatar: "/placeholder.svg", // 默认头像
                 nickname: serverData.memo || "微信账号",
                 wechatId: serverData.imei || "",
-                gender: "male", // 默认性别
-                status: serverData.alive === 1 ? "normal" : "abnormal",
-                addFriendStatus: "enabled",
-                friendCount: serverData.totalFriend || 0,
+                gender: 1, // 默认性别
+                status: serverData.alive === 1 ? 1 : 0,
+                statusText: serverData.alive === 1 ? "可加友" : "已停用",
+                wechatAlive: serverData.alive === 1 ? 1 : 0,
+                wechatAliveText: serverData.alive === 1 ? "正常" : "异常",
+                addFriendStatus: 1,
+                totalFriend: serverData.totalFriend || 0,
                 lastActive: serverData.lastUpdateTime || new Date().toISOString()
               }
             ]
           }
           
           setDevice(formattedDevice)
+          
+          // 如果当前激活标签是"accounts"，则加载关联微信账号
+          if (activeTab === "accounts") {
+            fetchRelatedAccounts()
+          }
         } else {
           // 如果API返回错误，则使用备用模拟数据
           toast.error("获取设备信息失败，显示备用数据")
@@ -185,10 +197,13 @@ export default function DeviceDetailPage() {
             avatar: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-q2rVrFbfDdAbSnT3ZTNE7gfn3QCbvr.png",
             nickname: "老张",
             wechatId: "wxid_abc123",
-            gender: "male",
-            status: "normal",
-            addFriendStatus: "enabled",
-            friendCount: 523,
+            gender: 1,
+            status: 1,
+            statusText: "可加友",
+            wechatAlive: 1,
+            wechatAliveText: "正常",
+            addFriendStatus: 1,
+            totalFriend: 523,
             lastActive: "2024-02-09 15:20:33",
           },
           {
@@ -196,10 +211,13 @@ export default function DeviceDetailPage() {
             avatar: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-q2rVrFbfDdAbSnT3ZTNE7gfn3QCbvr.png",
             nickname: "老李",
             wechatId: "wxid_xyz789",
-            gender: "male",
-            status: "abnormal",
-            addFriendStatus: "disabled",
-            friendCount: 245,
+            gender: 1,
+            status: 0,
+            statusText: "已停用",
+            wechatAlive: 0,
+            wechatAliveText: "异常",
+            addFriendStatus: 0,
+            totalFriend: 245,
             lastActive: "2024-02-09 14:15:22",
           },
         ],
@@ -228,7 +246,53 @@ export default function DeviceDetailPage() {
     }
     
     fetchDevice()
-  }, [params.id])
+  }, [params.id, activeTab])
+  
+  // 获取设备关联微信账号
+  const fetchRelatedAccounts = async () => {
+    if (!params.id || accountsLoading) return
+    
+    try {
+      setAccountsLoading(true)
+      const response = await fetchDeviceRelatedAccounts(params.id as string)
+      
+      if (response && response.code === 200 && response.data) {
+        const accounts = response.data.accounts || []
+        
+        // 更新设备的微信账号信息
+        setDevice(prev => {
+          if (!prev) return null
+          return {
+            ...prev,
+            wechatAccounts: accounts
+          }
+        })
+        
+        if (accounts.length > 0) {
+          toast.success(`成功获取${accounts.length}个关联微信账号`)
+        } else {
+          toast.info("此设备暂无关联微信账号")
+        }
+      } else {
+        toast.error("获取关联微信账号失败")
+      }
+    } catch (error) {
+      console.error("获取关联微信账号失败:", error)
+      toast.error("获取关联微信账号出错")
+    } finally {
+      setAccountsLoading(false)
+    }
+  }
+
+  // 处理标签页切换
+  const handleTabChange = (value: string) => {
+    setActiveTab(value)
+    
+    // 当切换到"关联账号"标签时，获取最新的关联微信账号信息
+    if (value === "accounts") {
+      fetchRelatedAccounts()
+    }
+  }
 
   // 处理功能开关状态变化
   const handleFeatureChange = async (feature: keyof Device['features'], checked: boolean) => {
@@ -351,7 +415,7 @@ export default function DeviceDetailPage() {
             <div className="mt-2 text-sm text-gray-500">最后活跃：{device.lastActive}</div>
           </Card>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="info">基本信息</TabsTrigger>
               <TabsTrigger value="accounts">关联账号</TabsTrigger>
@@ -435,8 +499,37 @@ export default function DeviceDetailPage() {
 
             <TabsContent value="accounts">
               <Card className="p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-md font-medium">微信账号列表</h3>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={fetchRelatedAccounts}
+                    disabled={accountsLoading}
+                  >
+                    {accountsLoading ? (
+                      <>
+                        <div className="w-4 h-4 mr-2 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
+                        刷新中
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-1" />
+                        刷新
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
                 <ScrollArea className="h-[calc(100vh-300px)]">
-                  {device.wechatAccounts && device.wechatAccounts.length > 0 ? (
+                  {accountsLoading && (
+                    <div className="flex justify-center items-center py-8">
+                      <div className="w-6 h-6 rounded-full border-2 border-blue-500 border-t-transparent animate-spin mr-2"></div>
+                      <span className="text-gray-500">加载微信账号中...</span>
+                    </div>
+                  )}
+                  
+                  {!accountsLoading && device.wechatAccounts && device.wechatAccounts.length > 0 ? (
                     <div className="space-y-4">
                       {device.wechatAccounts.map((account) => (
                         <div key={account.id} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
@@ -448,26 +541,38 @@ export default function DeviceDetailPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
                               <div className="font-medium truncate">{account.nickname}</div>
-                              <Badge variant={getBadgeVariant(account.status)}>
-                                {account.status === "normal" ? "正常" : "异常"}
+                              <Badge variant={account.wechatAlive === 1 ? "default" : "destructive"}>
+                                {account.wechatAliveText}
                               </Badge>
                             </div>
                             <div className="text-sm text-gray-500 mt-1">微信号: {account.wechatId}</div>
-                            <div className="text-sm text-gray-500">性别: {account.gender === "male" ? "男" : "女"}</div>
+                            <div className="text-sm text-gray-500">性别: {account.gender === 1 ? "男" : "女"}</div>
                             <div className="flex items-center justify-between mt-2">
-                              <span className="text-sm text-gray-500">好友数: {account.friendCount}</span>
-                              <Badge variant={getBadgeVariant(account.addFriendStatus)}>
-                                {account.addFriendStatus === "enabled" ? "可加友" : "已停用"}
+                              <span className="text-sm text-gray-500">好友数: {account.totalFriend}</span>
+                              <Badge variant={account.status === 1 ? "outline" : "secondary"}>
+                                {account.statusText}
                               </Badge>
                             </div>
+                            <div className="text-xs text-gray-400 mt-1">最后活跃: {account.lastActive}</div>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <p>此设备暂无关联的微信账号</p>
-                    </div>
+                    !accountsLoading && (
+                      <div className="text-center py-8 text-gray-500">
+                        <p>此设备暂无关联的微信账号</p>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-2"
+                          onClick={fetchRelatedAccounts}
+                        >
+                          <RefreshCw className="h-4 w-4 mr-1" />
+                          刷新
+                        </Button>
+                      </div>
+                    )
                   )}
                 </ScrollArea>
               </Card>
