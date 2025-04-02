@@ -2,8 +2,9 @@
 
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Smartphone, Battery, Users, MessageCircle } from "lucide-react"
+import { Smartphone, Battery, Users, MessageCircle, Clock } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
+import { ImeiDisplay } from "@/components/ImeiDisplay"
 
 export interface Device {
   id: string
@@ -54,7 +55,7 @@ export function DeviceGrid({ devices, selectable, selectedDevices, onSelect, dev
             )}
             <div className="flex flex-col space-y-4">
               <div className="flex items-center justify-between">
-                <Badge variant={currentStatus.status === "online" ? "success" : "secondary"}>
+                <Badge variant={currentStatus.status === "online" ? "default" : "secondary"}>
                   {currentStatus.status === "online" ? "在线" : "离线"}
                 </Badge>
                 <div className="flex items-center space-x-2">
@@ -68,7 +69,10 @@ export function DeviceGrid({ devices, selectable, selectedDevices, onSelect, dev
                   <Smartphone className="w-4 h-4 text-gray-400" />
                   <div>
                     <div className="text-sm font-medium">{device.name}</div>
-                    <div className="text-xs text-gray-500">IMEI-{device.imei}</div>
+                    <div className="text-xs text-gray-500 flex items-center">
+                      <span className="mr-1">IMEI:</span>
+                      <ImeiDisplay imei={device.imei} containerWidth={80} />
+                    </div>
                   </div>
                 </div>
                 {device.remark && <div className="text-xs text-gray-500">备注: {device.remark}</div>}
@@ -90,7 +94,7 @@ export function DeviceGrid({ devices, selectable, selectedDevices, onSelect, dev
                 <div>今日添加：{device.todayAdded}</div>
                 <div>
                   加友状态：
-                  <Badge variant={device.addFriendStatus === "normal" ? "success" : "destructive"}>
+                  <Badge variant={device.addFriendStatus === "normal" ? "default" : "destructive"}>
                     {device.addFriendStatus === "normal" ? "正常" : "异常"}
                   </Badge>
                 </div>

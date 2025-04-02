@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { fetchDeviceDetail, fetchDeviceRelatedAccounts, updateDeviceTaskConfig, fetchDeviceHandleLogs } from "@/api/devices"
 import { toast } from "sonner"
+import { ImeiDisplay } from "@/components/ImeiDisplay"
 
 interface WechatAccount {
   id: string
@@ -439,7 +440,10 @@ export default function DeviceDetailPage() {
                     {device.status === "online" ? "在线" : "离线"}
                   </Badge>
                 </div>
-                <div className="text-sm text-gray-500 mt-1">IMEI: {device.imei}</div>
+                <div className="text-sm text-gray-500 mt-1 flex items-center">
+                  <span className="mr-1 whitespace-nowrap">IMEI:</span> 
+                  <ImeiDisplay imei={device.imei} containerWidth="max-w-[calc(100%-60px)]" />
+                </div>
                 {device.historicalIds && device.historicalIds.length > 0 && (
                   <div className="text-sm text-gray-500">历史ID: {device.historicalIds.join(", ")}</div>
                 )}

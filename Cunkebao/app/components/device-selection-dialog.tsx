@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ImeiDisplay } from "@/components/ImeiDisplay"
 
 interface WechatAccount {
   wechatId: string
@@ -278,7 +279,10 @@ export function DeviceSelectionDialog({
                             {device.status === "online" ? "在线" : "离线"}
                           </div>
                         </div>
-                        <div className="text-sm text-gray-500">IMEI: {device.imei}</div>
+                        <div className="text-sm text-gray-500 flex items-center">
+                          <span className="mr-1">IMEI:</span>
+                          <ImeiDisplay imei={device.imei} containerWidth={160} />
+                        </div>
 
                         {/* 微信账号信息 */}
                         <div className="mt-2 space-y-2">

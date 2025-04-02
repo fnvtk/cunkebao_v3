@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { fetchDeviceList, deleteDevice } from "@/api/devices"
 import { ServerDevice } from "@/types/device"
 import { api } from "@/lib/api"
+import { ImeiDisplay } from "@/components/ImeiDisplay"
 
 // 设备接口更新为与服务端接口对应的类型
 interface Device extends ServerDevice {
@@ -594,7 +595,10 @@ export default function DevicesPage() {
                           {device.status === "online" ? "在线" : "离线"}
                         </Badge>
                       </div>
-                      <div className="text-sm text-gray-500">IMEI: {device.imei}</div>
+                      <div className="text-sm text-gray-500 flex items-center">
+                        <span className="mr-1">IMEI:</span>
+                        <ImeiDisplay imei={device.imei} containerWidth={180} />
+                      </div>
                       <div className="text-sm text-gray-500">微信号: {device.wechatId || "未绑定"}</div>
                       <div className="flex items-center justify-between mt-1 text-sm">
                         <span className="text-gray-500">好友数: {device.totalFriend}</span>

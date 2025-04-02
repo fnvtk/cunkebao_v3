@@ -9,6 +9,7 @@ import { Search, RefreshCw } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { ImeiDisplay } from "@/components/ImeiDisplay"
 
 interface Device {
   id: string
@@ -123,12 +124,15 @@ export function DeviceSelectionDialog({ open, onOpenChange, selectedDevices, onS
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{device.name}</span>
-                    <Badge variant={device.status === "online" ? "success" : "secondary"}>
+                    <Badge variant={device.status === "online" ? "default" : "secondary"}>
                       {device.status === "online" ? "在线" : "离线"}
                     </Badge>
                   </div>
                   <div className="text-sm text-gray-500 mt-1">
-                    <div>IMEI: {device.imei}</div>
+                    <div className="flex items-center">
+                      <span className="mr-1">IMEI:</span>
+                      <ImeiDisplay imei={device.imei} containerWidth={160} />
+                    </div>
                     <div>微信号: {device.wxid}</div>
                   </div>
                   {device.usedInPlans > 0 && (

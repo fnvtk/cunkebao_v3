@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, RefreshCw, X } from "lucide-react"
+import { Search, RefreshCw, X, ChevronLeft, ChevronRight } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/components/ui/use-toast"
@@ -17,6 +17,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
+import { ImeiDisplay } from "@/components/ImeiDisplay"
 
 // 定义类型，避免导入错误
 interface Device {
@@ -148,6 +149,16 @@ export function DeviceSelector({ formData, onChange, onNext, onPrev }: DeviceSel
     }
   }
 
+  const handlePrevPage = () => {
+    setCurrentPage((prev) => Math.max(1, prev - 1))
+  }
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(Math.ceil(filteredDevices.length / itemsPerPage), prev + 1))
+  }
+
+  const isLastPage = currentPage === Math.ceil(filteredDevices.length / itemsPerPage)
+
   return (
     <Card className="p-6">
       <div className="space-y-4">
@@ -193,15 +204,14 @@ export function DeviceSelector({ formData, onChange, onNext, onPrev }: DeviceSel
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <div className="font-medium truncate">{device.name}</div>
-                    <div
-                      className={`px-2 py-1 rounded-full text-xs ${
-                        device.status === "online" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
+                    <Badge variant={device.status === "online" ? "default" : "secondary"}>
                       {device.status === "online" ? "在线" : "离线"}
-                    </div>
+                    </Badge>
                   </div>
-                  <div className="text-sm text-gray-500">IMEI: {device.imei}</div>
+                  <div className="text-sm text-gray-500 flex items-center">
+                    <span className="mr-1">IMEI:</span>
+                    <ImeiDisplay imei={device.imei} containerWidth={160} />
+                  </div>
                   <div className="text-sm text-gray-500">微信号: {device.wechatId}</div>
                   {device.usedInPlans > 0 && (
                     <div className="text-sm text-orange-500">已用于 {device.usedInPlans} 个计划</div>
@@ -211,24 +221,25 @@ export function DeviceSelector({ formData, onChange, onNext, onPrev }: DeviceSel
             </Card>
           ))}
         </div>
-        <Pagination>
+        <Pagination className="mt-4">
           <PaginationContent>
             <PaginationPrevious
-              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              onClick={handlePrevPage}
               disabled={currentPage === 1}
             />
-            {Array.from({ length: Math.ceil(filteredDevices.length / itemsPerPage) }, (_, i) => i + 1).map((page) => (
-              <PaginationItem key={page}>
-                <PaginationLink onClick={() => setCurrentPage(page)} isActive={currentPage === page}>
-                  {page}
+            {Array.from({ length: Math.ceil(filteredDevices.length / itemsPerPage) }).map((_, index) => (
+              <PaginationItem key={index}>
+                <PaginationLink
+                  onClick={() => setCurrentPage(index + 1)}
+                  isActive={currentPage === index + 1}
+                >
+                  {index + 1}
                 </PaginationLink>
               </PaginationItem>
             ))}
             <PaginationNext
-              onClick={() =>
-                setCurrentPage((prev) => Math.min(Math.ceil(filteredDevices.length / itemsPerPage), prev + 1))
-              }
-              disabled={currentPage === Math.ceil(filteredDevices.length / itemsPerPage)}
+              onClick={handleNextPage}
+              disabled={isLastPage}
             />
           </PaginationContent>
         </Pagination>
@@ -266,6 +277,30 @@ export function DeviceSelector({ formData, onChange, onNext, onPrev }: DeviceSel
           </Button>
           <Button onClick={onNext} disabled={formData.selectedDevices.length === 0}>
             下一步
+          </Button>
+        </div>
+
+        <div className="flex justify-center items-center space-x-2 mt-4">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={handlePrevPage} 
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          
+          <div className="text-sm text-gray-500">
+            {currentPage} / {Math.ceil(filteredDevices.length / itemsPerPage)}
+          </div>
+          
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={handleNextPage} 
+            disabled={isLastPage}
+          >
+            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
