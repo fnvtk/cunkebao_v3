@@ -23,4 +23,8 @@ include __DIR__ . '/../application/devices/config/route.php';
 // 加载Store模块路由配置
 include __DIR__ . '/../application/store/config/route.php';
 
+
+// 加载CozeAI模块路由配置
+include __DIR__ . '/../application/cozeai/config/route.php';
+
 return [];

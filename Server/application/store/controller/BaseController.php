@@ -33,7 +33,6 @@ class BaseController extends Api
         
         // 尝试从缓存获取设备信息
         $device = Cache::get($cacheKey);
-        $device = '';
         // 如果缓存不存在，则从数据库获取
         if (!$device) {
             $device = Db::name('device_user')
@@ -61,6 +60,6 @@ class BaseController extends Api
     protected function clearDeviceCache()
     {
         $cacheKey = 'device_info_' . $this->userInfo['id'] . '_' . $this->userInfo['companyId'];
-        Cache::delete($cacheKey);
+        Cache::rm($cacheKey);
     }
 } 

@@ -81,9 +81,10 @@ class WechatListJob
         }
 
         // 调用设备列表获取方法
-        $result = $wechatController->getlist($pageIndex,$pageSize,$authorization);
+        $result = $wechatController->getlist($pageIndex,$pageSize,$authorization,true);
         $response = json_decode($result,true);
 
+    
         
         // 判断是否成功
         if ($response['code'] == 200) {

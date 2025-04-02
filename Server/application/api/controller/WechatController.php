@@ -47,7 +47,8 @@ class WechatController extends BaseController
             'groupId' => $item['groupId'],
             'memo' => $item['memo'],
             'wechatVersion' => $item['wechatVersion'],
-            'labels' => $item['labels']
+            'labels' => !empty($item['labels']) ? json_encode($item['labels']) : json_encode([]),
+            'updateTime' => time()
         ];
 
         $account = WechatAccountModel::where('id', $item['id'])->find();
@@ -58,12 +59,16 @@ class WechatController extends BaseController
         }
     }
 
-    public function getlist()
+    public function getlist($pageIndex = '',$pageSize = '',$authorization = '',$isJob = false)
     {
         // 获取授权token
-        $authorization = trim($this->request->header('authorization', ''));
+        $authorization = !empty($authorization) ? $authorization : trim($this->request->header('authorization', ''));
         if (empty($authorization)) {
-            return errorJson('缺少授权信息');
+            if($isJob){
+                return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
+            }else{
+                return errorJson('缺少授权信息');
+            }
         }
 
         try {
@@ -76,8 +81,8 @@ class WechatController extends BaseController
                 'hasDevice' => $this->request->param('hasDevice', ''),
                 'deviceGroupId' => $this->request->param('deviceGroupId', ''),
                 'containSubDepartment' => $this->request->param('containSubDepartment', 'false'),
-                'pageIndex' => $this->request->param('pageIndex', 0),
-                'pageSize' => $this->request->param('pageSize', 10)
+                'pageIndex' => !empty($pageIndex) ? $pageIndex : $this->request->param('pageIndex', 0),
+                'pageSize' => !empty($pageSize) ? $pageSize : $this->request->param('pageSize', 10)
             ];
 
             // 设置请求头
@@ -94,10 +99,17 @@ class WechatController extends BaseController
                     $this->saveWechatAccount($item);
                 }
             }
-            
-            return successJson($response);
+            if($isJob){
+                return json_encode(['code'=>200,'msg'=>'获取微信账号列表成功','data'=>$response]);
+            }else{
+                return successJson($response);
+            }
         } catch (\Exception $e) {
-            return errorJson('获取微信账号列表失败：' . $e->getMessage());
+            if($isJob){
+                return json_encode(['code'=>500,'msg'=>'获取微信账号列表失败：' . $e->getMessage()]);
+            }else{
+                return errorJson('获取微信账号列表失败：' . $e->getMessage());
+            }
         }
     }
 }

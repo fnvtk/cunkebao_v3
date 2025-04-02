@@ -30,16 +30,11 @@ class SystemConfigController extends BaseController
             }
 
             // 获取已解析的配置
-            $config = $this->device['taskConfig'] ?? [];
+            $config = json_decode($this->device['taskConfig'], true);
+
 
             // 返回开关状态
-            return $this->success('获取成功', [
-                'autoLike' => $config['autoLike'] ?? false,
-                'momentsSync' => $config['momentsSync'] ?? false,
-                'autoCustomerDev' => $config['autoCustomerDev'] ?? false,
-                'groupMessageDeliver' => $config['groupMessageDeliver'] ?? false,
-                'autoGroup' => $config['autoGroup'] ?? false
-            ]);
+            return successJson($config);
 
         } catch (\Exception $e) {
             Log::error('获取开关状态异常：' . $e->getMessage());
@@ -79,8 +74,9 @@ class SystemConfigController extends BaseController
             // 更新指定开关状态
             $taskConfig[$switchName] = !$taskConfig[$switchName];
             $taskConfig = json_encode($taskConfig);
-    
 
+
+          
             // 更新数据库
             $result = Db::name('device')
                 ->where('id', $deviceId)
@@ -89,14 +85,13 @@ class SystemConfigController extends BaseController
                     'updateTime' => time()
                 ]);
                 
-          
             if ($result === false) {
                 Log::error("更新设备{$switchName}开关状态失败，设备ID：{$deviceId}");
                 return errorJson('更新失败');
             }
             
             // 清除缓存
-          //  $this->clearDeviceCache();
+           $this->clearDeviceCache();
             
             return successJson([], '更新成功');
             
