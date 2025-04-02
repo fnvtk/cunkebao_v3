@@ -13,4 +13,4 @@ Route::group('v1/cozeai', function () {
         Route::get('list', 'cozeai/ConversationController/list');
         Route::post('create', 'cozeai/ConversationController/create');
     });
-})->middleware(['jwt']);
+});
