@@ -18,11 +18,13 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     pathname === "/" || pathname === "/devices" || pathname === "/content" || pathname === "/profile"
 
   return (
-    <main className="max-w-[390px] mx-auto bg-white min-h-screen flex flex-col relative">
-      {children}
-      {showBottomNav && <BottomNav />}
-      {showBottomNav && <VideoTutorialButton />}
-    </main>
+    <div className="mx-auto w-full">
+      <main className="w-full mx-auto bg-white min-h-screen flex flex-col relative lg:max-w-7xl xl:max-w-[1200px]">
+        {children}
+        {showBottomNav && <BottomNav />}
+        {showBottomNav && <VideoTutorialButton />}
+      </main>
+    </div>
   )
 }
 
