@@ -213,6 +213,7 @@ const aiScenarios = [
       daily: 245,
       growth: 18.5,
     },
+    link: "/scenarios/ai-friend",
     plans: [
       {
         id: "ai-plan-1",
@@ -232,6 +233,7 @@ const aiScenarios = [
       daily: 178,
       growth: 15.2,
     },
+    link: "/scenarios/ai-group",
     plans: [
       {
         id: "ai-plan-2",
@@ -250,6 +252,7 @@ const aiScenarios = [
       daily: 134,
       growth: 12.8,
     },
+    link: "/scenarios/ai-conversion",
     plans: [
       {
         id: "ai-plan-3",
@@ -296,7 +299,7 @@ export default function ScenariosPage() {
 
   return (
     <div className="flex-1 bg-gray-50">
-      <div className="max-w-[390px] mx-auto bg-white min-h-screen">
+      <div className="w-full mx-auto bg-white min-h-screen lg:max-w-7xl xl:max-w-[1200px]">
         <header className="sticky top-0 z-10 bg-white border-b">
           <div className="flex justify-between items-center p-4">
             <div className="flex items-center space-x-3">
@@ -315,7 +318,7 @@ export default function ScenariosPage() {
 
         <div className="p-4 space-y-6">
           {/* Traditional channels */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {channels.map((channel) => (
               <div key={channel.id} className="flex flex-col">
                 <Card
@@ -362,7 +365,7 @@ export default function ScenariosPage() {
               <h2 className="text-lg font-medium">AI智能获客</h2>
               <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs rounded-full">Beta</span>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {aiScenarios.map((scenario) => (
                 <div key={scenario.id} className="flex flex-col">
                   <Card

@@ -38,7 +38,8 @@ class WechatAccount extends Model
         'gender' => 'integer',
         'currentDeviceId' => 'integer',
         'isDeleted' => 'integer',
-        'groupId' => 'integer'
+        'groupId' => 'integer',
+        'status' => 'integer'
     ];
     
     /**
@@ -96,8 +97,6 @@ class WechatAccount extends Model
     public static function getOnlineWechatList($where = [], $order = 'id desc', $page = 1, $limit = 10)
     {
         $condition = [
-            'wechatAlive' => 1,
-            'deviceAlive' => 1,
             'isDeleted' => 0
         ];
         

@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { ChevronLeft, Filter, Search, RefreshCw, ArrowRightLeft, AlertCircle } from "lucide-react"
+import { useState, useEffect } from "react"
+import { ChevronLeft, Filter, Search, RefreshCw, ArrowRightLeft, AlertCircle, Loader2 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,73 +20,140 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "@/components/ui/use-toast"
 import { Progress } from "@/components/ui/progress"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-
-interface WechatAccount {
-  id: string
-  avatar: string
-  nickname: string
-  wechatId: string
-  deviceId: string
-  deviceName: string
-  friendCount: number
-  todayAdded: number
-  remainingAdds: number
-  maxDailyAdds: number
-  status: "normal" | "abnormal"
-  lastActive: string
-}
-
-const generateRandomWechatAccounts = (count: number): WechatAccount[] => {
-  return Array.from({ length: count }, (_, index) => ({
-    id: `account-${index + 1}`,
-    avatar:
-      "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/img_v3_02jn_e7fcc2a4-3560-478d-911a-4ccd69c6392g.jpg-a8zVtwxMuSrPWN9dfWH93EBY0yM3Dh.jpeg",
-    nickname: `卡若-${["25vig", "zok7e", "ip9ob", "2kna3"][index % 4]}`,
-    wechatId: `wxid_${Math.random().toString(36).substr(2, 8)}`,
-    deviceId: `device-${Math.floor(index / 3) + 1}`,
-    deviceName: `设备${Math.floor(index / 3) + 1}`,
-    friendCount: Math.floor(Math.random() * (6300 - 520)) + 520,
-    todayAdded: Math.floor(Math.random() * 15),
-    remainingAdds: Math.floor(Math.random() * 10) + 5,
-    maxDailyAdds: 20,
-    status: Math.random() > 0.2 ? "normal" : "abnormal",
-    lastActive: new Date(Date.now() - Math.random() * 86400000).toLocaleString(),
-  }))
-}
+import { fetchWechatAccountList, refreshWechatAccounts, transferWechatFriends, transformWechatAccount } from "@/api/wechat-accounts"
+import { WechatAccount } from "@/types/wechat-account"
 
 export default function WechatAccountsPage() {
   const router = useRouter()
-  const [accounts] = useState<WechatAccount[]>(generateRandomWechatAccounts(42))
+  const [accounts, setAccounts] = useState<WechatAccount[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false)
   const [selectedAccount, setSelectedAccount] = useState<WechatAccount | null>(null)
+  const [totalAccounts, setTotalAccounts] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const accountsPerPage = 10
 
-  const filteredAccounts = accounts.filter(
-    (account) =>
-      account.nickname.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      account.wechatId.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  // 获取微信账号列表
+  const fetchAccounts = async (page: number = 1, keyword: string = "") => {
+    try {
+      setIsLoading(true);
+      const response = await fetchWechatAccountList({
+        page,
+        limit: accountsPerPage,
+        keyword,
+        sort: 'id',
+        order: 'desc'
+      });
 
-  const paginatedAccounts = filteredAccounts.slice((currentPage - 1) * accountsPerPage, currentPage * accountsPerPage)
+      if (response && response.code === 200 && response.data) {
+        // 转换数据格式
+        const wechatAccounts = response.data.list.map(transformWechatAccount);
+        setAccounts(wechatAccounts);
+        setTotalAccounts(response.data.total);
+      } else {
+        toast({
+          title: "获取微信账号失败",
+          description: response?.msg || "请稍后再试",
+          variant: "destructive"
+        });
+        // 如果API请求失败，设置空数组
+        setAccounts([]);
+        setTotalAccounts(0);
+      }
+    } catch (error) {
+      console.error("获取微信账号列表失败:", error);
+      toast({
+        title: "获取微信账号失败",
+        description: "请检查网络连接或稍后再试",
+        variant: "destructive"
+      });
+      setAccounts([]);
+      setTotalAccounts(0);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const totalPages = Math.ceil(filteredAccounts.length / accountsPerPage)
+  // 刷新微信账号状态
+  const handleRefresh = async () => {
+    try {
+      setIsRefreshing(true);
+      const response = await refreshWechatAccounts();
+      
+      if (response && response.code === 200) {
+        toast({
+          title: "刷新成功",
+          description: "微信账号状态已更新"
+        });
+        // 重新获取数据
+        await fetchAccounts(currentPage, searchQuery);
+      } else {
+        toast({
+          title: "刷新失败",
+          description: response?.msg || "请稍后再试",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("刷新微信账号状态失败:", error);
+      toast({
+        title: "刷新失败",
+        description: "请检查网络连接或稍后再试",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // 初始加载和页码变化时获取数据
+  useEffect(() => {
+    fetchAccounts(currentPage, searchQuery);
+  }, [currentPage]);
+
+  // 搜索时重置页码并获取数据
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchAccounts(1, searchQuery);
+  };
+
+  // 处理搜索框回车事件
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  const filteredAccounts = accounts;
+  const totalPages = Math.ceil(totalAccounts / accountsPerPage);
 
   const handleTransferFriends = (account: WechatAccount) => {
     setSelectedAccount(account)
     setIsTransferDialogOpen(true)
   }
 
-  const handleConfirmTransfer = () => {
+  const handleConfirmTransfer = async () => {
     if (!selectedAccount) return
 
-    toast({
-      title: "好友转移计划已创建",
-      description: "请在场景获客中查看详情",
-    })
-    setIsTransferDialogOpen(false)
-    router.push("/scenarios")
+    try {
+      // 实际实现好友转移功能，这里需要另一个账号作为目标
+      // 现在只是模拟效果
+      toast({
+        title: "好友转移计划已创建",
+        description: "请在场景获客中查看详情",
+      })
+      setIsTransferDialogOpen(false)
+      router.push("/scenarios")
+    } catch (error) {
+      console.error("好友转移失败:", error);
+      toast({
+        title: "好友转移失败",
+        description: "请稍后再试",
+        variant: "destructive"
+      });
+    }
   }
 
   return (
@@ -110,126 +177,176 @@ export default function WechatAccountsPage() {
                 placeholder="搜索微信号/昵称"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
               />
             </div>
             <Button variant="outline" size="icon">
               <Filter className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="icon">
-              <RefreshCw className="h-4 w-4" />
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
             </Button>
           </div>
         </Card>
 
-        <div className="grid gap-3">
-          {paginatedAccounts.map((account) => (
-            <Card
-              key={account.id}
-              className="p-4 hover:shadow-lg transition-all cursor-pointer"
-              onClick={() => router.push(`/wechat-accounts/${account.id}`)}
+        {isLoading ? (
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+          </div>
+        ) : accounts.length === 0 ? (
+          <div className="text-center py-20 text-gray-500">
+            <p>暂无微信账号数据</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-4"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
             >
-              <div className="flex items-start space-x-4">
-                <Avatar className="h-12 w-12 ring-2 ring-offset-2 ring-blue-500/20">
-                  <AvatarImage src={account.avatar} />
-                  <AvatarFallback>{account.nickname[0]}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <h3 className="font-medium truncate">{account.nickname}</h3>
-                      <Badge variant={account.status === "normal" ? "success" : "destructive"}>
-                        {account.status === "normal" ? "正常" : "异常"}
-                      </Badge>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleTransferFriends(account)
-                      }}
-                    >
-                      <ArrowRightLeft className="h-4 w-4 mr-2" />
-                      好友转移
-                    </Button>
-                  </div>
-                  <div className="mt-1 text-sm text-gray-500 space-y-1">
-                    <div>微信号：{account.wechatId}</div>
+              {isRefreshing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              刷新
+            </Button>
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {accounts.map((account) => (
+              <Card
+                key={account.id}
+                className="p-4 hover:shadow-lg transition-all cursor-pointer"
+                onClick={() => router.push(`/wechat-accounts/${account.id}`)}
+              >
+                <div className="flex items-start space-x-4">
+                  <Avatar className="h-12 w-12 ring-2 ring-offset-2 ring-blue-500/20">
+                    <AvatarImage src={account.avatar} />
+                    <AvatarFallback>{account.nickname[0]}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <div>好友数量：{account.friendCount}</div>
-                      <div className="text-green-600">今日新增：+{account.todayAdded}</div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center space-x-1">
-                          <span>今日可添加：</span>
-                          <span className="font-medium">{account.remainingAdds}</span>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <AlertCircle className="h-4 w-4 text-gray-400" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>每日最多添加 {account.maxDailyAdds} 个好友</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                        <span className="text-sm text-gray-500">
-                          {account.todayAdded}/{account.maxDailyAdds}
-                        </span>
+                      <div className="flex items-center space-x-2">
+                        <h3 className="font-medium truncate">{account.nickname}</h3>
+                        <Badge variant={account.status === "normal" ? "outline" : "destructive"}>
+                          {account.status === "normal" ? "正常" : "异常"}
+                        </Badge>
                       </div>
-                      <Progress value={(account.todayAdded / account.maxDailyAdds) * 100} className="h-2" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleTransferFriends(account)
+                        }}
+                      >
+                        <ArrowRightLeft className="h-4 w-4 mr-2" />
+                        好友转移
+                      </Button>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-gray-500 pt-2">
-                      <div>所属设备：{account.deviceName}</div>
-                      <div>最后活跃：{account.lastActive}</div>
+                    <div className="mt-1 text-sm text-gray-500 space-y-1">
+                      <div>微信号：{account.wechatId}</div>
+                      <div className="flex items-center justify-between">
+                        <div>好友数量：{account.friendCount}</div>
+                        <div className="text-green-600">今日新增：+{account.todayAdded}</div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center space-x-1">
+                            <span>今日可添加：</span>
+                            <span className="font-medium">{account.remainingAdds}</span>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <AlertCircle className="h-4 w-4 text-gray-400" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>每日最多添加 {account.maxDailyAdds} 个好友</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                          <span className="text-sm text-gray-500">
+                            {account.todayAdded}/{account.maxDailyAdds}
+                          </span>
+                        </div>
+                        <Progress value={(account.todayAdded / account.maxDailyAdds) * 100} className="h-2" />
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-gray-500 pt-2">
+                        <div>所属设备：{account.deviceName || '未知设备'}</div>
+                        <div>最后活跃：{account.lastActive}</div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </Card>
-          ))}
-        </div>
+              </Card>
+            ))}
+          </div>
+        )}
 
-        <div className="mt-4 flex justify-center">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    setCurrentPage((prev) => Math.max(1, prev - 1))
-                  }}
-                />
-              </PaginationItem>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <PaginationItem key={page}>
-                  <PaginationLink
+        {!isLoading && accounts.length > 0 && totalPages > 1 && (
+          <div className="mt-4 flex justify-center">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
                     href="#"
-                    isActive={currentPage === page}
                     onClick={(e) => {
                       e.preventDefault()
-                      setCurrentPage(page)
+                      if (currentPage > 1) {
+                        setCurrentPage((prev) => prev - 1)
+                      }
                     }}
-                  >
-                    {page}
-                  </PaginationLink>
+                  />
                 </PaginationItem>
-              ))}
-              <PaginationItem>
-                <PaginationNext
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                  }}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  // 显示当前页附近的页码
+                  let pageToShow = i + 1;
+                  if (currentPage > 3 && totalPages > 5) {
+                    pageToShow = Math.min(currentPage - 2 + i, totalPages);
+                    if (pageToShow > totalPages - 4) {
+                      pageToShow = totalPages - 4 + i;
+                    }
+                  }
+                  return (
+                    <PaginationItem key={pageToShow}>
+                      <PaginationLink
+                        href="#"
+                        isActive={currentPage === pageToShow}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          setCurrentPage(pageToShow)
+                        }}
+                      >
+                        {pageToShow}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      if (currentPage < totalPages) {
+                        setCurrentPage((prev) => prev + 1)
+                      }
+                    }}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </div>
 
       <Dialog open={isTransferDialogOpen} onOpenChange={setIsTransferDialogOpen}>
