@@ -440,7 +440,7 @@ export default function DeviceDetailPage() {
                     {device.status === "online" ? "在线" : "离线"}
                   </Badge>
                 </div>
-                <div className="text-sm text-gray-500 mt-1 flex items-center">
+                <div className="text-sm text-gray-500 mt-1 flex items-center imei-display-area">
                   <span className="mr-1 whitespace-nowrap">IMEI:</span> 
                   <ImeiDisplay imei={device.imei} containerWidth="max-w-[calc(100%-60px)]" />
                 </div>

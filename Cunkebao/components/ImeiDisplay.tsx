@@ -72,6 +72,19 @@ export function ImeiDisplay({ imei, className = "", containerWidth = "max-w-[cal
     }
   }
 
+  // 处理Dialog打开和关闭
+  const handleOpenChange = (newOpen: boolean) => {
+    // 如果是关闭操作，阻止事件冒泡
+    if (!newOpen) {
+      // 使用setTimeout确保事件处理完成后再关闭模态框
+      setTimeout(() => {
+        setOpen(false)
+      }, 0)
+    } else {
+      setOpen(true)
+    }
+  }
+
   // 处理containerWidth为数字的情况
   const widthStyle = typeof containerWidth === 'number' 
     ? `max-w-[${containerWidth}px]` 
@@ -85,18 +98,21 @@ export function ImeiDisplay({ imei, className = "", containerWidth = "max-w-[cal
   return (
     <>
       <span 
-        className={`cursor-pointer hover:text-blue-600 truncate inline-block ${widthStyle} ${className}`}
+        className={`cursor-pointer hover:text-blue-600 truncate inline-block imei-display ${widthStyle} ${className}`}
         onClick={(e) => {
+          e.preventDefault()
           e.stopPropagation()
           setOpen(true)
+          // 防止冒泡到Card的点击事件
+          return false
         }}
         title={imei}
       >
         {imei}
       </span>
       
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="sm:max-w-md" onClick={(e) => e.stopPropagation()}>
           <DialogHeader>
             <DialogTitle>设备IMEI</DialogTitle>
             <DialogDescription>
@@ -108,7 +124,10 @@ export function ImeiDisplay({ imei, className = "", containerWidth = "max-w-[cal
             <Button 
               variant="outline" 
               size="icon" 
-              onClick={handleCopy} 
+              onClick={(e) => {
+                e.stopPropagation()
+                handleCopy()
+              }} 
               title="复制IMEI"
             >
               <Copy className="h-4 w-4" />

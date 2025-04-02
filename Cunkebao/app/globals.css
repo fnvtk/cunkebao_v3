@@ -75,3 +75,19 @@ body {
   min-width: 0;
 }
 
+/* 修复IMEI显示模态框点击事件问题 */
+.imei-display {
+  position: relative;
+  z-index: 10;
+}
+
+.imei-display-area {
+  position: relative;
+  z-index: 5;
+}
+
+/* 增强模态框的点击隔离 */
+[role="dialog"] {
+  isolation: isolate;
+}
+
