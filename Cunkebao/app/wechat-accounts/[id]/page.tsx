@@ -374,7 +374,7 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
           <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
         </div>
       ) : account ? (
-        <div className="flex-1 bg-gradient-to-b from-blue-50 to-white min-h-screen pb-16">
+        <div className="flex-1 bg-gradient-to-b from-blue-50 to-white min-h-screen pb-16 overflow-x-hidden">
           <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b">
             <div className="flex items-center p-4">
               <Button variant="ghost" size="icon" onClick={() => router.back()}>
@@ -400,7 +400,7 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center space-x-2">
-                    <h2 className="text-xl font-semibold">{account.nickname}</h2>
+                    <h2 className="text-xl font-semibold truncate max-w-[200px]">{account.nickname}</h2>
                     <Badge variant={account.status === "normal" ? "outline" : "destructive"}>
                       {account.status === "normal" ? "正常" : "异常"}
                     </Badge>
@@ -463,24 +463,24 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
                   <p className="text-sm text-gray-500 mb-4">{getWeightDescription(account.accountWeight)}</p>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
-                      <span>账号年龄</span>
-                      <Progress value={account.weightFactors.ageFactor * 100} className="w-32" />
-                      <span>{(account.weightFactors.ageFactor * 100).toFixed(0)}%</span>
+                      <span className="flex-shrink-0">账号年龄</span>
+                      <Progress value={account.weightFactors.ageFactor * 100} className="flex-1 min-w-0 mx-2" />
+                      <span className="flex-shrink-0">{(account.weightFactors.ageFactor * 100).toFixed(0)}%</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span>活跃度</span>
-                      <Progress value={account.weightFactors.activityFactor * 100} className="w-32" />
-                      <span>{(account.weightFactors.activityFactor * 100).toFixed(0)}%</span>
+                      <span className="flex-shrink-0">活跃度</span>
+                      <Progress value={account.weightFactors.activityFactor * 100} className="flex-1 min-w-0 mx-2" />
+                      <span className="flex-shrink-0">{(account.weightFactors.activityFactor * 100).toFixed(0)}%</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span>限制影响</span>
-                      <Progress value={account.weightFactors.restrictionFactor * 100} className="w-32" />
-                      <span>{(account.weightFactors.restrictionFactor * 100).toFixed(0)}%</span>
+                      <span className="flex-shrink-0">限制影响</span>
+                      <Progress value={account.weightFactors.restrictionFactor * 100} className="flex-1 min-w-0 mx-2" />
+                      <span className="flex-shrink-0">{(account.weightFactors.restrictionFactor * 100).toFixed(0)}%</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span>实名认证</span>
-                      <Progress value={account.weightFactors.verificationFactor * 100} className="w-32" />
-                      <span>{(account.weightFactors.verificationFactor * 100).toFixed(0)}%</span>
+                      <span className="flex-shrink-0">实名认证</span>
+                      <Progress value={account.weightFactors.verificationFactor * 100} className="flex-1 min-w-0 mx-2" />
+                      <span className="flex-shrink-0">{(account.weightFactors.verificationFactor * 100).toFixed(0)}%</span>
                     </div>
                   </div>
                 </Card>
@@ -586,9 +586,9 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
                             </Avatar>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between">
-                                <div className="font-medium truncate">
+                                <div className="font-medium truncate max-w-[180px]">
                                   {friend.nickname}
-                                  {friend.remark && <span className="text-gray-500 ml-1">({friend.remark})</span>}
+                                  {friend.remark && <span className="text-gray-500 ml-1 truncate">({friend.remark})</span>}
                                 </div>
                                 <ChevronRight className="h-4 w-4 text-gray-400" />
                               </div>

@@ -58,3 +58,20 @@
   }
 }
 
+/* 修复微信号页面横向滚动问题 */
+body {
+  overflow-x: hidden;
+}
+
+/* 优化微信账号列表项布局 */
+.Card[class*="wechat-accounts"] {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* 确保进度条组件不会溢出 */
+.Progress {
+  flex-shrink: 1;
+  min-width: 0;
+}
+
