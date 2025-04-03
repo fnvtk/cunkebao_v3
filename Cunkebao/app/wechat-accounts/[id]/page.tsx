@@ -129,6 +129,7 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
   const [friendsTotal, setFriendsTotal] = useState(0)
   const [hasMoreFriends, setHasMoreFriends] = useState(true)
   const [isFetchingFriends, setIsFetchingFriends] = useState(false)
+  const [hasFriendLoadError, setHasFriendLoadError] = useState(false)
   const friendsObserver = useRef<IntersectionObserver | null>(null)
   const friendsLoadingRef = useRef<HTMLDivElement | null>(null)
   const friendsContainerRef = useRef<HTMLDivElement | null>(null)
@@ -293,11 +294,17 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
     
     try {
       setIsFetchingFriends(true);
+      setHasFriendLoadError(false);
       
       // 调用API获取好友列表
       const response = await fetchWechatFriends(account.wechatId, page, 20, searchQuery);
       
       if (response && response.code === 200) {
+        // 更新总数计数，确保在第一次加载时设置
+        if (isNewSearch || friendsTotal === 0) {
+          setFriendsTotal(response.data.total || 0);
+        }
+        
         const newFriends = response.data.list.map((friend: any) => ({
           id: friend.wechatId,
           avatar: friend.avatar,
@@ -323,10 +330,13 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
           setFriends(prev => [...prev, ...newFriends]);
         }
         
-        setFriendsTotal(response.data.total);
         setFriendsPage(page);
+        // 判断是否还有更多数据
         setHasMoreFriends(page * 20 < response.data.total);
+        
+        console.log("好友列表加载成功，总数:", response.data.total);
       } else {
+        setHasFriendLoadError(true);
         toast({
           title: "获取好友列表失败",
           description: response?.msg || "请稍后再试",
@@ -334,6 +344,7 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
         });
       }
     } catch (error) {
+      setHasFriendLoadError(true);
       console.error("获取好友列表失败:", error);
       toast({
         title: "获取好友列表失败",
@@ -343,7 +354,7 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
     } finally {
       setIsFetchingFriends(false);
     }
-  }, [account, searchQuery]);
+  }, [account, searchQuery, friendsTotal]);
 
   // 处理搜索
   const handleSearch = useCallback(() => {
@@ -355,10 +366,10 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
 
   // 处理标签切换
   useEffect(() => {
-    if (activeTab === "friends" && account && friends.length === 0) {
+    if (account && friends.length === 0) {
       fetchFriends(1, true);
     }
-  }, [activeTab, account, friends.length, fetchFriends]);
+  }, [account, friends.length, fetchFriends]);
 
   // 设置IntersectionObserver用于懒加载
   useEffect(() => {
@@ -401,6 +412,11 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
           // 转换数据格式
           const transformedAccount = transformWechatAccountDetail(response)
           setAccount(transformedAccount)
+          
+          // 如果有好友总数，更新friendsTotal状态
+          if (transformedAccount && transformedAccount.friendCount > 0) {
+            setFriendsTotal(transformedAccount.friendCount);
+          }
         } else {
           toast({
             title: "获取微信账号详情失败",
@@ -408,7 +424,10 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
             variant: "destructive"
           })
           // 获取失败时使用模拟数据
-          setAccount(generateMockAccountData())
+          const mockData = generateMockAccountData();
+          setAccount(mockData);
+          // 更新好友总数
+          setFriendsTotal(mockData.friendCount);
         }
       } catch (error) {
         console.error("获取微信账号详情失败:", error)
@@ -418,7 +437,10 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
           variant: "destructive"
         })
         // 请求出错时使用模拟数据
-        setAccount(generateMockAccountData())
+        const mockData = generateMockAccountData();
+        setAccount(mockData);
+        // 更新好友总数
+        setFriendsTotal(mockData.friendCount);
       } finally {
         setIsLoading(false)
       }
@@ -542,7 +564,9 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="overview">账号概览</TabsTrigger>
-                <TabsTrigger value="friends">好友列表 ({account.friendCount})</TabsTrigger>
+                <TabsTrigger value="friends">
+                  好友列表 ({friendsTotal > 0 ? friendsTotal : account.friendCount})
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="space-y-4 mt-4">
@@ -699,7 +723,18 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
                         overflowY: 'auto'
                       }}
                     >
-                      {friends.length === 0 && !isFetchingFriends ? (
+                      {isFetchingFriends && friends.length === 0 ? (
+                        <div className="flex justify-center items-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+                        </div>
+                      ) : friends.length === 0 && hasFriendLoadError ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <p>加载好友失败，请重试</p>
+                          <Button variant="outline" size="sm" className="mt-2" onClick={() => fetchFriends(1, true)}>
+                            重新加载
+                          </Button>
+                        </div>
+                      ) : friends.length === 0 ? (
                         <div className="text-center py-8 text-gray-500">未找到匹配的好友</div>
                       ) : (
                         <>
@@ -750,11 +785,15 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
 
                     {/* 显示加载状态和总数 */}
                     <div className="text-sm text-gray-500 text-center">
-                      {friendsTotal > 0 && (
+                      {friendsTotal > 0 ? (
                         <span>
                           已加载 {Math.min(friends.length, friendsTotal)} / {friendsTotal} 条记录
                         </span>
-                      )}
+                      ) : !isFetchingFriends && !hasFriendLoadError && account ? (
+                        <span>
+                          共 {account.friendCount} 条记录
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                 </Card>
