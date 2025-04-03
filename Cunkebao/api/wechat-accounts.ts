@@ -204,4 +204,39 @@ const mapRestrictionType = (type: string): "friend_limit" | "marketing" | "spam"
   };
   
   return typeMap[type] || 'other';
-}; 
+};
+
+/**
+ * 获取微信好友列表
+ * @param wechatId 微信账号ID
+ * @param page 页码
+ * @param limit 每页数量
+ * @param keyword 搜索关键词
+ * @returns 好友列表数据
+ */
+export const fetchWechatFriends = async (
+  wechatId: string | number,
+  page: number = 1,
+  limit: number = 20,
+  keyword: string = ""
+): Promise<{ code: number; msg: string; data: any }> => {
+  try {
+    const params = new URLSearchParams({
+      wechatId: String(wechatId),
+      page: String(page),
+      limit: String(limit)
+    });
+    
+    if (keyword) {
+      params.append('keyword', keyword);
+    }
+    
+    const url = `/v1/device/wechats/friends?${params.toString()}`;
+    const response = await api.get<{ code: number; msg: string; data: any }>(url);
+    
+    return response;
+  } catch (error) {
+    console.error('获取微信好友列表失败:', error);
+    throw error;
+  }
+} 

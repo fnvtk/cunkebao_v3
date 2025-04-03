@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -44,7 +44,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { toast } from "@/components/ui/use-toast"
-import { fetchWechatAccountDetail, transformWechatAccountDetail } from "@/api/wechat-accounts"
+import { fetchWechatAccountDetail, transformWechatAccountDetail, fetchWechatFriends } from "@/api/wechat-accounts"
 
 interface RestrictionRecord {
   id: string
@@ -120,10 +120,273 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
   const [showFriendDetail, setShowFriendDetail] = useState(false)
   const [selectedFriend, setSelectedFriend] = useState<WechatFriend | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
   const [activeTab, setActiveTab] = useState("overview")
-  const friendsPerPage = 10
   const [isLoading, setIsLoading] = useState(false)
+
+  // 好友列表相关状态
+  const [friends, setFriends] = useState<any[]>([])
+  const [friendsPage, setFriendsPage] = useState(1)
+  const [friendsTotal, setFriendsTotal] = useState(0)
+  const [hasMoreFriends, setHasMoreFriends] = useState(true)
+  const [isFetchingFriends, setIsFetchingFriends] = useState(false)
+  const friendsObserver = useRef<IntersectionObserver | null>(null)
+  const friendsLoadingRef = useRef<HTMLDivElement | null>(null)
+  const friendsContainerRef = useRef<HTMLDivElement | null>(null)
+
+  // 计算好友列表容器高度
+  const getFriendsContainerHeight = () => {
+    // 最少显示一条记录的高度，最多显示十条记录的高度
+    const minHeight = 80; // 单条记录高度
+    const maxHeight = 800; // 十条记录高度
+    
+    if (friends.length === 0) return minHeight;
+    return Math.min(Math.max(friends.length * 80, minHeight), maxHeight);
+  };
+
+  // 生成模拟账号数据（作为备用，服务器请求失败时使用）
+  const generateMockAccountData = (): WechatAccountDetail => {
+    // 生成随机标签
+    const generateRandomTags = (count: number): FriendTag[] => {
+      const tagPool = [
+        { name: "潜在客户", color: "bg-blue-100 text-blue-800" },
+        { name: "高意向", color: "bg-green-100 text-green-800" },
+        { name: "已成交", color: "bg-purple-100 text-purple-800" },
+        { name: "需跟进", color: "bg-yellow-100 text-yellow-800" },
+        { name: "活跃用户", color: "bg-indigo-100 text-indigo-800" },
+        { name: "沉默用户", color: "bg-gray-100 text-gray-800" },
+        { name: "企业客户", color: "bg-red-100 text-red-800" },
+        { name: "个人用户", color: "bg-pink-100 text-pink-800" },
+        { name: "新增好友", color: "bg-emerald-100 text-emerald-800" },
+        { name: "老客户", color: "bg-amber-100 text-amber-800" },
+      ];
+
+      return Array.from({ length: Math.floor(Math.random() * count) + 1 }, () => {
+        const randomTag = tagPool[Math.floor(Math.random() * tagPool.length)];
+        return {
+          id: `tag-${Math.random().toString(36).substring(2, 9)}`,
+          name: randomTag.name,
+          color: randomTag.color,
+        };
+      });
+    };
+
+    // 生成随机好友
+    const friendCount = Math.floor(Math.random() * (300 - 150)) + 150;
+    const generateFriends = (count: number): WechatFriend[] => {
+      return Array.from({ length: count }, (_, i) => {
+        const firstName = ["张", "王", "李", "赵", "陈", "刘", "杨", "黄", "周", "吴"][Math.floor(Math.random() * 10)];
+        const secondName = ["小", "大", "明", "华", "强", "伟", "芳", "娜", "秀", "英"][
+          Math.floor(Math.random() * 10)
+        ];
+        const lastName = ["明", "华", "强", "伟", "芳", "娜", "秀", "英", "军", "杰"][Math.floor(Math.random() * 10)];
+        const nickname = firstName + secondName + lastName;
+
+        // 生成随机的添加时间（过去1年内）
+        const addDate = new Date();
+        addDate.setDate(addDate.getDate() - Math.floor(Math.random() * 365));
+
+        // 生成随机的最后互动时间（过去30天内）
+        const lastDate = new Date();
+        lastDate.setDate(lastDate.getDate() - Math.floor(Math.random() * 30));
+
+        return {
+          id: `friend-${i}`,
+          avatar: `/placeholder.svg?height=40&width=40&text=${nickname[0]}`,
+          nickname,
+          wechatId: `wxid_${Math.random().toString(36).substring(2, 9)}`,
+          remark:
+            Math.random() > 0.5
+              ? `${nickname}（${["同事", "客户", "朋友", "同学"][Math.floor(Math.random() * 4)]}）`
+              : "",
+          addTime: addDate.toISOString().split("T")[0],
+          lastInteraction: lastDate.toISOString().split("T")[0],
+          tags: generateRandomTags(3),
+          region: ["广东", "北京", "上海", "浙江", "江苏", "四川", "湖北", "福建", "山东", "河南"][
+            Math.floor(Math.random() * 10)
+          ],
+          source: ["抖音", "小红书", "朋友介绍", "搜索添加", "群聊", "附近的人", "名片分享"][
+            Math.floor(Math.random() * 7)
+          ],
+          notes:
+            Math.random() > 0.7
+              ? ["对产品很感兴趣", "需要进一步跟进", "已购买过产品", "价格敏感", "需要更多信息"][
+                  Math.floor(Math.random() * 5)
+                ]
+              : "",
+        };
+      });
+    };
+
+    const friends = generateFriends(friendCount);
+
+    const mockAccount: WechatAccountDetail = {
+      id: params.id,
+      avatar:
+        "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/img_v3_02jn_e7fcc2a4-3560-478d-911a-4ccd69c6392g.jpg-a8zVtwxMuSrPWN9dfWH93EBY0yM3Dh.jpeg",
+      nickname: "卡若-25vig",
+      wechatId: `wxid_${Math.random().toString(36).substr(2, 8)}`,
+      deviceId: "device-1",
+      deviceName: "设备1",
+      friendCount: friends.length,
+      todayAdded: 12,
+      status: "normal",
+      lastActive: new Date().toLocaleString(),
+      messageCount: 1234,
+      activeRate: 87,
+      accountAge: {
+        years: 2,
+        months: 8,
+      },
+      totalChats: 15234,
+      chatFrequency: 42,
+      restrictionRecords: [
+        {
+          id: "1",
+          date: "2024-02-25",
+          reason: "添加好友过于频繁",
+          recoveryTime: "2024-02-26",
+          type: "friend_limit",
+        },
+        {
+          id: "2",
+          date: "2024-01-15",
+          reason: "营销内容违规",
+          recoveryTime: "2024-01-16",
+          type: "marketing",
+        },
+      ],
+      isVerified: true,
+      firstMomentDate: "2021-06-15",
+      accountWeight: 85,
+      weightFactors: {
+        restrictionFactor: 0.8,
+        verificationFactor: 1.0,
+        ageFactor: 0.9,
+        activityFactor: 0.85,
+      },
+      weeklyStats: Array.from({ length: 7 }, (_, i) => ({
+        date: `Day ${i + 1}`,
+        friends: Math.floor(Math.random() * 50) + 50,
+        messages: Math.floor(Math.random() * 100) + 100,
+      })),
+      friends: friends,
+    };
+    return mockAccount;
+  };
+
+  // 随机生成标签颜色
+  const getRandomTagColor = (): string => {
+    const colors = [
+      "bg-blue-100 text-blue-800",
+      "bg-green-100 text-green-800",
+      "bg-red-100 text-red-800",
+      "bg-pink-100 text-pink-800",
+      "bg-emerald-100 text-emerald-800",
+      "bg-amber-100 text-amber-800",
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+  };
+
+  // 获取好友列表数据
+  const fetchFriends = useCallback(async (page: number = 1, isNewSearch: boolean = false) => {
+    if (!account || isFetchingFriends) return;
+    
+    try {
+      setIsFetchingFriends(true);
+      
+      // 调用API获取好友列表
+      const response = await fetchWechatFriends(account.wechatId, page, 20, searchQuery);
+      
+      if (response && response.code === 200) {
+        const newFriends = response.data.list.map((friend: any) => ({
+          id: friend.wechatId,
+          avatar: friend.avatar,
+          nickname: friend.nickname || '未设置昵称',
+          wechatId: friend.wechatId,
+          remark: friend.remark || '',
+          addTime: '2024-01-01', // 接口未返回，使用默认值
+          lastInteraction: '2024-01-01', // 接口未返回，使用默认值
+          tags: (friend.labels || []).map((label: string, index: number) => ({
+            id: `tag-${index}`,
+            name: label,
+            color: getRandomTagColor(),
+          })),
+          region: friend.region || '未知地区',
+          source: '微信好友', // 接口未返回，使用默认值
+          notes: '',
+        }));
+        
+        // 更新状态
+        if (isNewSearch) {
+          setFriends(newFriends);
+        } else {
+          setFriends(prev => [...prev, ...newFriends]);
+        }
+        
+        setFriendsTotal(response.data.total);
+        setFriendsPage(page);
+        setHasMoreFriends(page * 20 < response.data.total);
+      } else {
+        toast({
+          title: "获取好友列表失败",
+          description: response?.msg || "请稍后再试",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("获取好友列表失败:", error);
+      toast({
+        title: "获取好友列表失败",
+        description: "请检查网络连接或稍后再试",
+        variant: "destructive"
+      });
+    } finally {
+      setIsFetchingFriends(false);
+    }
+  }, [account, searchQuery]);
+
+  // 处理搜索
+  const handleSearch = useCallback(() => {
+    setFriends([]);
+    setFriendsPage(1);
+    setHasMoreFriends(true);
+    fetchFriends(1, true);
+  }, [fetchFriends]);
+
+  // 处理标签切换
+  useEffect(() => {
+    if (activeTab === "friends" && account && friends.length === 0) {
+      fetchFriends(1, true);
+    }
+  }, [activeTab, account, friends.length, fetchFriends]);
+
+  // 设置IntersectionObserver用于懒加载
+  useEffect(() => {
+    friendsObserver.current = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasMoreFriends && !isFetchingFriends) {
+        fetchFriends(friendsPage + 1);
+      }
+    }, { threshold: 0.5 });
+    
+    return () => {
+      if (friendsObserver.current) {
+        friendsObserver.current.disconnect();
+      }
+    };
+  }, [fetchFriends, friendsPage, hasMoreFriends, isFetchingFriends]);
+
+  // 观察加载指示器
+  useEffect(() => {
+    if (friendsLoadingRef.current && friendsObserver.current) {
+      friendsObserver.current.observe(friendsLoadingRef.current);
+    }
+    
+    return () => {
+      if (friendsLoadingRef.current && friendsObserver.current) {
+        friendsObserver.current.unobserve(friendsLoadingRef.current);
+      }
+    };
+  }, [friendsLoadingRef.current, friendsObserver.current]);
 
   useEffect(() => {
     // 模拟API调用获取账号详情
@@ -199,172 +462,28 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
   }
 
   const formatAccountAge = (age: { years: number; months: number }) => {
-    if (age.years === 0) {
-      return `${age.months}个月`
+    if (age.years > 0) {
+      return `${age.years}年${age.months}个月`;
     }
-    if (age.months === 0) {
-      return `${age.years}年`
-    }
-    return `${age.years}年${age.months}个月`
-  }
+    return `${age.months}个月`;
+  };
 
   const handleTransferFriends = () => {
     setShowTransferConfirm(true)
   }
 
   const confirmTransferFriends = () => {
+    // 模拟API调用
+    toast({
+      title: "好友转移成功",
+      description: `已成功转移 ${account?.friends.length} 个好友`,
+    });
     setShowTransferConfirm(false)
-    // 跳转到新建计划的订单导入场景
-    router.push(`/scenarios/new?type=order&source=${account.wechatId}`)
   }
 
   const handleFriendClick = (friend: WechatFriend) => {
     setSelectedFriend(friend)
     setShowFriendDetail(true)
-  }
-
-  // 过滤好友
-  const filteredFriends = account.friends.filter(
-    (friend) =>
-      friend.nickname.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      friend.wechatId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      friend.remark.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      friend.tags.some((tag) => tag.name.toLowerCase().includes(searchQuery.toLowerCase())),
-  )
-
-  // 分页
-  const totalPages = Math.ceil(filteredFriends.length / friendsPerPage)
-  const paginatedFriends = filteredFriends.slice((currentPage - 1) * friendsPerPage, currentPage * friendsPerPage)
-
-  // 生成模拟账号数据（作为备用，服务器请求失败时使用）
-  const generateMockAccountData = () => {
-    // 生成随机标签
-    const generateRandomTags = (count: number) => {
-      const tagPool = [
-        { name: "潜在客户", color: "bg-blue-100 text-blue-800" },
-        { name: "高意向", color: "bg-green-100 text-green-800" },
-        { name: "已成交", color: "bg-purple-100 text-purple-800" },
-        { name: "需跟进", color: "bg-yellow-100 text-yellow-800" },
-        { name: "活跃用户", color: "bg-indigo-100 text-indigo-800" },
-        { name: "沉默用户", color: "bg-gray-100 text-gray-800" },
-        { name: "企业客户", color: "bg-red-100 text-red-800" },
-        { name: "个人用户", color: "bg-pink-100 text-pink-800" },
-        { name: "新增好友", color: "bg-emerald-100 text-emerald-800" },
-        { name: "老客户", color: "bg-amber-100 text-amber-800" },
-      ]
-
-      return Array.from({ length: Math.floor(Math.random() * count) + 1 }, () => {
-        const randomTag = tagPool[Math.floor(Math.random() * tagPool.length)]
-        return {
-          id: `tag-${Math.random().toString(36).substring(2, 9)}`,
-          name: randomTag.name,
-          color: randomTag.color,
-        }
-      })
-    }
-
-    // 生成随机好友
-    const friendCount = Math.floor(Math.random() * (300 - 150)) + 150
-    const generateFriends = (count: number) => {
-      return Array.from({ length: count }, (_, i) => {
-        const firstName = ["张", "王", "李", "赵", "陈", "刘", "杨", "黄", "周", "吴"][Math.floor(Math.random() * 10)]
-        const secondName = ["小", "大", "明", "华", "强", "伟", "芳", "娜", "秀", "英"][
-          Math.floor(Math.random() * 10)
-        ]
-        const lastName = ["明", "华", "强", "伟", "芳", "娜", "秀", "英", "军", "杰"][Math.floor(Math.random() * 10)]
-        const nickname = firstName + secondName + lastName
-
-        // 生成随机的添加时间（过去1年内）
-        const addDate = new Date()
-        addDate.setDate(addDate.getDate() - Math.floor(Math.random() * 365))
-
-        // 生成随机的最后互动时间（过去30天内）
-        const lastDate = new Date()
-        lastDate.setDate(lastDate.getDate() - Math.floor(Math.random() * 30))
-
-        return {
-          id: `friend-${i}`,
-          avatar: `/placeholder.svg?height=40&width=40&text=${nickname[0]}`,
-          nickname,
-          wechatId: `wxid_${Math.random().toString(36).substring(2, 9)}`,
-          remark:
-            Math.random() > 0.5
-              ? `${nickname}（${["同事", "客户", "朋友", "同学"][Math.floor(Math.random() * 4)]}）`
-              : "",
-          addTime: addDate.toISOString().split("T")[0],
-          lastInteraction: lastDate.toISOString().split("T")[0],
-          tags: generateRandomTags(3),
-          region: ["广东", "北京", "上海", "浙江", "江苏", "四川", "湖北", "福建", "山东", "河南"][
-            Math.floor(Math.random() * 10)
-          ],
-          source: ["抖音", "小红书", "朋友介绍", "搜索添加", "群聊", "附近的人", "名片分享"][
-            Math.floor(Math.random() * 7)
-          ],
-          notes:
-            Math.random() > 0.7
-              ? ["对产品很感兴趣", "需要进一步跟进", "已购买过产品", "价格敏感", "需要更多信息"][
-                  Math.floor(Math.random() * 5)
-                ]
-              : "",
-        }
-      })
-    }
-
-    const friends = generateFriends(friendCount)
-
-    const mockAccount: WechatAccountDetail = {
-      id: params.id,
-      avatar:
-        "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/img_v3_02jn_e7fcc2a4-3560-478d-911a-4ccd69c6392g.jpg-a8zVtwxMuSrPWN9dfWH93EBY0yM3Dh.jpeg",
-      nickname: "卡若-25vig",
-      wechatId: `wxid_${Math.random().toString(36).substr(2, 8)}`,
-      deviceId: "device-1",
-      deviceName: "设备1",
-      friendCount: friends.length,
-      todayAdded: 12,
-      status: "normal",
-      lastActive: new Date().toLocaleString(),
-      messageCount: 1234,
-      activeRate: 87,
-      accountAge: {
-        years: 2,
-        months: 8,
-      },
-      totalChats: 15234,
-      chatFrequency: 42,
-      restrictionRecords: [
-        {
-          id: "1",
-          date: "2024-02-25",
-          reason: "添加好友过于频繁",
-          recoveryTime: "2024-02-26",
-          type: "friend_limit",
-        },
-        {
-          id: "2",
-          date: "2024-01-15",
-          reason: "营销内容违规",
-          recoveryTime: "2024-01-16",
-          type: "marketing",
-        },
-      ],
-      isVerified: true,
-      firstMomentDate: "2021-06-15",
-      accountWeight: 85,
-      weightFactors: {
-        restrictionFactor: 0.8,
-        verificationFactor: 1.0,
-        ageFactor: 0.9,
-        activityFactor: 0.85,
-      },
-      weeklyStats: Array.from({ length: 7 }, (_, i) => ({
-        date: `Day ${i + 1}`,
-        friends: Math.floor(Math.random() * 50) + 50,
-        messages: Math.floor(Math.random() * 100) + 100,
-      })),
-      friends: friends,
-    }
-    return mockAccount
   }
 
   return (
@@ -561,107 +680,82 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
                           placeholder="搜索好友昵称/微信号/备注/标签"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                           className="pl-9"
                         />
                       </div>
-                      <Button variant="outline" size="icon">
+                      <Button variant="outline" size="icon" onClick={handleSearch}>
                         <Filter className="h-4 w-4" />
                       </Button>
                     </div>
 
                     {/* 好友列表 */}
-                    <div className="space-y-2">
-                      {paginatedFriends.length === 0 ? (
+                    <div 
+                      ref={friendsContainerRef}
+                      className="space-y-2 transition-all duration-300"
+                      style={{ 
+                        minHeight: '80px',
+                        height: `${getFriendsContainerHeight()}px`,
+                        overflowY: 'auto'
+                      }}
+                    >
+                      {friends.length === 0 && !isFetchingFriends ? (
                         <div className="text-center py-8 text-gray-500">未找到匹配的好友</div>
                       ) : (
-                        paginatedFriends.map((friend) => (
-                          <div
-                            key={friend.id}
-                            className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                            onClick={() => handleFriendClick(friend)}
-                          >
-                            <Avatar className="h-10 w-10 mr-3">
-                              <AvatarImage src={friend.avatar} />
-                              <AvatarFallback>{friend.nickname[0]}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <div className="font-medium truncate max-w-[180px]">
-                                  {friend.nickname}
-                                  {friend.remark && <span className="text-gray-500 ml-1 truncate">({friend.remark})</span>}
+                        <>
+                          {friends.map((friend) => (
+                            <div
+                              key={friend.id}
+                              className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                              onClick={() => handleFriendClick(friend)}
+                            >
+                              <Avatar className="h-10 w-10 mr-3">
+                                <AvatarImage src={friend.avatar} />
+                                <AvatarFallback>{friend.nickname?.[0] || 'U'}</AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                  <div className="font-medium truncate max-w-[180px]">
+                                    {friend.nickname}
+                                    {friend.remark && <span className="text-gray-500 ml-1 truncate">({friend.remark})</span>}
+                                  </div>
+                                  <ChevronRight className="h-4 w-4 text-gray-400" />
                                 </div>
-                                <ChevronRight className="h-4 w-4 text-gray-400" />
-                              </div>
-                              <div className="text-sm text-gray-500 truncate">{friend.wechatId}</div>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {friend.tags.slice(0, 3).map((tag) => (
-                                  <span key={tag.id} className={`text-xs px-2 py-0.5 rounded-full ${tag.color}`}>
-                                    {tag.name}
-                                  </span>
-                                ))}
-                                {friend.tags.length > 3 && (
-                                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-800">
-                                    +{friend.tags.length - 3}
-                                  </span>
-                                )}
+                                <div className="text-sm text-gray-500 truncate">{friend.wechatId}</div>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {friend.tags.slice(0, 3).map((tag: FriendTag) => (
+                                    <span key={tag.id} className={`text-xs px-2 py-0.5 rounded-full ${tag.color}`}>
+                                      {tag.name}
+                                    </span>
+                                  ))}
+                                  {friend.tags.length > 3 && (
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-800">
+                                      +{friend.tags.length - 3}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))
+                          ))}
+                          
+                          {/* 懒加载指示器 */}
+                          {hasMoreFriends && (
+                            <div ref={friendsLoadingRef} className="py-4 flex justify-center">
+                              {isFetchingFriends && <Loader2 className="h-6 w-6 animate-spin text-blue-500" />}
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
 
-                    {/* 分页 */}
-                    {totalPages > 1 && (
-                      <Pagination>
-                        <PaginationContent>
-                          <PaginationItem>
-                            <PaginationPrevious
-                              href="#"
-                              onClick={(e) => {
-                                e.preventDefault()
-                                setCurrentPage((prev) => Math.max(1, prev - 1))
-                              }}
-                            />
-                          </PaginationItem>
-                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                            let pageNumber
-                            if (totalPages <= 5) {
-                              pageNumber = i + 1
-                            } else if (currentPage <= 3) {
-                              pageNumber = i + 1
-                            } else if (currentPage >= totalPages - 2) {
-                              pageNumber = totalPages - 4 + i
-                            } else {
-                              pageNumber = currentPage - 2 + i
-                            }
-                            return (
-                              <PaginationItem key={pageNumber}>
-                                <PaginationLink
-                                  href="#"
-                                  isActive={currentPage === pageNumber}
-                                  onClick={(e) => {
-                                    e.preventDefault()
-                                    setCurrentPage(pageNumber)
-                                  }}
-                                >
-                                  {pageNumber}
-                                </PaginationLink>
-                              </PaginationItem>
-                            )
-                          })}
-                          <PaginationItem>
-                            <PaginationNext
-                              href="#"
-                              onClick={(e) => {
-                                e.preventDefault()
-                                setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                              }}
-                            />
-                          </PaginationItem>
-                        </PaginationContent>
-                      </Pagination>
-                    )}
+                    {/* 显示加载状态和总数 */}
+                    <div className="text-sm text-gray-500 text-center">
+                      {friendsTotal > 0 && (
+                        <span>
+                          已加载 {Math.min(friends.length, friendsTotal)} / {friendsTotal} 条记录
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </Card>
               </TabsContent>
@@ -770,7 +864,7 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
                         标签
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {selectedFriend.tags.map((tag) => (
+                        {selectedFriend.tags.map((tag: FriendTag) => (
                           <span key={tag.id} className={`text-sm px-2 py-1 rounded-full ${tag.color}`}>
                             {tag.name}
                           </span>

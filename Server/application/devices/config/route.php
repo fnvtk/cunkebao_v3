@@ -23,6 +23,7 @@ Route::group('v1/', function () {
 
     // 设备微信相关
     Route::group('device/wechats', function () {
+        Route::get('friends', 'app\\devices\\controller\\DeviceWechat@getFriends'); // 获取微信好友列表
         Route::get('count', 'app\\devices\\controller\\DeviceWechat@count');       // 获取在线微信账号数量
         Route::get('device-count', 'app\\devices\\controller\\DeviceWechat@deviceCount'); // 获取有登录微信的设备数量
         Route::get('', 'app\\devices\\controller\\DeviceWechat@index');     // 获取在线微信账号列表
