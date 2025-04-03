@@ -274,23 +274,6 @@ class DeviceWechat extends Controller
                 ]
             ];
             
-            // 获取微信好友列表
-            $friends = Db::table('tk_wechat_friend')
-                ->where('wechatAccountId', $id)
-                ->where('isDeleted', 0)
-                ->field([
-                    'id',
-                    'wechatId',
-                    'nickname',
-                    'avatar',
-                    'gender',
-                    'region',
-                    'signature',
-                    'labels',
-                    'createTime'
-                ])
-                ->select();
-            
             // 处理返回数据
             $data = [
                 'basicInfo' => [
@@ -322,7 +305,6 @@ class DeviceWechat extends Controller
                     'lastUpdateTime' => $wechat['updateTime']
                 ],
                 'restrictions' => $restrictions,
-                'friends' => $friends
             ];
             
             return json([
@@ -525,6 +507,75 @@ class DeviceWechat extends Controller
             return json([
                 'code' => 500,
                 'msg' => '好友转移失败：' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    /**
+     * 获取微信好友列表
+     * 根据wechatId查询微信好友，支持分页和关键词筛选
+     * 
+     * @return \think\response\Json
+     */
+    public function getFriends()
+    {
+        try {
+            // 获取请求参数
+            $wechatId = Request::param('wechatId');
+            $page = (int)Request::param('page', 1);
+            $limit = (int)Request::param('limit', 20);
+            $keyword = Request::param('keyword', '');
+            
+            // 参数验证
+            if (empty($wechatId)) {
+                return json([
+                    'code' => 400,
+                    'msg' => '参数错误：微信ID不能为空'
+                ]);
+            }
+            
+            // 查询参数
+            $params = [];
+            if (!empty($keyword)) {
+                $params['keyword'] = $keyword;
+            }
+            
+            // 调用模型方法获取好友列表
+            $result = \app\devices\model\WechatFriend::getFriendsByWechatId($wechatId, $params, $page, $limit);
+
+
+
+            // 处理返回的数据
+            $friendsList = [];
+            foreach ($result['list'] as $friend) {
+                $friendsList[] = [
+                    'wechatId' => $friend['wechatId'],
+                    'avatar' => $friend['avatar'] ?: '/placeholder.svg',
+                    'labels' => $friend['labels'] ?: [],
+                    'accountNickname' => $friend['accountNickname'] ?: '',
+                    'accountRealName' => $friend['accountRealName'] ?: '',
+                    'nickname' => $friend['nickname'] ?: '',
+                    'remark' => $friend['conRemark'] ?: '',
+                    'alias' => $friend['alias'] ?: '',
+                    'gender' => $friend['gender'] ?: 0,
+                    'region' => $friend['region'] ?: ''
+                ];
+            }
+            
+            return json([
+                'code' => 200,
+                'msg' => '获取成功',
+                'data' => [
+                    'total' => $result['total'],
+                    'page' => $result['page'],
+                    'limit' => $result['limit'],
+                    'list' => $friendsList
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return json([
+                'code' => 500,
+                'msg' => '获取失败：' . $e->getMessage()
             ]);
         }
     }

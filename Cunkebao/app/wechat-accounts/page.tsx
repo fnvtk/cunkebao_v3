@@ -225,7 +225,7 @@ export default function WechatAccountsPage() {
             {accounts.map((account) => (
               <Card
                 key={account.id}
-                className="p-4 hover:shadow-lg transition-all cursor-pointer"
+                className="p-4 hover:shadow-lg transition-all cursor-pointer overflow-hidden"
                 onClick={() => router.push(`/wechat-accounts/${account.id}`)}
               >
                 <div className="flex items-start space-x-4">
@@ -236,7 +236,7 @@ export default function WechatAccountsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <h3 className="font-medium truncate">{account.nickname}</h3>
+                        <h3 className="font-medium truncate max-w-[180px]">{account.nickname}</h3>
                         <Badge variant={account.status === "normal" ? "outline" : "destructive"}>
                           {account.status === "normal" ? "正常" : "异常"}
                         </Badge>
@@ -254,8 +254,8 @@ export default function WechatAccountsPage() {
                       </Button>
                     </div>
                     <div className="mt-1 text-sm text-gray-500 space-y-1">
-                      <div>微信号：{account.wechatId}</div>
-                      <div className="flex items-center justify-between">
+                      <div className="truncate">微信号：{account.wechatId}</div>
+                      <div className="flex items-center justify-between flex-wrap gap-1">
                         <div>好友数量：{account.friendCount}</div>
                         <div className="text-green-600">今日新增：+{account.todayAdded}</div>
                       </div>
@@ -281,9 +281,9 @@ export default function WechatAccountsPage() {
                         </div>
                         <Progress value={(account.todayAdded / account.maxDailyAdds) * 100} className="h-2" />
                       </div>
-                      <div className="flex items-center justify-between text-xs text-gray-500 pt-2">
-                        <div>所属设备：{account.deviceName || '未知设备'}</div>
-                        <div>最后活跃：{account.lastActive}</div>
+                      <div className="flex items-center justify-between text-xs text-gray-500 pt-2 flex-wrap gap-1">
+                        <div className="truncate max-w-[150px]">所属设备：{account.deviceName || '未知设备'}</div>
+                        <div className="whitespace-nowrap">最后活跃：{account.lastActive}</div>
                       </div>
                     </div>
                   </div>

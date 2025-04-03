@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { fetchDeviceList, deleteDevice } from "@/api/devices"
 import { ServerDevice } from "@/types/device"
 import { api } from "@/lib/api"
+import { ImeiDisplay } from "@/components/ImeiDisplay"
 
 // 设备接口更新为与服务端接口对应的类型
 interface Device extends ServerDevice {
@@ -479,8 +480,23 @@ export default function DevicesPage() {
   }
 
   // 设备详情页跳转
-  const handleDeviceClick = (deviceId: number) => {
-    router.push(`/devices/${deviceId}`)
+  const handleDeviceClick = (deviceId: number, event: React.MouseEvent) => {
+    // 判断点击事件是否来自ImeiDisplay组件或其后代元素
+    // 如果点击事件已经被处理（例如ImeiDisplay中已阻止传播），则不执行跳转
+    if (event.defaultPrevented) {
+      return;
+    }
+    
+    // 如果点击的元素或其父元素有imei-display类，则不跳转
+    let target = event.target as HTMLElement;
+    while (target && target !== event.currentTarget) {
+      if (target.classList.contains('imei-display-area')) {
+        return;
+      }
+      target = target.parentElement as HTMLElement;
+    }
+    
+    router.push(`/devices/${deviceId}`);
   }
 
   return (
@@ -573,7 +589,7 @@ export default function DevicesPage() {
                 <Card
                   key={device.id}
                   className="p-3 hover:shadow-md transition-shadow cursor-pointer relative"
-                  onClick={() => handleDeviceClick(device.id)}
+                  onClick={(e) => handleDeviceClick(device.id, e)}
                 >
                   <div className="flex items-center space-x-3">
                     <Checkbox
@@ -594,7 +610,10 @@ export default function DevicesPage() {
                           {device.status === "online" ? "在线" : "离线"}
                         </Badge>
                       </div>
-                      <div className="text-sm text-gray-500">IMEI: {device.imei}</div>
+                      <div className="text-sm text-gray-500 flex items-center imei-display-area">
+                        <span className="mr-1">IMEI:</span>
+                        <ImeiDisplay imei={device.imei} containerWidth={180} />
+                      </div>
                       <div className="text-sm text-gray-500">微信号: {device.wechatId || "未绑定"}</div>
                       <div className="flex items-center justify-between mt-1 text-sm">
                         <span className="text-gray-500">好友数: {device.totalFriend}</span>

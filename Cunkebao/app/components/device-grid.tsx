@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Battery, Smartphone, MessageCircle, Users, Clock } from "lucide-react"
+import { ImeiDisplay } from "@/components/ImeiDisplay"
 
 export interface Device {
   id: string
@@ -88,11 +89,15 @@ export function DeviceGrid({
                 />
               )}
               <div className="flex-1 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="font-medium">{device.name}</div>
-                  <Badge variant={device.status === "online" ? "success" : "secondary"}>
-                    {device.status === "online" ? "在线" : "离线"}
-                  </Badge>
+                <div className="relative">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">{device.name}</div>
+                    <div className="absolute top-2 right-2">
+                      <Badge variant={device.status === "online" ? "default" : "secondary"}>
+                        {device.status === "online" ? "在线" : "离线"}
+                      </Badge>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-sm text-gray-500">
@@ -142,10 +147,13 @@ export function DeviceGrid({
                   </div>
                   <div>
                     <h3 className="font-medium">{selectedDevice.name}</h3>
-                    <p className="text-sm text-gray-500">IMEI: {selectedDevice.imei}</p>
+                    <p className="text-sm text-gray-500 flex items-center">
+                      <span className="mr-1">IMEI:</span>
+                      <ImeiDisplay imei={selectedDevice.imei} containerWidth={160} />
+                    </p>
                   </div>
                 </div>
-                <Badge variant={selectedDevice.status === "online" ? "success" : "secondary"}>
+                <Badge variant={selectedDevice.status === "online" ? "default" : "secondary"}>
                   {selectedDevice.status === "online" ? "在线" : "离线"}
                 </Badge>
               </div>
