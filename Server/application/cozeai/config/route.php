@@ -11,6 +11,14 @@ Route::group('v1/cozeai', function () {
       // 会话管理
       Route::group('conversation', function () {
         Route::get('list', 'cozeai/ConversationController/list');
-        Route::post('create', 'cozeai/ConversationController/create');
+        Route::get('create', 'cozeai/ConversationController/create');
+        Route::post('createChat', 'cozeai/ConversationController/createChat');
+        Route::get('chatRetrieve', 'cozeai/ConversationController/chatRetrieve');
+        Route::get('chatMessage','cozeai/ConversationController/chatMessage');
     });
-});
+
+    // 消息管理
+    Route::group('message', function () {
+        Route::get('list', 'cozeai/MessageController/getMessages');
+    });
+})->middleware(['jwt']);
