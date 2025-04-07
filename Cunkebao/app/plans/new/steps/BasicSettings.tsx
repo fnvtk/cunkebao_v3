@@ -19,6 +19,8 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog"
+import { fetchScenes } from "@/api/scenarios"
+import type { SceneItem } from "@/api/scenarios"
 
 // 调整场景顺序，确保API获客在最后，并且前三个是最常用的场景
 const scenarios = [
@@ -108,6 +110,11 @@ const generatePosterMaterials = (): Material[] => {
   }))
 }
 
+// 格式化场景名称，移除"获客"二字
+function formatSceneName(name: string): string {
+  return name.replace(/获客/g, "");
+}
+
 export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps) {
   const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false)
   const [isMaterialDialogOpen, setIsMaterialDialogOpen] = useState(false)
@@ -123,6 +130,12 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
   const [selectedMaterials, setSelectedMaterials] = useState<Material[]>(
     formData.materials?.length > 0 ? formData.materials : [],
   )
+  
+  // 添加场景列表状态
+  const [scenes, setScenes] = useState<SceneItem[]>([])
+  const [loadingScenes, setLoadingScenes] = useState(true)
+  const [sceneError, setSceneError] = useState<string | null>(null)
+  
   const [showAllScenarios, setShowAllScenarios] = useState(false)
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
   const [importedTags, setImportedTags] = useState<
@@ -142,6 +155,32 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
     questionExtraction: formData.phoneSettings?.questionExtraction ?? true,
   })
 
+  // 加载场景列表
+  useEffect(() => {
+    const loadScenes = async () => {
+      try {
+        setLoadingScenes(true)
+        setSceneError(null)
+        
+        const response = await fetchScenes({ limit: 30 })
+        
+        if (response.code === 200 && response.data?.list) {
+          setScenes(response.data.list)
+        } else {
+          setSceneError(response.msg || "获取场景列表失败")
+          console.error("获取场景列表失败:", response.msg)
+        }
+      } catch (err) {
+        console.error("获取场景列表失败:", err)
+        setSceneError("获取场景列表失败，请稍后重试")
+      } finally {
+        setLoadingScenes(false)
+      }
+    }
+    
+    loadScenes()
+  }, [])
+
   // 初始化时，如果没有选择场景，默认选择海报获客
   useEffect(() => {
     if (!formData.scenario) {
@@ -158,14 +197,48 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
     }
   }, [formData, onChange])
 
+  // 处理从API获取的场景选择
+  const handleSceneSelect = (scene: SceneItem) => {
+    // 更新formData中的场景相关数据
+    const formattedName = formatSceneName(scene.name);
+    
+    onChange({
+      ...formData,
+      sceneId: scene.id,
+      sceneName: scene.name,
+      scenario: getLocalScenarioType(scene.name), // 基于名称推断本地场景类型
+    });
+    
+    // 如果是电话场景，自动设置计划名称
+    if (scene.name.includes("电话")) {
+      const today = new Date().toLocaleDateString("zh-CN").replace(/\//g, "");
+      onChange({ ...formData, planName: `${formattedName}${today}` });
+    }
+  }
+
+  // 处理本地场景选择
   const handleScenarioSelect = (scenarioId: string) => {
     onChange({ ...formData, scenario: scenarioId })
-
+    
     // 如果选择了电话获客，自动更新计划名称
     if (scenarioId === "phone") {
       const today = new Date().toLocaleDateString("zh-CN").replace(/\//g, "")
-      onChange({ ...formData, planName: `电话获客${today}` })
+      onChange({ ...formData, planName: `电话${today}` })
     }
+  }
+
+  // 根据场景名称推断本地场景类型
+  const getLocalScenarioType = (name: string): string => {
+    if (name.includes("海报")) return "haibao";
+    if (name.includes("订单")) return "order";
+    if (name.includes("抖音")) return "douyin";
+    if (name.includes("小红书")) return "xiaohongshu";
+    if (name.includes("电话")) return "phone";
+    if (name.includes("公众号")) return "gongzhonghao";
+    if (name.includes("微信群")) return "weixinqun";
+    if (name.includes("付款码")) return "payment";
+    if (name.includes("API")) return "api";
+    return "haibao"; // 默认返回海报获客类型
   }
 
   const handleAccountSelect = (account: Account) => {
@@ -258,22 +331,49 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
         <div className="space-y-6">
           <div>
             <Label className="text-base mb-4 block">获客场景</Label>
+            
+            {/* 场景按钮阵列 */}
             <div className="grid grid-cols-3 gap-2">
-              {displayedScenarios.map((scenario) => (
-                <button
-                  key={scenario.id}
-                  className={`p-2 rounded-lg text-center transition-all ${
-                    formData.scenario === scenario.id
-                      ? "bg-blue-100 text-blue-600 font-medium"
-                      : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                  }`}
-                  onClick={() => handleScenarioSelect(scenario.id)}
-                >
-                  {scenario.name.replace("获客", "")}
-                </button>
-              ))}
+              {loadingScenes ? (
+                // 加载中状态
+                Array.from({ length: 6 }).map((_, index) => (
+                  <div key={index} className="h-10 w-full rounded-lg bg-gray-200 animate-pulse"></div>
+                ))
+              ) : sceneError || scenes.length === 0 ? (
+                // 加载失败或无数据时显示本地场景
+                displayedScenarios.map((scenario) => (
+                  <button
+                    key={scenario.id}
+                    className={`p-2 rounded-lg text-center transition-all ${
+                      formData.scenario === scenario.id
+                        ? "bg-blue-100 text-blue-600 font-medium"
+                        : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                    }`}
+                    onClick={() => handleScenarioSelect(scenario.id)}
+                  >
+                    {formatSceneName(scenario.name)}
+                  </button>
+                ))
+              ) : (
+                // 从API获取的场景列表
+                scenes.map((scene) => (
+                  <button
+                    key={scene.id}
+                    className={`p-2 rounded-lg text-center transition-all ${
+                      formData.sceneId === scene.id
+                        ? "bg-blue-100 text-blue-600 font-medium"
+                        : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                    }`}
+                    onClick={() => handleSceneSelect(scene)}
+                  >
+                    {formatSceneName(scene.name)}
+                  </button>
+                ))
+              )}
             </div>
-            {!showAllScenarios && (
+            
+            {/* 展开更多按钮 - 仅当显示本地场景且未展开全部时显示 */}
+            {(!loadingScenes && (sceneError || scenes.length === 0) && !showAllScenarios) && (
               <Button variant="ghost" className="mt-2 w-full text-blue-600" onClick={() => setShowAllScenarios(true)}>
                 展开更多选项 <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
