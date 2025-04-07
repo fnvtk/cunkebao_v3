@@ -1,112 +1,136 @@
-import type {
-  ApiResponse,
-  CreateScenarioParams,
-  UpdateScenarioParams,
-  QueryScenarioParams,
-  ScenarioBase,
-  ScenarioStats,
-  AcquisitionRecord,
-  PaginatedResponse,
-} from "@/types/scenario"
+import { request } from "@/lib/api"
 
-const API_BASE = "/api/scenarios"
-
-// 获客场景API
-export const scenarioApi = {
-  // 创建场景
-  async create(params: CreateScenarioParams): Promise<ApiResponse<ScenarioBase>> {
-    const response = await fetch(`${API_BASE}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(params),
-    })
-    return response.json()
-  },
-
-  // 更新场景
-  async update(params: UpdateScenarioParams): Promise<ApiResponse<ScenarioBase>> {
-    const response = await fetch(`${API_BASE}/${params.id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(params),
-    })
-    return response.json()
-  },
-
-  // 获取场景详情
-  async getById(id: string): Promise<ApiResponse<ScenarioBase>> {
-    const response = await fetch(`${API_BASE}/${id}`)
-    return response.json()
-  },
-
-  // 查询场景列表
-  async query(params: QueryScenarioParams): Promise<ApiResponse<PaginatedResponse<ScenarioBase>>> {
-    const queryString = new URLSearchParams({
-      ...params,
-      dateRange: params.dateRange ? JSON.stringify(params.dateRange) : "",
-    }).toString()
-
-    const response = await fetch(`${API_BASE}?${queryString}`)
-    return response.json()
-  },
-
-  // 删除场景
-  async delete(id: string): Promise<ApiResponse<void>> {
-    const response = await fetch(`${API_BASE}/${id}`, {
-      method: "DELETE",
-    })
-    return response.json()
-  },
-
-  // 启动场景
-  async start(id: string): Promise<ApiResponse<void>> {
-    const response = await fetch(`${API_BASE}/${id}/start`, {
-      method: "POST",
-    })
-    return response.json()
-  },
-
-  // 暂停场景
-  async pause(id: string): Promise<ApiResponse<void>> {
-    const response = await fetch(`${API_BASE}/${id}/pause`, {
-      method: "POST",
-    })
-    return response.json()
-  },
-
-  // 获取场景统计数据
-  async getStats(id: string): Promise<ApiResponse<ScenarioStats>> {
-    const response = await fetch(`${API_BASE}/${id}/stats`)
-    return response.json()
-  },
-
-  // 获取获客记录
-  async getRecords(id: string, page = 1, pageSize = 20): Promise<ApiResponse<PaginatedResponse<AcquisitionRecord>>> {
-    const response = await fetch(`${API_BASE}/${id}/records?page=${page}&pageSize=${pageSize}`)
-    return response.json()
-  },
-
-  // 导出获客记录
-  async exportRecords(id: string, dateRange?: { start: string; end: string }): Promise<Blob> {
-    const queryString = dateRange ? `?start=${dateRange.start}&end=${dateRange.end}` : ""
-    const response = await fetch(`${API_BASE}/${id}/records/export${queryString}`)
-    return response.blob()
-  },
-
-  // 批量更新标签
-  async updateTags(id: string, customerIds: string[], tags: string[]): Promise<ApiResponse<void>> {
-    const response = await fetch(`${API_BASE}/${id}/tags`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ customerIds, tags }),
-    })
-    return response.json()
-  },
+export interface ApiResponse<T = any> {
+  code: number;
+  msg: string;
+  data: T | null;
 }
+
+// 服务器返回的场景数据类型
+export interface SceneItem {
+  id: number;
+  name: string;
+  image: string;
+  status: number;
+  createTime: number;
+  updateTime: number | null;
+  deleteTime: number | null;
+}
+
+// 服务器返回的场景列表响应类型
+export interface ScenesResponse {
+  code: number;
+  msg: string;
+  data: {
+    list: SceneItem[];
+    total: number;
+    page: number;
+    limit: number;
+  };
+}
+
+// 前端使用的场景数据类型
+export interface Channel {
+  id: string;
+  name: string;
+  icon: string;
+  stats: {
+    daily: number;
+    growth: number;
+  };
+  link?: string;
+  plans?: Plan[];
+}
+
+// 计划类型
+export interface Plan {
+  id: string;
+  name: string;
+  isNew?: boolean;
+  status: "active" | "paused" | "completed";
+  acquisitionCount: number;
+}
+
+/**
+ * 获取获客场景列表
+ * 
+ * @param params 查询参数
+ * @returns 获客场景列表
+ */
+export const fetchScenes = async (params: {
+  page?: number;
+  limit?: number;
+  keyword?: string;
+} = {}): Promise<ScenesResponse> => {
+  const { page = 1, limit = 10, keyword = "" } = params;
+  
+  const queryParams = new URLSearchParams();
+  queryParams.append("page", String(page));
+  queryParams.append("limit", String(limit));
+  
+  if (keyword) {
+    queryParams.append("keyword", keyword);
+  }
+  
+  try {
+    return await request<ScenesResponse>(`/v1/plan/scenes?${queryParams.toString()}`);
+  } catch (error) {
+    console.error("Error fetching scenes:", error);
+    // 返回一个错误响应
+    return {
+      code: 500,
+      msg: "获取场景列表失败",
+      data: {
+        list: [],
+        total: 0,
+        page: 1,
+        limit: 10
+      }
+    };
+  }
+};
+
+/**
+ * 将服务器返回的场景数据转换为前端展示需要的格式
+ * 
+ * @param item 服务器返回的场景数据
+ * @returns 前端展示的场景数据
+ */
+export const transformSceneItem = (item: SceneItem): Channel => {
+  // 为每个场景生成随机的"今日"数据和"增长百分比"
+  const dailyCount = Math.floor(Math.random() * 100);
+  const growthPercent = Math.floor(Math.random() * 40) - 10; // -10% 到 30% 的随机值
+  
+  // 默认图标(如果服务器没有返回)
+  const defaultIcon = "/assets/icons/poster-icon.svg";
+  
+  return {
+    id: String(item.id),
+    name: item.name,
+    icon: item.image || defaultIcon,
+    stats: {
+      daily: dailyCount,
+      growth: growthPercent
+    }
+  };
+};
+
+/**
+ * 获取场景详情
+ * 
+ * @param id 场景ID
+ * @returns 场景详情
+ */
+export const fetchSceneDetail = async (id: string | number): Promise<ApiResponse<SceneItem>> => {
+  try {
+    return await request<ApiResponse<SceneItem>>(`/v1/plan/scenes/${id}`);
+  } catch (error) {
+    console.error("Error fetching scene detail:", error);
+    return {
+      code: 500,
+      msg: "获取场景详情失败",
+      data: null
+    };
+  }
+};
 

@@ -1,10 +1,13 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import type React from "react"
 import { TrendingUp, Users, ChevronLeft, Bot, Sparkles, Plus, Phone } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
+import { Skeleton } from "@/components/ui/skeleton"
+import { fetchScenes, transformSceneItem } from "@/api/scenarios"
 
 interface Channel {
   id: string
@@ -26,183 +29,7 @@ interface Plan {
   acquisitionCount: number
 }
 
-// 调整场景顺序，确保API获客在最后
-const channels: Channel[] = [
-  {
-    id: "haibao",
-    name: "海报获客",
-    icon: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-x92XJgXy4MI7moNYlA1EAes2FqDxMH.png",
-    stats: {
-      daily: 167,
-      growth: 10.2,
-    },
-    link: "/scenarios/haibao",
-    plans: [
-      {
-        id: "plan-5",
-        name: "产品海报获客",
-        isNew: true,
-        status: "active",
-        acquisitionCount: 45,
-      },
-    ],
-  },
-  {
-    id: "order",
-    name: "订单获客",
-    icon: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-203hwGO5hn7hTByGiJltmtACbQF4yl.png",
-    stats: {
-      daily: 112,
-      growth: 7.8,
-    },
-    link: "/scenarios/order",
-    plans: [
-      {
-        id: "plan-9",
-        name: "电商订单获客",
-        status: "active",
-        acquisitionCount: 42,
-      },
-    ],
-  },
-  {
-    id: "douyin",
-    name: "抖音获客",
-    icon: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-QR8ManuDplYTySUJsY4mymiZkDYnQ9.png",
-    stats: {
-      daily: 156,
-      growth: 12.5,
-    },
-    link: "/scenarios/douyin",
-    plans: [
-      {
-        id: "plan-1",
-        name: "抖音直播间获客",
-        isNew: true,
-        status: "active",
-        acquisitionCount: 56,
-      },
-      {
-        id: "plan-2",
-        name: "抖音评论区获客",
-        status: "completed",
-        acquisitionCount: 128,
-      },
-    ],
-  },
-  {
-    id: "xiaohongshu",
-    name: "小红书获客",
-    icon: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-JXQOWS9M8mxbAgvFSlA8cCl64p3OiF.png",
-    stats: {
-      daily: 89,
-      growth: 8.3,
-    },
-    link: "/scenarios/xiaohongshu",
-    plans: [
-      {
-        id: "plan-3",
-        name: "小红书笔记获客",
-        isNew: true,
-        status: "active",
-        acquisitionCount: 32,
-      },
-    ],
-  },
-  {
-    id: "phone",
-    name: "电话获客",
-    icon: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/phone-icon-Hs9Ck3Ij7aqCOoY5NkhxQnXBnT5LGU.png",
-    stats: {
-      daily: 42,
-      growth: 15.8,
-    },
-    link: "/scenarios/phone",
-    plans: [
-      {
-        id: "phone-1",
-        name: "招商电话获客",
-        isNew: true,
-        status: "active",
-        acquisitionCount: 28,
-      },
-    ],
-  },
-  {
-    id: "gongzhonghao",
-    name: "公众号获客",
-    icon: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-Gsg0CMf5tsZb41mioszdjqU1WmsRxW.png",
-    stats: {
-      daily: 234,
-      growth: 15.7,
-    },
-    link: "/scenarios/gongzhonghao",
-    plans: [
-      {
-        id: "plan-4",
-        name: "公众号文章获客",
-        status: "active",
-        acquisitionCount: 87,
-      },
-    ],
-  },
-  {
-    id: "weixinqun",
-    name: "微信群获客",
-    icon: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-azCH8EgGfidWXOqiM2D1jLH0VFRUtW.png",
-    stats: {
-      daily: 145,
-      growth: 11.2,
-    },
-    link: "/scenarios/weixinqun",
-    plans: [
-      {
-        id: "plan-6",
-        name: "微信群活动获客",
-        status: "paused",
-        acquisitionCount: 23,
-      },
-    ],
-  },
-  {
-    id: "payment",
-    name: "付款码获客",
-    icon: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-FI5qJhBgV87ZS3P2WrUDsVyV91Y78i.png",
-    stats: {
-      daily: 78,
-      growth: 9.5,
-    },
-    link: "/scenarios/payment",
-    plans: [
-      {
-        id: "plan-7",
-        name: "支付宝码获客",
-        status: "active",
-        acquisitionCount: 19,
-      },
-    ],
-  },
-  {
-    id: "api",
-    name: "API获客",
-    icon: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-JKtHDY1Ula8ya0XKQDxle5qrcE0qC5.png",
-    stats: {
-      daily: 198,
-      growth: 14.3,
-    },
-    link: "/scenarios/api",
-    plans: [
-      {
-        id: "plan-8",
-        name: "网站表单获客",
-        isNew: true,
-        status: "active",
-        acquisitionCount: 67,
-      },
-    ],
-  },
-]
-
+// AI场景列表（服务端暂未提供）
 const aiScenarios = [
   {
     id: "ai-friend",
@@ -267,6 +94,43 @@ const aiScenarios = [
 
 export default function ScenariosPage() {
   const router = useRouter()
+  const [channels, setChannels] = useState<Channel[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const loadScenes = async () => {
+      try {
+        setLoading(true)
+        const response = await fetchScenes({ limit: 50 })
+        
+        if (response.code === 200 && response.data?.list) {
+          // 转换场景数据为前端展示格式
+          const transformedScenes = response.data.list.map((scene) => {
+            const transformedScene = transformSceneItem(scene)
+            
+            // 添加link属性（用于导航）
+            return {
+              ...transformedScene,
+              link: `/scenarios/${scene.id}`
+            }
+          })
+          
+          setChannels(transformedScenes)
+        } else {
+          setError(response.msg || "获取场景列表失败")
+        }
+      } catch (err) {
+        console.error("Failed to fetch scenes:", err)
+        setError("获取场景列表失败")
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    loadScenes()
+  }, [])
+
   const handleChannelClick = (channelId: string, event: React.MouseEvent) => {
     router.push(`/scenarios/${channelId}`)
   }
@@ -296,6 +160,27 @@ export default function ScenariosPage() {
         return "未知状态"
     }
   }
+  
+  // 展示场景骨架屏
+  const renderSkeletons = () => {
+    return Array(8)
+      .fill(0)
+      .map((_, index) => (
+        <div key={`skeleton-${index}`} className="flex flex-col">
+          <Card className="p-4">
+            <div className="flex flex-col items-center text-center space-y-3">
+              <Skeleton className="w-12 h-12 rounded-xl" />
+              <Skeleton className="h-4 w-24" />
+              <div className="flex items-center space-x-1">
+                <Skeleton className="h-3 w-3 rounded-full" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+              <Skeleton className="h-3 w-12" />
+            </div>
+          </Card>
+        </div>
+      ))
+  }
 
   return (
     <div className="flex-1 bg-gray-50">
@@ -317,45 +202,64 @@ export default function ScenariosPage() {
         </header>
 
         <div className="p-4 space-y-6">
+          {/* 错误提示 */}
+          {error && (
+            <div className="bg-red-50 text-red-600 p-4 rounded-md">
+              <p>{error}</p>
+              <Button 
+                variant="outline" 
+                className="mt-2" 
+                onClick={() => window.location.reload()}
+              >
+                重试
+              </Button>
+            </div>
+          )}
+          
           {/* Traditional channels */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {channels.map((channel) => (
-              <div key={channel.id} className="flex flex-col">
-                <Card
-                  className={`p-4 hover:shadow-lg transition-all cursor-pointer`}
-                  onClick={() => router.push(channel.link || "")}
-                >
-                  <div className="flex flex-col items-center text-center space-y-3">
-                    <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm">
-                      {channel.id === "phone" ? (
-                        <Phone className="w-8 h-8 text-blue-500" />
-                      ) : (
+            {loading ? (
+              renderSkeletons()
+            ) : (
+              channels.map((channel) => (
+                <div key={channel.id} className="flex flex-col">
+                  <Card
+                    className={`p-4 hover:shadow-lg transition-all cursor-pointer`}
+                    onClick={() => router.push(channel.link || "")}
+                  >
+                    <div className="flex flex-col items-center text-center space-y-3">
+                      <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm">
                         <img
                           src={channel.icon || "/placeholder.svg"}
                           alt={channel.name}
                           className="w-8 h-8 object-contain"
+                          onError={(e) => {
+                            // 图片加载失败时，使用默认图标
+                            const target = e.target as HTMLImageElement
+                            target.src = "/assets/icons/poster-icon.svg"
+                          }}
                         />
-                      )}
-                    </div>
+                      </div>
 
-                    <h3 className="text-sm font-medium text-blue-600">{channel.name}</h3>
+                      <h3 className="text-sm font-medium text-blue-600">{channel.name}</h3>
 
-                    <div className="flex items-center space-x-1">
-                      <Users className="w-3 h-3 text-gray-400" />
-                      <div className="flex items-baseline">
-                        <span className="text-xs text-gray-500">今日：</span>
-                        <span className="text-base font-medium ml-1">{channel.stats.daily}</span>
+                      <div className="flex items-center space-x-1">
+                        <Users className="w-3 h-3 text-gray-400" />
+                        <div className="flex items-baseline">
+                          <span className="text-xs text-gray-500">今日：</span>
+                          <span className="text-base font-medium ml-1">{channel.stats.daily}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center text-green-500 text-xs">
+                        <TrendingUp className="w-3 h-3 mr-1" />
+                        <span>{channel.stats.growth > 0 ? "+" : ""}{channel.stats.growth}%</span>
                       </div>
                     </div>
-
-                    <div className="flex items-center text-green-500 text-xs">
-                      <TrendingUp className="w-3 h-3 mr-1" />
-                      <span>+{channel.stats.growth}%</span>
-                    </div>
-                  </div>
-                </Card>
-              </div>
-            ))}
+                  </Card>
+                </div>
+              ))
+            )}
           </div>
 
           {/* AI scenarios */}

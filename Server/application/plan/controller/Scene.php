@@ -31,7 +31,7 @@ class Scene extends Controller
         $where[] = ['status', '=', 1];
         
         // 查询列表
-        $result = PlanScene::getSceneList($where, 'id desc', $page, $limit);
+        $result = PlanScene::getSceneList($where, 'sort desc', $page, $limit);
         
         return json([
             'code' => 200,
