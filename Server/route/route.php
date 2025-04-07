@@ -11,6 +11,15 @@
 
 use think\facade\Route;
 
+ // 允许跨域
+ header('Access-Control-Allow-Origin: *');
+ header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS, PATCH');
+ header('Access-Control-Allow-Headers: Authorization, Content-Type, If-Match, If-Modified-Since, If-None-Match, If-Unmodified-Since, X-Requested-With, X-Token, X-Api-Token');
+ header('Access-Control-Max-Age: 1728000');
+ header('Access-Control-Allow-Credentials: true');
+
+
+
 // 加载Store模块路由配置
 include __DIR__ . '/../application/api/config/route.php';
 
