@@ -2,7 +2,7 @@
 namespace app\plan\controller;
 
 use think\Controller;
-use think\Request;
+use think\facade\Request;
 use app\plan\model\PlanScene;
 
 /**
