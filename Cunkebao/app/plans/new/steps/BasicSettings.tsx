@@ -290,9 +290,9 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
             const [phone, wechat, source, orderAmount, orderDate] = row.split(",")
             return {
               phone: phone.trim(),
-              wechat: wechat.trim(),
+              wechat: wechat?.trim(),
               source: source?.trim(),
-              orderAmount: orderAmount ? Number(orderAmount) : undefined,
+              orderAmount: orderAmount ? Number(orderAmount) : 0,
               orderDate: orderDate?.trim(),
             }
           })
@@ -588,18 +588,14 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
                           <TableHeader>
                             <TableRow>
                               <TableHead>电话号码</TableHead>
-                              <TableHead>微信号</TableHead>
                               <TableHead>来源</TableHead>
-                              <TableHead>订单金额</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {importedTags.slice(0, 5).map((tag, index) => (
                               <TableRow key={index}>
                                 <TableCell>{tag.phone}</TableCell>
-                                <TableCell>{tag.wechat}</TableCell>
                                 <TableCell>{tag.source}</TableCell>
-                                <TableCell>{tag.orderAmount}</TableCell>
                               </TableRow>
                             ))}
                             {importedTags.length > 5 && (
@@ -769,20 +765,14 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
                 <TableHeader>
                   <TableRow>
                     <TableHead>电话号码</TableHead>
-                    <TableHead>微信号</TableHead>
                     <TableHead>来源</TableHead>
-                    <TableHead>订单金额</TableHead>
-                    <TableHead>下单日期</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {importedTags.map((tag, index) => (
                     <TableRow key={index}>
                       <TableCell>{tag.phone}</TableCell>
-                      <TableCell>{tag.wechat}</TableCell>
                       <TableCell>{tag.source}</TableCell>
-                      <TableCell>{tag.orderAmount}</TableCell>
-                      <TableCell>{tag.orderDate}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

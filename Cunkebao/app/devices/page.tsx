@@ -464,11 +464,11 @@ export default function DevicesPage() {
 
     // 删除后刷新列表
     if (successCount > 0) {
-      toast({
-        title: "批量删除成功",
+    toast({
+      title: "批量删除成功",
         description: `已删除 ${successCount} 个设备`,
-      })
-      setSelectedDevices([])
+    })
+    setSelectedDevices([])
       handleRefresh()
     } else {
       toast({
@@ -628,7 +628,7 @@ export default function DevicesPage() {
                 {isLoading && <div className="text-sm text-gray-500">加载中...</div>}
                 {!hasMore && devices.length > 0 && <div className="text-sm text-gray-500">没有更多设备了</div>}
                 {!hasMore && devices.length === 0 && <div className="text-sm text-gray-500">暂无设备</div>}
-              </div>
+            </div>
             </div>
           </div>
         </Card>
@@ -731,7 +731,7 @@ export default function DevicesPage() {
                   <p className="text-xs text-gray-500">
                     为设备添加一个便于识别的名称
                   </p>
-                </div>
+            </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">设备IMEI</label>
                   <Input 
@@ -744,9 +744,9 @@ export default function DevicesPage() {
                   </p>
                 </div>
                 <div className="flex justify-end space-x-2">
-                  <Button variant="outline" onClick={() => setIsAddDeviceOpen(false)}>
-                    取消
-                  </Button>
+              <Button variant="outline" onClick={() => setIsAddDeviceOpen(false)}>
+                取消
+              </Button>
                   <Button 
                     onClick={handleAddDeviceByImei} 
                     disabled={isSubmittingImei || !deviceImei.trim()}
@@ -758,8 +758,8 @@ export default function DevicesPage() {
                       </>
                     ) : "添加"}
                   </Button>
-                </div>
-              </div>
+            </div>
+          </div>
             </TabsContent>
           </Tabs>
         </DialogContent>
