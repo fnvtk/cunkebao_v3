@@ -1,5 +1,5 @@
 <?php
-namespace app\http\middleware;
+namespace app\common\middleware;
 
 use app\common\util\JwtUtil;
 use think\facade\Log;
@@ -7,7 +7,7 @@ use think\facade\Log;
 /**
  * JWT认证中间件
  */
-class JwtAuth
+class jwt
 {
     /**
      * 处理请求
