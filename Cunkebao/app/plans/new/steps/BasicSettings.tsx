@@ -307,16 +307,13 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
   }
 
   const handleDownloadTemplate = () => {
-    const template = "电话号码,微信号,来源,订单金额,下单日期\n13800138000,wxid_123,抖音,99.00,2024-03-03"
-    const blob = new Blob([template], { type: "text/csv" })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "订单导入模板.csv"
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    window.URL.revokeObjectURL(url)
+    // 直接从 public 目录下载文件
+    const link = document.createElement("a")
+    link.href = "/订单导入模板.xls"
+    link.download = "订单导入模板.xls"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   // 处理电话获客设置更新
