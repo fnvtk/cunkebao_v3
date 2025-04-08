@@ -11,34 +11,7 @@ class WechatFriend extends Model
 {
     // 设置表名
     protected $name = 'wechat_friend';
-    protected $prefix = 'tk_';
-    
-    // 设置主键
-    protected $pk = 'id';
-    
-    // 自动写入时间戳
-    protected $autoWriteTimestamp = 'datetime';
-    
-    // 定义时间戳字段名
-    protected $createTime = 'createTime';
-    protected $updateTime = 'updateTime';
-    
-    // 定义字段类型
-    protected $type = [
-        'id' => 'integer',
-        'wechatAccountId' => 'integer',
-        'gender' => 'integer',
-        'addFrom' => 'integer',
-        'isDeleted' => 'integer',
-        'isPassed' => 'integer',
-        'accountId' => 'integer',
-        'groupId' => 'integer',
-        'labels' => 'json',
-        'deleteTime' => 'datetime',
-        'passTime' => 'datetime',
-        'createTime' => 'datetime'
-    ];
-    
+
     /**
      * 根据微信账号ID获取好友列表
      * 

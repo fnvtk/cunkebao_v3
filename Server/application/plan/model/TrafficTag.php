@@ -10,31 +10,7 @@ class TrafficTag extends Model
 {
     // 设置表名
     protected $name = 'traffic_tag';
-    protected $prefix = 'tk_';
-    
-    // 设置主键
-    protected $pk = 'id';
-    
-    // 自动写入时间戳
-    protected $autoWriteTimestamp = 'int';
-    
-    // 定义时间戳字段名
-    protected $createTime = 'createTime';
-    protected $updateTime = false; // 没有更新时间字段
-    protected $deleteTime = 'deleteTime';
-    
-    // 定义软删除
-    protected $defaultSoftDelete = 0;
-    
-    // 定义字段类型
-    protected $type = [
-        'id' => 'integer',
-        'tagName' => 'string',
-        'companyId' => 'integer',
-        'createTime' => 'integer',
-        'deleteTime' => 'integer'
-    ];
-    
+
     /**
      * 获取标签列表，支持分页和搜索
      *

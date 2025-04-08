@@ -11,27 +11,7 @@ class DeviceHandleLog extends Model
 {
     // 设置表名
     protected $name = 'device_handle_log';
-    protected $prefix = 'tk_';
-    
-    // 设置主键
-    protected $pk = 'id';
-    
-    // 自动写入时间戳
-    protected $autoWriteTimestamp = 'datetime';
-    
-    // 定义时间戳字段名
-    protected $createTime = 'createTime';
-    protected $updateTime = false;
-    
-    // 定义字段类型
-    protected $type = [
-        'id' => 'integer',
-        'userId' => 'integer',
-        'deviceId' => 'integer',
-        'companyId' => 'integer',
-        'createTime' => 'datetime'
-    ];
-    
+
     /**
      * 添加设备操作日志
      * @param array $data 日志数据
