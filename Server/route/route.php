@@ -24,12 +24,14 @@ include __DIR__ . '/../application/api/config/route.php';
 // 加载Common模块路由配置
 include __DIR__ . '/../application/common/config/route.php';
 
-// 加载Devices模块路由配置
+// 加载Cunkebao模块路由配置
 include __DIR__ . '/../application/cunkebao/config/route.php';
 
 // 加载Store模块路由配置
 include __DIR__ . '/../application/store/config/route.php';
 
+// 加载Superadmin模块路由配置
+include __DIR__ . '/../application/superadmin/config/route.php';
 
 // 加载CozeAI模块路由配置
 include __DIR__ . '/../application/cozeai/config/route.php';
