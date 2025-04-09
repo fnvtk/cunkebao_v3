@@ -7,7 +7,6 @@ use think\facade\Log;
 use think\Queue;
 use think\facade\Config;
 use app\api\controller\MessageController;
-use app\common\service\AuthService;
 
 class MessageFriendsListJob
 {
@@ -73,16 +72,10 @@ class MessageFriendsListJob
         $request = request();
         $request->withGet($params);
         
-        // 获取系统授权信息
-        $authorization = AuthService::getSystemAuthorization();
-        if (empty($authorization)) {
-            Log::error('获取系统授权信息失败');
-            return false;
-        }
 
     
         // 调用添加好友任务获取方法
-        $result = $messageController->getFriendsList($pageIndex,$pageSize,$authorization,true);
+        $result = $messageController->getFriendsList($pageIndex,$pageSize,true);
         $response = json_decode($result,true);
 
         

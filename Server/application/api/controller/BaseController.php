@@ -4,6 +4,7 @@ namespace app\api\controller;
 
 use think\Controller;
 use think\facade\Env;
+use app\common\service\AuthService;
 
 class BaseController extends Controller {
 
@@ -17,6 +18,8 @@ class BaseController extends Controller {
 
     protected $baseUrl;
 
+    protected $authorization = '';
+
     public function __construct() {
         parent::__construct();
         $this->baseUrl = Env::get('api.wechat_url');
@@ -24,6 +27,10 @@ class BaseController extends Controller {
         header('Access-Control-Allow-Origin: *');
         header('Access-Control-Allow-Methods: *');
         header('Access-Control-Allow-Headers: *');
+
+        $this->authorization = AuthService::getSystemAuthorization();
+
+
     }
 
 

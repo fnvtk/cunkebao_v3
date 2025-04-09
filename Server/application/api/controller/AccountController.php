@@ -12,12 +12,16 @@ class AccountController extends BaseController
      * 获取公司账号列表
      * @return \think\response\Json
      */
-    public function getlist()
+    public function getlist($pageIndex = '',$pageSize = '',$isJob = false)
     {
         // 获取授权token
-        $authorization = trim($this->request->header('authorization', ''));
+        $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
-            return errorJson('缺少授权信息');
+            if($isJob){
+                return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
+            }else{
+                return errorJson('缺少授权信息');
+            }
         }
 
         try {
@@ -26,8 +30,8 @@ class AccountController extends BaseController
                 'showNormalAccount' => $this->request->param('showNormalAccount', ''),
                 'keyword' => $this->request->param('keyword', ''),
                 'departmentId' => $this->request->param('companyId', ''),
-                'pageIndex' => $this->request->param('pageIndex', 0),
-                'pageSize' => $this->request->param('pageSize', 12)
+                'pageIndex' => !empty($pageIndex) ? $pageIndex : $this->request->param('pageIndex', 0),
+                'pageSize' => !empty($pageSize) ? $pageSize : $this->request->param('pageSize',20)
             ];
 
             // 设置请求头
@@ -58,7 +62,7 @@ class AccountController extends BaseController
     public function createDepartment()
     {
         // 获取授权token
-        $authorization = trim($this->request->header('authorization', ''));
+        $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
             return errorJson('缺少授权信息');
         }
@@ -112,7 +116,7 @@ class AccountController extends BaseController
     public function createAccount()
     {
         // 获取授权token
-        $authorization = trim($this->request->header('authorization', ''));
+        $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
             return errorJson('缺少授权信息');
         }
@@ -194,7 +198,7 @@ class AccountController extends BaseController
     public function getDepartmentList()
     {
         // 获取授权token
-        $authorization = trim($this->request->header('authorization', ''));
+        $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
             return errorJson('缺少授权信息');
         }

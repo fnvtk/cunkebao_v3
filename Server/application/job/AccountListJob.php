@@ -7,7 +7,6 @@ use think\facade\Log;
 use think\Queue;
 use think\facade\Config;
 use app\api\controller\AccountController;
-use app\common\service\AuthService;
 
 class AccountListJob
 {
@@ -73,15 +72,8 @@ class AccountListJob
         $request = request();
         $request->withGet($params);
         
-        // 获取系统授权信息
-        $authorization = AuthService::getSystemAuthorization();
-        if (empty($authorization)) {
-            Log::error('获取系统授权信息失败');
-            return false;
-        }
-
         // 调用公司账号列表获取方法
-        $result = $accountController->getlist($pageIndex,$pageSize,$authorization);
+        $result = $accountController->getlist($pageIndex,$pageSize,true);
         $response = json_decode($result,true);
 
         

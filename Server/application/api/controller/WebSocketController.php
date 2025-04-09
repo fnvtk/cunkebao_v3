@@ -18,7 +18,7 @@ class WebSocketController extends BaseController
     public function __construct()
     {
         parent::__construct();
-        $this->authorized = $this->request->header('authorized', '');
+        $this->authorized = $this->request->header('authorization', $this->authorization);
         $this->accountId = $this->request->param('accountId', '');
         if (empty($this->authorized) || empty($this->accountId)) {
             $data['authorized'] = $this->authorized;
@@ -52,6 +52,109 @@ class WebSocketController extends BaseController
         );
         $this->client->send($content);
     }
+
+
+   /**
+     * 朋友圈点赞
+     */
+    public function momentInteract()
+    {
+        if ($this->request->isPost()) {
+            $data = $this->request->param();
+
+            if (empty($data)) {
+                $this->error('参数缺失');
+            }
+            $dataArray = $data;
+            if (!is_array($dataArray)) {
+                $this->error('数据格式错误');
+            }
+
+            //过滤消息
+            if (empty($dataArray['snsId'])) {
+                $this->error('snsId不能为空');
+            }
+            if (empty($dataArray['wechatAccountId'])) {
+                $this->error('微信id不能为空');
+            }
+            
+            
+            $result = [
+                "cmdType" => "CmdMomentInteract",
+                "momentInteractType" => 1,
+                "seq" => time(),
+                "snsId" => $dataArray['snsId'],
+                "wechatAccountId" => $dataArray['wechatAccountId'],
+                "wechatFriendId" => 0,
+            ];
+
+            $result = json_encode($result);
+            $this->client->send($result);
+            $message = $this->client->receive();
+            $message = json_decode($message, 1);
+            //关闭WS链接
+            $this->client->close();
+            //Log::write('WS个人消息发送');
+            successJson($message, '点赞成功');
+        } else {
+            errorJson('非法请求');
+        }
+    }
+
+
+      /**
+     * 朋友圈取消点赞
+     */
+    public function momentCancelInteract()
+    {
+        if ($this->request->isPost()) {
+            $data = $this->request->param();
+
+            if (empty($data)) {
+                $this->error('参数缺失');
+            }
+            $dataArray = $data;
+            if (!is_array($dataArray)) {
+                $this->error('数据格式错误');
+            }
+
+            //过滤消息
+            if (empty($dataArray['snsId'])) {
+                $this->error('snsId不能为空');
+            }
+            if (empty($dataArray['wechatAccountId'])) {
+                $this->error('微信id不能为空');
+            }
+            
+            
+            $result = [
+                "CommentId2" => '',
+                "CommentTime" => 0,
+                "cmdType" => "CmdMomentCancelInteract",
+                "optType" => 1,
+                "seq" => time(),
+                "snsId" => $dataArray['snsId'],
+                "wechatAccountId" => $dataArray['wechatAccountId'],
+                "wechatFriendId" => 0,
+            ];
+
+            $result = json_encode($result);
+            $this->client->send($result);
+            $message = $this->client->receive();
+            $message = json_decode($message, 1);
+            //关闭WS链接
+            $this->client->close();
+            //Log::write('WS个人消息发送');
+            successJson($message, '取消点赞成功');
+        } else {
+            errorJson('非法请求');
+        }
+    }
+
+
+
+
+
 
 
     /**

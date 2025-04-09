@@ -7,7 +7,6 @@ use think\facade\Log;
 use think\Queue;
 use think\facade\Config;
 use app\api\controller\WechatFriendController;
-use app\common\service\AuthService;
 
 class WechatFriendJob
 {
@@ -75,15 +74,9 @@ class WechatFriendJob
         $request = request();
         $request->withGet($params);
         
-        // 获取系统授权信息
-        $authorization = AuthService::getSystemAuthorization();
-        if (empty($authorization)) {
-            Log::error('获取系统授权信息失败');
-            return false;
-        }
 
         // 调用设备列表获取方法
-        $result = $wechatFriendController->getlist($pageIndex,$pageSize,$preFriendId,$authorization,true);
+        $result = $wechatFriendController->getlist($pageIndex,$pageSize,$preFriendId,true);
         $response = json_decode($result,true);
 
         

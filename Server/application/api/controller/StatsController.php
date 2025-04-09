@@ -20,7 +20,7 @@ class StatsController extends BaseController
      */
     public function basicData()
     {
-        $authorization = trim($this->request->header('authorization', ''));
+        $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
             return errorJson('缺少授权信息');
         }
@@ -46,7 +46,7 @@ class StatsController extends BaseController
            from to 时间 当lidu为 0时（2025-03-12 09:54:42） 当lidu为 1时（2025-03-12）  当lidu为 2时（2025-03）
          */
 
-        $authorization = trim($this->request->header('authorization', ''));
+        $authorization = trim($this->request->header('authorization', $this->authorization));
         $lidu = trim($this->request->param('lidu', ''));
         $from = trim($this->request->param('from', ''));
         $to = trim($this->request->param('to', ''));

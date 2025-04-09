@@ -105,7 +105,7 @@ class UserController extends BaseController
     {
         $grant_type = $this->request->param('grant_type', 'refresh_token');
         $refresh_token = $this->request->param('refresh_token', '');
-        $authorization = $this->request->header('authorization', '');
+        $authorization = $this->request->header('authorization', $this->authorization);
 
         if (empty($grant_type) || empty($authorization)) {
             return errorJson('参数错误');
@@ -144,7 +144,7 @@ class UserController extends BaseController
      */
     public function getAccountInfo()
     {
-        $authorization = trim($this->request->header('authorization', ''));
+        $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
             return errorJson('缺少授权信息');
         }
@@ -209,7 +209,7 @@ class UserController extends BaseController
             return $params;
         }
 
-        $authorization = trim($this->request->header('authorization', ''));
+        $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
             return errorJson('缺少授权信息');
         }
@@ -244,7 +244,7 @@ class UserController extends BaseController
      */
     public function logout()
     {
-        $authorization = trim($this->request->header('authorization', ''));
+        $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
             return errorJson('缺少授权信息');
         }

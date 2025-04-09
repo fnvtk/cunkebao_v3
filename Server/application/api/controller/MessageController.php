@@ -12,10 +12,10 @@ class MessageController extends BaseController
      * 获取微信好友列表
      * @return \think\response\Json
      */
-    public function getFriendsList($pageIndex = '',$pageSize = '',$authorization = '',$isJob = false)
+    public function getFriendsList($pageIndex = '',$pageSize = '',$isJob = false)
     {
         // 获取授权token
-        $authorization = !empty($authorization) ? $authorization : trim($this->request->header('authorization', ''));
+        $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
             if($isJob){
                 return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
@@ -167,10 +167,10 @@ class MessageController extends BaseController
      * 获取微信群聊列表
      * @return \think\response\Json
      */
-    public function getChatroomList($pageIndex = '',$pageSize = '',$authorization = '',$isJob = false)
+    public function getChatroomList($pageIndex = '',$pageSize = '',$isJob = false)
     {
         // 获取授权token
-        $authorization = !empty($authorization) ? $authorization : trim($this->request->header('authorization', ''));
+        $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
             if($isJob){
                 return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
@@ -363,7 +363,7 @@ class MessageController extends BaseController
     public function getMessageList()
     {
         // 获取授权token
-        $authorization = trim($this->request->header('authorization', ''));
+        $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
             return errorJson('缺少授权信息');
         }
@@ -422,7 +422,7 @@ class MessageController extends BaseController
     public function getChatroomMessages()
     {
         // 获取授权token
-        $authorization = trim($this->request->header('authorization', ''));
+        $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
             return errorJson('缺少授权信息');
         }

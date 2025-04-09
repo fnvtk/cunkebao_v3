@@ -7,7 +7,6 @@ use think\facade\Log;
 use think\Queue;
 use think\facade\Config;
 use app\api\controller\FriendTaskController;
-use app\common\service\AuthService;
 
 class FriendTaskJob
 {
@@ -72,16 +71,9 @@ class FriendTaskJob
         // 设置请求信息
         $request = request();
         $request->withGet($params);
-        
-        // 获取系统授权信息
-        $authorization = AuthService::getSystemAuthorization();
-        if (empty($authorization)) {
-            Log::error('获取系统授权信息失败');
-            return false;
-        }
 
         // 调用添加好友任务获取方法
-        $result = $friendTaskController->getlist($pageIndex,$pageSize,$authorization,true);
+        $result = $friendTaskController->getlist($pageIndex,$pageSize,true);
         $response = json_decode($result,true);
 
         

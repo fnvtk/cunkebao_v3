@@ -59,10 +59,10 @@ class WechatController extends BaseController
         }
     }
 
-    public function getlist($pageIndex = '',$pageSize = '',$authorization = '',$isJob = false)
+    public function getlist($pageIndex = '',$pageSize = '',$isJob = false)
     {
         // 获取授权token
-        $authorization = !empty($authorization) ? $authorization : trim($this->request->header('authorization', ''));
+        $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
             if($isJob){
                 return json_encode(['code'=>500,'msg'=>'缺少授权信息']);

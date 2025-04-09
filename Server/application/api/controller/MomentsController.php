@@ -13,7 +13,7 @@ class MomentsController extends BaseController
     public function addJob()
     {
         // 获取授权token
-        $authorization = trim($this->request->header('authorization', ''));
+        $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
             return errorJson('缺少授权信息');
         }
@@ -107,7 +107,7 @@ class MomentsController extends BaseController
     public function getList()
     {
         // 获取授权token
-        $authorization = trim($this->request->header('authorization', ''));
+        $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
             return errorJson('缺少授权信息');
         }

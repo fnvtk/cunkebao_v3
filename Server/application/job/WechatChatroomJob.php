@@ -7,7 +7,6 @@ use think\facade\Log;
 use think\Queue;
 use think\facade\Config;
 use app\api\controller\WechatChatroomController;
-use app\common\service\AuthService;
 
 class WechatChatroomJob
 {
@@ -73,15 +72,8 @@ class WechatChatroomJob
         $request = request();
         $request->withGet($params);
         
-        // 获取系统授权信息
-        $authorization = AuthService::getSystemAuthorization();
-        if (empty($authorization)) {
-            Log::error('获取系统授权信息失败');
-            return false;
-        }
-
         // 调用设备列表获取方法
-        $result = $wechatChatroomController->getlist($pageIndex,$pageSize,$authorization,true);
+        $result = $wechatChatroomController->getlist($pageIndex,$pageSize,true);
        
         $response = json_decode($result,true);
         

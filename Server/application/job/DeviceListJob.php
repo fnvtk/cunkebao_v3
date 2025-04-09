@@ -7,7 +7,6 @@ use think\facade\Log;
 use think\Queue;
 use think\facade\Config;
 use app\api\controller\DeviceController;
-use app\common\service\AuthService;
 
 class DeviceListJob
 {
@@ -73,15 +72,10 @@ class DeviceListJob
         $request = request();
         $request->withGet($params);
         
-        // 获取系统授权信息
-        $authorization = AuthService::getSystemAuthorization();
-        if (empty($authorization)) {
-            Log::error('获取系统授权信息失败');
-            return false;
-        }
+    
 
         // 调用设备列表获取方法
-        $result = $deviceController->getlist($pageIndex,$pageSize,$authorization,true);
+        $result = $deviceController->getlist($pageIndex,$pageSize,true);
         $response = json_decode($result,true);
 
         

@@ -14,10 +14,10 @@ class DeviceController extends BaseController
      * 获取设备列表
      * @return \think\response\Json
      */
-    public function getlist($pageIndex = '',$pageSize = '',$authorization = '',$isJob = false)
+    public function getlist($pageIndex = '',$pageSize = '',$isJob = false)
     {
         // 获取授权token
-        $authorization = !empty($authorization) ? $authorization : trim($this->request->header('authorization', ''));
+        $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
             if($isJob){
                 return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
@@ -146,7 +146,7 @@ class DeviceController extends BaseController
     public function addDevice($accountId = 0)
     {
         if (empty($accountId)) {
-            $accountId = $this->request->param('accountId', 5555);
+            $accountId = $this->request->param('accountId', '');
         }
         
         if (empty($accountId)) {
