@@ -5,13 +5,15 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { HelpCircle, MessageSquare, AlertCircle } from "lucide-react"
+import { HelpCircle, MessageSquare, AlertCircle, RefreshCw } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ChevronsUpDown } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
+import { fetchDeviceList } from "@/api/devices"
+import type { ServerDevice } from "@/types/device"
 
 interface FriendRequestSettingsProps {
   formData: any
@@ -36,20 +38,15 @@ const remarkTypes = [
   { value: "source", label: "来源" },
 ]
 
-// 模拟设备数据
-const mockDevices = [
-  { id: "1", name: "iPhone 13 Pro", status: "online" },
-  { id: "2", name: "Xiaomi 12", status: "online" },
-  { id: "3", name: "Huawei P40", status: "offline" },
-  { id: "4", name: "OPPO Find X3", status: "online" },
-  { id: "5", name: "Samsung S21", status: "online" },
-]
-
 export function FriendRequestSettings({ formData, onChange, onNext, onPrev }: FriendRequestSettingsProps) {
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
   const [hasWarnings, setHasWarnings] = useState(false)
   const [isDeviceSelectorOpen, setIsDeviceSelectorOpen] = useState(false)
-  const [selectedDevices, setSelectedDevices] = useState<any[]>(formData.selectedDevices || [])
+  const [selectedDevices, setSelectedDevices] = useState<ServerDevice[]>(formData.selectedDevices || [])
+  const [devices, setDevices] = useState<ServerDevice[]>([])
+  const [loadingDevices, setLoadingDevices] = useState(false)
+  const [deviceError, setDeviceError] = useState<string | null>(null)
+  const [searchKeyword, setSearchKeyword] = useState("")
 
   // 获取场景标题
   const getScenarioTitle = () => {
@@ -66,6 +63,33 @@ export function FriendRequestSettings({ formData, onChange, onNext, onPrev }: Fr
         return formData.planName || "获客计划"
     }
   }
+
+  // 加载设备列表
+  const loadDevices = async () => {
+    try {
+      setLoadingDevices(true)
+      setDeviceError(null)
+      
+      const response = await fetchDeviceList(1, 100, searchKeyword)
+      
+      if (response.code === 200 && response.data?.list) {
+        setDevices(response.data.list)
+      } else {
+        setDeviceError(response.msg || "获取设备列表失败")
+        console.error("获取设备列表失败:", response.msg)
+      }
+    } catch (err) {
+      console.error("获取设备列表失败:", err)
+      setDeviceError("获取设备列表失败，请稍后重试")
+    } finally {
+      setLoadingDevices(false)
+    }
+  }
+
+  // 初始化时加载设备列表
+  useEffect(() => {
+    loadDevices()
+  }, [])
 
   // 使用useEffect设置默认值
   useEffect(() => {
@@ -96,7 +120,7 @@ export function FriendRequestSettings({ formData, onChange, onNext, onPrev }: Fr
     onNext()
   }
 
-  const toggleDeviceSelection = (device: any) => {
+  const toggleDeviceSelection = (device: ServerDevice) => {
     const isSelected = selectedDevices.some((d) => d.id === device.id)
     let newSelectedDevices
 
@@ -108,6 +132,11 @@ export function FriendRequestSettings({ formData, onChange, onNext, onPrev }: Fr
 
     setSelectedDevices(newSelectedDevices)
     onChange({ ...formData, selectedDevices: newSelectedDevices })
+  }
+
+  // 根据关键词搜索设备
+  const handleSearch = () => {
+    loadDevices()
   }
 
   return (
@@ -128,31 +157,77 @@ export function FriendRequestSettings({ formData, onChange, onNext, onPrev }: Fr
             {isDeviceSelectorOpen && (
               <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg">
                 <div className="p-2">
-                  <Input placeholder="搜索设备..." className="mb-2" />
-                  <div className="max-h-60 overflow-auto">
-                    {mockDevices.map((device) => (
-                      <div
-                        key={device.id}
-                        className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer"
-                        onClick={() => toggleDeviceSelection(device)}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            checked={selectedDevices.some((d) => d.id === device.id)}
-                            onCheckedChange={() => toggleDeviceSelection(device)}
-                          />
-                          <span>{device.name}</span>
-                        </div>
-                        <span className={`text-xs ${device.status === "online" ? "text-green-500" : "text-gray-400"}`}>
-                          {device.status === "online" ? "在线" : "离线"}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="flex gap-2 mb-2">
+                    <Input 
+                      placeholder="搜索设备..." 
+                      value={searchKeyword}
+                      onChange={(e) => setSearchKeyword(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    />
+                    <Button variant="outline" size="icon" onClick={handleSearch}>
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
                   </div>
+                  
+                  {loadingDevices ? (
+                    <div className="flex justify-center items-center py-4">
+                      <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+                    </div>
+                  ) : deviceError ? (
+                    <div className="text-center text-red-500 py-4">
+                      {deviceError}
+                      <Button variant="outline" size="sm" onClick={loadDevices} className="ml-2">
+                        重试
+                      </Button>
+                    </div>
+                  ) : devices.length === 0 ? (
+                    <div className="text-center text-gray-500 py-4">
+                      没有找到设备
+                    </div>
+                  ) : (
+                    <div className="max-h-60 overflow-auto">
+                      {devices.map((device) => (
+                        <div
+                          key={device.id}
+                          className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer"
+                          onClick={() => toggleDeviceSelection(device)}
+                        >
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              checked={selectedDevices.some((d) => d.id === device.id)}
+                              onCheckedChange={() => toggleDeviceSelection(device)}
+                            />
+                            <span>{device.memo}</span>
+                          </div>
+                          <span className={`text-xs ${device.alive === 1 ? "text-green-500" : "text-gray-400"}`}>
+                            {device.alive === 1 ? "在线" : "离线"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
           </div>
+          
+          {selectedDevices.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {selectedDevices.map((device) => (
+                <div key={device.id} className="flex items-center bg-gray-100 rounded-full px-3 py-1">
+                  <span className="text-sm">{device.memo}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="ml-2 p-0"
+                    onClick={() => toggleDeviceSelection(device)}
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div>
@@ -239,7 +314,7 @@ export function FriendRequestSettings({ formData, onChange, onNext, onPrev }: Fr
         </div>
 
         {hasWarnings && (
-          <Alert variant="warning" className="bg-amber-50 border-amber-200">
+          <Alert variant="destructive" className="bg-amber-50 border-amber-200">
             <AlertCircle className="h-4 w-4 text-amber-500" />
             <AlertDescription>您有未完成的设置项，建议完善后再进入下一步。</AlertDescription>
           </Alert>

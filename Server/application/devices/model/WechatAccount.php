@@ -12,36 +12,6 @@ class WechatAccount extends Model
     // 设置表名
     protected $name = 'wechat_account';
     
-    // 设置主键
-    protected $pk = 'id';
-    
-    // 自动写入时间戳
-    protected $autoWriteTimestamp = 'datetime';
-    
-    // 定义时间戳字段名
-    protected $createTime = 'createTime';
-    protected $updateTime = 'updateTime';
-    
-    // 定义字段类型
-    protected $type = [
-        'id' => 'integer',
-        'deviceAccountId' => 'integer',
-        'keFuAlive' => 'integer',
-        'deviceAlive' => 'integer',
-        'wechatAlive' => 'integer',
-        'yesterdayMsgCount' => 'integer',
-        'sevenDayMsgCount' => 'integer',
-        'thirtyDayMsgCount' => 'integer',
-        'totalFriend' => 'integer',
-        'maleFriend' => 'integer',
-        'femaleFriend' => 'integer',
-        'gender' => 'integer',
-        'currentDeviceId' => 'integer',
-        'isDeleted' => 'integer',
-        'groupId' => 'integer',
-        'status' => 'integer'
-    ];
-    
     /**
      * 获取在线微信账号数量
      * 

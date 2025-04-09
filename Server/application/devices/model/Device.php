@@ -11,30 +11,7 @@ class Device extends Model
 {
     // 设置表名
     protected $name = 'device';
-    
-    // 设置主键
-    protected $pk = 'id';
-    
-    // 自动写入时间戳
-    protected $autoWriteTimestamp = 'int';
-    
-    // 定义时间戳字段名
-    protected $createTime = 'createTime';
-    protected $updateTime = 'updateTime';
-    protected $deleteTime = 'deleteTime';
-    
-    // 定义字段类型
-    protected $type = [
-        'id' => 'integer',
-        'createTime' => 'integer',
-        'updateTime' => 'integer',
-        'deleteTime' => 'integer',
-        'alive' => 'integer',
-        'isDeleted' => 'integer',
-        'tenantId' => 'integer',
-        'groupId' => 'integer'
-    ];
-    
+
     /**
      * 获取设备总数
      * @param array $where 查询条件

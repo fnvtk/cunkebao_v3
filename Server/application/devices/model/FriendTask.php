@@ -15,44 +15,6 @@ class FriendTask extends Model
     protected $table = 'tk_friend_task';
 
     /**
-     * 主键
-     * @var string
-     */
-    protected $pk = 'id';
-
-    /**
-     * 自动写入时间戳
-     * @var bool
-     */
-    protected $autoWriteTimestamp = true;
-
-    /**
-     * 创建时间字段
-     * @var string
-     */
-    protected $createTime = 'createTime';
-
-    /**
-     * 更新时间字段
-     * @var string
-     */
-    protected $updateTime = 'updateTime';
-
-    /**
-     * 字段类型
-     * @var array
-     */
-    protected $type = [
-        'id' => 'integer',
-        'tenantId' => 'integer',
-        'operatorAccountId' => 'integer',
-        'status' => 'integer',
-        'wechatAccountId' => 'integer',
-        'createTime' => 'integer',
-        'updateTime' => 'integer'
-    ];
-
-    /**
      * 状态常量
      */
     const STATUS_PENDING = 1;    // 待处理

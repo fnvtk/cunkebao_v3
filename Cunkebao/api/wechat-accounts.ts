@@ -65,9 +65,34 @@ export const transformWechatAccount = (serverAccount: any): import("@/types/wech
   let deviceName = '';
   
   if (serverAccount.deviceInfo) {
+    // 尝试解析设备信息字符串
     const deviceInfo = serverAccount.deviceInfo.split(' ');
-    deviceId = deviceInfo[0] || '';
-    deviceName = deviceInfo[1] ? deviceInfo[1].replace(/[()]/g, '') : '';
+    if (deviceInfo.length > 0) {
+      // 提取数字部分作为设备ID，确保是整数
+      const possibleId = deviceInfo[0].trim();
+      // 验证是否为数字
+      deviceId = /^\d+$/.test(possibleId) ? possibleId : '';
+      
+      // 提取设备名称
+      if (deviceInfo.length > 1) {
+        deviceName = deviceInfo[1] ? deviceInfo[1].replace(/[()]/g, '').trim() : '';
+      }
+    }
+  }
+  
+  // 如果从deviceInfo无法获取有效的设备ID，使用imei作为备选
+  if (!deviceId && serverAccount.imei) {
+    deviceId = serverAccount.imei;
+  }
+  
+  // 如果仍然没有设备ID，使用微信账号的ID作为最后的备选
+  if (!deviceId && serverAccount.id) {
+    deviceId = serverAccount.id.toString();
+  }
+  
+  // 如果没有设备名称，使用备用名称
+  if (!deviceName) {
+    deviceName = serverAccount.deviceMemo || '未命名设备';
   }
   
   // 假设每天最多可添加20个好友
@@ -102,14 +127,34 @@ export const transformWechatAccountDetail = (detailResponse: WechatAccountDetail
 
   const { basicInfo, statistics, accountInfo, restrictions, friends } = detailResponse.data;
   
-  // 设备信息处理
+  // 设备信息处理 - 改进处理方式
   let deviceId = '';
   let deviceName = '';
   
   if (basicInfo.deviceInfo) {
+    // 尝试解析设备信息字符串
     const deviceInfoParts = basicInfo.deviceInfo.split(' ');
-    deviceId = deviceInfoParts[0] || '';
-    deviceName = deviceInfoParts[1] ? deviceInfoParts[1].replace(/[()]/g, '') : '';
+    if (deviceInfoParts.length > 0) {
+      // 提取数字部分作为设备ID，确保是整数
+      const possibleId = deviceInfoParts[0].trim();
+      // 验证是否为数字
+      deviceId = /^\d+$/.test(possibleId) ? possibleId : '';
+      
+      // 提取设备名称
+      if (deviceInfoParts.length > 1) {
+        deviceName = deviceInfoParts[1].replace(/[()]/g, '').trim();
+      }
+    }
+  }
+  
+  // 如果从deviceInfo无法获取有效的设备ID，直接使用微信账号ID作为备选
+  if (!deviceId && basicInfo.id) {
+    deviceId = basicInfo.id.toString();
+  }
+  
+  // 如果没有设备名称，使用备用名称
+  if (!deviceName) {
+    deviceName = '未命名设备';
   }
   
   // 账号年龄计算

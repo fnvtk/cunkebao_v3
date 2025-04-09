@@ -10,28 +10,7 @@ class PlanScene extends Model
 {
     // 设置表名
     protected $name = 'plan_scene';
-    protected $prefix = 'tk_';
-    
-    // 设置主键
-    protected $pk = 'id';
-    
-    // 自动写入时间戳
-    protected $autoWriteTimestamp = 'int';
-    
-    // 定义时间戳字段名
-    protected $createTime = 'createTime';
-    protected $updateTime = 'updateTime';
-    protected $deleteTime = 'deleteTime';
-    
-    // 定义字段类型
-    protected $type = [
-        'id' => 'integer',
-        'status' => 'integer',
-        'createTime' => 'integer',
-        'updateTime' => 'integer',
-        'deleteTime' => 'integer'
-    ];
-    
+
     /**
      * 获取场景列表
      * 
@@ -60,16 +39,5 @@ class PlanScene extends Model
             'page' => $page,
             'limit' => $limit
         ];
-    }
-    
-    /**
-     * 获取单个场景信息
-     * 
-     * @param int $id 场景ID
-     * @return array|null 场景信息
-     */
-    public static function getSceneInfo($id)
-    {
-        return self::where('id', $id)->find();
     }
 } 

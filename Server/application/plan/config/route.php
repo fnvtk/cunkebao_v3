@@ -10,6 +10,10 @@ Route::group('v1/', function () {
     // 获客场景相关
     Route::group('plan/scenes', function () {
         Route::get('', 'app\\plan\\controller\\Scene@index');           // 获取场景列表
-        Route::get(':id', 'app\\plan\\controller\\Scene@read');         // 获取场景详情
+    });
+    
+    // 流量标签相关
+    Route::group('traffic/tags', function () {
+        Route::get('', 'app\\plan\\controller\\TrafficTag@index');      // 获取标签列表
     });
 })->middleware(['jwt']); 

@@ -11,23 +11,6 @@ class DeviceWechatLogin extends Model
     // 设置表名
     protected $name = 'device_wechat_login';
     
-    // 设置主键
-    protected $pk = 'id';
-    
-    // 自动写入时间戳
-    protected $autoWriteTimestamp = 'int';
-    
-    // 定义时间戳字段名
-    protected $createTime = 'createTime';
-    
-    // 定义字段类型
-    protected $type = [
-        'id' => 'integer',
-        'deviceId' => 'integer',
-        'companyId' => 'integer',
-        'createTime' => 'integer'
-    ];
-    
     /**
      * 查询设备关联的微信ID列表
      * @param int $deviceId 设备ID
