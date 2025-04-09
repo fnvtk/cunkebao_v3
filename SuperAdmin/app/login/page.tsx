@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { md5 } from "@/lib/utils"
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("")
+  const [account, setAccount] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -33,7 +33,7 @@ export default function LoginPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          account: username,
+          account,
           password: encryptedPassword
         }),
         credentials: "include"
@@ -70,12 +70,12 @@ export default function LoginPage() {
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">账号</Label>
+              <Label htmlFor="account">账号</Label>
               <Input
-                id="username"
+                id="account"
                 placeholder="请输入账号"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={account}
+                onChange={(e) => setAccount(e.target.value)}
                 required
               />
             </div>

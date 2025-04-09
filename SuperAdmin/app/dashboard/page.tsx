@@ -17,28 +17,26 @@ export default function DashboardPage() {
     const adminInfo = localStorage.getItem("admin_info")
     if (adminInfo) {
       try {
-        const { name } = JSON.parse(adminInfo)
-        setUserName(name || "管理员")
+        const userData = JSON.parse(adminInfo)
+        setUserName(userData.name || "管理员")
       } catch (err) {
         console.error("解析用户信息失败:", err)
+        setUserName("管理员")
       }
     }
 
     // 获取当前时间
     const hour = new Date().getHours()
-    let timeGreeting = ""
     
     if (hour >= 5 && hour < 12) {
-      timeGreeting = "上午好"
+      setGreeting("上午好")
     } else if (hour >= 12 && hour < 14) {
-      timeGreeting = "中午好"
+      setGreeting("中午好")
     } else if (hour >= 14 && hour < 18) {
-      timeGreeting = "下午好"
+      setGreeting("下午好")
     } else {
-      timeGreeting = "晚上好"
+      setGreeting("晚上好")
     }
-    
-    setGreeting(timeGreeting)
   }, [])
 
   return (
