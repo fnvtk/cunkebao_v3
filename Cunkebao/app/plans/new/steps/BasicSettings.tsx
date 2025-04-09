@@ -313,8 +313,8 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
   const handleDownloadTemplate = () => {
     // 直接从 public 目录下载文件
     const link = document.createElement("a")
-    link.href = "/订单导入模板.xls"
-    link.download = "订单导入模板.xls"
+    link.href = "/订单导入模板.csv"
+    link.download = "订单导入模板.csv"
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
