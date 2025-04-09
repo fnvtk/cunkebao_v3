@@ -11,12 +11,16 @@ class FriendTaskController extends BaseController
      * 获取添加好友记录列表
      * @return \think\response\Json
      */
-    public function getlist()
+    public function getlist($pageIndex,$pageSize,$authorization,$isJob = false)
     {
         // 获取授权token
-        $authorization = trim($this->request->header('authorization', ''));
+        $authorization = !empty($authorization) ? $authorization : trim($this->request->header('authorization', ''));
         if (empty($authorization)) {
-            return errorJson('缺少授权信息');
+            if($isJob){
+                return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
+            }else{
+                return errorJson('缺少授权信息');
+            }
         }
 
         try {
@@ -24,8 +28,8 @@ class FriendTaskController extends BaseController
             $params = [
                 'keyword' => $this->request->param('keyword', ''),
                 'status' => $this->request->param('status', ''),
-                'pageIndex' => $this->request->param('pageIndex', 0),
-                'pageSize' => $this->request->param('pageSize', 20)
+                'pageIndex' => !empty($pageIndex) ? $pageIndex :  $this->request->param('pageIndex', 0),
+                'pageSize' => !empty($pageSize) ? $pageSize :  $this->request->param('pageSize', 20),
             ];
 
             // 设置请求头
@@ -43,10 +47,17 @@ class FriendTaskController extends BaseController
                     $this->saveFriendTask($item);
                 }
             }
-            
-            return successJson($response);
+            if($isJob){
+                return json_encode(['code'=>200,'msg'=>'获取添加好友记录列表成功','data'=>$response]);
+            }else{
+                return successJson($response);
+            }
         } catch (\Exception $e) {
-            return errorJson('获取添加好友记录列表失败：' . $e->getMessage());
+            if($isJob){
+                return json_encode(['code'=>500,'msg'=>'获取添加好友记录列表失败：' . $e->getMessage()]);
+            }else{
+                return errorJson('获取添加好友记录列表失败：' . $e->getMessage());
+            }
         }
     }
 

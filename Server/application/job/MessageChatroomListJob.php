@@ -6,10 +6,10 @@ use think\queue\Job;
 use think\facade\Log;
 use think\Queue;
 use think\facade\Config;
-use app\api\controller\FriendTaskController;
+use app\api\controller\MessageController;
 use app\common\service\AuthService;
 
-class FriendTaskJob
+class MessageChatroomListJob
 {
     /**
      * 队列任务处理
@@ -21,23 +21,23 @@ class FriendTaskJob
     {
         try {
             // 如果任务执行成功后删除任务
-            if ($this->processFriendTask($data, $job->attempts())) {
+            if ($this->processMessageChatroomList($data, $job->attempts())) {
                 $job->delete();
-                Log::info('添加好友任务执行成功，页码：' . $data['pageIndex']);
+                Log::info('微信群聊消息列表任务执行成功，页码：' . $data['pageIndex']);
             } else {
                 if ($job->attempts() > 3) {
                     // 超过重试次数，删除任务
-                    Log::error('添加好友任务执行失败，已超过重试次数，页码：' . $data['pageIndex']);
+                    Log::error('微信群聊消息列表任务执行失败，已超过重试次数，页码：' . $data['pageIndex']);
                     $job->delete();
                 } else {
                     // 任务失败，重新放回队列
-                    Log::warning('添加好友任务执行失败，重试次数：' . $job->attempts() . '，页码：' . $data['pageIndex']);
+                    Log::warning('微信群聊消息列表任务执行失败，重试次数：' . $job->attempts() . '，页码：' . $data['pageIndex']);
                     $job->release(Config::get('queue.failed_delay', 10));
                 }
             }
         } catch (\Exception $e) {
             // 出现异常，记录日志
-            Log::error('添加好友任务异常：' . $e->getMessage());
+            Log::error('微信群聊消息列表任务异常：' . $e->getMessage());
             if ($job->attempts() > 3) {
                 $job->delete();
             } else {
@@ -47,21 +47,21 @@ class FriendTaskJob
     }
     
     /**
-     * 处理添加好友任务获取
+     * 处理微信群聊消息列表获取
      * @param array $data 任务数据
      * @param int $attempts 重试次数
      * @return bool
      */
-    protected function processFriendTask($data, $attempts)
+    protected function processMessageChatroomList($data, $attempts)
     {
         // 获取参数
         $pageIndex = isset($data['pageIndex']) ? $data['pageIndex'] : 0;
         $pageSize = isset($data['pageSize']) ? $data['pageSize'] : 100;
         
-        Log::info('开始获取添加好友任务，页码：' . $pageIndex . '，页大小：' . $pageSize);
+        Log::info('开始获取微信群聊消息列表，页码：' . $pageIndex . '，页大小：' . $pageSize);
         
         // 实例化控制器
-        $friendTaskController = new FriendTaskController();
+        $messageController = new MessageController();
         
         // 构建请求参数
         $params = [
@@ -81,7 +81,7 @@ class FriendTaskJob
         }
 
         // 调用添加好友任务获取方法
-        $result = $friendTaskController->getlist($pageIndex,$pageSize,$authorization,true);
+        $result = $messageController->getChatroomList($pageIndex,$pageSize,$authorization,true);
         $response = json_decode($result,true);
 
         
@@ -100,7 +100,7 @@ class FriendTaskJob
             return true;
         } else {
             $errorMsg = isset($response['msg']) ? $response['msg'] : '未知错误';
-            Log::error('获取添加好友任务失败：' . $errorMsg);
+            Log::error('获取微信群聊消息列表失败：' . $errorMsg);
             return false;
         }
     }
@@ -117,7 +117,7 @@ class FriendTaskJob
             'pageSize' => $pageSize
         ];
         
-        // 添加到队列，设置任务名为 friend_task
-        Queue::push(self::class, $data, 'friend_task');
+        // 添加到队列，设置任务名为 message_chatroom_list
+        Queue::push(self::class, $data, 'message_chatroom_list');
     }
 } 

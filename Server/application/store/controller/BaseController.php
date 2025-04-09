@@ -38,19 +38,18 @@ class BaseController extends Api
             $device = Db::name('device_user')
                 ->alias('du')
                 ->join('device d', 'd.id = du.deviceId','left')
+                ->join('wechat_account wa', 'd.id = wa.currentDeviceId','left')
                 ->where([
                     'du.userId' => $this->userInfo['id'],
                     'du.companyId' => $this->userInfo['companyId']
                 ])
-                ->field('d.*')
+                ->field('d.*,wa.id as wechatAccountId,wa.wechatId,wa.alias')
                 ->find();
-                
             // 将设备信息存入缓存
             if ($device) {
                 Cache::set($cacheKey, $device, $this->cacheExpire);
             }
         }
-
         $this->device = $device;
     }
     

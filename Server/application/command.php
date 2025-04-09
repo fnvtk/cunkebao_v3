@@ -16,4 +16,6 @@ return [
     'friendTask:list' => 'app\command\FriendTaskCommand', // 添加好友任务列表
     'wechatList:list' => 'app\command\WechatListCommand', // 微信客服列表
     'account:list' => 'app\command\AccountListCommand', // 公司账号列表
+    'message:friendsList' => 'app\command\MessageFriendsListCommand', // 微信好友列表
+    'message:chatroomList' => 'app\command\MessageChatroomListCommand', // 微信群聊列表
 ];

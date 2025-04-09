@@ -73,5 +73,11 @@ Route::group('v1', function () {
         Route::group('friend', function () {
             Route::get('list', 'app\\api\\controller\\WechatFriendController@getList'); // 获取微信好友列表数据 √
         });
+
+        // Message控制器路由
+        Route::group('message', function () {
+            Route::get('getFriendsList', 'app\\api\\controller\\MessageController@getFriendsList'); // 获取微信好友列表 √
+            Route::get('getChatroomList', 'app\\api\\controller\\MessageController@getChatroomList'); // 同步群聊消息 √
+        });
     });
 });

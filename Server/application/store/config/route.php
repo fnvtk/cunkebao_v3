@@ -30,4 +30,12 @@ Route::group('v1/store', function () {
         Route::get('switch-status', 'app\\store\\controller\\SystemConfigController@getSwitchStatus'); // 获取系统开关状态
         Route::post('update-switch-status', 'app\\store\\controller\\SystemConfigController@updateSwitchStatus'); // 更新系统开关状态
     });
+
+
+    // 数据统计相关路由
+    Route::group('statistics', function () {
+        Route::get('overview', 'app\\store\\controller\\StatisticsController@getOverview'); // 获取数据概览
+        Route::get('customer-analysis', 'app\\store\\controller\\StatisticsController@getCustomerAnalysis'); // 获取客户分析数据
+        Route::get('interaction-analysis', 'app\\store\\controller\\StatisticsController@getInteractionAnalysis'); // 获取互动分析数据
+    });
 })->middleware(['jwt']);
