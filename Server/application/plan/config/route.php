@@ -16,4 +16,9 @@ Route::group('v1/', function () {
     Route::group('traffic/tags', function () {
         Route::get('', 'app\\plan\\controller\\TrafficTag@index');      // 获取标签列表
     });
+
+    // 流量池相关
+    Route::group('traffic/pool', function () {
+        Route::post('import', 'app\\plan\\controller\\TrafficPool@importOrders');  // 导入订单标签
+    });
 })->middleware(['jwt']); 

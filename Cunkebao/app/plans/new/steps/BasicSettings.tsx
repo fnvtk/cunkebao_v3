@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { QrCode, X, ChevronDown, Plus, Maximize2, Upload, Download, Settings } from "lucide-react"
+import { QrCode, X, ChevronDown, Plus, Maximize2, Upload, Download, Settings, Loader2 } from "lucide-react"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import {
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog"
 import { fetchScenes } from "@/api/scenarios"
 import type { SceneItem } from "@/api/scenarios"
+import { toast } from "react-hot-toast"
 
 // 调整场景顺序，确保API获客在最后，并且前三个是最常用的场景
 const scenarios = [
@@ -154,6 +155,9 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
     speechToText: formData.phoneSettings?.speechToText ?? true,
     questionExtraction: formData.phoneSettings?.questionExtraction ?? true,
   })
+
+  const [isImporting, setIsImporting] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
 
   // 加载场景列表
   useEffect(() => {
@@ -321,6 +325,45 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
     onChange({ ...formData, phoneSettings })
     setIsPhoneSettingsOpen(false)
   }
+
+  const handleConfirmImport = async () => {
+    if (importedTags.length === 0) {
+      setImportError('请先导入数据');
+      return;
+    }
+
+    setIsImporting(true);
+    setImportError(null);
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/traffic/pool/import`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`, // 添加认证token
+        },
+        body: JSON.stringify({
+          mobile: importedTags.map(tag => tag.phone),
+          from: importedTags.map(tag => tag.source),
+          sceneId: formData.sceneId
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.code === 200) {
+        toast.success(`成功导入 ${result.data.success} 条数据`);
+        setIsImportDialogOpen(false);
+      } else {
+        setImportError(result.msg || '导入失败');
+      }
+    } catch (error) {
+      setImportError('导入失败，请稍后重试');
+      console.error('导入失败:', error);
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   return (
     <TooltipProvider>
@@ -752,46 +795,85 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
 
       {/* 订单导入对话框 */}
       <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>导入订单标签</DialogTitle>
+            <DialogTitle>导入订单</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <Input type="file" accept=".csv" onChange={handleFileImport} className="flex-1" />
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex-1">
+                <Input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={handleFileImport}
+                  className="hidden"
+                  id="file-upload"
+                />
+                <Label
+                  htmlFor="file-upload"
+                  className="cursor-pointer inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  选择文件
+                </Label>
+              </div>
+              <Button variant="outline" onClick={handleDownloadTemplate}>
+                <Download className="h-4 w-4 mr-2" />
+                下载模板
+              </Button>
             </div>
-            <div className="max-h-[400px] overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>电话号码</TableHead>
-                    <TableHead>来源</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {importedTags.map((tag, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{tag.phone}</TableCell>
-                      <TableCell>{tag.source}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+
+            {importedTags.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-sm font-medium mb-2">已导入 {importedTags.length} 条数据</h4>
+                <div className="max-h-[300px] overflow-auto border rounded-md">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>电话号码</TableHead>
+                        <TableHead>来源</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {importedTags.slice(0, 5).map((tag, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{tag.phone}</TableCell>
+                          <TableCell>{tag.source}</TableCell>
+                        </TableRow>
+                      ))}
+                      {importedTags.length > 5 && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-gray-500">
+                            还有 {importedTags.length - 5} 条数据未显示
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+
+            {importError && (
+              <div className="mt-4 text-red-500 text-sm">{importError}</div>
+            )}
+
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>
+                取消
+              </Button>
+              <Button onClick={handleConfirmImport} disabled={isImporting || importedTags.length === 0}>
+                {isImporting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    导入中...
+                  </>
+                ) : (
+                  '确认导入'
+                )}
+              </Button>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>
-              取消
-            </Button>
-            <Button
-              onClick={() => {
-                onChange({ ...formData, importedTags })
-                setIsImportDialogOpen(false)
-              }}
-            >
-              确认导入
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </TooltipProvider>
