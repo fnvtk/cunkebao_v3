@@ -16,8 +16,9 @@ if (!function_exists('requestCurl')) {
     /**
      * @param string $url 请求的链接
      * @param array $params 请求附带的参数
-     * @param string $method 请求的方式默认 GTE
+     * @param string $method 请求的方式, 支持GET, POST, PUT, DELETE等
      * @param array $header 头部
+     * @param string $type 数据类型，支持dataBuild、json等
      * @return bool|string
      */
     function requestCurl($url, $params = [], $method = 'GET', $header = [], $type = 'dataBuild')
@@ -26,19 +27,25 @@ if (!function_exists('requestCurl')) {
         if (!empty($url)) {
             try {
                 $ch = curl_init();
+                
+                // 处理GET请求的参数
                 if (strtoupper($method) == 'GET' && !empty($params)) {
                     $url = $url . '?' . dataBuild($params);
-                    curl_setopt($ch, CURLOPT_URL, $url);
-                } else {
-                    curl_setopt($ch, CURLOPT_URL, $url);
                 }
+                
+                curl_setopt($ch, CURLOPT_URL, $url);
                 curl_setopt($ch, CURLOPT_HEADER, 0);
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
                 curl_setopt($ch, CURLOPT_TIMEOUT, 30); //30秒超时
                 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
                 curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
-                if (strtoupper($method) == 'POST') {
-                    curl_setopt($ch, CURLOPT_POST, 1);
+                
+                // 处理不同的请求方法
+                if (strtoupper($method) != 'GET') {
+                    // 设置请求方法
+                    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, strtoupper($method));
+                    
+                    // 处理参数格式
                     if ($type == 'dataBuild') {
                         $params = dataBuild($params);
                     } elseif ($type == 'json') {
@@ -46,8 +53,11 @@ if (!function_exists('requestCurl')) {
                     } else {
                         $params = dataBuild($params);
                     }
+                    
+                    // 设置请求体
                     curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
                 }
+                
                 curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0); //是否验证对等证书,1则验证，0则不验证
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
                 $str = curl_exec($ch);
