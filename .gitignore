@@ -4,4 +4,5 @@
 vendor
 Backend/dist
 Backend/node_modules
-vue_store/*
+Store_vue/node_modules
+Store_vue/unpackage
