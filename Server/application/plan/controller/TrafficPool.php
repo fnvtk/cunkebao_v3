@@ -3,8 +3,6 @@ namespace app\plan\controller;
 
 use think\Controller;
 use think\facade\Request;
-use app\plan\model\TrafficPool as TrafficPoolModel;
-use app\plan\model\TrafficSource;
 
 /**
  * 流量池控制器
@@ -49,8 +47,6 @@ class TrafficPool extends Controller
                     'createTime' => time()
                 ];
             }
-
-            new
 
             return json([
                 'code' => 200,
