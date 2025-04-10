@@ -8,52 +8,58 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { md5 } from "@/lib/utils"
+import { md5, saveAdminInfo } from "@/lib/utils"
+import { login } from "@/lib/admin-api"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("")
+  const [account, setAccount] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
   const router = useRouter()
+  const { toast } = useToast()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setError("")
 
     try {
       // 对密码进行MD5加密
       const encryptedPassword = md5(password)
       
       // 调用登录接口
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          account: username,
-          password: encryptedPassword
-        }),
-        credentials: "include"
-      })
+      const result = await login(account, encryptedPassword)
 
-      const result = await response.json()
-
-      if (result.code === 200) {
-        // 保存用户信息到本地存储
-        localStorage.setItem("admin_info", JSON.stringify(result.data))
-        localStorage.setItem("admin_token", result.data.token)
+      if (result.code === 200 && result.data) {
+        // 保存管理员信息
+        saveAdminInfo(result.data)
+        
+        // 显示成功提示
+        toast({
+          title: "登录成功",
+          description: `欢迎回来，${result.data.name}`,
+          variant: "success",
+        })
         
         // 跳转到仪表盘
         router.push("/dashboard")
       } else {
-        setError(result.msg || "登录失败")
+        // 显示错误提示
+        toast({
+          title: "登录失败",
+          description: result.msg || "账号或密码错误",
+          variant: "destructive",
+        })
       }
     } catch (err) {
       console.error("登录失败:", err)
-      setError("网络错误，请稍后再试")
+      
+      // 显示错误提示
+      toast({
+        title: "登录失败",
+        description: "网络错误，请稍后再试",
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -65,17 +71,16 @@ export default function LoginPage() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl text-center">超级管理员后台</CardTitle>
           <CardDescription className="text-center">请输入您的账号和密码登录系统</CardDescription>
-          {error && <p className="text-sm text-red-500 text-center">{error}</p>}
         </CardHeader>
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">账号</Label>
+              <Label htmlFor="account">账号</Label>
               <Input
-                id="username"
+                id="account"
                 placeholder="请输入账号"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={account}
+                onChange={(e) => setAccount(e.target.value)}
                 required
               />
             </div>

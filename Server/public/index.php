@@ -12,7 +12,7 @@
 // [ 应用入口文件 ]
 namespace think;
 
-//处理跨域预检请求
+////处理跨域预检请求
 if($_SERVER['REQUEST_METHOD'] == 'OPTIONS'){
     //允许的源域名
     header("Access-Control-Allow-Origin: *");

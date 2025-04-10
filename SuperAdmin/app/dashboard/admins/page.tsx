@@ -1,15 +1,27 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Search, MoreHorizontal, Edit, Trash, UserPlus } from "lucide-react"
+import { Search, MoreHorizontal, Edit, Trash, UserPlus, Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { useToast } from "@/components/ui/use-toast"
+import { getAdministrators, deleteAdministrator, Administrator } from "@/lib/admin-api"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
-// Sample admin data
+// 保留原始示例数据，作为加载失败时的备用数据
 const adminsData = [
   {
     id: "1",
@@ -51,13 +63,124 @@ const adminsData = [
 
 export default function AdminsPage() {
   const [searchTerm, setSearchTerm] = useState("")
+  const [isLoading, setIsLoading] = useState(true)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [administrators, setAdministrators] = useState<Administrator[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize] = useState(10)
+  const { toast } = useToast()
+  
+  // 删除对话框状态
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [adminToDelete, setAdminToDelete] = useState<Administrator | null>(null)
 
-  const filteredAdmins = adminsData.filter(
-    (admin) =>
-      admin.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      admin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      admin.role.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  // 加载管理员列表
+  useEffect(() => {
+    fetchAdministrators()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage])
+
+  // 获取管理员列表
+  const fetchAdministrators = async (keyword: string = searchTerm) => {
+    setIsLoading(true)
+    try {
+      const response = await getAdministrators(currentPage, pageSize, keyword)
+      if (response.code === 200 && response.data) {
+        setAdministrators(response.data.list)
+        setTotalCount(response.data.total)
+      } else {
+        toast({
+          title: "获取管理员列表失败",
+          description: response.msg || "请稍后重试",
+          variant: "destructive",
+        })
+        // 加载失败时显示示例数据
+        setAdministrators(adminsData.map(admin => ({
+          ...admin,
+          id: Number(admin.id)
+        })) as Administrator[])
+        setTotalCount(adminsData.length)
+      }
+    } catch (error) {
+      console.error("获取管理员列表出错:", error)
+      toast({
+        title: "获取管理员列表失败",
+        description: "请检查网络连接后重试",
+        variant: "destructive",
+      })
+      // 加载失败时显示示例数据
+      setAdministrators(adminsData.map(admin => ({
+        ...admin,
+        id: Number(admin.id)
+      })) as Administrator[])
+      setTotalCount(adminsData.length)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // 处理搜索
+  const handleSearch = () => {
+    setCurrentPage(1) // 重置为第一页
+    fetchAdministrators()
+  }
+
+  // Enter键搜索
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSearch()
+    }
+  }
+
+  // 检查是否为超级管理员（id为1）
+  const isSuperAdmin = (id: number) => {
+    return id === 1
+  }
+  
+  // 打开删除确认对话框
+  const openDeleteDialog = (admin: Administrator) => {
+    setAdminToDelete(admin)
+    setDeleteDialogOpen(true)
+  }
+  
+  // 确认删除管理员
+  const confirmDelete = async () => {
+    if (!adminToDelete) return
+    
+    setIsDeleting(true)
+    try {
+      const response = await deleteAdministrator(adminToDelete.id)
+      
+      if (response.code === 200) {
+        toast({
+          title: "删除成功",
+          description: `管理员 ${adminToDelete.name} 已成功删除`,
+          variant: "success",
+        })
+        
+        // 重新获取管理员列表
+        fetchAdministrators()
+      } else {
+        toast({
+          title: "删除失败",
+          description: response.msg || "请稍后重试",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("删除管理员出错:", error)
+      toast({
+        title: "删除失败",
+        description: "请检查网络连接后重试",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+      setDeleteDialogOpen(false)
+      setAdminToDelete(null)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -79,8 +202,10 @@ export default function AdminsPage() {
             className="pl-8"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
           />
         </div>
+        <Button onClick={handleSearch}>搜索</Button>
       </div>
 
       <div className="rounded-md border">
@@ -97,8 +222,16 @@ export default function AdminsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredAdmins.length > 0 ? (
-              filteredAdmins.map((admin) => (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="h-24 text-center">
+                  <div className="flex justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : administrators.length > 0 ? (
+              administrators.map((admin) => (
                 <TableRow key={admin.id}>
                   <TableCell className="font-medium">{admin.username}</TableCell>
                   <TableCell>{admin.name}</TableCell>
@@ -130,9 +263,14 @@ export default function AdminsPage() {
                             <Edit className="mr-2 h-4 w-4" /> 编辑管理员
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
-                          <Trash className="mr-2 h-4 w-4" /> 删除管理员
-                        </DropdownMenuItem>
+                        {!isSuperAdmin(admin.id) && (
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => openDeleteDialog(admin)}
+                          >
+                            <Trash className="mr-2 h-4 w-4" /> 删除管理员
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -148,6 +286,59 @@ export default function AdminsPage() {
           </TableBody>
         </Table>
       </div>
+
+      {totalCount > pageSize && (
+        <div className="flex justify-center gap-2 mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1 || isLoading}
+          >
+            上一页
+          </Button>
+          <span className="py-2 px-4 text-sm">
+            第 {currentPage} 页 / 共 {Math.ceil(totalCount / pageSize)} 页
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((prev) => prev + 1)}
+            disabled={currentPage >= Math.ceil(totalCount / pageSize) || isLoading}
+          >
+            下一页
+          </Button>
+        </div>
+      )}
+      
+      {/* 删除确认对话框 */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除管理员</AlertDialogTitle>
+            <AlertDialogDescription>
+              您确定要删除管理员 "{adminToDelete?.name}" 吗？此操作无法撤销。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  删除中...
+                </>
+              ) : (
+                "确认删除"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
