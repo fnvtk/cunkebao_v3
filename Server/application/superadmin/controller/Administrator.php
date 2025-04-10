@@ -1,6 +1,7 @@
 <?php
 namespace app\superadmin\controller;
 
+use app\superadmin\model\AdministratorPermissions;
 use think\Controller;
 use app\superadmin\model\Administrator as AdminModel;
 
@@ -47,9 +48,9 @@ class Administrator extends Controller
                 'name' => $item->name,
                 'role' => $this->getRoleName($item->authId),
                 'status' => $item->status,
-                'createdAt' => $item->createTime,
-                'lastLogin' => !empty($item->lastLoginTime) ? date('Y-m-d H:i', $item->lastLoginTime) : '从未登录',
-                'permissions' => $this->getPermissions($item->authId)
+                'createdAt' => date('Y-m-d H:i:s', $item->createTime),
+                'lastLogin' => !empty($item->lastLoginTime) ? date('Y-m-d H:i:s', $item->lastLoginTime) : '从未登录',
+                'permissions' => $this->getPermissions($item->id)
             ];
         }
         
@@ -134,14 +135,133 @@ class Administrator extends Controller
      */
     private function getPermissions($authId)
     {
-        // 可以从权限表中查询，这里为演示简化处理
-        $permissions = [
-            1 => ['项目管理', '客户池', '管理员权限', '系统设置'],  // 超级管理员
-            2 => ['项目管理', '客户池'],                          // 项目管理员
-            3 => ['客户池'],                                     // 客户管理员
-            4 => []                                              // 普通管理员
+        $ids = AdministratorPermissions::getPermissions($authId);
+
+        if ($ids) {
+            return \app\superadmin\model\Menu::getMenusNameByIds($ids);
+        }
+
+        return [];
+    }
+
+    /**
+     * 更新管理员信息
+     * @return \think\response\Json
+     */
+    public function updateAdmin()
+    {
+        if (!$this->request->isPost()) {
+            return json(['code' => 405, 'msg' => '请求方法不允许']);
+        }
+        
+        // 获取当前登录的管理员信息
+        $currentAdmin = $this->request->adminInfo;
+        
+        // 获取请求参数
+        $id = $this->request->post('id/d');
+        $username = $this->request->post('username/s');
+        $name = $this->request->post('name/s');
+        $password = $this->request->post('password/s');
+        $permissionIds = $this->request->post('permissionIds/a');
+        
+        // 参数验证
+        if (empty($id) || empty($username) || empty($name)) {
+            return json(['code' => 400, 'msg' => '参数不完整']);
+        }
+        
+        // 判断是否有权限修改
+        if ($currentAdmin->id != 1 && $currentAdmin->id != $id) {
+            return json(['code' => 403, 'msg' => '您没有权限修改其他管理员']);
+        }
+        
+        // 查询管理员
+        $admin = AdminModel::where('id', $id)->where('deleteTime', 0)->find();
+        if (!$admin) {
+            return json(['code' => 404, 'msg' => '管理员不存在']);
+        }
+        
+        // 准备更新数据
+        $data = [
+            'account' => $username,
+            'name' => $name,
+            'updateTime' => time()
         ];
         
-        return isset($permissions[$authId]) ? $permissions[$authId] : [];
+        // 如果提供了密码，则更新密码
+        if (!empty($password)) {
+            $data['password'] = md5($password);
+        }
+        
+        // 更新管理员信息
+        $result = $admin->save($data);
+        
+        // 如果当前是超级管理员(ID为1)，并且修改的不是自己，则更新权限
+        if ($currentAdmin->id == 1 && $currentAdmin->id != $id && !empty($permissionIds)) {
+            \app\superadmin\model\AdministratorPermissions::savePermissions($id, $permissionIds);
+        }
+        
+        return json([
+            'code' => 200,
+            'msg' => '更新成功',
+            'data' => null
+        ]);
+    }
+
+    /**
+     * 添加管理员
+     * @return \think\response\Json
+     */
+    public function addAdmin()
+    {
+        if (!$this->request->isPost()) {
+            return json(['code' => 405, 'msg' => '请求方法不允许']);
+        }
+        
+        // 获取当前登录的管理员信息
+        $currentAdmin = $this->request->adminInfo;
+        
+        // 只有超级管理员(ID为1)可以添加管理员
+        if ($currentAdmin->id != 1) {
+            return json(['code' => 403, 'msg' => '您没有权限添加管理员']);
+        }
+        
+        // 获取请求参数
+        $username = $this->request->post('username/s');
+        $name = $this->request->post('name/s');
+        $password = $this->request->post('password/s');
+        $permissionIds = $this->request->post('permissionIds/a');
+        
+        // 参数验证
+        if (empty($username) || empty($name) || empty($password)) {
+            return json(['code' => 400, 'msg' => '参数不完整']);
+        }
+        
+        // 检查账号是否已存在
+        $exists = AdminModel::where('account', $username)->where('deleteTime', 0)->find();
+        if ($exists) {
+            return json(['code' => 400, 'msg' => '账号已存在']);
+        }
+        
+        // 创建管理员
+        $admin = new AdminModel();
+        $admin->account = $username;
+        $admin->name = $name;
+        $admin->password = md5($password);
+        $admin->status = 1;
+        $admin->createTime = time();
+        $admin->updateTime = time();
+        $admin->deleteTime = 0;
+        $admin->save();
+        
+        // 保存权限
+        if (!empty($permissionIds)) {
+            \app\superadmin\model\AdministratorPermissions::savePermissions($admin->id, $permissionIds);
+        }
+        
+        return json([
+            'code' => 200,
+            'msg' => '添加成功',
+            'data' => null
+        ]);
     }
 } 

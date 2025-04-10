@@ -12,19 +12,6 @@ class Menu extends Model
     // 设置数据表名
     protected $name = 'menus';
     
-    // 设置数据表前缀
-    protected $prefix = 'tk_';
-    
-    // 设置主键
-    protected $pk = 'id';
-    
-    // 自动写入时间戳
-    protected $autoWriteTimestamp = true;
-    
-    // 定义时间戳字段名
-    protected $createTime = 'create_time';
-    protected $updateTime = 'update_time';
-    
     /**
      * 获取所有菜单，并组织成树状结构
      * @param bool $onlyEnabled 是否只获取启用的菜单
@@ -34,11 +21,6 @@ class Menu extends Model
     public static function getMenuTree($onlyEnabled = true, $useCache = true)
     {
         $cacheKey = 'superadmin_menu_tree' . ($onlyEnabled ? '_enabled' : '_all');
-        
-        // 如果使用缓存并且缓存中有数据，则直接返回缓存数据
-//        if ($useCache && Cache::has($cacheKey)) {
-//            return Cache::get($cacheKey);
-//        }
         
         // 查询条件
         $where = [];
@@ -62,7 +44,12 @@ class Menu extends Model
         
         return $menuTree;
     }
-    
+
+    public static function getMenusNameByIds($ids)
+    {
+        return self::whereIn('id', $ids)->column('title');
+    }
+
     /**
      * 构建菜单树
      * @param array $menus 所有菜单
@@ -85,60 +72,60 @@ class Menu extends Model
         
         return $tree;
     }
-    
+
     /**
-     * 清除菜单缓存
+     * 根据权限ID获取相应的菜单树
+     * @param array $permissionIds 权限ID数组
+     * @param bool $onlyEnabled 是否只获取启用的菜单
+     * @return array
      */
-    public static function clearMenuCache()
+    public static function getMenuTreeByPermissions($permissionIds, $onlyEnabled = true)
     {
-        Cache::delete('superadmin_menu_tree_enabled');
-        Cache::delete('superadmin_menu_tree_all');
-    }
-    
-    /**
-     * 添加或更新菜单
-     * @param array $data 菜单数据
-     * @return bool
-     */
-    public static function saveMenu($data)
-    {
-        if (isset($data['id']) && $data['id'] > 0) {
-            // 更新
-            $menu = self::find($data['id']);
-            if (!$menu) {
-                return false;
+        // 如果没有权限，返回空数组
+        if (empty($permissionIds)) {
+            return [];
+        }
+        
+        // 查询条件
+        $where = [];
+        if ($onlyEnabled) {
+            $where[] = ['status', '=', 1];
+        }
+        
+        // 获取所有一级菜单（用户拥有权限的）
+        $topMenus = self::where($where)
+            ->where('parent_id', 0)
+            ->whereIn('id', $permissionIds)
+            ->order('sort', 'asc')
+            ->select()
+            ->toArray();
+        
+        // 菜单ID集合，用于获取子菜单
+        $menuIds = array_column($topMenus, 'id');
+        
+        // 获取所有子菜单
+        $childMenus = self::where($where)
+            ->where('parent_id', 'in', $menuIds)
+            ->order('sort', 'asc')
+            ->select()
+            ->toArray();
+        
+        // 将子菜单按照父ID进行分组
+        $childMenusGroup = [];
+        foreach ($childMenus as $menu) {
+            $childMenusGroup[$menu['parent_id']][] = $menu;
+        }
+        
+        // 构建菜单树
+        $menuTree = [];
+        foreach ($topMenus as $topMenu) {
+            // 添加子菜单
+            if (isset($childMenusGroup[$topMenu['id']])) {
+                $topMenu['children'] = $childMenusGroup[$topMenu['id']];
             }
-            $result = $menu->save($data);
-        } else {
-            // 新增
-            $menu = new self();
-            $result = $menu->save($data);
+            $menuTree[] = $topMenu;
         }
         
-        // 清除缓存
-        self::clearMenuCache();
-        
-        return $result !== false;
-    }
-    
-    /**
-     * 删除菜单
-     * @param int $id 菜单ID
-     * @return bool
-     */
-    public static function deleteMenu($id)
-    {
-        // 查找子菜单
-        $childCount = self::where('parent_id', $id)->count();
-        if ($childCount > 0) {
-            return false; // 有子菜单不能删除
-        }
-        
-        $result = self::destroy($id);
-        
-        // 清除缓存
-        self::clearMenuCache();
-        
-        return $result !== false;
+        return $menuTree;
     }
 } 

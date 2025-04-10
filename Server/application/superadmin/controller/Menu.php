@@ -17,10 +17,20 @@ class Menu extends Controller
     {
         // 参数处理
         $onlyEnabled = $this->request->param('only_enabled', 1);
-        $useCache = $this->request->param('use_cache', 1);
+        $useCache = $this->request->param('use_cache', 0); // 由于要根据用户权限过滤，默认不使用缓存
+        
+        // 获取当前登录的管理员信息
+        $adminInfo = $this->request->adminInfo;
         
         // 调用模型获取菜单树
-        $menuTree = MenuModel::getMenuTree($onlyEnabled, $useCache);
+        if ($adminInfo->id == 1) {
+            // 超级管理员获取所有菜单
+            $menuTree = MenuModel::getMenuTree($onlyEnabled, $useCache);
+        } else {
+            // 非超级管理员根据权限获取菜单
+            $permissionIds = \app\superadmin\model\AdministratorPermissions::getPermissions($adminInfo->id);
+            $menuTree = MenuModel::getMenuTreeByPermissions($permissionIds, $onlyEnabled);
+        }
         
         return json([
             'code' => 200,
@@ -147,5 +157,27 @@ class Menu extends Controller
         } else {
             return json(['code' => 500, 'msg' => '状态更新失败']);
         }
+    }
+    
+    /**
+     * 获取一级菜单（供权限设置使用）
+     * @return \think\response\Json
+     */
+    public function getTopLevelMenus()
+    {
+        // 获取所有启用的一级菜单
+        $menus = \app\superadmin\model\Menu::where([
+            ['parent_id', '=', 0],
+            ['status', '=', 1]
+        ])
+        ->field('id, title')
+        ->order('sort', 'asc')
+        ->select();
+        
+        return json([
+            'code' => 200,
+            'msg' => '获取成功',
+            'data' => $menus
+        ]);
     }
 } 

@@ -84,4 +84,41 @@ export async function getAdministrators(
  */
 export async function getAdministratorDetail(id: number | string): Promise<ApiResponse<AdministratorDetail>> {
   return apiRequest(`/administrator/detail/${id}`);
+}
+
+/**
+ * 更新管理员信息
+ * @param id 管理员ID
+ * @param data 更新的数据
+ * @returns 更新结果
+ */
+export async function updateAdministrator(
+  id: number | string,
+  data: {
+    username: string;
+    name: string;
+    password?: string;
+    permissionIds?: number[];
+  }
+): Promise<ApiResponse<null>> {
+  return apiRequest('/administrator/update', 'POST', {
+    id,
+    ...data
+  });
+}
+
+/**
+ * 添加管理员
+ * @param data 管理员数据
+ * @returns 添加结果
+ */
+export async function addAdministrator(
+  data: {
+    username: string;
+    name: string;
+    password: string;
+    permissionIds?: number[];
+  }
+): Promise<ApiResponse<null>> {
+  return apiRequest('/administrator/add', 'POST', data);
 } 

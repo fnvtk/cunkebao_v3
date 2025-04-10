@@ -25,6 +25,9 @@ export async function getMenus(onlyEnabled: boolean = true): Promise<MenuItem[]>
     const params = new URLSearchParams();
     params.append('only_enabled', onlyEnabled ? '1' : '0');
     
+    // 禁用缓存，每次都获取最新的基于用户权限的菜单
+    params.append('use_cache', '0');
+    
     const response = await apiRequest<MenuItem[]>(`/menu/tree?${params.toString()}`);
     
     return response.data || [];
@@ -106,5 +109,22 @@ export async function updateMenuStatus(id: number, status: 0 | 1): Promise<boole
   } catch (error) {
     console.error('更新菜单状态失败:', error);
     return false;
+  }
+}
+
+/**
+ * 获取一级菜单（用于权限设置）
+ * @returns 一级菜单列表
+ */
+export async function getTopLevelMenus(): Promise<ApiResponse<MenuItem[]>> {
+  try {
+    return await apiRequest<MenuItem[]>('/menu/toplevel');
+  } catch (error) {
+    console.error('获取一级菜单失败:', error);
+    return {
+      code: 500,
+      msg: '获取一级菜单失败',
+      data: []
+    };
   }
 } 
