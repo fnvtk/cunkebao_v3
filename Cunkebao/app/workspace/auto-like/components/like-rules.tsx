@@ -1,23 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Info, Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Clock } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-
-export interface TimeRange {
-  id: string
-  start: string
-  end: string
-}
+import { useViewMode } from "@/app/components/LayoutWrapper"
 
 export interface LikeRulesData {
   enableAutoLike: boolean
@@ -28,80 +21,30 @@ export interface LikeRulesData {
   keywordFilters: string[]
   friendGroups: string[]
   excludedGroups: string[]
-  timeRanges: TimeRange[]
+  timeRanges: { id: string; start: string; end: string }[]
   randomizeInterval: boolean
-  minInterval?: number
-  maxInterval?: number
+  minInterval: number
+  maxInterval: number
 }
 
 interface LikeRulesProps {
-  initialData?: Partial<LikeRulesData>
+  initialData: LikeRulesData
   onSave: (data: LikeRulesData) => void
 }
 
 export function LikeRules({ initialData, onSave }: LikeRulesProps) {
-  const [formData, setFormData] = useState<LikeRulesData>({
-    enableAutoLike: initialData?.enableAutoLike ?? true,
-    likeInterval: initialData?.likeInterval ?? 15,
-    maxLikesPerDay: initialData?.maxLikesPerDay ?? 50,
-    likeOldContent: initialData?.likeOldContent ?? false,
-    contentTypes: initialData?.contentTypes ?? ["text", "image", "video"],
-    keywordFilters: initialData?.keywordFilters ?? [],
-    friendGroups: initialData?.friendGroups ?? ["all"],
-    excludedGroups: initialData?.excludedGroups ?? [],
-    timeRanges: initialData?.timeRanges ?? [{ id: "1", start: "09:00", end: "11:00" }],
-    randomizeInterval: initialData?.randomizeInterval ?? false,
-    minInterval: initialData?.minInterval ?? 5,
-    maxInterval: initialData?.maxInterval ?? 30,
-  })
-
+  const [formData, setFormData] = useState<LikeRulesData>(initialData)
   const [newKeyword, setNewKeyword] = useState("")
+  const { viewMode } = useViewMode()
 
-  // 内容类型选项
-  const contentTypeOptions = [
-    { id: "text", label: "纯文字动态" },
-    { id: "image", label: "图片动态" },
-    { id: "video", label: "视频动态" },
-    { id: "link", label: "链接分享" },
-    { id: "original", label: "仅原创内容" },
-  ]
-
-  // 好友分组选项（模拟数据）
-  const friendGroupOptions = [
-    { id: "all", label: "所有好友" },
-    { id: "work", label: "工作相关" },
-    { id: "family", label: "亲友" },
-    { id: "clients", label: "客户" },
-    { id: "potential", label: "潜在客户" },
-  ]
-
-  // 添加时间范围
-  const addTimeRange = () => {
-    const newId = String(formData.timeRanges.length + 1)
-    setFormData({
-      ...formData,
-      timeRanges: [...formData.timeRanges, { id: newId, start: "12:00", end: "14:00" }],
-    })
+  const handleContentTypeToggle = (type: string) => {
+    const updatedTypes = formData.contentTypes.includes(type)
+      ? formData.contentTypes.filter((t) => t !== type)
+      : [...formData.contentTypes, type]
+    setFormData({ ...formData, contentTypes: updatedTypes })
   }
 
-  // 删除时间范围
-  const removeTimeRange = (id: string) => {
-    setFormData({
-      ...formData,
-      timeRanges: formData.timeRanges.filter((range) => range.id !== id),
-    })
-  }
-
-  // 更新时间范围
-  const updateTimeRange = (id: string, field: "start" | "end", value: string) => {
-    setFormData({
-      ...formData,
-      timeRanges: formData.timeRanges.map((range) => (range.id === id ? { ...range, [field]: value } : range)),
-    })
-  }
-
-  // 添加关键词
-  const addKeyword = () => {
+  const addKeywordFilter = () => {
     if (newKeyword.trim() && !formData.keywordFilters.includes(newKeyword.trim())) {
       setFormData({
         ...formData,
@@ -111,378 +54,276 @@ export function LikeRules({ initialData, onSave }: LikeRulesProps) {
     }
   }
 
-  // 删除关键词
-  const removeKeyword = (keyword: string) => {
+  const removeKeywordFilter = (keyword: string) => {
     setFormData({
       ...formData,
       keywordFilters: formData.keywordFilters.filter((k) => k !== keyword),
     })
   }
 
-  // 切换内容类型
-  const toggleContentType = (typeId: string) => {
+  const addTimeRange = () => {
+    const newId = String(formData.timeRanges.length + 1)
     setFormData({
       ...formData,
-      contentTypes: formData.contentTypes.includes(typeId)
-        ? formData.contentTypes.filter((id) => id !== typeId)
-        : [...formData.contentTypes, typeId],
+      timeRanges: [...formData.timeRanges, { id: newId, start: "09:00", end: "18:00" }],
     })
   }
 
-  // 切换好友分组
-  const toggleFriendGroup = (groupId: string) => {
-    if (groupId === "all") {
+  const updateTimeRange = (id: string, field: "start" | "end", value: string) => {
+    setFormData({
+      ...formData,
+      timeRanges: formData.timeRanges.map((range) => (range.id === id ? { ...range, [field]: value } : range)),
+    })
+  }
+
+  const removeTimeRange = (id: string) => {
+    if (formData.timeRanges.length > 1) {
       setFormData({
         ...formData,
-        friendGroups: ["all"],
-        excludedGroups: [],
+        timeRanges: formData.timeRanges.filter((range) => range.id !== id),
       })
-      return
     }
-
-    // 如果当前包含"all"，则移除它
-    let newGroups = formData.friendGroups.filter((id) => id !== "all")
-
-    if (formData.friendGroups.includes(groupId)) {
-      newGroups = newGroups.filter((id) => id !== groupId)
-      // 如果没有选择任何组，默认回到"all"
-      if (newGroups.length === 0) {
-        newGroups = ["all"]
-      }
-    } else {
-      newGroups.push(groupId)
-    }
-
-    setFormData({
-      ...formData,
-      friendGroups: newGroups,
-    })
-  }
-
-  // 切换排除分组
-  const toggleExcludedGroup = (groupId: string) => {
-    setFormData({
-      ...formData,
-      excludedGroups: formData.excludedGroups.includes(groupId)
-        ? formData.excludedGroups.filter((id) => id !== groupId)
-        : [...formData.excludedGroups, groupId],
-    })
-  }
-
-  // 处理表单提交
-  const handleSubmit = () => {
-    onSave(formData)
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>点赞规则设置</CardTitle>
-          <CardDescription>设定自动点赞的规则和时间间隔</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* 基本设置 */}
-          <div className="space-y-4">
+    <Card className="mb-6">
+      <CardContent className="pt-6">
+        <div className={`space-y-6 ${viewMode === "desktop" ? "p-6" : "p-4"}`}>
+          <div className={`grid ${viewMode === "desktop" ? "grid-cols-2 gap-8" : "grid-cols-1 gap-4"}`}>
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Label htmlFor="enableAutoLike" className="font-medium">
+              <div>
+                <Label htmlFor="enable-auto-like" className="text-base font-medium">
                   启用自动点赞
                 </Label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>开启后系统将根据设置自动为朋友圈点赞</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <p className="text-sm text-muted-foreground">开启后，系统将按照设定的规则自动点赞</p>
               </div>
               <Switch
-                id="enableAutoLike"
+                id="enable-auto-like"
                 checked={formData.enableAutoLike}
                 onCheckedChange={(checked) => setFormData({ ...formData, enableAutoLike: checked })}
               />
             </div>
 
             <div className="space-y-2">
+              <Label className="text-base font-medium">内容类型</Label>
+              <p className="text-sm text-muted-foreground mb-2">选择需要自动点赞的内容类型</p>
+              <div className="flex flex-wrap gap-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="text-content"
+                    checked={formData.contentTypes.includes("text")}
+                    onCheckedChange={() => handleContentTypeToggle("text")}
+                  />
+                  <label htmlFor="text-content" className="text-sm">
+                    文字
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="image-content"
+                    checked={formData.contentTypes.includes("image")}
+                    onCheckedChange={() => handleContentTypeToggle("image")}
+                  />
+                  <label htmlFor="image-content" className="text-sm">
+                    图片
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="video-content"
+                    checked={formData.contentTypes.includes("video")}
+                    onCheckedChange={() => handleContentTypeToggle("video")}
+                  />
+                  <label htmlFor="video-content" className="text-sm">
+                    视频
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="max-likes" className="text-base font-medium">
+                每日最大点赞数
+              </Label>
+              <p className="text-sm text-muted-foreground mb-2">设置每日最多点赞次数，建议不超过100次</p>
+              <div className="flex items-center gap-4">
+                <Slider
+                  id="max-likes"
+                  value={[formData.maxLikesPerDay]}
+                  min={10}
+                  max={150}
+                  step={5}
+                  onValueChange={(value) => setFormData({ ...formData, maxLikesPerDay: value[0] })}
+                  className="flex-1"
+                />
+                <div className="bg-primary text-primary-foreground rounded-md px-3 py-1 font-medium min-w-[60px] text-center">
+                  {formData.maxLikesPerDay}次
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="like-interval" className="text-base font-medium">
+                点赞间隔
+              </Label>
+              <p className="text-sm text-muted-foreground mb-2">设置点赞之间的时间间隔（分钟）</p>
+              <div className="flex items-center gap-4">
+                <Slider
+                  id="like-interval"
+                  value={[formData.likeInterval]}
+                  min={1}
+                  max={60}
+                  step={1}
+                  onValueChange={(value) => setFormData({ ...formData, likeInterval: value[0] })}
+                  className="flex-1"
+                />
+                <div className="bg-primary text-primary-foreground rounded-md px-3 py-1 font-medium min-w-[60px] text-center">
+                  {formData.likeInterval}分钟
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="intervalType" className="font-medium">
-                  点赞间隔设置
-                </Label>
-                <Select
-                  value={formData.randomizeInterval ? "random" : "fixed"}
-                  onValueChange={(value) => setFormData({ ...formData, randomizeInterval: value === "random" })}
-                  disabled={!formData.enableAutoLike}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="选择间隔类型" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="fixed">固定间隔</SelectItem>
-                    <SelectItem value="random">随机间隔</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div>
+                  <Label htmlFor="randomize-interval" className="text-base font-medium">
+                    随机化间隔
+                  </Label>
+                  <p className="text-sm text-muted-foreground">开启后，系统将在设定范围内随机选择点赞间隔</p>
+                </div>
+                <Switch
+                  id="randomize-interval"
+                  checked={formData.randomizeInterval}
+                  onCheckedChange={(checked) => setFormData({ ...formData, randomizeInterval: checked })}
+                />
               </div>
 
-              {formData.randomizeInterval ? (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="minInterval" className="text-sm">
-                        最小间隔（分钟）
-                      </Label>
-                      <span className="text-sm text-muted-foreground">{formData.minInterval}分钟</span>
-                    </div>
-                    <Slider
-                      id="minInterval"
+              {formData.randomizeInterval && (
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                  <div>
+                    <Label htmlFor="min-interval">最小间隔（分钟）</Label>
+                    <Input
+                      id="min-interval"
+                      type="number"
+                      value={formData.minInterval}
+                      onChange={(e) => setFormData({ ...formData, minInterval: Number.parseInt(e.target.value) || 1 })}
                       min={1}
-                      max={30}
-                      step={1}
-                      value={[formData.minInterval || 5]}
-                      onValueChange={(value) => setFormData({ ...formData, minInterval: value[0] })}
-                      disabled={!formData.enableAutoLike}
+                      className="mt-1"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="maxInterval" className="text-sm">
-                        最大间隔（分钟）
-                      </Label>
-                      <span className="text-sm text-muted-foreground">{formData.maxInterval}分钟</span>
-                    </div>
-                    <Slider
-                      id="maxInterval"
-                      min={formData.minInterval || 5}
-                      max={120}
-                      step={1}
-                      value={[formData.maxInterval || 30]}
-                      onValueChange={(value) => setFormData({ ...formData, maxInterval: value[0] })}
-                      disabled={!formData.enableAutoLike}
+                  <div>
+                    <Label htmlFor="max-interval">最大间隔（分钟）</Label>
+                    <Input
+                      id="max-interval"
+                      type="number"
+                      value={formData.maxInterval}
+                      onChange={(e) => setFormData({ ...formData, maxInterval: Number.parseInt(e.target.value) || 1 })}
+                      min={formData.minInterval + 1}
+                      className="mt-1"
                     />
                   </div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="likeInterval" className="text-sm">
-                      点赞间隔（分钟）
-                    </Label>
-                    <span className="text-sm text-muted-foreground">{formData.likeInterval}分钟</span>
-                  </div>
-                  <Slider
-                    id="likeInterval"
-                    min={1}
-                    max={60}
-                    step={1}
-                    value={[formData.likeInterval]}
-                    onValueChange={(value) => setFormData({ ...formData, likeInterval: value[0] })}
-                    disabled={!formData.enableAutoLike}
-                  />
                 </div>
               )}
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="maxLikesPerDay" className="font-medium">
-                  每日最大点赞数
-                </Label>
-                <span className="text-sm text-muted-foreground">{formData.maxLikesPerDay}个</span>
+              <Label className="text-base font-medium">时间范围</Label>
+              <p className="text-sm text-muted-foreground mb-2">设置自动点赞的时间段</p>
+
+              <div className="space-y-4">
+                {formData.timeRanges.map((range) => (
+                  <div key={range.id} className="flex items-center space-x-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="time"
+                      value={range.start}
+                      onChange={(e) => updateTimeRange(range.id, "start", e.target.value)}
+                      className="w-32"
+                    />
+                    <span>至</span>
+                    <Input
+                      type="time"
+                      value={range.end}
+                      onChange={(e) => updateTimeRange(range.id, "end", e.target.value)}
+                      className="w-32"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeTimeRange(range.id)}
+                      disabled={formData.timeRanges.length <= 1}
+                      className="ml-auto"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+
+                <Button variant="outline" size="sm" onClick={addTimeRange} className="mt-2">
+                  <Plus className="h-4 w-4 mr-2" />
+                  添加时间段
+                </Button>
               </div>
-              <Slider
-                id="maxLikesPerDay"
-                min={10}
-                max={200}
-                step={10}
-                value={[formData.maxLikesPerDay]}
-                onValueChange={(value) => setFormData({ ...formData, maxLikesPerDay: value[0] })}
-                disabled={!formData.enableAutoLike}
-              />
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Label htmlFor="likeOldContent" className="font-medium">
-                  点赞历史内容
-                </Label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>开启后系统将点赞好友的历史朋友圈内容</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+            <div className="space-y-2">
+              <Label className="text-base font-medium">关键词过滤</Label>
+              <p className="text-sm text-muted-foreground mb-2">添加包含特定关键词的内容才会被点赞</p>
+
+              <div className="flex space-x-2 mb-2">
+                <Input
+                  value={newKeyword}
+                  onChange={(e) => setNewKeyword(e.target.value)}
+                  placeholder="输入关键词"
+                  className="flex-1"
+                  onKeyDown={(e) => e.key === "Enter" && addKeywordFilter()}
+                />
+                <Button onClick={addKeywordFilter} variant="secondary">
+                  添加
+                </Button>
               </div>
-              <Switch
-                id="likeOldContent"
-                checked={formData.likeOldContent}
-                onCheckedChange={(checked) => setFormData({ ...formData, likeOldContent: checked })}
-                disabled={!formData.enableAutoLike}
-              />
-            </div>
-          </div>
 
-          {/* 内容类型设置 */}
-          <div className="space-y-3 pt-4 border-t">
-            <Label className="font-medium">点赞内容类型</Label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {contentTypeOptions.map((type) => (
-                <div key={type.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`content-${type.id}`}
-                    checked={formData.contentTypes.includes(type.id)}
-                    onCheckedChange={() => toggleContentType(type.id)}
-                    disabled={!formData.enableAutoLike}
-                  />
-                  <Label htmlFor={`content-${type.id}`} className="text-sm">
-                    {type.label}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 关键词过滤 */}
-          <div className="space-y-3 pt-4 border-t">
-            <Label className="font-medium">关键词过滤</Label>
-            <div className="flex space-x-2">
-              <Input
-                placeholder="输入关键词"
-                value={newKeyword}
-                onChange={(e) => setNewKeyword(e.target.value)}
-                className="flex-1"
-                disabled={!formData.enableAutoLike}
-              />
-              <Button type="button" onClick={addKeyword} disabled={!formData.enableAutoLike || !newKeyword.trim()}>
-                添加
-              </Button>
-            </div>
-            {formData.keywordFilters.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
+                {formData.keywordFilters.length === 0 && (
+                  <span className="text-sm text-muted-foreground">未设置关键词过滤</span>
+                )}
+
                 {formData.keywordFilters.map((keyword) => (
                   <Badge key={keyword} variant="secondary" className="flex items-center gap-1">
                     {keyword}
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-4 w-4 p-0 hover:bg-transparent"
-                      onClick={() => removeKeyword(keyword)}
-                      disabled={!formData.enableAutoLike}
+                      className="h-4 w-4 p-0 ml-1"
+                      onClick={() => removeKeywordFilter(keyword)}
                     >
                       <Trash2 className="h-3 w-3" />
-                      <span className="sr-only">Remove</span>
                     </Button>
                   </Badge>
                 ))}
               </div>
-            )}
-            <p className="text-xs text-muted-foreground">添加关键词后，系统将只对包含这些关键词的内容进行点赞</p>
-          </div>
-
-          {/* 好友分组设置 */}
-          <div className="space-y-3 pt-4 border-t">
-            <Label className="font-medium">好友分组筛选</Label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {friendGroupOptions.map((group) => (
-                <div key={group.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`group-${group.id}`}
-                    checked={formData.friendGroups.includes(group.id)}
-                    onCheckedChange={() => toggleFriendGroup(group.id)}
-                    disabled={!formData.enableAutoLike || (group.id !== "all" && formData.friendGroups.includes("all"))}
-                  />
-                  <Label htmlFor={`group-${group.id}`} className="text-sm">
-                    {group.label}
-                  </Label>
-                </div>
-              ))}
             </div>
 
-            {!formData.friendGroups.includes("all") && (
-              <div className="mt-4">
-                <Label className="font-medium text-sm">排除分组</Label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-                  {friendGroupOptions
-                    .filter((group) => group.id !== "all" && !formData.friendGroups.includes(group.id))
-                    .map((group) => (
-                      <div key={`exclude-${group.id}`} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`exclude-${group.id}`}
-                          checked={formData.excludedGroups.includes(group.id)}
-                          onCheckedChange={() => toggleExcludedGroup(group.id)}
-                          disabled={!formData.enableAutoLike}
-                        />
-                        <Label htmlFor={`exclude-${group.id}`} className="text-sm">
-                          {group.label}
-                        </Label>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* 时间范围设置 */}
-          <div className="space-y-3 pt-4 border-t">
             <div className="flex items-center justify-between">
-              <Label className="font-medium">点赞时间段</Label>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={addTimeRange}
-                disabled={!formData.enableAutoLike || formData.timeRanges.length >= 5}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                添加时间段
-              </Button>
+              <div>
+                <Label htmlFor="like-old-content" className="text-base font-medium">
+                  点赞历史内容
+                </Label>
+                <p className="text-sm text-muted-foreground">开启后，系统会点赞朋友圈中较旧的内容</p>
+              </div>
+              <Switch
+                id="like-old-content"
+                checked={formData.likeOldContent}
+                onCheckedChange={(checked) => setFormData({ ...formData, likeOldContent: checked })}
+              />
             </div>
-
-            <div className="space-y-3">
-              {formData.timeRanges.map((range) => (
-                <div key={range.id} className="flex items-center space-x-2">
-                  <Input
-                    type="time"
-                    value={range.start}
-                    onChange={(e) => updateTimeRange(range.id, "start", e.target.value)}
-                    className="w-32"
-                    disabled={!formData.enableAutoLike}
-                  />
-                  <span>至</span>
-                  <Input
-                    type="time"
-                    value={range.end}
-                    onChange={(e) => updateTimeRange(range.id, "end", e.target.value)}
-                    className="w-32"
-                    disabled={!formData.enableAutoLike}
-                  />
-                  {formData.timeRanges.length > 1 && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeTimeRange(range.id)}
-                      disabled={!formData.enableAutoLike}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground">设置点赞的时间段，系统将在这些时间段内执行点赞任务</p>
           </div>
-        </CardContent>
-      </Card>
 
-      <div className="flex justify-end">
-        <Button onClick={handleSubmit}>保存并继续</Button>
-      </div>
-    </div>
+          <Button className="w-full" onClick={() => onSave(formData)}>
+            下一步
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
-

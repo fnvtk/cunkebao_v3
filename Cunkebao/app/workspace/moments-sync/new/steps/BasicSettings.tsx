@@ -61,7 +61,9 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
             >
               <Minus className="h-4 w-4" />
             </Button>
-            <span className="w-12 text-center">{formData.syncCount}</span>
+            <span className="w-12 text-center bg-primary text-primary-foreground rounded-md px-3 py-1 font-medium">
+              {formData.syncCount}
+            </span>
             <Button
               variant="outline"
               size="icon"
@@ -135,4 +137,3 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
     </Card>
   )
 }
-

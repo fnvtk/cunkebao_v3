@@ -46,4 +46,13 @@ Route::group('v1/', function () {
     Route::group('traffic/pool', function () {
         Route::post('import', 'app\\cunkebao\\controller\\TrafficPool@importOrders');  // 导入订单标签
     });
+
+    // 工作台相关
+    Route::group('workbench', function () {
+        Route::post('create', 'app\\cunkebao\\controller\\WorkbenchController@create'); // 创建工作台
+        Route::get('list', 'app\\cunkebao\\controller\\WorkbenchController@getList'); // 获取工作台列表
+        Route::post('update-status', 'app\\cunkebao\\controller\\WorkbenchController@updateStatus'); // 更新工作台状态
+        Route::delete('delete', 'app\\cunkebao\\controller\\WorkbenchController@delete'); // 删除工作台
+        Route::post('copy', 'app\\cunkebao\\controller\\WorkbenchController@copy'); // 拷贝工作台
+    });
 })->middleware(['jwt']);

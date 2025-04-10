@@ -1,75 +1,51 @@
 "use client"
 
-import { CheckIcon } from "lucide-react"
-import { cn } from "@/app/lib/utils"
+import { Check } from "lucide-react"
 
-interface Step {
-  id: string
-  name: string
-  description?: string
-}
-
-interface StepIndicatorProps {
-  steps: Step[]
+interface StepProps {
   currentStep: number
-  onStepClick?: (index: number) => void
 }
 
-export function StepIndicator({ steps, currentStep, onStepClick }: StepIndicatorProps) {
-  return (
-    <div className="w-full">
-      <ol className="flex items-center w-full">
-        {steps.map((step, index) => {
-          const isCompleted = index < currentStep
-          const isCurrent = index === currentStep
-          const isClickable = onStepClick && index <= currentStep
+export function StepIndicator({ currentStep }: StepProps) {
+  const steps = [
+    { title: "基础设置", description: "设置点赞规则" },
+    { title: "设备选择", description: "选择执行设备" },
+    { title: "人群选择", description: "选择目标人群" },
+  ]
 
-          return (
-            <li
-              key={step.id}
-              className={cn("flex items-center space-x-2.5 flex-1", index !== steps.length - 1 ? "relative" : "")}
-            >
-              <span
-                className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-full shrink-0 text-sm font-medium",
-                  isCompleted
-                    ? "bg-primary text-primary-foreground"
-                    : isCurrent
-                      ? "bg-primary/20 text-primary border border-primary"
-                      : "bg-muted text-muted-foreground",
-                  isClickable ? "cursor-pointer" : "",
-                )}
-                onClick={() => isClickable && onStepClick(index)}
+  return (
+    <div className="px-6">
+      <div className="relative">
+        <div className="flex items-center justify-between">
+          {steps.map((step, index) => (
+            <div key={index} className="flex flex-col items-center relative z-10">
+              <div
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${
+                  index < currentStep
+                    ? "bg-blue-600 text-white"
+                    : index === currentStep
+                      ? "border-2 border-blue-600 text-blue-600"
+                      : "border-2 border-gray-300 text-gray-300"
+                }`}
               >
-                {isCompleted ? <CheckIcon className="w-5 h-5" /> : index + 1}
-              </span>
-              <span>
-                <h3
-                  className={cn(
-                    "font-medium leading-tight",
-                    isCompleted || isCurrent ? "text-primary" : "text-muted-foreground",
-                  )}
-                >
-                  {step.name}
-                </h3>
-                {step.description && (
-                  <p className="text-sm text-muted-foreground hidden md:block">{step.description}</p>
-                )}
-              </span>
-              {index !== steps.length - 1 && (
-                <div
-                  className={cn(
-                    "absolute top-4 left-8 -translate-y-1/2 w-full h-0.5",
-                    isCompleted ? "bg-primary" : "bg-muted",
-                  )}
-                  style={{ width: "calc(100% - 2rem)" }}
-                ></div>
-              )}
-            </li>
-          )
-        })}
-      </ol>
+                {index < currentStep ? <Check className="w-5 h-5" /> : index + 1}
+              </div>
+              <div className="text-center mt-2">
+                <div className={`text-sm font-medium ${index <= currentStep ? "text-gray-900" : "text-gray-400"}`}>
+                  {step.title}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">{step.description}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="absolute top-4 left-0 w-full h-0.5 bg-gray-200 -translate-y-1/2 z-0">
+          <div
+            className="absolute top-0 left-0 h-full bg-blue-600 transition-all duration-300"
+            style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
+          ></div>
+        </div>
+      </div>
     </div>
   )
 }
-

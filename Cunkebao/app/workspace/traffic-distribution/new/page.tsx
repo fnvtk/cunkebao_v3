@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { TrafficPoolSelector } from "@/app/components/traffic-pool-selector"
 import { Checkbox } from "@/components/ui/checkbox"
+import { toast } from "@/components/ui/use-toast"
 
 export default function NewTrafficDistributionPage() {
   const router = useRouter()
@@ -50,7 +51,38 @@ export default function NewTrafficDistributionPage() {
   }
 
   const handleNext = () => {
-    setCurrentStep((prev) => prev + 1)
+    if (currentStep === 1 && !formData.name) {
+      toast({
+        title: "请填写规则名称",
+        description: "规则名称为必填项",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (currentStep === 2 && !formData.allDevices && (!formData.targetDevices || formData.targetDevices.length === 0)) {
+      toast({
+        title: "请选择设备",
+        description: "请选择至少一台设备或选择所有设备",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (currentStep === 3 && !formData.selectedPool) {
+      toast({
+        title: "请选择流量池",
+        description: "请选择一个流量池进行分发",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (currentStep < 3) {
+      setCurrentStep((prev) => prev + 1)
+    } else {
+      handleSubmit()
+    }
   }
 
   const handleBack = () => {
@@ -62,14 +94,12 @@ export default function NewTrafficDistributionPage() {
   }
 
   const handleSubmit = () => {
-    // 这里处理表单提交逻辑
-    console.log("提交表单数据:", formData)
+    toast({
+      title: "创建成功",
+      description: "流量分发规则已创建",
+    })
     router.push("/workspace/traffic-distribution")
   }
-
-  const isStep1Valid = formData.name && formData.source
-  const isStep2Valid = formData.targetGroups.length > 0 || formData.targetDevices.length > 0
-  const isStep3Valid = true // 规则设置可以有默认值
 
   return (
     <div className="flex-1 bg-white min-h-screen">
@@ -118,7 +148,7 @@ export default function NewTrafficDistributionPage() {
           </div>
         </div>
 
-        {/* 步骤1：基本信息 */}
+        {/* 步骤1：规则设定 */}
         {currentStep === 1 && (
           <Card>
             <CardHeader>
@@ -210,7 +240,7 @@ export default function NewTrafficDistributionPage() {
               )}
 
               <div className="pt-4 flex justify-end">
-                <Button onClick={handleNext} disabled={!formData.name}>
+                <Button onClick={handleNext}>
                   下一步
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -219,7 +249,7 @@ export default function NewTrafficDistributionPage() {
           </Card>
         )}
 
-        {/* 步骤2：目标设置 */}
+        {/* 步骤2：选择设备 */}
         {currentStep === 2 && (
           <Card>
             <CardHeader>
@@ -282,10 +312,7 @@ export default function NewTrafficDistributionPage() {
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   上一步
                 </Button>
-                <Button
-                  onClick={handleNext}
-                  disabled={!formData.allDevices && (!formData.targetDevices || formData.targetDevices.length === 0)}
-                >
+                <Button onClick={handleNext}>
                   下一步
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -294,7 +321,7 @@ export default function NewTrafficDistributionPage() {
           </Card>
         )}
 
-        {/* 步骤3：规则配置 */}
+        {/* 步骤3：选择流量池 */}
         {currentStep === 3 && (
           <Card>
             <CardHeader>
@@ -422,4 +449,3 @@ export default function NewTrafficDistributionPage() {
     </div>
   )
 }
-

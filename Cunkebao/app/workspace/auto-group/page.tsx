@@ -1,19 +1,16 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, ArrowLeft } from "lucide-react"
-import { StepIndicator } from "./components/step-indicator"
-import { GroupSettings } from "./components/group-settings"
-import { DeviceSelection } from "./components/device-selection"
-import { TagSelection } from "./components/tag-selection"
-import { useToast } from "@/components/ui/use-toast"
-
-// 保留原有的卡片列表视图
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ChevronLeft, Plus, Filter, Search, RefreshCw, MoreVertical, Clock, Edit, Trash2, Eye } from "lucide-react"
+import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
-import { Users, Settings, RefreshCcw } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Switch } from "@/components/ui/switch"
+import { Users, Settings } from "lucide-react"
 
 interface Plan {
   id: string
@@ -49,97 +46,30 @@ const mockPlans: Plan[] = [
   },
 ]
 
-const steps = [
-  { title: "群配置", description: "设置群人数与组数" },
-  { title: "设备选择", description: "选择执行设备" },
-  { title: "人群标签", description: "选择目标人群" },
-]
-
 export default function AutoGroupPage() {
+  const router = useRouter()
   const [isCreating, setIsCreating] = useState(false)
-  const [currentStep, setCurrentStep] = useState(0)
-  const { toast } = useToast()
+  const [plans, setPlans] = useState(mockPlans)
 
-  const [formData, setFormData] = useState({
-    name: "新建群计划",
-    fixedWechatIds: [] as string[],
-    groupingOption: "all" as "all" | "fixed",
-    fixedGroupCount: 5,
-    selectedDevices: [] as string[],
-    audienceTags: [] as string[],
-    trafficTags: [] as string[],
-    matchLogic: "or" as "and" | "or",
-    excludeTags: ["已拉群"] as string[],
-  })
+  const handleDelete = (planId: string) => {
+    setPlans(plans.filter((plan) => plan.id !== planId))
+  }
 
-  const handleStepClick = useCallback((step: number) => {
-    setCurrentStep(step)
-  }, [])
+  const handleEdit = (planId: string) => {
+    router.push(`/workspace/auto-group/${planId}/edit`)
+  }
 
-  const handleNext = useCallback(() => {
-    setCurrentStep((prev) => prev + 1)
-  }, [])
+  const handleView = (planId: string) => {
+    router.push(`/workspace/auto-group/${planId}`)
+  }
 
-  const handlePrevious = useCallback(() => {
-    setCurrentStep((prev) => prev - 1)
-  }, [])
-
-  const handleComplete = useCallback(() => {
-    // 这里可以添加表单提交逻辑
-    console.log("Form submitted:", formData)
-    toast({
-      title: "计划创建成功",
-      description: `已成功创建"${formData.name}"计划`,
-    })
-    setIsCreating(false)
-    setCurrentStep(0)
-    // 重置表单数据
-    setFormData({
-      name: "新建群计划",
-      fixedWechatIds: [],
-      groupingOption: "all",
-      fixedGroupCount: 5,
-      selectedDevices: [],
-      audienceTags: [],
-      trafficTags: [],
-      matchLogic: "or",
-      excludeTags: ["已拉群"],
-    })
-  }, [formData, toast])
-
-  const handleCancel = useCallback(() => {
-    setIsCreating(false)
-    setCurrentStep(0)
-  }, [])
-
-  // 使用useCallback包装回调函数，避免不必要的重新创建
-  const handleGroupSettingsChange = useCallback(
-    (values: {
-      name: string
-      fixedWechatIds: string[]
-      groupingOption: "all" | "fixed"
-      fixedGroupCount: number
-    }) => {
-      setFormData((prev) => ({ ...prev, ...values }))
-    },
-    [],
-  )
-
-  const handleDevicesChange = useCallback((devices: string[]) => {
-    setFormData((prev) => ({ ...prev, selectedDevices: devices }))
-  }, [])
-
-  const handleTagsChange = useCallback(
-    (values: {
-      audienceTags: string[]
-      trafficTags: string[]
-      matchLogic: "and" | "or"
-      excludeTags: string[]
-    }) => {
-      setFormData((prev) => ({ ...prev, ...values }))
-    },
-    [],
-  )
+  const togglePlanStatus = (planId: string) => {
+    setPlans(
+      plans.map((plan) =>
+        plan.id === planId ? { ...plan, status: plan.status === "running" ? "stopped" : "running" } : plan,
+      ),
+    )
+  }
 
   const getStatusColor = (status: Plan["status"]) => {
     switch (status) {
@@ -167,129 +97,114 @@ export default function AutoGroupPage() {
     }
   }
 
-  if (isCreating) {
-    return (
-      <div className="container p-4 mx-auto max-w-7xl">
-        <div className="flex items-center mb-6">
-          <Button variant="ghost" size="sm" onClick={handleCancel} className="mr-2">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            返回
-          </Button>
-          <h1 className="text-xl font-semibold">新建自动拉群计划</h1>
-        </div>
-
-        <div className="mb-8">
-          <StepIndicator currentStep={currentStep} steps={steps} onStepClick={handleStepClick} />
-        </div>
-
-        {currentStep === 0 && (
-          <GroupSettings
-            onNext={handleNext}
-            initialValues={{
-              name: formData.name,
-              fixedWechatIds: formData.fixedWechatIds,
-              groupingOption: formData.groupingOption,
-              fixedGroupCount: formData.fixedGroupCount,
-            }}
-            onValuesChange={handleGroupSettingsChange}
-          />
-        )}
-
-        {currentStep === 1 && (
-          <DeviceSelection
-            onNext={handleNext}
-            onPrevious={handlePrevious}
-            initialSelectedDevices={formData.selectedDevices}
-            onDevicesChange={handleDevicesChange}
-          />
-        )}
-
-        {currentStep === 2 && (
-          <TagSelection
-            onPrevious={handlePrevious}
-            onComplete={handleComplete}
-            initialValues={{
-              audienceTags: formData.audienceTags,
-              trafficTags: formData.trafficTags,
-              matchLogic: formData.matchLogic,
-              excludeTags: formData.excludeTags,
-            }}
-            onValuesChange={handleTagsChange}
-          />
-        )}
-      </div>
-    )
-  }
-
   return (
-    <div className="container p-4 mx-auto max-w-7xl">
-      <div className="flex flex-col space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">微信自动拉群</h1>
-          <Button onClick={() => setIsCreating(true)} className="bg-blue-500 hover:bg-blue-600">
-            <PlusCircle className="w-4 h-4 mr-2" />
-            新建计划
-          </Button>
+    <div className="flex-1 bg-gray-50 min-h-screen">
+      <header className="sticky top-0 z-10 bg-white border-b">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center space-x-3">
+            <Button variant="ghost" size="icon" onClick={() => router.back()}>
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-lg font-medium">自动建群、自动进群</h1>
+          </div>
+          <Link href="/workspace/auto-group/new">
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              新建任务
+            </Button>
+          </Link>
         </div>
+      </header>
 
-        <Tabs defaultValue="active" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="active">进行中</TabsTrigger>
-            <TabsTrigger value="completed">已完成</TabsTrigger>
-          </TabsList>
+      <div className="p-4">
+        <Card className="p-4 mb-4">
+          <div className="flex items-center space-x-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              <Input placeholder="搜索任务名称" className="pl-9" />
+            </div>
+            <Button variant="outline" size="icon">
+              <Filter className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+        </Card>
 
-          <TabsContent value="active" className="mt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {mockPlans.map((plan) => (
-                <Card key={plan.id} className="border border-gray-100">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg font-medium">{plan.name}</CardTitle>
-                      <Badge className={getStatusColor(plan.status)}>{getStatusText(plan.status)}</Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-2 text-sm text-gray-500">
-                      <div className="flex items-center">
-                        <Users className="w-4 h-4 mr-2" />
-                        已建群数：{plan.groupCount}
-                      </div>
-                      <div className="flex items-center">
-                        <Settings className="w-4 h-4 mr-2" />
-                        群规模：{plan.groupSize}
-                      </div>
-                      <div className="flex items-center">
-                        <RefreshCcw className="w-4 h-4 mr-2" />
-                        更新时间：{plan.lastUpdated}
-                      </div>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
+        <div className="space-y-4">
+          {plans.map((plan) => (
+            <Card key={plan.id} className="p-4 overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-100 to-blue-50 rounded-bl-full -z-10"></div>
+
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  <h3 className="font-medium">{plan.name}</h3>
+                  <Badge variant="outline" className={getStatusColor(plan.status)}>
+                    {getStatusText(plan.status)}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch checked={plan.status === "running"} onCheckedChange={() => togglePlanStatus(plan.id)} />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => handleView(plan.id)}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        查看
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEdit(plan.id)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        编辑
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDelete(plan.id)}>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        删除
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="text-sm text-gray-500">
+                  <div className="flex items-center">
+                    <Users className="w-4 h-4 mr-2" />
+                    已建群数：{plan.groupCount}
+                  </div>
+                  <div className="flex items-center mt-1">
+                    <Settings className="w-4 h-4 mr-2" />
+                    群规模：{plan.groupSize}人/群
+                  </div>
+                </div>
+                <div className="text-sm text-gray-500">
+                  <div>总人数：{plan.totalFriends}人</div>
+                  <div className="mt-1">
+                    <div className="flex flex-wrap gap-1 mt-1">
                       {plan.tags.map((tag) => (
                         <Badge key={tag} variant="secondary" className="text-xs">
                           {tag}
                         </Badge>
                       ))}
                     </div>
-                    <div className="mt-4 flex justify-end space-x-2">
-                      <Button variant="outline" size="sm">
-                        编辑
-                      </Button>
-                      <Button variant="destructive" size="sm" className="bg-red-500 hover:bg-red-600">
-                        停止
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
+                  </div>
+                </div>
+              </div>
 
-          <TabsContent value="completed">
-            <div className="h-[calc(100vh-200px)] flex items-center justify-center text-gray-500">暂无已完成的计划</div>
-          </TabsContent>
-        </Tabs>
+              <div className="flex items-center justify-between text-xs text-gray-500 border-t pt-4">
+                <div className="flex items-center">
+                  <Clock className="w-4 h-4 mr-1" />
+                  更新时间：{plan.lastUpdated}
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   )
 }
-

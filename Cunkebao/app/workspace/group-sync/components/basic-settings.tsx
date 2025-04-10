@@ -89,7 +89,13 @@ export function BasicSettings({
         <div className="grid gap-2">
           <Label className="flex items-center">每日推送:</Label>
           <div className="flex items-center space-x-2 max-w-md">
-            <Button variant="outline" size="icon" type="button" onClick={() => handleCountChange(false)}>
+            <Button
+              variant="outline"
+              size="icon"
+              type="button"
+              onClick={() => handleCountChange(false)}
+              className="bg-white border-gray-200"
+            >
               <Minus className="h-4 w-4" />
             </Button>
             <Input
@@ -99,7 +105,13 @@ export function BasicSettings({
               className="w-20 text-center"
               min="1"
             />
-            <Button variant="outline" size="icon" type="button" onClick={() => handleCountChange(true)}>
+            <Button
+              variant="outline"
+              size="icon"
+              type="button"
+              onClick={() => handleCountChange(true)}
+              className="bg-white border-gray-200"
+            >
               <Plus className="h-4 w-4" />
             </Button>
             <span>条内容</span>
@@ -193,4 +205,3 @@ export function BasicSettings({
     </div>
   )
 }
-

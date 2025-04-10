@@ -23,7 +23,7 @@ export default function NewTrafficDistributionLoading() {
           <div className="flex items-center justify-between">
             {[1, 2, 3].map((step) => (
               <div key={step} className="flex flex-col items-center">
-                <Skeleton className="w-8 h-8 rounded-full" />
+                <Skeleton className="w-10 h-10 rounded-full" />
                 <Skeleton className="h-4 w-16 mt-1" />
               </div>
             ))}
@@ -35,6 +35,7 @@ export default function NewTrafficDistributionLoading() {
         <Card>
           <CardHeader>
             <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-4 w-48 mt-1" />
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -58,4 +59,3 @@ export default function NewTrafficDistributionLoading() {
     </div>
   )
 }
-
