@@ -73,3 +73,28 @@ export function clearAdminInfo(): void {
     localStorage.removeItem('admin_token');
   }
 }
+
+/**
+ * 根据当前时间获取问候语
+ * @param username 用户名
+ * @returns 包含时间段的问候语
+ */
+export function getGreeting(username: string): string {
+  if (typeof window === 'undefined') {
+    return `你好，${username}`;
+  }
+  
+  const hours = new Date().getHours();
+  
+  if (hours >= 0 && hours < 6) {
+    return `凌晨好，${username}`;
+  } else if (hours >= 6 && hours < 12) {
+    return `上午好，${username}`;
+  } else if (hours >= 12 && hours < 14) {
+    return `中午好，${username}`;
+  } else if (hours >= 14 && hours < 18) {
+    return `下午好，${username}`;
+  } else {
+    return `晚上好，${username}`;
+  }
+}
