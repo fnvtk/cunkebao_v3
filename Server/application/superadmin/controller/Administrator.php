@@ -95,7 +95,7 @@ class Administrator extends Controller
             'status' => $admin->status,
             'authId' => $admin->authId,
             'roleName' => $this->getRoleName($admin->authId),
-            'createdAt' => date('Y-m-d', $admin->createTime),
+            'createdAt' => $admin->createTime,
             'lastLogin' => !empty($admin->lastLoginTime) ? date('Y-m-d H:i', $admin->lastLoginTime) : '从未登录',
             'permissions' => $this->getPermissions($admin->authId)
         ];
