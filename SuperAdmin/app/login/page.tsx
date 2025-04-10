@@ -11,11 +11,22 @@ import { Label } from "@/components/ui/label"
 import { md5, saveAdminInfo } from "@/lib/utils"
 import { login } from "@/lib/admin-api"
 import { useToast } from "@/components/ui/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function LoginPage() {
   const [account, setAccount] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
   const router = useRouter()
   const { toast } = useToast()
 
@@ -44,22 +55,16 @@ export default function LoginPage() {
         // 跳转到仪表盘
         router.push("/dashboard")
       } else {
-        // 显示错误提示
-        toast({
-          title: "登录失败",
-          description: result.msg || "账号或密码错误",
-          variant: "destructive",
-        })
+        // 显示错误弹窗
+        setErrorMessage(result.msg || "账号或密码错误")
+        setErrorDialogOpen(true)
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("登录失败:", err)
       
-      // 显示错误提示
-      toast({
-        title: "登录失败",
-        description: "网络错误，请稍后再试",
-        variant: "destructive",
-      })
+      // 显示错误弹窗
+      setErrorMessage(err.msg || "网络错误，请稍后再试")
+      setErrorDialogOpen(true)
     } finally {
       setIsLoading(false)
     }
@@ -103,6 +108,23 @@ export default function LoginPage() {
           </CardFooter>
         </form>
       </Card>
+
+      {/* 错误提示弹窗 */}
+      <AlertDialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>登录失败</AlertDialogTitle>
+            <AlertDialogDescription>
+              {errorMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setErrorDialogOpen(false)}>
+              确定
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

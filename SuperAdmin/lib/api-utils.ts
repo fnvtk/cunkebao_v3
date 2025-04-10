@@ -1,8 +1,7 @@
 import { getConfig } from './config';
-import { getAdminInfo, clearAdminInfo } from './utils';
 
 /**
- * API响应数据结构
+ * API响应接口
  */
 export interface ApiResponse<T = any> {
   code: number;
@@ -11,7 +10,7 @@ export interface ApiResponse<T = any> {
 }
 
 /**
- * 通用API请求函数
+ * API请求函数
  * @param endpoint API端点
  * @param method HTTP方法
  * @param data 请求数据
@@ -22,62 +21,61 @@ export async function apiRequest<T = any>(
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
   data?: any
 ): Promise<ApiResponse<T>> {
+  // 获取API基础URL
   const { apiBaseUrl } = getConfig();
   const url = `${apiBaseUrl}${endpoint}`;
   
-  // 获取认证信息
-  const adminInfo = getAdminInfo();
-  
-  // 请求头
+  // 构建请求头
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
   };
   
-  // 如果有认证信息，添加Cookie头
-  if (adminInfo?.token) {
-    // 添加认证令牌，作为Cookie发送
-    document.cookie = `admin_id=${adminInfo.id}; path=/`;
-    document.cookie = `admin_token=${adminInfo.token}; path=/`;
+  // 添加认证信息（如果有）
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('admin_token');
+    if (token) {
+      // 设置Cookie中的认证信息
+      document.cookie = `admin_token=${token}; path=/`;
+    }
   }
   
-  // 请求配置
-  const config: RequestInit = {
+  // 构建请求选项
+  const options: RequestInit = {
     method,
     headers,
     credentials: 'include', // 包含跨域请求的Cookie
   };
   
-  // 如果有请求数据，转换为JSON
-  if (data && method !== 'GET') {
-    config.body = JSON.stringify(data);
+  // 添加请求体（针对POST、PUT请求）
+  if (method !== 'GET' && data) {
+    options.body = JSON.stringify(data);
   }
   
   try {
-    const response = await fetch(url, config);
+    // 发送请求
+    const response = await fetch(url, options);
     
-    if (!response.ok) {
-      throw new Error(`请求失败: ${response.status} ${response.statusText}`);
-    }
+    // 解析响应
+    const result = await response.json();
     
-    const result = await response.json() as ApiResponse<T>;
-    
-    // 如果返回未授权错误，清除登录信息
-    if (result.code === 401) {
-      clearAdminInfo();
-      // 如果在浏览器环境，跳转到登录页
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+    // 如果响应状态码不是2xx，或者接口返回的code不是200，抛出错误
+    if (!response.ok || (result && result.code !== 200)) {
+      // 如果是认证错误，清除登录信息
+      if (result.code === 401) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('admin_id');
+          localStorage.removeItem('admin_name');
+          localStorage.removeItem('admin_account');
+          localStorage.removeItem('admin_token');
+        }
       }
+      
+      throw result; // 抛出响应结果作为错误
     }
     
     return result;
   } catch (error) {
-    console.error('API请求错误:', error);
-    
-    return {
-      code: 500,
-      msg: error instanceof Error ? error.message : '未知错误',
-      data: null
-    };
+    // 直接抛出错误，由调用方处理
+    throw error;
   }
 } 
