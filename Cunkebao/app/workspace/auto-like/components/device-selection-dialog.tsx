@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Checkbox } from "@/components/ui/checkbox"
 import { api } from "@/lib/api"
+import { showToast } from "@/lib/toast"
 
 interface ServerDevice {
   id: number
@@ -51,6 +52,7 @@ export function DeviceSelectionDialog({ open, onOpenChange, selectedDevices, onS
   }, [open, selectedDevices])
 
   const fetchDevices = async () => {
+    const loadingToast = showToast("正在加载设备列表...", "loading", true);
     try {
       setLoading(true)
       const response = await api.get<{code: number, msg: string, data: {list: ServerDevice[], total: number}}>('/v1/devices?page=1&limit=100')
@@ -65,10 +67,14 @@ export function DeviceSelectionDialog({ open, onOpenChange, selectedDevices, onS
           totalFriend: device.totalFriend || 0
         }))
         setDevices(transformedDevices)
+      } else {
+        showToast(response.msg || "获取设备列表失败", "error")
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('获取设备列表失败:', error)
+      showToast(error?.message || "请检查网络连接", "error")
     } finally {
+      loadingToast.remove();
       setLoading(false)
     }
   }

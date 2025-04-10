@@ -83,6 +83,7 @@ export default function AutoLikePage() {
   const pageSize = 10
 
   const fetchTasks = async (page: number, name?: string) => {
+    const loadingToast = showToast("正在加载任务列表...", "loading", true);
     try {
       setLoading(true)
       const queryParams = new URLSearchParams({
@@ -105,6 +106,7 @@ export default function AutoLikePage() {
       console.error("获取任务列表失败:", error)
       showToast(error?.message || "请检查网络连接", "error")
     } finally {
+      loadingToast.remove();
       setLoading(false)
     }
   }
@@ -127,18 +129,22 @@ export default function AutoLikePage() {
   }
 
   const handleDelete = async (taskId: number) => {
+    const loadingToast = showToast("正在删除任务...", "loading", true);
     try {
       const response = await api.delete<ApiResponse>(`/v1/workbench/delete?id=${taskId}`)
 
       if (response.code === 200) {
         // 删除成功后刷新列表
+        loadingToast.remove();
         fetchTasks(currentPage, searchName)
         showToast(response.msg || "已成功删除点赞任务", "success")
       } else {
+        loadingToast.remove();
         showToast(response.msg || "请稍后再试", "error")
       }
     } catch (error: any) {
       console.error("删除任务失败:", error)
+      loadingToast.remove();
       showToast(error?.message || "请检查网络连接", "error")
     }
   }
@@ -152,6 +158,7 @@ export default function AutoLikePage() {
   }
 
   const handleCopy = async (taskId: number) => {
+    const loadingToast = showToast("正在复制任务...", "loading", true);
     try {
       const response = await api.post<ApiResponse>('/v1/workbench/copy', {
         id: taskId
@@ -159,18 +166,22 @@ export default function AutoLikePage() {
 
       if (response.code === 200) {
         // 复制成功后刷新列表
+        loadingToast.remove();
         fetchTasks(currentPage, searchName)
         showToast(response.msg || "已成功复制点赞任务", "success")
       } else {
+        loadingToast.remove();
         showToast(response.msg || "请稍后再试", "error")
       }
     } catch (error: any) {
       console.error("复制任务失败:", error)
+      loadingToast.remove();
       showToast(error?.message || "请检查网络连接", "error")
     }
   }
 
   const toggleTaskStatus = async (taskId: number, currentStatus: number) => {
+    const loadingToast = showToast("正在更新任务状态...", "loading", true);
     try {
       const response = await api.post<ApiResponse>('/v1/workbench/update-status', {
         id: taskId,
@@ -186,12 +197,15 @@ export default function AutoLikePage() {
         ))
         
         const newStatus = currentStatus === 1 ? 2 : 1
+        loadingToast.remove();
         showToast(response.msg || `任务${newStatus === 1 ? "已启动" : "已暂停"}`, "success")
       } else {
+        loadingToast.remove();
         showToast(response.msg || "请稍后再试", "error")
       }
     } catch (error: any) {
       console.error("更新任务状态失败:", error)
+      loadingToast.remove();
       showToast(error?.message || "请检查网络连接", "error")
     }
   }
