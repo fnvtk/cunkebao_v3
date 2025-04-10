@@ -307,20 +307,32 @@ class Administrator extends Controller
             return json(['code' => 404, 'msg' => '管理员不存在']);
         }
         
-        // 执行软删除
-        $admin->deleteTime = time();
-        $result = $admin->save();
-        
-        if ($result) {
+        // 开启事务
+        AdminModel::startTrans();
+        try {
+            // 执行软删除
+            $admin->deleteTime = time();
+            $adminResult = $admin->save();
+            
+            // 删除对应的权限记录
+            $permissionModel = new AdministratorPermissions();
+            $permResult = $permissionModel->where('adminId', $id)->update(['deleteTime' => time()]);
+            
+            // 提交事务
+            AdminModel::commit();
+            
             return json([
                 'code' => 200,
                 'msg' => '删除成功',
                 'data' => null
             ]);
-        } else {
+        } catch (\Exception $e) {
+            // 回滚事务
+            AdminModel::rollback();
+            
             return json([
                 'code' => 500,
-                'msg' => '删除失败',
+                'msg' => '删除失败: ' . $e->getMessage(),
                 'data' => null
             ]);
         }
