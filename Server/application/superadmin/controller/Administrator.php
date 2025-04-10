@@ -73,10 +73,12 @@ class Administrator extends Controller
      */
     public function getDetail($id)
     {
-        // 查询管理员信息
-        $admin = AdminModel::where('id', $id)
-            ->where('deleteTime', 0)
-            ->field('id, account, name, status, authId, createTime, lastLoginTime')
+        // 查询管理员信息，关联权限表
+        $admin = AdminModel::alias('a')
+            ->leftJoin('administrator_permissions p', 'a.id = p.adminId')
+            ->where('a.id', $id)
+            ->where('a.deleteTime', 0)
+            ->field('a.id, a.account, a.name, a.status, a.authId, a.createTime, a.lastLoginTime, p.permissions')
             ->find();
             
         // 如果查不到记录
@@ -88,17 +90,31 @@ class Administrator extends Controller
             ]);
         }
         
+        // 解析权限数据
+        $permissionIds = [];
+        if (!empty($admin['permissions'])) {
+            $permissions = json_decode($admin['permissions'], true);
+            $permissions = json_decode($permissions, true);
+
+            if (isset($permissions['ids'])) {
+                $permissionIds = is_string($permissions['ids']) ? explode(',', $permissions['ids']) : $permissions['ids'];
+                
+                // 确保所有ID都是整数
+                $permissionIds = array_map('intval', $permissionIds);
+            }
+        }
+        
         // 格式化数据
         $data = [
-            'id' => $admin->id,
-            'username' => $admin->account,
-            'name' => $admin->name,
-            'status' => $admin->status,
-            'authId' => $admin->authId,
-            'roleName' => $this->getRoleName($admin->authId),
-            'createdAt' => $admin->createTime,
-            'lastLogin' => !empty($admin->lastLoginTime) ? date('Y-m-d H:i', $admin->lastLoginTime) : '从未登录',
-            'permissions' => $this->getPermissions($admin->authId)
+            'id' => $admin['id'],
+            'username' => $admin['account'],
+            'name' => $admin['name'],
+            'status' => $admin['status'],
+            'authId' => $admin['authId'],
+            'roleName' => $this->getRoleName($admin['authId']),
+            'createdAt' => $admin['createTime'],
+            'lastLogin' => !empty($admin['lastLoginTime']) ? date('Y-m-d H:i', $admin['lastLoginTime']) : '从未登录',
+            'permissions' => $permissionIds, // 直接返回权限ID数组
         ];
         
         return json([

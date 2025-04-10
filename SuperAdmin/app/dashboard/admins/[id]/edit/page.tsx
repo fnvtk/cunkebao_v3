@@ -72,8 +72,9 @@ export default function EditAdminPage({ params }: { params: { id: string } }) {
               if (permissionsResponse.code === 200 && permissionsResponse.data) {
                 // 如果有权限数据，则设置选中的权限
                 if (permissionsResponse.data.permissions) {
-                  // 假设权限是存储为菜单ID的数组
-                  setSelectedPermissions(permissionsResponse.data.permissions.map((p: any) => p.id || p))
+                  // 处理权限ID数组，确保是数字类型
+                  const permissionIds = permissionsResponse.data.permissions.map(Number);
+                  setSelectedPermissions(permissionIds);
                 }
               }
             }
