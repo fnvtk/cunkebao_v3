@@ -12,16 +12,16 @@
 // [ 应用入口文件 ]
 namespace think;
 
-//处理跨域预检请求
-if($_SERVER['REQUEST_METHOD'] == 'OPTIONS'){
-    //允许的源域名
-    header("Access-Control-Allow-Origin: *");
-    //允许的请求头信息
-    header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization");
-    //允许的请求类型
-    header('Access-Control-Allow-Methods: GET, POST, PUT,DELETE,OPTIONS,PATCH');
-    exit;
-}
+////处理跨域预检请求
+//if($_SERVER['REQUEST_METHOD'] == 'OPTIONS'){
+//    //允许的源域名
+//    header("Access-Control-Allow-Origin: *");
+//    //允许的请求头信息
+//    header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization");
+//    //允许的请求类型
+//    header('Access-Control-Allow-Methods: GET, POST, PUT,DELETE,OPTIONS,PATCH');
+//    exit;
+//}
 
 define('ROOT_PATH', dirname(__DIR__));
 define('DS', DIRECTORY_SEPARATOR);

@@ -1,4 +1,4 @@
-import { getConfig } from './config';
+import { apiRequest, ApiResponse } from './api-utils';
 
 // 管理员接口数据类型定义
 export interface Administrator {
@@ -33,11 +33,25 @@ export interface PaginatedResponse<T> {
   limit: number;
 }
 
-// API响应数据结构
-export interface ApiResponse<T> {
-  code: number;
-  msg: string;
-  data: T | null;
+/**
+ * 管理员登录
+ * @param account 账号
+ * @param password 密码
+ * @returns 登录结果
+ */
+export async function login(
+  account: string,
+  password: string
+): Promise<ApiResponse<{
+  id: number;
+  name: string;
+  account: string;
+  token: string;
+}>> {
+  return apiRequest('/auth/login', 'POST', {
+    account,
+    password
+  });
 }
 
 /**
@@ -52,8 +66,6 @@ export async function getAdministrators(
   limit: number = 10,
   keyword: string = ''
 ): Promise<ApiResponse<PaginatedResponse<Administrator>>> {
-  const { apiBaseUrl } = getConfig();
-  
   // 构建查询参数
   const params = new URLSearchParams();
   params.append('page', page.toString());
@@ -62,28 +74,7 @@ export async function getAdministrators(
     params.append('keyword', keyword);
   }
   
-  try {
-    // 发送请求
-    const response = await fetch(`${apiBaseUrl}/administrator/list?${params.toString()}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error(`请求失败，状态码: ${response.status}`);
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('获取管理员列表失败:', error);
-    return {
-      code: 500,
-      msg: '获取管理员列表失败',
-      data: null
-    };
-  }
+  return apiRequest(`/administrator/list?${params.toString()}`);
 }
 
 /**
@@ -92,28 +83,5 @@ export async function getAdministrators(
  * @returns 管理员详情
  */
 export async function getAdministratorDetail(id: number | string): Promise<ApiResponse<AdministratorDetail>> {
-  const { apiBaseUrl } = getConfig();
-  
-  try {
-    // 发送请求
-    const response = await fetch(`${apiBaseUrl}/administrator/detail/${id}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error(`请求失败，状态码: ${response.status}`);
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('获取管理员详情失败:', error);
-    return {
-      code: 500,
-      msg: '获取管理员详情失败',
-      data: null
-    };
-  }
+  return apiRequest(`/administrator/detail/${id}`);
 } 

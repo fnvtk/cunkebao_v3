@@ -1,3 +1,5 @@
+import { apiRequest, ApiResponse } from './api-utils';
+
 /**
  * 菜单项接口
  */
@@ -13,78 +15,60 @@ export interface MenuItem {
 }
 
 /**
- * 从服务器获取菜单数据
+ * 获取菜单树
  * @param onlyEnabled 是否只获取启用的菜单
- * @returns Promise<MenuItem[]>
+ * @returns 菜单树
  */
 export async function getMenus(onlyEnabled: boolean = true): Promise<MenuItem[]> {
   try {
-    // API基础路径从环境变量获取
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+    // 构建查询参数
+    const params = new URLSearchParams();
+    params.append('only_enabled', onlyEnabled ? '1' : '0');
     
-    // 构建API URL
-    const url = `${apiBaseUrl}/menu/tree?only_enabled=${onlyEnabled ? 1 : 0}`;
+    const response = await apiRequest<MenuItem[]>(`/menu/tree?${params.toString()}`);
     
-    // 获取存储的token
-    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
-    
-    // 发起请求
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : ''
-      },
-      credentials: 'include'
-    });
-    
-    // 处理响应
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const result = await response.json();
-    
-    if (result.code === 200) {
-      return result.data;
-    } else {
-      console.error('获取菜单失败:', result.msg);
-      return [];
-    }
+    return response.data || [];
   } catch (error) {
-    console.error('获取菜单出错:', error);
+    console.error('获取菜单树失败:', error);
     return [];
   }
 }
 
 /**
- * 保存菜单
+ * 获取菜单列表
+ * @param page 页码
+ * @param limit 每页数量
+ * @returns 菜单列表
+ */
+export async function getMenuList(
+  page: number = 1,
+  limit: number = 20
+): Promise<ApiResponse<{
+  list: MenuItem[];
+  total: number;
+  page: number;
+  limit: number;
+}>> {
+  // 构建查询参数
+  const params = new URLSearchParams();
+  params.append('page', page.toString());
+  params.append('limit', limit.toString());
+  
+  return apiRequest(`/menu/list?${params.toString()}`);
+}
+
+/**
+ * 保存菜单（新增或更新）
  * @param menuData 菜单数据
- * @returns Promise<boolean>
+ * @returns 保存结果
  */
 export async function saveMenu(menuData: Partial<MenuItem>): Promise<boolean> {
   try {
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-    const url = `${apiBaseUrl}/menu/save`;
-    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+    const response = await apiRequest('/menu/save', 'POST', menuData);
     
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : ''
-      },
-      body: JSON.stringify(menuData)
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const result = await response.json();
-    return result.code === 200;
+    return response.code === 200;
   } catch (error) {
-    console.error('保存菜单出错:', error);
+    console.error('保存菜单失败:', error);
     return false;
   }
 }
@@ -92,30 +76,15 @@ export async function saveMenu(menuData: Partial<MenuItem>): Promise<boolean> {
 /**
  * 删除菜单
  * @param id 菜单ID
- * @returns Promise<boolean>
+ * @returns 删除结果
  */
 export async function deleteMenu(id: number): Promise<boolean> {
   try {
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-    const url = `${apiBaseUrl}/menu/delete/${id}`;
-    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+    const response = await apiRequest(`/menu/delete/${id}`, 'DELETE');
     
-    const response = await fetch(url, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : ''
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const result = await response.json();
-    return result.code === 200;
+    return response.code === 200;
   } catch (error) {
-    console.error('删除菜单出错:', error);
+    console.error('删除菜单失败:', error);
     return false;
   }
 }
@@ -123,32 +92,19 @@ export async function deleteMenu(id: number): Promise<boolean> {
 /**
  * 更新菜单状态
  * @param id 菜单ID
- * @param status 状态 (0-禁用, 1-启用)
- * @returns Promise<boolean>
+ * @param status 状态：1启用，0禁用
+ * @returns 更新结果
  */
 export async function updateMenuStatus(id: number, status: 0 | 1): Promise<boolean> {
   try {
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-    const url = `${apiBaseUrl}/menu/status`;
-    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : ''
-      },
-      body: JSON.stringify({ id, status })
+    const response = await apiRequest('/menu/status', 'POST', {
+      id,
+      status
     });
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const result = await response.json();
-    return result.code === 200;
+    return response.code === 200;
   } catch (error) {
-    console.error('更新菜单状态出错:', error);
+    console.error('更新菜单状态失败:', error);
     return false;
   }
 } 

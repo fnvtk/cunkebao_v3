@@ -57,7 +57,7 @@ class Auth extends Controller
      */
     private function createToken($admin)
     {
-        $data = $admin->id . '|' . $admin->account . '|' . time();
+        $data = $admin->id . '|' . $admin->account;
         return md5($data . 'cunkebao_admin_secret');
     }
 } 

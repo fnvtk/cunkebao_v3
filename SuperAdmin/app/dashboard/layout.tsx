@@ -1,11 +1,13 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Menu, X, LogOut } from "lucide-react"
+import { Menu, X } from "lucide-react"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
+import { getAdminInfo } from "@/lib/utils"
 
 export default function DashboardLayout({
   children,
@@ -13,6 +15,20 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const router = useRouter()
+  
+  // 认证检查
+  useEffect(() => {
+    const checkAuth = () => {
+      const adminInfo = getAdminInfo()
+      if (!adminInfo) {
+        // 未登录时跳转到登录页
+        router.push('/login')
+      }
+    }
+    
+    checkAuth()
+  }, [router])
 
   return (
     <div className="flex h-screen overflow-hidden">
