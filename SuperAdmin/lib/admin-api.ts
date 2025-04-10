@@ -121,4 +121,13 @@ export async function addAdministrator(
   }
 ): Promise<ApiResponse<null>> {
   return apiRequest('/administrator/add', 'POST', data);
+}
+
+/**
+ * 删除管理员
+ * @param id 管理员ID
+ * @returns 删除结果
+ */
+export async function deleteAdministrator(id: number | string): Promise<ApiResponse<null>> {
+  return apiRequest('/administrator/delete', 'POST', { id });
 } 

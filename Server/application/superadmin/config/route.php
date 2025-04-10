@@ -26,6 +26,8 @@ Route::group('', function () {
         Route::post('update', 'app\\superadmin\\controller\\Administrator@updateAdmin');
         // 添加管理员
         Route::post('add', 'app\\superadmin\\controller\\Administrator@addAdmin');
+        // 删除管理员
+        Route::post('delete', 'app\\superadmin\\controller\\Administrator@deleteAdmin');
     });
     
     // 系统信息相关路由

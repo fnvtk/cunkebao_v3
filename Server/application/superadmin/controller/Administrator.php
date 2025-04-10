@@ -264,4 +264,65 @@ class Administrator extends Controller
             'data' => null
         ]);
     }
+
+    /**
+     * 删除管理员
+     * @return \think\response\Json
+     */
+    public function deleteAdmin()
+    {
+        if (!$this->request->isPost()) {
+            return json(['code' => 405, 'msg' => '请求方法不允许']);
+        }
+        
+        // 获取当前登录的管理员信息
+        $currentAdmin = $this->request->adminInfo;
+        
+        // 获取请求参数
+        $id = $this->request->post('id/d');
+        
+        // 参数验证
+        if (empty($id)) {
+            return json(['code' => 400, 'msg' => '参数不完整']);
+        }
+        
+        // 不能删除自己的账号
+        if ($currentAdmin->id == $id) {
+            return json(['code' => 403, 'msg' => '不能删除自己的账号']);
+        }
+        
+        // 只有超级管理员(ID为1)可以删除管理员
+        if ($currentAdmin->id != 1) {
+            return json(['code' => 403, 'msg' => '您没有权限删除管理员']);
+        }
+        
+        // 不能删除超级管理员账号
+        if ($id == 1) {
+            return json(['code' => 403, 'msg' => '不能删除超级管理员账号']);
+        }
+        
+        // 查询管理员
+        $admin = AdminModel::where('id', $id)->where('deleteTime', 0)->find();
+        if (!$admin) {
+            return json(['code' => 404, 'msg' => '管理员不存在']);
+        }
+        
+        // 执行软删除
+        $admin->deleteTime = time();
+        $result = $admin->save();
+        
+        if ($result) {
+            return json([
+                'code' => 200,
+                'msg' => '删除成功',
+                'data' => null
+            ]);
+        } else {
+            return json([
+                'code' => 500,
+                'msg' => '删除失败',
+                'data' => null
+            ]);
+        }
+    }
 } 

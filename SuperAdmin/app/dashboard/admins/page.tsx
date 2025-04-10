@@ -9,7 +9,17 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Search, MoreHorizontal, Edit, Trash, UserPlus, Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
-import { getAdministrators, Administrator } from "@/lib/admin-api"
+import { getAdministrators, deleteAdministrator, Administrator } from "@/lib/admin-api"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 // 保留原始示例数据，作为加载失败时的备用数据
 const adminsData = [
@@ -54,11 +64,16 @@ const adminsData = [
 export default function AdminsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [isLoading, setIsLoading] = useState(true)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [administrators, setAdministrators] = useState<Administrator[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(10)
   const { toast } = useToast()
+  
+  // 删除对话框状态
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [adminToDelete, setAdminToDelete] = useState<Administrator | null>(null)
 
   // 加载管理员列表
   useEffect(() => {
@@ -121,6 +136,50 @@ export default function AdminsPage() {
   // 检查是否为超级管理员（id为1）
   const isSuperAdmin = (id: number) => {
     return id === 1
+  }
+  
+  // 打开删除确认对话框
+  const openDeleteDialog = (admin: Administrator) => {
+    setAdminToDelete(admin)
+    setDeleteDialogOpen(true)
+  }
+  
+  // 确认删除管理员
+  const confirmDelete = async () => {
+    if (!adminToDelete) return
+    
+    setIsDeleting(true)
+    try {
+      const response = await deleteAdministrator(adminToDelete.id)
+      
+      if (response.code === 200) {
+        toast({
+          title: "删除成功",
+          description: `管理员 ${adminToDelete.name} 已成功删除`,
+          variant: "success",
+        })
+        
+        // 重新获取管理员列表
+        fetchAdministrators()
+      } else {
+        toast({
+          title: "删除失败",
+          description: response.msg || "请稍后重试",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("删除管理员出错:", error)
+      toast({
+        title: "删除失败",
+        description: "请检查网络连接后重试",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+      setDeleteDialogOpen(false)
+      setAdminToDelete(null)
+    }
   }
 
   return (
@@ -205,7 +264,10 @@ export default function AdminsPage() {
                           </Link>
                         </DropdownMenuItem>
                         {!isSuperAdmin(admin.id) && (
-                          <DropdownMenuItem className="text-destructive">
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => openDeleteDialog(admin)}
+                          >
                             <Trash className="mr-2 h-4 w-4" /> 删除管理员
                           </DropdownMenuItem>
                         )}
@@ -248,6 +310,35 @@ export default function AdminsPage() {
           </Button>
         </div>
       )}
+      
+      {/* 删除确认对话框 */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除管理员</AlertDialogTitle>
+            <AlertDialogDescription>
+              您确定要删除管理员 "{adminToDelete?.name}" 吗？此操作无法撤销。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  删除中...
+                </>
+              ) : (
+                "确认删除"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
