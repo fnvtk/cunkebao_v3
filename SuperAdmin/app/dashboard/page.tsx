@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, FolderKanban, UserCog } from "lucide-react"
 import useAuthCheck from "@/hooks/useAuthCheck"
+import { getAdminInfo, getGreeting } from "@/lib/utils"
+import ClientOnly from "@/components/ClientOnly"
 
 export default function DashboardPage() {
   const [greeting, setGreeting] = useState("")
@@ -14,36 +16,39 @@ export default function DashboardPage() {
 
   useEffect(() => {
     // 获取用户信息
-    const adminInfo = localStorage.getItem("admin_info")
+    const adminInfo = getAdminInfo()
     if (adminInfo) {
-      try {
-        const userData = JSON.parse(adminInfo)
-        setUserName(userData.name || "管理员")
-      } catch (err) {
-        console.error("解析用户信息失败:", err)
-        setUserName("管理员")
-      }
-    }
-
-    // 获取当前时间
-    const hour = new Date().getHours()
-    
-    if (hour >= 5 && hour < 12) {
-      setGreeting("上午好")
-    } else if (hour >= 12 && hour < 14) {
-      setGreeting("中午好")
-    } else if (hour >= 14 && hour < 18) {
-      setGreeting("下午好")
+      setUserName(adminInfo.name || "管理员")
     } else {
-      setGreeting("晚上好")
+      setUserName("管理员")
     }
   }, [])
+
+  // 单独处理问候语，避免依赖问题
+  useEffect(() => {
+    // 设置问候语
+    const updateGreeting = () => {
+      if (userName) {
+        setGreeting(getGreeting(userName))
+      }
+    }
+    
+    updateGreeting()
+    
+    // 每分钟更新一次问候语，以防用户长时间停留在页面
+    const interval = setInterval(updateGreeting, 60000)
+    
+    return () => clearInterval(interval)
+  }, [userName])
 
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">欢迎使用超级管理员后台</h1>
       <p className="text-muted-foreground">
-        {greeting}，{userName}！通过此平台，您可以管理项目、客户和管理员权限。
+        <ClientOnly fallback={`你好，${userName}！`}>
+          {greeting || getGreeting(userName)}
+        </ClientOnly>
+        ！通过此平台，您可以管理项目、客户和管理员权限。
       </p>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
