@@ -13,6 +13,7 @@ interface BasicSettingsProps {
     startTime: string
     endTime: string
     syncCount: number
+    syncInterval: number
     accountType: "business" | "personal"
     enabled: boolean
   }
@@ -82,6 +83,30 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
               <Plus className="h-5 w-5" />
             </Button>
             <span className="text-gray-500">条朋友圈</span>
+          </div>
+        </div>
+
+        <div>
+          <div className="text-base font-medium mb-2">同步间隔</div>
+          <div className="flex items-center space-x-5">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => onChange({ syncInterval: Math.max(10, formData.syncInterval - 10) })}
+              className="h-12 w-12 rounded-xl bg-white border-gray-200"
+            >
+              <Minus className="h-5 w-5" />
+            </Button>
+            <span className="w-8 text-center text-lg font-medium">{formData.syncInterval}</span>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => onChange({ syncInterval: Math.min(120, formData.syncInterval + 10) })}
+              className="h-12 w-12 rounded-xl bg-white border-gray-200"
+            >
+              <Plus className="h-5 w-5" />
+            </Button>
+            <span className="text-gray-500">分钟</span>
           </div>
         </div>
 

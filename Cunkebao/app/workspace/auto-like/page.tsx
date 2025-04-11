@@ -294,7 +294,11 @@ export default function AutoLikePage() {
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="text-sm text-gray-500">
                   <div>执行设备：{task.config.devices.length} 个</div>
-                  <div>目标人群：{task.config.targetGroups.join(', ')}</div>
+                  <div>目标人群：{
+                    task.config.targetGroups.length > 2 
+                      ? `${task.config.targetGroups[0]} 等${task.config.targetGroups.length - 1}个标签`
+                      : task.config.targetGroups.join(', ')
+                  }</div>
                 </div>
                 <div className="text-sm text-gray-500">
                   <div>点赞间隔：{task.config.interval} 秒</div>

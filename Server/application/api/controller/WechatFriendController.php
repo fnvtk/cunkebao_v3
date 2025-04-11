@@ -115,7 +115,7 @@ class WechatFriendController extends BaseController
             'additionalPicture' => $item['additionalPicture'],
             'desc' => $item['desc'],
             'country' => $item['country'],
-            'province' => isset($item['province']) ? $item['province'] : '',
+            'privince' => isset($item['privince']) ? $item['privince'] : '',
             'city' => isset($item['city']) ? $item['city'] : '',
             'createTime' =>isset($item['createTime']) ? $item['createTime'] : '',
             'updateTime' => time()

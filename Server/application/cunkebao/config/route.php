@@ -54,5 +54,7 @@ Route::group('v1/', function () {
         Route::post('update-status', 'app\\cunkebao\\controller\\WorkbenchController@updateStatus'); // 更新工作台状态
         Route::delete('delete', 'app\\cunkebao\\controller\\WorkbenchController@delete'); // 删除工作台
         Route::post('copy', 'app\\cunkebao\\controller\\WorkbenchController@copy'); // 拷贝工作台
+        Route::get('detail', 'app\\cunkebao\\controller\\WorkbenchController@detail'); // 获取工作台详情
+        Route::post('update', 'app\\cunkebao\\controller\\WorkbenchController@update'); // 更新工作台
     });
 })->middleware(['jwt']);

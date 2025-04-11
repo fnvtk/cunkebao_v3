@@ -84,8 +84,11 @@ class WorkbenchController extends Controller
                     $config->syncInterval = $param['syncInterval'];
                     $config->syncCount = $param['syncCount'];
                     $config->syncType = $param['syncType'];
+                    $config->startTime = $param['startTime'];
+                    $config->endTime = $param['endTime'];
+                    $config->accountType = $param['accountType'];
                     $config->devices = json_encode($param['devices']);
-                    $config->targetGroups = json_encode($param['targetGroups']);
+                    $config->contentLibraries = json_encode($param['contentLibraries'] ?? []);
                     $config->createTime = time();
                     $config->updateTime = time();
                     $config->save();
@@ -155,9 +158,9 @@ class WorkbenchController extends Controller
             'autoLike' => function($query) {
                 $query->field('workbenchId,interval,maxLikes,startTime,endTime,contentTypes,devices,targetGroups');
             },
-            // 'momentsSync' => function($query) {
-            //     $query->field('workbenchId,syncInterval,syncCount,syncType,devices,targetGroups');
-            // },
+            'momentsSync' => function($query) {
+                $query->field('workbenchId,syncInterval,syncCount,syncType,startTime,endTime,accountType,devices,contentLibraries');
+            },
             // 'groupPush' => function($query) {
             //     $query->field('workbenchId,pushInterval,pushContent,pushTime,devices,targetGroups');
             // },
@@ -188,8 +191,9 @@ class WorkbenchController extends Controller
                         if (!empty($item->momentsSync)) {
                             $item->config = $item->momentsSync;
                             $item->config->devices = json_decode($item->config->devices, true);
-                            $item->config->targetGroups = json_decode($item->config->targetGroups, true);
+                            $item->config->contentLibraries = json_decode($item->config->contentLibraries, true);
                         }
+                        unset($item->momentsSync,$item->moments_sync);
                         break;
                     case self::TYPE_GROUP_PUSH:
                         if (!empty($item->groupPush)) {
@@ -199,6 +203,7 @@ class WorkbenchController extends Controller
                             $item->config->pushContent = json_decode($item->config->pushContent, true);
                             $item->config->pushTime = json_decode($item->config->pushTime, true);
                         }
+                        unset($item->groupPush,$item->group_push);
                         break;
                     case self::TYPE_GROUP_CREATE:
                         if (!empty($item->groupCreate)) {
@@ -206,9 +211,9 @@ class WorkbenchController extends Controller
                             $item->config->devices = json_decode($item->config->devices, true);
                             $item->config->targetGroups = json_decode($item->config->targetGroups, true);
                         }
+                        unset($item->groupCreate,$item->group_create);
                         break;
                 }
-                unset( $item->momentsSync, $item->groupPush, $item->groupCreate);
                 return $item;
             });
 
@@ -231,8 +236,10 @@ class WorkbenchController extends Controller
      * @param int $id 工作台ID
      * @return \think\response\Json
      */
-    public function detail($id)
+    public function detail()
     {
+        $id = $this->request->param('id', '');
+
         if (empty($id)) {
             return json(['code' => 400, 'msg' => '参数错误']);
         }
@@ -243,14 +250,14 @@ class WorkbenchController extends Controller
                 $query->field('workbenchId,interval,maxLikes,startTime,endTime,contentTypes,devices,targetGroups');
             },
             'momentsSync' => function($query) {
-                $query->field('workbenchId,syncInterval,syncCount,syncType,devices,targetGroups');
+                $query->field('workbenchId,syncInterval,syncCount,syncType,startTime,endTime,accountType,devices,contentLibraries');
             },
-            'groupPush' => function($query) {
-                $query->field('workbenchId,pushInterval,pushContent,pushTime,devices,targetGroups');
-            },
-            'groupCreate' => function($query) {
-                $query->field('workbenchId,groupNamePrefix,maxGroups,membersPerGroup,devices,targetGroups');
-            }
+            // 'groupPush' => function($query) {
+            //     $query->field('workbenchId,pushInterval,pushContent,pushTime,devices,targetGroups');
+            // },
+            // 'groupCreate' => function($query) {
+            //     $query->field('workbenchId,groupNamePrefix,maxGroups,membersPerGroup,devices,targetGroups');
+            // }
         ];
 
         $workbench = Workbench::where([
@@ -273,14 +280,15 @@ class WorkbenchController extends Controller
                     $workbench->config = $workbench->autoLike;
                     $workbench->config->devices = json_decode($workbench->config->devices, true);
                     $workbench->config->targetGroups = json_decode($workbench->config->targetGroups, true);
-                    $workbench->config->contentTypes = explode(',', $workbench->config->contentTypes);
+                    $workbench->config->contentTypes = json_decode($workbench->config->contentTypes, true);
+                    unset($workbench->autoLike,$workbench->auto_like);
                 }
                 break;
             case self::TYPE_MOMENTS_SYNC:
                 if (!empty($workbench->momentsSync)) {
                     $workbench->config = $workbench->momentsSync;
                     $workbench->config->devices = json_decode($workbench->config->devices, true);
-                    $workbench->config->targetGroups = json_decode($workbench->config->targetGroups, true);
+                    $workbench->config->contentLibraries = json_decode($workbench->config->contentLibraries, true);
                 }
                 break;
             case self::TYPE_GROUP_PUSH:
@@ -303,6 +311,112 @@ class WorkbenchController extends Controller
         unset($workbench->autoLike, $workbench->momentsSync, $workbench->groupPush, $workbench->groupCreate);
 
         return json(['code' => 200, 'msg' => '获取成功', 'data' => $workbench]);
+    }
+
+    /**
+     * 更新工作台
+     * @return \think\response\Json
+     */
+    public function update()
+    {
+        if (!$this->request->isPost()) {
+            return json(['code' => 400, 'msg' => '请求方式错误']);
+        }
+
+        // 获取请求参数
+        $param = $this->request->post();
+
+        // 验证数据
+        $validate = new WorkbenchValidate;
+        if (!$validate->scene('update')->check($param)) {
+            return json(['code' => 400, 'msg' => $validate->getError()]);
+        }
+
+        // 查询工作台是否存在
+        $workbench = Workbench::where([
+            ['id', '=', $param['id']],
+            ['userId', '=', $this->request->userInfo['id']],
+            ['isDel', '=', 0]
+        ])->find();
+
+        if (!$workbench) {
+            return json(['code' => 404, 'msg' => '工作台不存在']);
+        }
+
+        Db::startTrans();
+        try {
+            // 更新工作台基本信息
+            $workbench->name = $param['name'];
+            $workbench->autoStart = !empty($param['autoStart']) ? 1 : 0;
+            $workbench->updateTime = time();
+            $workbench->save();
+
+            // 根据类型更新对应的配置
+            switch ($workbench->type) {
+                case self::TYPE_AUTO_LIKE:
+                    $config = WorkbenchAutoLike::where('workbenchId', $param['id'])->find();
+                    if ($config) {
+                        $config->interval = $param['interval'];
+                        $config->maxLikes = $param['maxLikes'];
+                        $config->startTime = $param['startTime'];
+                        $config->endTime = $param['endTime'];
+                        $config->contentTypes = json_encode($param['contentTypes']);
+                        $config->devices = json_encode($param['devices']);
+                        $config->targetGroups = json_encode($param['targetGroups']);
+                        $config->tagOperator = $param['tagOperator'];
+                        $config->updateTime = time();
+                        $config->save();
+                    }
+                    break;
+
+                case self::TYPE_MOMENTS_SYNC:
+                    $config = WorkbenchMomentsSync::where('workbenchId', $param['id'])->find();
+                    if ($config) {
+                        $config->syncInterval = $param['syncInterval'];
+                        $config->syncCount = $param['syncCount'];
+                        $config->syncType = $param['syncType'];
+                        $config->startTime = $param['startTime'];
+                        $config->endTime = $param['endTime'];
+                        $config->accountType = $param['accountType'];
+                        $config->devices = json_encode($param['devices']);
+                        $config->contentLibraries = json_encode($param['contentLibraries'] ?? []);
+                        $config->updateTime = time();
+                        $config->save();
+                    }
+                    break;
+
+                case self::TYPE_GROUP_PUSH:
+                    $config = WorkbenchGroupPush::where('workbenchId', $param['id'])->find();
+                    if ($config) {
+                        $config->pushInterval = $param['pushInterval'];
+                        $config->pushContent = json_encode($param['pushContent']);
+                        $config->pushTime = json_encode($param['pushTime']);
+                        $config->devices = json_encode($param['devices']);
+                        $config->targetGroups = json_encode($param['targetGroups']);
+                        $config->save();
+                    }
+                    break;
+
+                case self::TYPE_GROUP_CREATE:
+                    $config = WorkbenchGroupCreate::where('workbenchId', $param['id'])->find();
+                    if ($config) {
+                        $config->groupNamePrefix = $param['groupNamePrefix'];
+                        $config->maxGroups = $param['maxGroups'];
+                        $config->membersPerGroup = $param['membersPerGroup'];
+                        $config->devices = json_encode($param['devices']);
+                        $config->targetGroups = json_encode($param['targetGroups']);
+                        $config->updateTime = time();
+                        $config->save();
+                    }
+                    break;
+            }
+
+            Db::commit();
+            return json(['code' => 200, 'msg' => '更新成功']);
+        } catch (\Exception $e) {
+            Db::rollback();
+            return json(['code' => 500, 'msg' => '更新失败：' . $e->getMessage()]);
+        }
     }
 
     /**
@@ -341,8 +455,9 @@ class WorkbenchController extends Controller
     /**
      * 删除工作台（软删除）
      */
-    public function delete($id)
+    public function delete()
     {
+        $id = $this->request->param('id');
         if (empty($id)) {
             return json(['code' => 400, 'msg' => '参数错误']);
         }
@@ -399,6 +514,7 @@ class WorkbenchController extends Controller
             $newWorkbench->status = 1; // 新拷贝的默认启用
             $newWorkbench->autoStart = $workbench->autoStart;
             $newWorkbench->userId = $this->request->userInfo['id'];
+            $newWorkbench->companyId = $this->request->userInfo['companyId'];
             $newWorkbench->save();
 
             // 根据类型拷贝对应的配置
@@ -426,8 +542,11 @@ class WorkbenchController extends Controller
                         $newConfig->syncInterval = $config->syncInterval;
                         $newConfig->syncCount = $config->syncCount;
                         $newConfig->syncType = $config->syncType;
+                        $newConfig->startTime = $config->startTime;
+                        $newConfig->endTime = $config->endTime;
+                        $newConfig->accountType = $config->accountType;
                         $newConfig->devices = $config->devices;
-                        $newConfig->targetGroups = $config->targetGroups;
+                        $newConfig->contentLibraries = $config->contentLibraries;
                         $newConfig->save();
                     }
                     break;

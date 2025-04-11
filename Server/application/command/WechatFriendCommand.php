@@ -8,6 +8,7 @@ use think\console\Output;
 use think\facade\Log;
 use think\Queue;
 use app\job\WechatFriendJob;
+use think\facade\Cache;
 
 class WechatFriendCommand extends Command
 {
@@ -22,12 +23,16 @@ class WechatFriendCommand extends Command
         $output->writeln('开始处理微信列表任务...');
         
         try {
-            // 初始页码
-            $pageIndex = 0;
+            // 从缓存获取初始页码和上次处理的好友ID，缓存10分钟有效
+            $pageIndex = Cache::get('friendsPage', 0);
+            $preFriendId = Cache::get('preFriendId', '');
+            
+            $output->writeln('从缓存获取页码：' . $pageIndex . '，上次处理的好友ID：' . ($preFriendId ?: '无'));
+            
             $pageSize = 1000; // 每页获取1000条记录
             
-            // 将第一页任务添加到队列
-            $this->addToQueue($pageIndex, $pageSize);
+            // 将任务添加到队列
+            $this->addToQueue($pageIndex, $pageSize, $preFriendId);
             
             $output->writeln('微信列表任务已添加到队列');
         } catch (\Exception $e) {
@@ -43,12 +48,14 @@ class WechatFriendCommand extends Command
      * 添加任务到队列
      * @param int $pageIndex 页码
      * @param int $pageSize 每页大小
+     * @param string $preFriendId 上一个好友ID
      */
-    protected function addToQueue($pageIndex, $pageSize)
+    protected function addToQueue($pageIndex, $pageSize, $preFriendId = '')
     {
         $data = [
             'pageIndex' => $pageIndex,
-            'pageSize' => $pageSize
+            'pageSize' => $pageSize,
+            'preFriendId' => $preFriendId
         ];
         
         // 添加到队列，设置任务名为 wechat_friends

@@ -6,6 +6,7 @@ use think\queue\Job;
 use think\facade\Log;
 use think\Queue;
 use think\facade\Config;
+use think\facade\Cache;
 use app\api\controller\WechatFriendController;
 
 class WechatFriendJob
@@ -58,7 +59,7 @@ class WechatFriendJob
         $pageSize = isset($data['pageSize']) ? $data['pageSize'] : 1000;
         $preFriendId = isset($data['preFriendId']) ? $data['preFriendId'] : '';
         
-        Log::info('开始获取微信列表，页码：' . $pageIndex . '，页大小：' . $pageSize);
+        Log::info('开始获取微信列表，页码：' . $pageIndex . '，页大小：' . $pageSize . '，上一好友ID：' . $preFriendId);
         
         // 实例化控制器
         $wechatFriendController = new WechatFriendController();
@@ -86,10 +87,24 @@ class WechatFriendJob
             
             // 判断是否有下一页
             if (!empty($data) && count($data) > 0) {
+                // 获取最后一条记录的ID
+                $lastFriendId = $data[count($data)-1]['id'];
+                
+                // 更新缓存中的页码和最后一个好友ID，设置10分钟过期
+                Cache::set('friendsPage', $pageIndex + 1, 600);
+                Cache::set('preFriendId', $lastFriendId, 600);
+                
+                Log::info('更新缓存，下一页页码：' . ($pageIndex + 1) . '，最后好友ID：' . $lastFriendId . '，缓存时间：10分钟');
+                
                 // 有下一页，将下一页任务添加到队列
                 $nextPageIndex = $pageIndex + 1;
-                $this->addNextPageToQueue($nextPageIndex, $pageSize,$data[count($data)-1]['id']);
+                $this->addNextPageToQueue($nextPageIndex, $pageSize, $lastFriendId);
                 Log::info('添加下一页任务到队列，页码：' . $nextPageIndex);
+            } else {
+                // 没有下一页，重置缓存，设置10分钟过期
+                Cache::set('friendsPage', 0, 600);
+                Cache::set('preFriendId', '', 600);
+                Log::info('获取完成，重置缓存，缓存时间：10分钟');
             }
             
             return true;
@@ -104,6 +119,7 @@ class WechatFriendJob
      * 添加下一页任务到队列
      * @param int $pageIndex 页码
      * @param int $pageSize 每页大小
+     * @param string $preFriendId 上一个好友ID
      */
     protected function addNextPageToQueue($pageIndex, $pageSize,$preFriendId)
     {

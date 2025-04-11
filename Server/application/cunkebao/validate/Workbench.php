@@ -25,10 +25,15 @@ class Workbench extends Validate
         'startTime' => 'requireIf:type,1|dateFormat:H:i',
         'endTime' => 'requireIf:type,1|dateFormat:H:i',
         'contentTypes' => 'requireIf:type,1|array|contentTypeEnum:text,image,video',
+        'targetGroups' => 'requireIf:type,1|array',
         // 朋友圈同步特有参数
         'syncInterval' => 'requireIf:type,2|number|min:1',
         'syncCount' => 'requireIf:type,2|number|min:1',
         'syncType' => 'requireIf:type,2|in:1,2,3,4',
+        'startTime' => 'requireIf:type,2|dateFormat:H:i',
+        'endTime' => 'requireIf:type,2|dateFormat:H:i',
+        'accountType' => 'requireIf:type,2|in:1,2',
+        'contentLibraries' => 'requireIf:type,2|array',
         // 群消息推送特有参数
         'pushInterval' => 'requireIf:type,3|number|min:1',
         'pushContent' => 'requireIf:type,3|array',
@@ -39,7 +44,6 @@ class Workbench extends Validate
         'membersPerGroup' => 'requireIf:type,4|number|min:1',
         // 通用参数
         'devices' => 'require|array',
-        'targetGroups' => 'require|array'
     ];
 
     /**
@@ -75,6 +79,14 @@ class Workbench extends Validate
         'syncCount.min' => '同步数量必须大于0',
         'syncType.requireIf' => '请选择同步类型',
         'syncType.in' => '同步类型错误',
+        'startTime.requireIf' => '请设置发布开始时间',
+        'startTime.dateFormat' => '发布开始时间格式错误',
+        'endTime.requireIf' => '请设置发布结束时间',
+        'endTime.dateFormat' => '发布结束时间格式错误',
+        'accountType.requireIf' => '请选择账号类型',
+        'accountType.in' => '账号类型错误',
+        'contentLibraries.requireIf' => '请选择内容库',
+        'contentLibraries.array' => '内容库格式错误',
         // 群消息推送相关提示
         'pushInterval.requireIf' => '请设置推送间隔',
         'pushInterval.number' => '推送间隔必须为数字',

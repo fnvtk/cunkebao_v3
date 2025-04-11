@@ -1,30 +1,87 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronLeft, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { StepIndicator } from "../../components/step-indicator"
 import { BasicSettings } from "../../components/basic-settings"
 import { DeviceSelectionDialog } from "../../components/device-selection-dialog"
+import { ContentLibrarySelectionDialog } from "../../components/content-library-selection-dialog"
 import { Input } from "@/components/ui/input"
+import { api, ApiResponse } from "@/lib/api"
+import { showToast } from "@/lib/toast"
 
-export default function EditMomentsSyncPage() {
+// 定义基本设置表单数据类型，与BasicSettings组件的formData类型匹配
+interface BasicSettingsFormData {
+  taskName: string
+  startTime: string
+  endTime: string
+  syncCount: number
+  syncInterval: number
+  accountType: "business" | "personal"
+  enabled: boolean
+}
+
+export default function EditMomentsSyncPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [deviceDialogOpen, setDeviceDialogOpen] = useState(false)
+  const [libraryDialogOpen, setLibraryDialogOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [formData, setFormData] = useState({
-    taskName: "同步卡若主号",
+    taskName: "",
     startTime: "06:00",
     endTime: "23:59",
     syncCount: 5,
-    accountType: "business" as const,
+    syncInterval: 30, // 同步间隔，默认30分钟
+    accountType: "business" as "business" | "personal",
     enabled: true,
     selectedDevices: [] as string[],
     selectedLibraries: [] as string[],
   })
 
+  // 获取任务详情
+  useEffect(() => {
+    const fetchTaskDetail = async () => {
+      setIsLoading(true)
+      try {
+        const response = await api.get<ApiResponse>(`/v1/workbench/detail?id=${params.id}`)
+        if (response.code === 200 && response.data) {
+          const taskData = response.data
+          setFormData({
+            taskName: taskData.name || "",
+            startTime: taskData.startTime || "06:00",
+            endTime: taskData.endTime || "23:59",
+            syncCount: taskData.syncCount || 5,
+            syncInterval: taskData.syncInterval || 30,
+            accountType: taskData.syncType === 1 ? "business" : "personal",
+            enabled: !!taskData.enabled,
+            selectedDevices: taskData.devices || [],
+            selectedLibraries: taskData.contentLibraries || [],
+          })
+        } else {
+          showToast(response.msg || "获取任务详情失败", "error")
+          router.back()
+        }
+      } catch (error: any) {
+        console.error("获取任务详情失败:", error)
+        showToast(error?.message || "获取任务详情失败", "error")
+        router.back()
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchTaskDetail()
+  }, [params.id, router])
+
   const handleUpdateFormData = (data: Partial<typeof formData>) => {
+    setFormData((prev) => ({ ...prev, ...data }))
+  }
+
+  // 专门用于基本设置的更新函数
+  const handleBasicSettingsUpdate = (data: Partial<BasicSettingsFormData>) => {
     setFormData((prev) => ({ ...prev, ...data }))
   }
 
@@ -36,9 +93,44 @@ export default function EditMomentsSyncPage() {
     setCurrentStep((prev) => Math.max(prev - 1, 1))
   }
 
-  const handleComplete = () => {
-    console.log("Form submitted:", formData)
-    router.push("/workspace/moments-sync")
+  const handleComplete = async () => {
+    try {
+      const response = await api.post<ApiResponse>('/v1/workbench/update', {
+        id: params.id,
+        type: 2, // 朋友圈同步任务类型为2
+        name: formData.taskName,
+        syncInterval: formData.syncInterval,
+        syncCount: formData.syncCount,
+        syncType: formData.accountType === "business" ? 1 : 2, // 业务号为1，人设号为2
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        accountType: formData.accountType === "business" ? 1 : 2,
+        status: formData.enabled ? 1 : 0, // 状态：0=禁用，1=启用
+        devices: formData.selectedDevices,
+        contentLibraries: formData.selectedLibraries
+      });
+
+      if (response.code === 200) {
+        showToast(response.msg || "更新成功", "success");
+        router.push("/workspace/moments-sync");
+      } else {
+        showToast(response.msg || "请稍后再试", "error");
+      }
+    } catch (error: any) {
+      console.error("更新朋友圈同步任务失败:", error);
+      showToast(error?.message || "请检查网络连接或稍后再试", "error");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#F8F9FA] flex justify-center items-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-500">加载中...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -57,7 +149,19 @@ export default function EditMomentsSyncPage() {
 
         <div className="mt-8">
           {currentStep === 1 && (
-            <BasicSettings formData={formData} onChange={handleUpdateFormData} onNext={handleNext} />
+            <BasicSettings 
+              formData={{
+                taskName: formData.taskName,
+                startTime: formData.startTime,
+                endTime: formData.endTime,
+                syncCount: formData.syncCount,
+                syncInterval: formData.syncInterval,
+                accountType: formData.accountType,
+                enabled: formData.enabled
+              }} 
+              onChange={handleBasicSettingsUpdate} 
+              onNext={handleNext} 
+            />
           )}
 
           {currentStep === 2 && (
@@ -69,6 +173,7 @@ export default function EditMomentsSyncPage() {
                   className="h-12 pl-11 rounded-xl border-gray-200 text-base"
                   onClick={() => setDeviceDialogOpen(true)}
                   readOnly
+                  value={formData.selectedDevices.length > 0 ? `已选择 ${formData.selectedDevices.length} 个设备` : ""}
                 />
               </div>
 
@@ -83,6 +188,7 @@ export default function EditMomentsSyncPage() {
                 <Button
                   onClick={handleNext}
                   className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 rounded-xl text-base shadow-sm"
+                  disabled={formData.selectedDevices.length === 0}
                 >
                   下一步
                 </Button>
@@ -104,8 +210,18 @@ export default function EditMomentsSyncPage() {
             <div className="space-y-6 px-6">
               <div className="relative">
                 <Search className="absolute left-3 top-4 h-5 w-5 text-gray-400" />
-                <Input placeholder="选择内容库" className="h-12 pl-11 rounded-xl border-gray-200 text-base" />
+                <Input
+                  placeholder="选择内容库"
+                  className="h-12 pl-11 rounded-xl border-gray-200 text-base"
+                  onClick={() => setLibraryDialogOpen(true)}
+                  readOnly
+                  value={formData.selectedLibraries.length > 0 ? `已选择 ${formData.selectedLibraries.length} 个内容库` : ""}
+                />
               </div>
+
+              {formData.selectedLibraries.length > 0 && (
+                <div className="text-base text-gray-500">已选内容库：{formData.selectedLibraries.length} 个</div>
+              )}
 
               <div className="flex space-x-4 pt-4">
                 <Button variant="outline" onClick={handlePrev} className="flex-1 h-12 rounded-xl text-base">
@@ -114,10 +230,21 @@ export default function EditMomentsSyncPage() {
                 <Button
                   onClick={handleComplete}
                   className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 rounded-xl text-base shadow-sm"
+                  disabled={formData.selectedLibraries.length === 0}
                 >
-                  完成
+                  保存
                 </Button>
               </div>
+
+              <ContentLibrarySelectionDialog
+                open={libraryDialogOpen}
+                onOpenChange={setLibraryDialogOpen}
+                selectedLibraries={formData.selectedLibraries}
+                onSelect={(libraries) => {
+                  handleUpdateFormData({ selectedLibraries: libraries })
+                  setLibraryDialogOpen(false)
+                }}
+              />
             </div>
           )}
         </div>
