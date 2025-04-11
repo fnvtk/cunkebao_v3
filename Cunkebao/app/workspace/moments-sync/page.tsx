@@ -34,6 +34,7 @@ interface SyncTask {
   createTime: string
   creator: string
   libraries?: string[]
+  devices?: string[]
 }
 
 export default function MomentsSyncPage() {
@@ -43,15 +44,19 @@ export default function MomentsSyncPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [total, setTotal] = useState(0)
 
   // 获取任务列表
   const fetchTasks = async () => {
     const loadingToast = showToast("正在加载任务列表...", "loading", true);
     setIsLoading(true)
     try {
-      const response = await api.get<ApiResponse>('/v1/workbench/list?type=2')
+      const response = await api.get<ApiResponse>(`/v1/workbench/list?type=2&page=${currentPage}&pageSize=${pageSize}`)
       if (response.code === 200 && response.data) {
         setTasks(response.data.list || [])
+        setTotal(response.data.total || 0)
       } else {
         showToast(response.msg || "获取任务列表失败", "error")
       }
@@ -67,7 +72,18 @@ export default function MomentsSyncPage() {
   // 组件加载时获取任务列表
   useEffect(() => {
     fetchTasks()
-  }, [])
+  }, [currentPage, pageSize])
+
+  // 处理页码变化
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  // 处理每页条数变化
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size)
+    setCurrentPage(1) // 重置到第一页
+  }
 
   // 搜索任务
   const handleSearch = () => {
@@ -239,71 +255,110 @@ export default function MomentsSyncPage() {
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
-            {filteredTasks.map((task) => (
-              <Card key={task.id} className="p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-2">
-                    <h3 className="font-medium">{task.name}</h3>
-                    <Badge variant={task.status === 1 ? "success" : "secondary"}>
-                      {task.status === "running" ? "进行中" : "已暂停"}
-                    </Badge>
+          <>
+            <div className="space-y-4">
+              {filteredTasks.map((task) => (
+                <Card key={task.id} className="p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                      <h3 className="font-medium">{task.name}</h3>
+                      <Badge variant={task.status === "running" ? "success" : "secondary"}>
+                        {task.status === "running" ? "进行中" : "已暂停"}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch 
+                        checked={task.status === "running"} 
+                        onCheckedChange={() => toggleTaskStatus(task.id, task.status)} 
+                      />
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => handleView(task.id)}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            查看
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEdit(task.id)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            编辑
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleCopy(task.id)}>
+                            <Copy className="h-4 w-4 mr-2" />
+                            复制
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => confirmDelete(task.id)}>
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            删除
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch 
-                      checked={task.status === 1} 
-                      onCheckedChange={() => toggleTaskStatus(task.id, task.status)} 
-                    />
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => handleView(task.id)}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          查看
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEdit(task.id)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          编辑
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleCopy(task.id)}>
-                          <Copy className="h-4 w-4 mr-2" />
-                          复制
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => confirmDelete(task.id)}>
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          删除
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
 
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="text-sm text-gray-500">
+                      <div>推送设备：{task.devices?.length || 0} 个</div>
+                      <div>内容库：{task.contentLib}</div>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      <div>已同步：{task.syncCount} 条</div>
+                      <div>创建人：{task.creator}</div>
+                    </div>
+                  </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="text-sm text-gray-500">
-                    <div>推送设备：{task.deviceCount} 个</div>
-                    <div>内容库：{task.contentLib}</div>
+                  <div className="flex items-center justify-between text-xs text-gray-500 border-t pt-4">
+                    <div className="flex items-center">
+                      <Clock className="w-4 h-4 mr-1" />
+                      上次同步：{task.lastSyncTime}
+                    </div>
+                    <div>创建时间：{task.createTime}</div>
                   </div>
-                  <div className="text-sm text-gray-500">
-                    <div>已同步：{task.syncCount} 条</div>
-                    <div>创建人：{task.creator}</div>
-                  </div>
-                </div>
+                </Card>
+              ))}
+            </div>
 
-                <div className="flex items-center justify-between text-xs text-gray-500 border-t pt-4">
-                  <div className="flex items-center">
-                    <Clock className="w-4 h-4 mr-1" />
-                    上次同步：{task.lastSyncTime}
-                  </div>
-                  <div>创建时间：{task.createTime}</div>
-                </div>
-              </Card>
-            ))}
-          </div>
+            {/* 分页组件 */}
+            <div className="flex justify-between items-center mt-4">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500">每页显示</span>
+                <select 
+                  className="border rounded px-2 py-1 text-sm"
+                  value={pageSize}
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+                <span className="text-sm text-gray-500">条</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  上一页
+                </Button>
+                <span className="text-sm text-gray-500">
+                  第 {currentPage} 页 / 共 {Math.ceil(total / pageSize)} 页
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage >= Math.ceil(total / pageSize)}
+                >
+                  下一页
+                </Button>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
