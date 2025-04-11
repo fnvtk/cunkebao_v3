@@ -376,15 +376,47 @@ export default function CustomersPage() {
                 disabled={currentPage <= 1}
               >
                 <ChevronLeft className="h-4 w-4" />
-                上一页
               </Button>
+              
+              {/* 数字分页按钮 */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                // 显示当前页码前后2页，以及第一页和最后一页
+                const shouldShow = 
+                  page === 1 || 
+                  page === totalPages || 
+                  (page >= currentPage - 2 && page <= currentPage + 2);
+                
+                if (!shouldShow) {
+                  // 显示省略号
+                  if (page === currentPage - 3 || page === currentPage + 3) {
+                    return (
+                      <span key={page} className="px-2">
+                        ...
+                      </span>
+                    );
+                  }
+                  return null;
+                }
+
+                return (
+                  <Button
+                    key={page}
+                    variant={page === currentPage ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => goToPage(page)}
+                    className="min-w-[2.5rem]"
+                  >
+                    {page}
+                  </Button>
+                );
+              })}
+
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => goToPage(currentPage + 1)}
                 disabled={currentPage >= totalPages}
               >
-                下一页
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>

@@ -38,6 +38,7 @@ class TrafficPool extends Controller
             ->join('wechat_friend wf', 'tp.wechatId = wf.wechatId', 'left')
             // 查询字段
             ->field([
+                'distinct ts.identifier',
                 'tp.id',
                 'tp.avatar', 
                 'tp.nickname', 

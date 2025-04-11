@@ -282,6 +282,7 @@ export default function MomentsSyncPage() {
                   </div>
                 </div>
 
+
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div className="text-sm text-gray-500">
                     <div>推送设备：{task.deviceCount} 个</div>
