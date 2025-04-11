@@ -18,18 +18,15 @@ Route::group('', function () {
     
     // 管理员相关路由
     Route::group('administrator', function () {
-        // 获取管理员列表
         Route::get('list', 'app\\superadmin\\controller\\Administrator@getList');
-        // 获取管理员详情
         Route::get('detail/:id', 'app\\superadmin\\controller\\Administrator@getDetail');
-        // 更新管理员信息
         Route::post('update', 'app\\superadmin\\controller\\Administrator@updateAdmin');
-        // 添加管理员
         Route::post('add', 'app\\superadmin\\controller\\Administrator@addAdmin');
-        // 删除管理员
         Route::post('delete', 'app\\superadmin\\controller\\Administrator@deleteAdmin');
     });
-    
-    // 系统信息相关路由
-    Route::get('system/info', 'app\\superadmin\\controller\\System@getInfo');
+
+    // 客户池管理路由
+    Route::group('trafficPool', function () {
+        Route::get('list', 'app\\superadmin\\controller\\TrafficPool@getList');
+    });
 })->middleware(['app\\superadmin\\middleware\\AdminAuth']); 
