@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,9 +13,11 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, MoreHorizontal, Eye, UserPlus, Filter } from "lucide-react"
+import { Search, MoreHorizontal, Eye, UserPlus, Filter, ChevronLeft, ChevronRight } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { getTrafficPoolList } from "@/lib/traffic-pool-api"
+import { Customer } from "@/lib/traffic-pool-api"
 
 // Sample customer data
 const customersData = [
@@ -111,8 +113,52 @@ export default function CustomersPage() {
   const [selectedGender, setSelectedGender] = useState("")
   const [selectedSource, setSelectedSource] = useState("")
   const [selectedProject, setSelectedProject] = useState("")
+  
+  // 客户列表状态
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
+  // 分页状态
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const [pageSize, setPageSize] = useState(10)
 
-  // Filter customers based on search and filters
+  // 获取客户列表数据
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      setIsLoading(true);
+      try {
+        const response = await getTrafficPoolList(currentPage, pageSize, searchTerm);
+        if (response.code === 200 && response.data) {
+          setCustomers(response.data.list);
+          setTotalItems(response.data.total);
+          setTotalPages(Math.ceil(response.data.total / pageSize));
+          setError(null);
+        } else {
+          setError(response.msg || "获取客户列表失败");
+          setCustomers([]);
+        }
+      } catch (err: any) {
+        setError(err.message || "获取客户列表失败");
+        setCustomers([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCustomers();
+  }, [currentPage, pageSize, searchTerm]);
+
+  // 切换页码
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  // Filter customers based on search and filters (兼容示例数据)
   const filteredCustomers = customersData.filter((customer) => {
     const matchesSearch =
       customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -236,23 +282,35 @@ export default function CustomersPage() {
                 <TableHead>标签</TableHead>
                 <TableHead>地区</TableHead>
                 <TableHead>来源</TableHead>
-                <TableHead>所属项目</TableHead>
+                <TableHead>公司名称</TableHead>
                 <TableHead>添加时间</TableHead>
                 <TableHead className="text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCustomers.length > 0 ? (
-                filteredCustomers.map((customer) => (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="h-24 text-center">
+                    正在加载...
+                  </TableCell>
+                </TableRow>
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="h-24 text-center text-red-500">
+                    {error}
+                  </TableCell>
+                </TableRow>
+              ) : customers.length > 0 ? (
+                customers.map((customer) => (
                   <TableRow key={customer.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar>
-                          <AvatarImage src={customer.avatar} alt={customer.name} />
-                          <AvatarFallback>{customer.name.slice(0, 2)}</AvatarFallback>
+                          <AvatarImage src={customer.avatar} alt={customer.nickname} />
+                          <AvatarFallback>{customer.nickname.slice(0, 2)}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-medium">{customer.name}</div>
+                          <div className="font-medium">{customer.nickname}</div>
                           <div className="text-xs text-muted-foreground">{customer.gender}</div>
                         </div>
                       </div>
@@ -260,8 +318,8 @@ export default function CustomersPage() {
                     <TableCell>{customer.wechatId}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {customer.tags.map((tag) => (
-                          <Badge key={tag} variant="outline">
+                        {customer.tags.map((tag, index) => (
+                          <Badge key={index} variant="outline">
                             {tag}
                           </Badge>
                         ))}
@@ -269,8 +327,8 @@ export default function CustomersPage() {
                     </TableCell>
                     <TableCell>{customer.region}</TableCell>
                     <TableCell>{customer.source}</TableCell>
-                    <TableCell>{customer.projectName}</TableCell>
-                    <TableCell>{customer.addedDate}</TableCell>
+                    <TableCell>{customer.companyName}</TableCell>
+                    <TableCell>{customer.createTime}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -303,6 +361,35 @@ export default function CustomersPage() {
             </TableBody>
           </Table>
         </div>
+        
+        {/* 分页控件 */}
+        {!isLoading && !error && customers.length > 0 && (
+          <div className="flex items-center justify-between px-2">
+            <div className="text-sm text-muted-foreground">
+              共 {totalItems} 条记录，当前第 {currentPage}/{totalPages} 页
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage <= 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                上一页
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+              >
+                下一页
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
