@@ -133,7 +133,7 @@ class Device extends Controller
             $order = Request::param('order', 'desc');
             
             // 添加公司ID过滤条件
-            $where['d.companyId'] = $userInfo['companyId'];
+            $where['d.tenantId'] = $userInfo['companyId'];
 
             // 根据用户管理员状态调整查询条件
             if ($userInfo['isAdmin'] == 1) {

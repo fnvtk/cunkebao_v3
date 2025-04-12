@@ -9,6 +9,7 @@ use think\Model;
  */
 class WorkbenchAutoLike extends Model
 {
+    protected $table = 'ck_workbench_auto_like';
     protected $pk = 'id';
     protected $name  = 'workbench_auto_like';
 

@@ -6,6 +6,7 @@ use think\Model;
 
 class WorkbenchGroupCreate extends Model
 {
+    protected $table = 'ck_workbench_group_create';
     protected $pk = 'id';
     protected $name  = 'workbench_group_create';
 

@@ -10,8 +10,9 @@ use think\model\concern\SoftDelete;
  */
 class Workbench extends Model
 {
+
+    protected $table = 'ck_workbench';
     protected $pk = 'id';
-    protected $name = 'workbenches';
 
     // 自动写入时间戳
     protected $autoWriteTimestamp = true;

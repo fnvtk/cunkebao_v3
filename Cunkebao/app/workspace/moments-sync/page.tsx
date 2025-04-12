@@ -12,6 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Switch } from "@/components/ui/switch"
 import { api, ApiResponse } from "@/lib/api"
 import { showToast } from "@/lib/toast"
+import { DeviceSelectionDialog } from "../auto-like/components/device-selection-dialog"
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -26,7 +27,7 @@ import {
 interface SyncTask {
   id: string
   name: string
-  status: "running" | "paused"
+  status: number // 修改为数字类型：1-运行中，0-暂停
   deviceCount: number
   contentLib: string
   syncCount: number
@@ -47,6 +48,8 @@ export default function MomentsSyncPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [total, setTotal] = useState(0)
+  const [deviceDialogOpen, setDeviceDialogOpen] = useState(false)
+  const [selectedDevices, setSelectedDevices] = useState<number[]>([])
 
   // 获取任务列表
   const fetchTasks = async () => {
@@ -91,13 +94,13 @@ export default function MomentsSyncPage() {
   }
 
   // 切换任务状态
-  const toggleTaskStatus = async (taskId: string, currentStatus: "running" | "paused") => {
+  const toggleTaskStatus = async (taskId: string, currentStatus: number) => {
     const loadingToast = showToast("正在更新任务状态...", "loading", true);
     try {
-      const newStatus = currentStatus === "running" ? "paused" : "running"
+      const newStatus = currentStatus === 1 ? 0 : 1
       const response = await api.post<ApiResponse>('/v1/workbench/update-status', {
         id: taskId,
-        status: newStatus === "running" ? 1 : 0
+        status: newStatus
       })
 
       if (response.code === 200) {
@@ -107,7 +110,7 @@ export default function MomentsSyncPage() {
           )
         )
         loadingToast.remove();
-        showToast(`任务已${newStatus === "running" ? "启用" : "暂停"}`, "success")
+        showToast(`任务已${newStatus === 1 ? "启用" : "暂停"}`, "success")
       } else {
         loadingToast.remove();
         showToast(response.msg || "操作失败", "error")
@@ -182,6 +185,11 @@ export default function MomentsSyncPage() {
       loadingToast.remove();
       showToast(error?.message || "复制任务失败", "error")
     }
+  }
+
+  // 处理设备选择
+  const handleDeviceSelect = (devices: number[]) => {
+    setSelectedDevices(devices)
   }
 
   // 过滤任务
@@ -322,44 +330,36 @@ export default function MomentsSyncPage() {
             </div>
 
             {/* 分页组件 */}
-            <div className="flex justify-between items-center mt-4">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-500">每页显示</span>
-                <select 
-                  className="border rounded px-2 py-1 text-sm"
-                  value={pageSize}
-                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                </select>
-                <span className="text-sm text-gray-500">条</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  上一页
-                </Button>
-                <span className="text-sm text-gray-500">
-                  第 {currentPage} 页 / 共 {Math.ceil(total / pageSize)} 页
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage >= Math.ceil(total / pageSize)}
-                >
-                  下一页
-                </Button>
-              </div>
+            <div className="flex justify-center items-center mt-4 space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                上一页
+              </Button>
+              <span className="text-sm">
+                第 {currentPage} 页 共 {Math.ceil(total / pageSize)} 页
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage >= Math.ceil(total / pageSize)}
+              >
+                下一页
+              </Button>
             </div>
           </>
         )}
+
+        <DeviceSelectionDialog
+          open={deviceDialogOpen}
+          onOpenChange={setDeviceDialogOpen}
+          selectedDevices={selectedDevices}
+          onSelect={handleDeviceSelect}
+        />
       </div>
 
       {/* 删除确认对话框 */}

@@ -84,7 +84,7 @@ class FriendTaskJob
             // 判断是否有下一页
             if (!empty($data) && count($data['results']) > 0) {
                 // 更新缓存中的页码，设置10分钟过期
-                Cache::set('friendTaskPage', $pageIndex + 1, 600);
+                Cache::set('friendTaskPage', $pageIndex + 1, 86400);
                 Log::info('更新缓存，下一页页码：' . ($pageIndex + 1) . '，缓存时间：10分钟');
                 
                 // 有下一页，将下一页任务添加到队列
@@ -93,7 +93,7 @@ class FriendTaskJob
                 Log::info('添加下一页任务到队列，页码：' . $nextPageIndex);
             } else {
                 // 没有下一页，重置缓存，设置10分钟过期
-                Cache::set('friendTaskPage', 0, 600);
+                Cache::set('friendTaskPage', 0, 86400);
                 Log::info('获取完成，重置缓存，缓存时间：10分钟');
             }
             

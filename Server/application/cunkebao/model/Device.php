@@ -10,7 +10,7 @@ use think\Db;
 class Device extends Model
 {
     // 设置表名
-    protected $name = 'device';
+    protected $table = 's2_device';
 
     /**
      * 获取设备总数

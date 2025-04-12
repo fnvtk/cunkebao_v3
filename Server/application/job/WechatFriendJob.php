@@ -91,8 +91,8 @@ class WechatFriendJob
                 $lastFriendId = $data[count($data)-1]['id'];
                 
                 // 更新缓存中的页码和最后一个好友ID，设置10分钟过期
-                Cache::set('friendsPage', $pageIndex + 1, 600);
-                Cache::set('preFriendId', $lastFriendId, 600);
+                Cache::set('friendsPage', $pageIndex + 1, 86400);
+                Cache::set('preFriendId', $lastFriendId, 86400);
                 
                 Log::info('更新缓存，下一页页码：' . ($pageIndex + 1) . '，最后好友ID：' . $lastFriendId . '，缓存时间：10分钟');
                 
@@ -102,8 +102,8 @@ class WechatFriendJob
                 Log::info('添加下一页任务到队列，页码：' . $nextPageIndex);
             } else {
                 // 没有下一页，重置缓存，设置10分钟过期
-                Cache::set('friendsPage', 0, 600);
-                Cache::set('preFriendId', '', 600);
+                Cache::set('friendsPage', 0, 86400);
+                Cache::set('preFriendId', '', 86400);
                 Log::info('获取完成，重置缓存，缓存时间：10分钟');
             }
             

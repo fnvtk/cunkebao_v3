@@ -6,6 +6,7 @@ use think\Model;
 
 class WorkbenchMomentsSync extends Model
 {
+    protected $table = 'ck_workbench_moments_sync';
     protected $pk = 'id';
     protected $name  = 'workbench_moments_sync';
 

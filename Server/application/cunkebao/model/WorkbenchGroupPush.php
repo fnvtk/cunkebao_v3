@@ -6,6 +6,7 @@ use think\Model;
 
 class WorkbenchGroupPush extends Model
 {
+    protected $table = 'ck_workbench_group_push';
     protected $pk = 'id';
     protected $name  = 'workbench_group_push';
 
