@@ -124,6 +124,7 @@ export default function CustomersPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
   const [pageSize, setPageSize] = useState(10)
+  const [jumpToPage, setJumpToPage] = useState("")
 
   // 获取客户列表数据
   useEffect(() => {
@@ -156,6 +157,22 @@ export default function CustomersPage() {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
+  };
+
+  // 处理页码跳转
+  const handleJumpToPage = () => {
+    const page = parseInt(jumpToPage);
+    if (!isNaN(page) && page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      setJumpToPage("");
+    }
+  };
+
+  // 处理每页显示条数变化
+  const handlePageSizeChange = (size: string) => {
+    const newSize = parseInt(size);
+    setPageSize(newSize);
+    setCurrentPage(1); // 重置为第一页
   };
 
   // Filter customers based on search and filters (兼容示例数据)
@@ -365,8 +382,25 @@ export default function CustomersPage() {
         {/* 分页控件 */}
         {!isLoading && !error && customers.length > 0 && (
           <div className="flex items-center justify-between px-2">
-            <div className="text-sm text-muted-foreground">
-              共 {totalItems} 条记录，当前第 {currentPage}/{totalPages} 页
+            <div className="flex items-center space-x-4">
+              <div className="text-sm text-muted-foreground">
+                共 {totalItems} 条记录，当前第 {currentPage}/{totalPages} 页
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm">每页显示:</span>
+                <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                  <SelectTrigger className="h-8 w-[70px]">
+                    <SelectValue placeholder={pageSize} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="30">30</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="text-sm">条</span>
+              </div>
             </div>
             <div className="flex items-center space-x-2">
               <Button
@@ -419,6 +453,29 @@ export default function CustomersPage() {
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
+              
+              {/* 页码跳转 */}
+              <div className="flex items-center space-x-2 ml-2">
+                <span className="text-sm">跳转到</span>
+                <Input
+                  type="number"
+                  value={jumpToPage}
+                  onChange={(e) => setJumpToPage(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleJumpToPage()}
+                  className="h-8 w-16 text-center"
+                  min={1}
+                  max={totalPages}
+                />
+                <span className="text-sm">页</span>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={handleJumpToPage}
+                  disabled={!jumpToPage || isNaN(parseInt(jumpToPage)) || parseInt(jumpToPage) < 1 || parseInt(jumpToPage) > totalPages}
+                >
+                  确定
+                </Button>
+              </div>
             </div>
           </div>
         )}

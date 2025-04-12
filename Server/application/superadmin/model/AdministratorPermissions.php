@@ -10,28 +10,7 @@ class AdministratorPermissions extends Model
 {
     // 设置数据表名
     protected $name = 'administrator_permissions';
-    
-    // 设置主键
-    protected $pk = 'id';
-    
-    // 自动写入时间戳
-    protected $autoWriteTimestamp = true;
-    
-    // 定义时间戳字段名
-    protected $createTime = 'createTime';
-    protected $updateTime = 'updateTime';
-    protected $deleteTime = 'deleteTime';
-    
-    // 定义字段类型
-    protected $type = [
-        'id' => 'integer',
-        'adminId' => 'integer',
-        'permissions' => 'json',
-        'createTime' => 'integer',
-        'updateTime' => 'integer',
-        'deleteTime' => 'integer'
-    ];
-    
+
     /**
      * 保存管理员权限
      * @param int $adminId 管理员ID
