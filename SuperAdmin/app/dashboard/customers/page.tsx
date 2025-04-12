@@ -123,7 +123,7 @@ export default function CustomersPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
-  const [pageSize, setPageSize] = useState(10)
+  const [pageSize, setPageSize] = useState(30)
   const [jumpToPage, setJumpToPage] = useState("")
 
   // 获取客户列表数据
@@ -133,7 +133,13 @@ export default function CustomersPage() {
       try {
         const response = await getTrafficPoolList(currentPage, pageSize, searchTerm);
         if (response.code === 200 && response.data) {
-          setCustomers(response.data.list);
+          // 处理标签数据，过滤掉无效标签
+          const processedCustomers = response.data.list.map(customer => ({
+            ...customer,
+            tags: customer.tags.filter(tag => tag && tag !== "请选择标签"),
+            createTime: customer.addTime // 统一使用createTime字段
+          }));
+          setCustomers(processedCustomers);
           setTotalItems(response.data.total);
           setTotalPages(Math.ceil(response.data.total / pageSize));
           setError(null);
@@ -176,23 +182,23 @@ export default function CustomersPage() {
   };
 
   // Filter customers based on search and filters (兼容示例数据)
-  const filteredCustomers = customersData.filter((customer) => {
+  const filteredCustomers = customers.filter((customer) => {
     const matchesSearch =
-      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.wechatId.toLowerCase().includes(searchTerm.toLowerCase())
+      customer.nickname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.wechatId.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesRegion = selectedRegion ? customer.region === selectedRegion : true
-    const matchesGender = selectedGender ? customer.gender === selectedGender : true
-    const matchesSource = selectedSource ? customer.source === selectedSource : true
-    const matchesProject = selectedProject ? customer.projectName === selectedProject : true
+    const matchesRegion = selectedRegion ? customer.region === selectedRegion : true;
+    const matchesGender = selectedGender ? customer.gender === selectedGender : true;
+    const matchesSource = selectedSource ? customer.source === selectedSource : true;
+    const matchesProject = selectedProject ? customer.projectName === selectedProject : true;
 
-    return matchesSearch && matchesRegion && matchesGender && matchesSource && matchesProject
-  })
+    return matchesSearch && matchesRegion && matchesGender && matchesSource && matchesProject;
+  });
 
   // Get unique values for filters
-  const regions = [...new Set(customersData.map((c) => c.region))]
-  const sources = [...new Set(customersData.map((c) => c.source))]
-  const projects = [...new Set(customersData.map((c) => c.projectName))]
+  const regions = [...new Set(customers.map((c) => c.region))]
+  const sources = [...new Set(customers.map((c) => c.source))]
+  const projects = [...new Set(customers.map((c) => c.projectName))]
 
   return (
     <div className="space-y-6">
@@ -323,7 +329,15 @@ export default function CustomersPage() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar>
-                          <AvatarImage src={customer.avatar} alt={customer.nickname} />
+                          <AvatarImage 
+                            src={customer.avatar || "/placeholder.svg?height=40&width=40"} 
+                            alt={customer.nickname} 
+                            onError={(e) => {
+                              // 图片加载失败时使用默认图片
+                              const target = e.target as HTMLImageElement;
+                              target.src = "/placeholder.svg?height=40&width=40";
+                            }}
+                          />
                           <AvatarFallback>{customer.nickname.slice(0, 2)}</AvatarFallback>
                         </Avatar>
                         <div>
@@ -335,17 +349,21 @@ export default function CustomersPage() {
                     <TableCell>{customer.wechatId}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {customer.tags.map((tag, index) => (
-                          <Badge key={index} variant="outline">
-                            {tag}
-                          </Badge>
-                        ))}
+                        {customer.tags && customer.tags.length > 0 ? (
+                          customer.tags.map((tag, index) => (
+                            <Badge key={index} variant="outline">
+                              {tag}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-sm text-muted-foreground">无标签</span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>{customer.region}</TableCell>
                     <TableCell>{customer.source}</TableCell>
-                    <TableCell>{customer.companyName}</TableCell>
-                    <TableCell>{customer.createTime}</TableCell>
+                    <TableCell>{customer.projectName}</TableCell>
+                    <TableCell>{customer.createTime || "未记录"}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -393,10 +411,10 @@ export default function CustomersPage() {
                     <SelectValue placeholder={pageSize} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="10">10</SelectItem>
                     <SelectItem value="30">30</SelectItem>
                     <SelectItem value="50">50</SelectItem>
                     <SelectItem value="100">100</SelectItem>
+                    <SelectItem value="150">150</SelectItem>
                   </SelectContent>
                 </Select>
                 <span className="text-sm">条</span>

@@ -12,8 +12,10 @@ export interface Customer {
   region: string;
   tags: string[];
   source: string;
+  projectName: string;
+  addTime: string | null;
+  createTime: string | null; // 修改为允许null值
   companyName: string;
-  createTime: string;
   mobile: number;
 }
 
