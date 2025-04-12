@@ -6,9 +6,9 @@ use think\queue\Job;
 use think\facade\Log;
 use think\Queue;
 use think\facade\Config;
-use app\api\controller\WechatController;
+use app\api\controller\AccountController;
 
-class WechatListJob
+class DepartmentListJob
 {
     /**
      * 队列任务处理
@@ -20,23 +20,23 @@ class WechatListJob
     {
         try {
             // 如果任务执行成功后删除任务
-            if ($this->processWechatList($data, $job->attempts())) {
+            if ($this->processDepartmentList($data, $job->attempts())) {
                 $job->delete();
-                Log::info('微信客服列表任务执行成功，页码：' . $data['pageIndex']);
+                Log::info('部门列表任务执行成功，页码：' . $data['pageIndex']);
             } else {
                 if ($job->attempts() > 3) {
                     // 超过重试次数，删除任务
-                    Log::error('微信客服列表任务执行失败，已超过重试次数，页码：' . $data['pageIndex']);
+                    Log::error('部门列表任务执行失败，已超过重试次数，页码：' . $data['pageIndex']);
                     $job->delete();
                 } else {
                     // 任务失败，重新放回队列
-                    Log::warning('微信客服列表任务执行失败，重试次数：' . $job->attempts() . '，页码：' . $data['pageIndex']);
+                    Log::warning('部门列表任务执行失败，重试次数：' . $job->attempts() . '，页码：' . $data['pageIndex']);
                     $job->release(Config::get('queue.failed_delay', 10));
                 }
             }
         } catch (\Exception $e) {
             // 出现异常，记录日志
-            Log::error('微信客服列表任务异常：' . $e->getMessage());
+            Log::error('部门列表任务异常：' . $e->getMessage());
             if ($job->attempts() > 3) {
                 $job->delete();
             } else {
@@ -46,21 +46,21 @@ class WechatListJob
     }
     
     /**
-     * 处理微信客服列表获取
+     * 处理部门列表获取
      * @param array $data 任务数据
      * @param int $attempts 重试次数
      * @return bool
      */
-    protected function processWechatList($data, $attempts)
+    protected function processDepartmentList($data, $attempts)
     {
         // 获取参数
         $pageIndex = isset($data['pageIndex']) ? $data['pageIndex'] : 0;
-        $pageSize = isset($data['pageSize']) ? $data['pageSize'] : 1000;
+        $pageSize = isset($data['pageSize']) ? $data['pageSize'] : 100;
         
-        Log::info('开始获取微信客服列表，页码：' . $pageIndex . '，页大小：' . $pageSize);
+        Log::info('开始获取部门列表，页码：' . $pageIndex . '，页大小：' . $pageSize);
         
         // 实例化控制器
-        $wechatController = new WechatController();
+        $accountController = new AccountController();
         
         // 构建请求参数
         $params = [
@@ -72,12 +72,10 @@ class WechatListJob
         $request = request();
         $request->withGet($params);
         
-
-        // 调用设备列表获取方法
-        $result = $wechatController->getlist($pageIndex,$pageSize,true);
+        // 调用公司账号列表获取方法
+        $result = $accountController->getDepartmentList(true);
         $response = json_decode($result,true);
 
-    
         
         // 判断是否成功
         if ($response['code'] == 200) {
@@ -94,7 +92,7 @@ class WechatListJob
             return true;
         } else {
             $errorMsg = isset($response['msg']) ? $response['msg'] : '未知错误';
-            Log::error('获取微信客服列表失败：' . $errorMsg);
+            Log::error('获取部门列表失败：' . $errorMsg);
             return false;
         }
     }
@@ -110,8 +108,8 @@ class WechatListJob
             'pageIndex' => $pageIndex,
             'pageSize' => $pageSize
         ];
-        
-        // 添加到队列，设置任务名为 wechat_list
-        Queue::push(self::class, $data, 'wechat_list');
+                
+        // 添加到队列，设置任务名为 account_list
+        Queue::push(self::class, $data, 'department_list');
     }
 } 

@@ -6,7 +6,7 @@ use think\Model;
 
 class Message extends Model
 {
-    protected $name = 'coze_message';
+    protected $table = 'ck_coze_message';
     protected $pk = 'id';
     
     // 自动写入时间戳

@@ -262,13 +262,13 @@ export default function MomentsSyncPage() {
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-2">
                       <h3 className="font-medium">{task.name}</h3>
-                      <Badge variant={task.status === "running" ? "success" : "secondary"}>
-                        {task.status === "running" ? "进行中" : "已暂停"}
+                      <Badge variant={task.status === 1 ? "success" : "secondary"}>
+                        {task.status === 1 ? "进行中" : "已暂停"}
                       </Badge>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Switch 
-                        checked={task.status === "running"} 
+                        checked={task.status === 1} 
                         onCheckedChange={() => toggleTaskStatus(task.id, task.status)} 
                       />
                       <DropdownMenu>

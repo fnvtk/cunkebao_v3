@@ -7,11 +7,16 @@ use think\facade\Request;
 
 class FriendTaskController extends BaseController
 {
+    /************************ 好友任务管理相关接口 ************************/
+    
     /**
      * 获取添加好友记录列表
+     * @param int $pageIndex 页码
+     * @param int $pageSize 每页数量
+     * @param bool $isJob 是否为定时任务调用
      * @return \think\response\Json
      */
-    public function getlist($pageIndex,$pageSize,$isJob = false)
+    public function getlist($pageIndex, $pageSize, $isJob = false)
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
@@ -112,6 +117,8 @@ class FriendTaskController extends BaseController
             return errorJson('添加好友任务失败：' . $e->getMessage());
         }
     }
+
+    /************************ 私有辅助方法 ************************/
 
     /**
      * 保存添加好友记录到数据库

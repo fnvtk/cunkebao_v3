@@ -55,4 +55,9 @@ class Workbench extends Model
         return $this->hasOne('WorkbenchGroupCreate', 'workbenchId', 'id');
     }
  
+    // 用户关联
+    public function user()
+    {
+        return $this->hasOne('User', 'id', 'userId');
+    }
 } 

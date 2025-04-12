@@ -6,6 +6,8 @@ use think\facade\Request;
 
 class MomentsController extends BaseController
 {
+    /************************ 朋友圈发布相关接口 ************************/
+    
     /**
      * 发布朋友圈
      * @return \think\response\Json
@@ -99,7 +101,9 @@ class MomentsController extends BaseController
             return errorJson('发布朋友圈失败：' . $e->getMessage());
         }
     }
-    
+
+    /************************ 朋友圈任务管理相关接口 ************************/
+
     /**
      * 获取朋友圈任务列表
      * @return \think\response\Json

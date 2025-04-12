@@ -6,6 +6,6 @@ use think\Model;
 
 class WechatFriendModel extends Model
 {
-    protected $name = 'wechat_friend';
+    protected $table = 'ck_wechat_friend';
    
 } 

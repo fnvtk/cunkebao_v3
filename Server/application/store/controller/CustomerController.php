@@ -54,11 +54,11 @@ class CustomerController extends Api
         // }
         
         // 构建查询
-        $query = Db::name('device_user')
+        $query = Db::table('ck_device_user')
             ->alias('du')
-            ->join('device d', 'd.id = du.deviceId','left')
-            ->join('wechat_account wa', 'wa.imei = d.imei','left')
-            ->join('wechat_friend wf', 'wf.ownerWechatId = wa.wechatId','left')
+            ->join('s2_device d', 'd.id = du.deviceId','left')
+            ->join('s2_wechat_account wa', 'wa.imei = d.imei','left')
+            ->join('s2_wechat_friend wf', 'wf.ownerWechatId = wa.wechatId','left')
             ->where($where)
             ->field('d.id as deviceId,d.imei,wf.*')
             ->group('wf.wechatId'); // 防止重复数据

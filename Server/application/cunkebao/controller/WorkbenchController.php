@@ -161,6 +161,9 @@ class WorkbenchController extends Controller
             'momentsSync' => function($query) {
                 $query->field('workbenchId,syncInterval,syncCount,syncType,startTime,endTime,accountType,devices,contentLibraries');
             },
+            'user' => function($query) {
+                $query->field('username');
+            },
             // 'groupPush' => function($query) {
             //     $query->field('workbenchId,pushInterval,pushContent,pushTime,devices,targetGroups');
             // },

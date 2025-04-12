@@ -35,10 +35,10 @@ class BaseController extends Api
         $device = Cache::get($cacheKey);
         // 如果缓存不存在，则从数据库获取
         if (!$device) {
-            $device = Db::name('device_user')
+            $device = Db::table('ck_device_user')
                 ->alias('du')
-                ->join('device d', 'd.id = du.deviceId','left')
-                ->join('wechat_account wa', 'd.id = wa.currentDeviceId','left')
+                ->join('s2_device d', 'd.id = du.deviceId','left')
+                ->join('s2_wechat_account wa', 'd.id = wa.currentDeviceId','left')
                 ->where([
                     'du.userId' => $this->userInfo['id'],
                     'du.companyId' => $this->userInfo['companyId']

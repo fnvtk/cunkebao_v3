@@ -12,7 +12,7 @@ class User extends Model
      * 数据表名
      * @var string
      */
-    protected $table = 'tk_users';
+    protected $table = 'ck_users';
 
     /**
      * 主键

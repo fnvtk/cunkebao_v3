@@ -8,6 +8,7 @@ use think\console\Output;
 use think\facade\Log;
 use think\Queue;
 use app\job\FriendTaskJob;
+use think\facade\Cache;
 
 class FriendTaskCommand extends Command
 {
@@ -22,11 +23,13 @@ class FriendTaskCommand extends Command
         $output->writeln('开始处理添加好友任务...');
         
         try {
-            // 初始页码
-            $pageIndex = 0;
-            $pageSize = 100; // 每页获取100条记录
+            // 从缓存获取初始页码，缓存10分钟有效
+            $pageIndex = Cache::get('friendTaskPage', 21);
+            $output->writeln('从缓存获取页码：' . $pageIndex);
             
-            // 将第一页任务添加到队列
+            $pageSize = 1000; // 每页获取1000条记录
+            
+            // 将任务添加到队列
             $this->addToQueue($pageIndex, $pageSize);
             
             $output->writeln('添加好友任务已添加到队列');

@@ -10,8 +10,13 @@ use Endroid\QrCode\ErrorCorrectionLevel;
 
 class DeviceController extends BaseController
 {
+    /************************ 设备管理相关接口 ************************/
+    
     /**
      * 获取设备列表
+     * @param string $pageIndex 页码
+     * @param string $pageSize 每页数量
+     * @param bool $isJob 是否为定时任务调用
      * @return \think\response\Json
      */
     public function getlist($pageIndex = '',$pageSize = '',$isJob = false)
@@ -80,65 +85,6 @@ class DeviceController extends BaseController
     }
 
     /**
-     * 保存设备数据到数据库
-     * @param array $item 设备数据
-     */
-    private function saveDevice($item)
-    {
-        $data = [
-            'id' => isset($item['id']) ? $item['id'] : '',
-            'userName' => isset($item['userName']) ? $item['userName'] : '',
-            'nickname' => isset($item['nickname']) ? $item['nickname'] : '',
-            'realName' => isset($item['realName']) ? $item['realName'] : '',
-            'groupName' => isset($item['groupName']) ? $item['groupName'] : '',
-            'wechatAccounts' => isset($item['wechatAccounts']) ? json_encode($item['wechatAccounts']) : json_encode([]),
-            'alive' => isset($item['alive']) ? $item['alive'] : false,
-            'lastAliveTime' => isset($item['lastAliveTime']) ? $item['lastAliveTime'] : null,
-            'companyId' => isset($item['tenantId']) ? $item['tenantId'] : 0,
-            'groupId' => isset($item['groupId']) ? $item['groupId'] : 0,
-            'currentAccountId' => isset($item['currentAccountId']) ? $item['currentAccountId'] : 0,
-            'imei' => $item['imei'],
-            'memo' => isset($item['memo']) ? $item['memo'] : '',
-            'createTime' => isset($item['createTime']) ? $item['createTime'] : null,
-            'isDeleted' => isset($item['isDeleted']) ? $item['isDeleted'] : false,
-            'deletedAndStop' => isset($item['deletedAndStop']) ? $item['deletedAndStop'] : false,
-            'deleteTime' => isset($item['deleteTime']) ? $item['deleteTime'] : null,
-            'rooted' => isset($item['rooted']) ? $item['rooted'] : false,
-            'xPosed' => isset($item['xPosed']) ? $item['xPosed'] : false,
-            'brand' => isset($item['brand']) ? $item['brand'] : '',
-            'model' => isset($item['model']) ? $item['model'] : '',
-            'operatingSystem' => isset($item['operatingSystem']) ? $item['operatingSystem'] : '',
-            'softwareVersion' => isset($item['softwareVersion']) ? $item['softwareVersion'] : '',
-            'extra' => isset($item['extra']) ? json_encode($item['extra']) : json_encode([]),
-            'phone' => isset($item['phone']) ? $item['phone'] : '',
-            'lastUpdateTime' => isset($item['lastUpdateTime']) ? $item['lastUpdateTime'] : null
-        ];
-
-        // 使用imei作为唯一性判断
-        $device = DeviceModel::where('id', $item['id'])->find();
-
-        if ($device) {
-            $device->save($data);
-        } else {
-
-            // autoLike：自动点赞
-            // momentsSync：朋友圈同步
-            // autoCustomerDev：自动开发客户
-            // groupMessageDeliver：群消息推送
-            // autoGroup：自动建群
-
-            $data['taskConfig'] = json_encode([
-                'autoLike' => true,
-                'momentsSync' => true,
-                'autoCustomerDev' => true,
-                'groupMessageDeliver' => true,
-                'autoGroup' => true,
-            ]);
-            DeviceModel::create($data);
-        }
-    }
-
-    /**
      * 生成设备二维码
      * @param int $accountId 账号ID
      * @return \think\response\Json
@@ -184,7 +130,68 @@ class DeviceController extends BaseController
             return errorJson('生成设备二维码失败：' . $e->getMessage());
         }
     }
-    
+
+    /************************ 私有辅助方法 ************************/
+
+    /**
+     * 保存设备数据到数据库
+     * @param array $item 设备数据
+     */
+    private function saveDevice($item)
+    {
+        $data = [
+            'id' => isset($item['id']) ? $item['id'] : '',
+            'userName' => isset($item['userName']) ? $item['userName'] : '',
+            'nickname' => isset($item['nickname']) ? $item['nickname'] : '',
+            'realName' => isset($item['realName']) ? $item['realName'] : '',
+            'groupName' => isset($item['groupName']) ? $item['groupName'] : '',
+            'wechatAccounts' => isset($item['wechatAccounts']) ? json_encode($item['wechatAccounts']) : json_encode([]),
+            'alive' => isset($item['alive']) ? $item['alive'] : false,
+            'lastAliveTime' => isset($item['lastAliveTime']) ? $item['lastAliveTime'] : null,
+            'tenantId' => isset($item['tenantId']) ? $item['tenantId'] : 0,
+            'groupId' => isset($item['groupId']) ? $item['groupId'] : 0,
+            'currentAccountId' => isset($item['currentAccountId']) ? $item['currentAccountId'] : 0,
+            'imei' => $item['imei'],
+            'memo' => isset($item['memo']) ? $item['memo'] : '',
+            'createTime' => isset($item['createTime']) ? $item['createTime'] : null,
+            'isDeleted' => isset($item['isDeleted']) ? $item['isDeleted'] : false,
+            'deletedAndStop' => isset($item['deletedAndStop']) ? $item['deletedAndStop'] : false,
+            'deleteTime' => isset($item['deleteTime']) ? $item['deleteTime'] : null,
+            'rooted' => isset($item['rooted']) ? $item['rooted'] : false,
+            'xPosed' => isset($item['xPosed']) ? $item['xPosed'] : false,
+            'brand' => isset($item['brand']) ? $item['brand'] : '',
+            'model' => isset($item['model']) ? $item['model'] : '',
+            'operatingSystem' => isset($item['operatingSystem']) ? $item['operatingSystem'] : '',
+            'softwareVersion' => isset($item['softwareVersion']) ? $item['softwareVersion'] : '',
+            'extra' => isset($item['extra']) ? json_encode($item['extra']) : json_encode([]),
+            'phone' => isset($item['phone']) ? $item['phone'] : '',
+            'lastUpdateTime' => isset($item['lastUpdateTime']) ? $item['lastUpdateTime'] : null
+        ];
+
+        // 使用imei作为唯一性判断
+        $device = DeviceModel::where('id', $item['id'])->find();
+
+        if ($device) {
+            $device->save($data);
+        } else {
+
+            // autoLike：自动点赞
+            // momentsSync：朋友圈同步
+            // autoCustomerDev：自动开发客户
+            // groupMessageDeliver：群消息推送
+            // autoGroup：自动建群
+
+            $data['taskConfig'] = json_encode([
+                'autoLike' => true,
+                'momentsSync' => true,
+                'autoCustomerDev' => true,
+                'groupMessageDeliver' => true,
+                'autoGroup' => true,
+            ]);
+            DeviceModel::create($data);
+        }
+    }
+
     /**
      * 生成二维码图片（base64格式）
      * @param string $data 二维码数据

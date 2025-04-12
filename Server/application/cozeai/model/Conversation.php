@@ -10,7 +10,7 @@ use think\Model;
 class Conversation extends Model
 {
     // 设置表名
-    protected $name = 'coze_conversation';
+    protected $table = 'ck_coze_conversation';
     
     // 设置主键
     protected $pk = 'id';

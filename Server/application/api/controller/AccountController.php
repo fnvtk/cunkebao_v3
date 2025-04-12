@@ -38,7 +38,7 @@ class AccountController extends BaseController
             $params = [
                 'showNormalAccount' => $this->request->param('showNormalAccount', ''),
                 'keyword' => $this->request->param('keyword', ''),
-                'departmentId' => $this->request->param('companyId', ''),
+                'departmentId' => $this->request->param('departmentId', ''),
                 'pageIndex' => !empty($pageIndex) ? $pageIndex : $this->request->param('pageIndex', 0),
                 'pageSize' => !empty($pageSize) ? $pageSize : $this->request->param('pageSize',20)
             ];
@@ -59,8 +59,9 @@ class AccountController extends BaseController
             }
             
             if($isJob){
-                return json_encode(['code'=>200,'msg'=>'获取公司账号列表成功']);
+                return json_encode(['code'=>200,'msg'=>'获取公司账号列表成功','data'=>$response]);
             }else{
+                
                 return successJson($response);
             }
         } catch (\Exception $e) {
@@ -91,7 +92,7 @@ class AccountController extends BaseController
             $realName = $this->request->param('realName', '');
             $nickname = $this->request->param('nickname', '');
             $memo = $this->request->param('memo', '');
-            $companyId = $this->request->param('companyId', 0);
+            $departmentId = $this->request->param('departmentId', 0);
 
             // 参数验证
             if (empty($userName)) {
@@ -110,7 +111,7 @@ class AccountController extends BaseController
             if (empty($realName)) {
                 return errorJson('真实姓名不能为空');
             }
-            if (empty($companyId)) {
+            if (empty($departmentId)) {
                 return errorJson('公司ID不能为空');
             }
 
@@ -121,8 +122,8 @@ class AccountController extends BaseController
                 'realName' => $realName,
                 'nickname' => $nickname,
                 'memo' => $memo,
-                'departmentId' => $companyId,
-                'departmentIdArr' => empty($companyId) ? [914] : [914, $companyId]
+                'departmentId' => $departmentId,
+                'departmentIdArr' => empty($departmentId) ? [914] : [914, $departmentId]
             ];
 
             // 设置请求头
@@ -148,12 +149,16 @@ class AccountController extends BaseController
      * 获取部门列表
      * @return \think\response\Json
      */
-    public function getDepartmentList()
+    public function getDepartmentList($isJob = false)
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
-            return errorJson('缺少授权信息');
+            if($isJob){
+                return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
+            }else{
+                return errorJson('缺少授权信息');
+            }
         }
 
         try {
@@ -173,9 +178,17 @@ class AccountController extends BaseController
                 $this->processDepartments($response);
             }
             
-            return successJson($response, '获取部门列表成功');
+            if($isJob){
+                return json_encode(['code'=>200,'msg'=>'获取部门列表成功','data'=>$response]);
+            }else{
+                return successJson($response, '获取部门列表成功');
+            }
         } catch (\Exception $e) {
-            return errorJson('获取部门列表失败：' . $e->getMessage());
+            if($isJob){
+                return json_encode(['code'=>500,'msg'=>'获取部门列表失败：' . $e->getMessage()]);
+            }else{
+                return errorJson('获取部门列表失败：' . $e->getMessage());
+            }
         }
     }
 
@@ -411,7 +424,7 @@ class AccountController extends BaseController
         $deleteTime = isset($item['deleteTime']) ? strtotime($item['deleteTime']) : null;
 
         $data = [
-            'tenantId' => $item['id'],
+            'id' => $item['id'],
             'accountType' => isset($item['accountType']) ? $item['accountType'] : 0,
             'status' => isset($item['status']) ? $item['status'] : 0,
             'tenantId' => isset($item['tenantId']) ? $item['tenantId'] : 0,
@@ -425,9 +438,9 @@ class AccountController extends BaseController
             'creator' => isset($item['creator']) ? $item['creator'] : 0,
             'creatorUserName' => isset($item['creatorUserName']) ? $item['creatorUserName'] : '',
             'creatorRealName' => isset($item['creatorRealName']) ? $item['creatorRealName'] : '',
-            'companyId' => isset($item['departmentId']) ? $item['departmentId'] : 0,
+            'departmentId' => isset($item['departmentId']) ? $item['departmentId'] : 0,
             'departmentName' => isset($item['departmentName']) ? $item['departmentName'] : '',
-            'privilegeIds' => isset($item['privilegeIds']) ? $item['privilegeIds'] : [],
+            'privilegeIds' => isset($item['privilegeIds']) ? json_encode($item['privilegeIds']) : json_encode([]),
             'alive' => isset($item['alive']) ? $item['alive'] : false,
             'hasXiakeAccount' => isset($item['hasXiakeAccount']) ? $item['hasXiakeAccount'] : false,
             'isDeleted' => isset($item['isDeleted']) ? $item['isDeleted'] : false,
@@ -435,7 +448,7 @@ class AccountController extends BaseController
         ];
 
         // 使用tenantId作为唯一性判断
-        $account = CompanyAccountModel::where('tenantId', $item['id'])->find();
+        $account = CompanyAccountModel::where('id', $item['id'])->find();
         if ($account) {
             $account->save($data);
         } else {

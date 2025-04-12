@@ -78,7 +78,7 @@ class SystemConfigController extends BaseController
 
           
             // 更新数据库
-            $result = Db::name('device')
+            $result = Db::table('s2_device')
                 ->where('id', $deviceId)
                 ->update([
                     'taskConfig' => $taskConfig,

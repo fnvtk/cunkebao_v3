@@ -7,66 +7,20 @@ use app\api\model\WechatAccountModel;
 class WechatController extends BaseController
 {
     /**
-     * 保存微信账号数据到数据库
-     * @param array $item 微信账号数据
+     * 获取微信账号列表
+     * @param string $pageIndex 页码
+     * @param string $pageSize 每页大小
+     * @param bool $isJob 是否为任务调用
+     * @return \think\response\Json
      */
-    private function saveWechatAccount($item)
-    {
-        $data = [
-            'id' => $item['id'],
-            'wechatId' => $item['wechatId'],
-            'deviceAccountId' => $item['deviceAccountId'],
-            'imei' => $item['imei'],
-            'deviceMemo' => $item['deviceMemo'],
-            'accountUserName' => $item['accountUserName'],
-            'accountRealName' => $item['accountRealName'],
-            'accountNickname' => $item['accountNickname'],
-            'keFuAlive' => $item['keFuAlive'],
-            'deviceAlive' => $item['deviceAlive'],
-            'wechatAlive' => $item['wechatAlive'],
-            'yesterdayMsgCount' => $item['yesterdayMsgCount'],
-            'sevenDayMsgCount' => $item['sevenDayMsgCount'],
-            'thirtyDayMsgCount' => $item['thirtyDayMsgCount'],
-            'totalFriend' => $item['totalFriend'],
-            'maleFriend' => $item['maleFriend'],
-            'femaleFriend' => $item['femaleFriend'],
-            'wechatGroupName' => $item['wechatGroupName'],
-            'tenantId' => $item['tenantId'],
-            'nickname' => $item['nickname'],
-            'alias' => $item['alias'],
-            'avatar' => $item['avatar'],
-            'gender' => $item['gender'],
-            'region' => $item['region'],
-            'signature' => $item['signature'],
-            'bindQQ' => $item['bindQQ'],
-            'bindEmail' => $item['bindEmail'],
-            'bindMobile' => $item['bindMobile'],
-            'currentDeviceId' => $item['currentDeviceId'],
-            'isDeleted' => $item['isDeleted'],
-            'deleteTime' => $item['deleteTime'],
-            'groupId' => $item['groupId'],
-            'memo' => $item['memo'],
-            'wechatVersion' => $item['wechatVersion'],
-            'labels' => !empty($item['labels']) ? json_encode($item['labels']) : json_encode([]),
-            'updateTime' => time()
-        ];
-
-        $account = WechatAccountModel::where('id', $item['id'])->find();
-        if ($account) {
-            $account->save($data);
-        } else {
-            WechatAccountModel::create($data);
-        }
-    }
-
-    public function getlist($pageIndex = '',$pageSize = '',$isJob = false)
+    public function getlist($pageIndex = '', $pageSize = '', $isJob = false)
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
-            if($isJob){
-                return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
-            }else{
+            if ($isJob) {
+                return json_encode(['code' => 500, 'msg' => '缺少授权信息']);
+            } else {
                 return errorJson('缺少授权信息');
             }
         }
@@ -99,17 +53,75 @@ class WechatController extends BaseController
                     $this->saveWechatAccount($item);
                 }
             }
-            if($isJob){
-                return json_encode(['code'=>200,'msg'=>'获取微信账号列表成功','data'=>$response]);
-            }else{
+
+            if ($isJob) {
+                return json_encode(['code' => 200, 'msg' => '获取微信账号列表成功', 'data' => $response]);
+            } else {
                 return successJson($response);
             }
         } catch (\Exception $e) {
-            if($isJob){
-                return json_encode(['code'=>500,'msg'=>'获取微信账号列表失败：' . $e->getMessage()]);
-            }else{
+            if ($isJob) {
+                return json_encode(['code' => 500, 'msg' => '获取微信账号列表失败：' . $e->getMessage()]);
+            } else {
                 return errorJson('获取微信账号列表失败：' . $e->getMessage());
             }
+        }
+    }
+
+    /**
+     * 保存微信账号数据到数据库
+     * @param array $item 微信账号数据
+     */
+    private function saveWechatAccount($item)
+    {
+        $createTime = isset($item['createTime']) ? strtotime($item['createTime']) : 0;
+        $deleteTime = !empty($item['isDeleted']) ? strtotime($item['deleteTime']) : 0;
+
+        $data = [
+            'id' => $item['id'],
+            'wechatId' => $item['wechatId'],
+            'deviceAccountId' => $item['deviceAccountId'],
+            'imei' => $item['imei'],
+            'deviceMemo' => $item['deviceMemo'],
+            'accountUserName' => $item['accountUserName'],
+            'accountRealName' => $item['accountRealName'],
+            'accountNickname' => $item['accountNickname'],
+            'keFuAlive' => $item['keFuAlive'],
+            'deviceAlive' => $item['deviceAlive'],
+            'wechatAlive' => $item['wechatAlive'],
+            'yesterdayMsgCount' => $item['yesterdayMsgCount'],
+            'sevenDayMsgCount' => $item['sevenDayMsgCount'],
+            'thirtyDayMsgCount' => $item['thirtyDayMsgCount'],
+            'totalFriend' => $item['totalFriend'],
+            'maleFriend' => $item['maleFriend'],
+            'femaleFriend' => $item['femaleFriend'],
+            'wechatGroupName' => $item['wechatGroupName'],
+            'tenantId' => $item['tenantId'],
+            'nickname' => $item['nickname'],
+            'alias' => $item['alias'],
+            'avatar' => $item['avatar'],
+            'gender' => $item['gender'],
+            'region' => $item['region'],
+            'signature' => $item['signature'],
+            'bindQQ' => $item['bindQQ'],
+            'bindEmail' => $item['bindEmail'],
+            'bindMobile' => $item['bindMobile'],
+            'currentDeviceId' => $item['currentDeviceId'],
+            'isDeleted' => $item['isDeleted'],
+            'groupId' => $item['groupId'],
+            'memo' => $item['memo'],
+            'wechatVersion' => $item['wechatVersion'],
+            'labels' => !empty($item['labels']) ? json_encode($item['labels']) : json_encode([]),
+            'createTime' => $createTime,
+            'deleteTime' => $deleteTime,
+            'updateTime' => time()
+        ];
+
+        $account = WechatAccountModel::where('id', $item['id'])->find();
+        if ($account) {
+            $account->save($data);
+        } else {
+            WechatAccountModel::create($data);
         }
     }
 }

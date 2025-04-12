@@ -7,7 +7,8 @@ use think\facade\Request;
 
 class MessageController extends BaseController
 {
-
+    /************************ 好友消息相关接口 ************************/
+    
     /**
      * 获取微信好友列表
      * @return \think\response\Json
@@ -114,54 +115,64 @@ class MessageController extends BaseController
         }
     }
 
-
-
-
     /**
-     * 保存消息记录到数据库
-     * @param array $item 消息记录数据
+     * 用户聊天记录
+     * @return \think\response\Json
      */
-    private function saveMessage($item)
+    public function getMessageList()
     {
-        // 检查消息是否已存在
-        $exists = WechatMessageModel::where('id', $item['id']) ->find();
-            
-        // 如果消息已存在，直接返回
-        if ($exists) {
-            return;
+        // 获取授权token
+        $authorization = trim($this->request->header('authorization', $this->authorization));
+        if (empty($authorization)) {
+            return errorJson('缺少授权信息');
         }
 
-        // 将毫秒时间戳转换为秒级时间戳
-        $createTime = isset($item['createTime']) ? strtotime($item['createTime']) : null;
-        $deleteTime = !empty($item['isDeleted']) ? strtotime($item['deleteTime']) : null;
-        $wechatTime = isset($item['wechatTime']) ? floor($item['wechatTime'] / 1000) : null;
+        try {
+            // 构建请求参数
+            $params = [
+                'keyword' => $this->request->param('keyword', ''),
+                'msgType' => $this->request->param('msgType', ''),
+                'accountId' => $this->request->param('accountId', ''),
+                'count' => $this->request->param('count', 100),
+                'messageId' => $this->request->param('messageId', ''),
+                'olderData' => $this->request->param('olderData', true),
+                'wechatAccountId' => $this->request->param('wechatAccountId', ''),
+                'wechatFriendId' => $this->request->param('wechatFriendId', ''),
+                'from' => $this->request->param('from', ''),
+                'to' => $this->request->param('to', ''),
+                'searchFrom' => $this->request->param('searchFrom', 'admin')
+            ];
 
-        $data = [
-            'id' => $item['id'],
-            'type' => 1,
-            'accountId' => $item['accountId'],
-            'content' => $item['content'],
-            'createTime' => $createTime,
-            'deleteTime' => $deleteTime,
-            'isDeleted' => $item['isDeleted'] ?? false,
-            'isSend' => $item['isSend'] ?? true,
-            'msgId' => $item['msgId'],
-            'msgSubType' => $item['msgSubType'] ?? 0,
-            'msgSvrId' => $item['msgSvrId'] ?? '',
-            'msgType' => $item['msgType'],
-            'origin' => $item['origin'] ?? 0,
-            'recallId' => $item['recallId'] ?? false,
-            'sendStatus' => $item['sendStatus'] ?? 0,
-            'synergyAccountId' => $item['synergyAccountId'] ?? 0,
-            'tenantId' => $item['tenantId'],
-            'wechatAccountId' => $item['wechatAccountId'],
-            'wechatFriendId' => $item['wechatFriendId'],
-            'wechatTime' => $wechatTime
-        ];
+            // 参数验证
+            if (empty($params['wechatAccountId'])) {
+                return errorJson('微信账号ID不能为空');
+            }
+            if (empty($params['wechatFriendId'])) {
+                return errorJson('好友ID不能为空');
+            }
 
-        // 创建新记录
-        WechatMessageModel::create($data);
+            // 设置请求头
+            $headerData = ['client:system'];
+            $header = setHeader($headerData, $authorization, 'json');
+
+            // 发送请求获取聊天记录
+            $result = requestCurl($this->baseUrl . 'api/FriendMessage/searchMessage', $params, 'GET', $header, 'json');
+            $response = handleApiResponse($result);
+
+            // 保存数据到数据库
+            if (!empty($response)) {
+                foreach ($response as $item) {
+                    $this->saveMessage($item);
+                }
+            }
+
+            return successJson($response);
+        } catch (\Exception $e) {
+            return errorJson('获取聊天记录失败：' . $e->getMessage());
+        }
     }
+
+    /************************ 群聊消息相关接口 ************************/
 
     /**
      * 获取微信群聊列表
@@ -268,8 +279,114 @@ class MessageController extends BaseController
         }
     }
 
+    /**
+     * 获取群聊消息列表
+     * @return \think\response\Json
+     */
+    public function getChatroomMessages()
+    {
+        // 获取授权token
+        $authorization = trim($this->request->header('authorization', $this->authorization));
+        if (empty($authorization)) {
+            return errorJson('缺少授权信息');
+        }
 
-  
+        try {
+            // 构建请求参数
+            $params = [
+                'keyword' => $this->request->param('keyword', ''),
+                'msgType' => $this->request->param('msgType', ''),
+                'accountId' => $this->request->param('accountId', ''),
+                'count' => $this->request->param('count', 100),
+                'messageId' => $this->request->param('messageId', ''),
+                'olderData' => $this->request->param('olderData', true),
+                'wechatId' => $this->request->param('wechatId', ''),
+                'wechatAccountId' => $this->request->param('wechatAccountId', ''),
+                'wechatChatroomId' => $this->request->param('wechatChatroomId', ''),
+                'from' => $this->request->param('from', strtotime(date('Y-m-d 00:00:00', strtotime('-1 days')))),
+                'to' => $this->request->param('to', strtotime(date('Y-m-d 00:00:00'))),
+                'searchFrom' => $this->request->param('searchFrom', 'admin')
+            ];
+
+            // 参数验证
+            if (empty($params['wechatAccountId'])) {
+                return errorJson('微信账号ID不能为空');
+            }
+            if (empty($params['wechatChatroomId'])) {
+                return errorJson('群聊ID不能为空');
+            }
+
+            // 设置请求头
+            $headerData = ['client:system'];
+            $header = setHeader($headerData, $authorization, 'json');
+
+            // 发送请求获取群聊消息
+            $result = requestCurl($this->baseUrl . 'api/ChatroomMessage/searchMessage', $params, 'GET', $header, 'json');
+            $response = handleApiResponse($result);
+
+            // 保存数据到数据库
+            if (!empty($response)) {
+                foreach ($response as $item) {
+                   $res = $this->saveChatroomMessage($item);
+                   if(!$res){
+                    return errorJson('保存群聊消息失败');
+                   }
+                }
+            }
+
+            return successJson($response);
+        } catch (\Exception $e) {
+            return errorJson('获取群聊消息失败：' . $e->getMessage());
+        }
+    }
+
+    /************************ 私有辅助方法 ************************/
+
+    /**
+     * 保存消息记录到数据库
+     * @param array $item 消息记录数据
+     */
+    private function saveMessage($item)
+    {
+        // 检查消息是否已存在
+        $exists = WechatMessageModel::where('id', $item['id']) ->find();
+            
+        // 如果消息已存在，直接返回
+        if ($exists) {
+            return;
+        }
+
+        // 将毫秒时间戳转换为秒级时间戳
+        $createTime = isset($item['createTime']) ? strtotime($item['createTime']) : null;
+        $deleteTime = !empty($item['isDeleted']) ? strtotime($item['deleteTime']) : null;
+        $wechatTime = isset($item['wechatTime']) ? floor($item['wechatTime'] / 1000) : null;
+
+        $data = [
+            'id' => $item['id'],
+            'type' => 1,
+            'accountId' => $item['accountId'],
+            'content' => $item['content'],
+            'createTime' => $createTime,
+            'deleteTime' => $deleteTime,
+            'isDeleted' => $item['isDeleted'] ?? false,
+            'isSend' => $item['isSend'] ?? true,
+            'msgId' => $item['msgId'],
+            'msgSubType' => $item['msgSubType'] ?? 0,
+            'msgSvrId' => $item['msgSvrId'] ?? '',
+            'msgType' => $item['msgType'],
+            'origin' => $item['origin'] ?? 0,
+            'recallId' => $item['recallId'] ?? false,
+            'sendStatus' => $item['sendStatus'] ?? 0,
+            'synergyAccountId' => $item['synergyAccountId'] ?? 0,
+            'tenantId' => $item['tenantId'],
+            'wechatAccountId' => $item['wechatAccountId'],
+            'wechatFriendId' => $item['wechatFriendId'],
+            'wechatTime' => $wechatTime
+        ];
+
+        // 创建新记录
+        WechatMessageModel::create($data);
+    }
 
     /**
      * 保存群聊消息记录到数据库
@@ -354,126 +471,4 @@ class MessageController extends BaseController
         // 如果没有匹配到格式，则返回原始内容
         return $content;
     }
-
-
-      /**
-     * 用户聊天记录
-     * @return \think\response\Json
-     */
-    public function getMessageList()
-    {
-        // 获取授权token
-        $authorization = trim($this->request->header('authorization', $this->authorization));
-        if (empty($authorization)) {
-            return errorJson('缺少授权信息');
-        }
-
-        try {
-            // 构建请求参数
-            $params = [
-                'keyword' => $this->request->param('keyword', ''),
-                'msgType' => $this->request->param('msgType', ''),
-                'accountId' => $this->request->param('accountId', ''),
-                'count' => $this->request->param('count', 100),
-                'messageId' => $this->request->param('messageId', ''),
-                'olderData' => $this->request->param('olderData', true),
-                'wechatAccountId' => $this->request->param('wechatAccountId', ''),
-                'wechatFriendId' => $this->request->param('wechatFriendId', ''),
-                'from' => $this->request->param('from', ''),
-                'to' => $this->request->param('to', ''),
-                'searchFrom' => $this->request->param('searchFrom', 'admin')
-            ];
-
-            // 参数验证
-            if (empty($params['wechatAccountId'])) {
-                return errorJson('微信账号ID不能为空');
-            }
-            if (empty($params['wechatFriendId'])) {
-                return errorJson('好友ID不能为空');
-            }
-
-            // 设置请求头
-            $headerData = ['client:system'];
-            $header = setHeader($headerData, $authorization, 'json');
-
-            // 发送请求获取聊天记录
-            $result = requestCurl($this->baseUrl . 'api/FriendMessage/searchMessage', $params, 'GET', $header, 'json');
-            $response = handleApiResponse($result);
-
-            // 保存数据到数据库
-            if (!empty($response)) {
-                foreach ($response as $item) {
-                    $this->saveMessage($item);
-                }
-            }
-
-            return successJson($response);
-        } catch (\Exception $e) {
-            return errorJson('获取聊天记录失败：' . $e->getMessage());
-        }
-    }
-
-
-
-    /**
-     * 获取群聊消息列表
-     * @return \think\response\Json
-     */
-    public function getChatroomMessages()
-    {
-        // 获取授权token
-        $authorization = trim($this->request->header('authorization', $this->authorization));
-        if (empty($authorization)) {
-            return errorJson('缺少授权信息');
-        }
-
-        try {
-            // 构建请求参数
-            $params = [
-                'keyword' => $this->request->param('keyword', ''),
-                'msgType' => $this->request->param('msgType', ''),
-                'accountId' => $this->request->param('accountId', ''),
-                'count' => $this->request->param('count', 100),
-                'messageId' => $this->request->param('messageId', ''),
-                'olderData' => $this->request->param('olderData', true),
-                'wechatId' => $this->request->param('wechatId', ''),
-                'wechatAccountId' => $this->request->param('wechatAccountId', ''),
-                'wechatChatroomId' => $this->request->param('wechatChatroomId', ''),
-                'from' => $this->request->param('from', strtotime(date('Y-m-d 00:00:00', strtotime('-1 days')))),
-                'to' => $this->request->param('to', strtotime(date('Y-m-d 00:00:00'))),
-                'searchFrom' => $this->request->param('searchFrom', 'admin')
-            ];
-
-            // 参数验证
-            if (empty($params['wechatAccountId'])) {
-                return errorJson('微信账号ID不能为空');
-            }
-            if (empty($params['wechatChatroomId'])) {
-                return errorJson('群聊ID不能为空');
-            }
-
-            // 设置请求头
-            $headerData = ['client:system'];
-            $header = setHeader($headerData, $authorization, 'json');
-
-            // 发送请求获取群聊消息
-            $result = requestCurl($this->baseUrl . 'api/ChatroomMessage/searchMessage', $params, 'GET', $header, 'json');
-            $response = handleApiResponse($result);
-
-            // 保存数据到数据库
-            if (!empty($response)) {
-                foreach ($response as $item) {
-                   $res = $this->saveChatroomMessage($item);
-                   if(!$res){
-                    return errorJson('保存群聊消息失败');
-                   }
-                }
-            }
-
-            return successJson($response);
-        } catch (\Exception $e) {
-            return errorJson('获取群聊消息失败：' . $e->getMessage());
-        }
-    }
-
 } 

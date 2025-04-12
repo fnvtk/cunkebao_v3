@@ -7,5 +7,5 @@ use think\Model;
 class WechatChatroomMemberModel extends Model
 {
     // 设置表名
-    protected $name = 'wechat_chatroom_member'; 
+    protected $table = 's2_wechat_chatroom_member'; 
 } 

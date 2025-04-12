@@ -7,5 +7,5 @@ use think\Model;
 class WechatAccountModel extends Model
 {
     // 设置表名
-    protected $name = 'wechat_account'; 
+    protected $table = 's2_wechat_account'; 
 } 

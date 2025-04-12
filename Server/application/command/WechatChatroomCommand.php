@@ -8,6 +8,7 @@ use think\console\Output;
 use think\facade\Log;
 use think\Queue;
 use app\job\WechatChatroomJob;
+use think\facade\Cache;
 
 class WechatChatroomCommand extends Command
 {
@@ -22,11 +23,13 @@ class WechatChatroomCommand extends Command
         $output->writeln('开始处理微信聊天室列表任务...');
         
         try {
-            // 初始页码
-            $pageIndex = 0;
+            // 从缓存获取初始页码，缓存10分钟有效
+            $pageIndex = Cache::get('chatroomPage', 0);
+            $output->writeln('从缓存获取页码：' . $pageIndex);
+            
             $pageSize = 100; // 每页获取100条记录
             
-            // 将第一页任务添加到队列
+            // 将任务添加到队列
             $this->addToQueue($pageIndex, $pageSize);
             
             $output->writeln('微信聊天室列表任务已添加到队列');
@@ -51,7 +54,7 @@ class WechatChatroomCommand extends Command
             'pageSize' => $pageSize
         ];
         
-        // 添加到队列，设置任务名为 device_list
+        // 添加到队列，设置任务名为 wechat_chatroom
         Queue::push(WechatChatroomJob::class, $data, 'wechat_chatroom');
     }
 } 

@@ -10,7 +10,7 @@ use think\Model;
 class Workspace extends Model
 {
     // 设置当前模型对应的完整数据表名称
-    protected $name = 'coze_workspace';
+    protected $table = 'ck_coze_workspace';
     
     // 设置主键
     protected $pk = 'id';
