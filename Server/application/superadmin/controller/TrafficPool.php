@@ -27,7 +27,7 @@ class TrafficPool extends Controller
             ->join('wechat_account wa', 'tp.wechatId = wa.wechatId', 'LEFT')
             ->join('wechat_tag wt', 'wa.wechatId = wt.wechatId')
             ->field([
-                'tp.id',
+                'ts.id',
                 'tp.wechatId',
                 'tp.createTime as addTime',
                 'ts.fromd as source',
