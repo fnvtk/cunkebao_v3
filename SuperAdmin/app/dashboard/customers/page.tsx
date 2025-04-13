@@ -294,9 +294,9 @@ export default function CustomersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>客户信息</TableHead>
+                <TableHead>客户昵称</TableHead>
                 <TableHead>微信ID</TableHead>
-                <TableHead>标签</TableHead>
+                <TableHead>性别</TableHead>
                 <TableHead>地区</TableHead>
                 <TableHead>来源</TableHead>
                 <TableHead>公司名称</TableHead>
@@ -341,19 +341,11 @@ export default function CustomersPage() {
                       </div>
                     </TableCell>
                     <TableCell>{customer.wechatId}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {customer.tags.map((tag, index) => (
-                          <Badge key={index} variant="outline">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
+                    <TableCell>{customer.gender}</TableCell>
                     <TableCell>{customer.region}</TableCell>
                     <TableCell>{customer.source}</TableCell>
-                    <TableCell>{customer.companyName}</TableCell>
-                    <TableCell>{customer.createTime}</TableCell>
+                    <TableCell>{customer.projectName}</TableCell>
+                    <TableCell>{customer.addTime || '暂无'}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

@@ -35,7 +35,7 @@ class TrafficPool extends Controller
             ->field([
                 'ts.id',
                 'tp.wechatId',
-                'tp.createTime as addTime',
+                'ts.createTime as addTime',
                 'ts.fromd as source',
                 'c.name as projectName',
                 'wa.avatar',
@@ -65,7 +65,9 @@ class TrafficPool extends Controller
                 default:
                     $item['gender'] = '保密';
             }
-            
+
+            $item['addTime'] = $item['addTime'] ? date('Y-m-d H:i:s', $item['addTime']) : null;
+
             // 处理标签显示
             if (is_string($item['tags'])) {
                 $item['tags'] = json_decode($item['tags'], true);
@@ -123,7 +125,7 @@ class TrafficPool extends Controller
 
             $result = [
                 'source' => $sourceInfo['source'],
-                'addTime' => $sourceInfo['addTime'],
+                'addTime' => $sourceInfo['addTime'] ? date('Y-m-d H:i:s', $sourceInfo['addTime']) : null,
                 'projectName' => $sourceInfo['projectName']
             ];
 

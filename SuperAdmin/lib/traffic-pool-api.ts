@@ -12,9 +12,23 @@ export interface Customer {
   region: string;
   tags: string[];
   source: string;
-  companyName: string;
-  createTime: string;
+  projectName: string;
+  addTime: string | null;
   mobile: number;
+}
+
+/**
+ * 客户详情接口
+ */
+export interface CustomerDetail {
+  source: string;
+  addTime: string | null;
+  projectName: string;
+  avatar: string;
+  nickname: string;
+  region: string;
+  gender: string;
+  tags: string[];
 }
 
 /**
@@ -48,4 +62,11 @@ export async function getTrafficPoolList(
   }
   
   return apiRequest(`/trafficPool/list?${params.toString()}`);
+}
+
+/**
+ * 获取客户详情
+ */
+export async function getCustomerDetail(id: string): Promise<ApiResponse<CustomerDetail>> {
+  return apiRequest(`/trafficPool/detail?id=${id}`);
 } 
