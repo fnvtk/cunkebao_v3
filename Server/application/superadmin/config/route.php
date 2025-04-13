@@ -27,6 +27,7 @@ Route::group('', function () {
 
     // 客户池管理路由
     Route::group('trafficPool', function () {
-        Route::get('list', 'app\\superadmin\\controller\\TrafficPool@getList');
+        Route::get('list', 'app\\superadmin\\controller\\TrafficPool@getList');       // 获取客户池列表
+        Route::get('detail', 'app\\superadmin\\controller\\TrafficPool@getDetail');   // 获取客户详情
     });
 })->middleware(['app\\superadmin\\middleware\\AdminAuth']); 

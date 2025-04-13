@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, MoreHorizontal, Eye, UserPlus, Filter, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
+import { Search, MoreHorizontal, Eye, UserPlus, Filter, ChevronLeft, ChevronRight } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { getTrafficPoolList } from "@/lib/traffic-pool-api"
@@ -123,17 +123,8 @@ export default function CustomersPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
-  const [pageSize, setPageSize] = useState(30)
+  const [pageSize, setPageSize] = useState(10)
   const [jumpToPage, setJumpToPage] = useState("")
-
-  // 添加重置函数
-  const handleReset = () => {
-    setSearchTerm("")
-    setSelectedRegion("")
-    setSelectedGender("")
-    setSelectedSource("")
-    setSelectedProject("")
-  }
 
   // 获取客户列表数据
   useEffect(() => {
@@ -142,13 +133,7 @@ export default function CustomersPage() {
       try {
         const response = await getTrafficPoolList(currentPage, pageSize, searchTerm);
         if (response.code === 200 && response.data) {
-          // 处理标签数据，过滤掉无效标签
-          const processedCustomers = response.data.list.map(customer => ({
-            ...customer,
-            tags: customer.tags.filter(tag => tag && tag !== "请选择标签"),
-            createTime: customer.addTime // 统一使用createTime字段
-          }));
-          setCustomers(processedCustomers);
+          setCustomers(response.data.list);
           setTotalItems(response.data.total);
           setTotalPages(Math.ceil(response.data.total / pageSize));
           setError(null);
@@ -191,124 +176,121 @@ export default function CustomersPage() {
   };
 
   // Filter customers based on search and filters (兼容示例数据)
-  const filteredCustomers = customers.filter((customer) => {
+  const filteredCustomers = customersData.filter((customer) => {
     const matchesSearch =
-      customer.nickname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.wechatId.toLowerCase().includes(searchTerm.toLowerCase());
+      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.wechatId.toLowerCase().includes(searchTerm.toLowerCase())
 
-    const matchesRegion = selectedRegion ? customer.region === selectedRegion : true;
-    const matchesGender = selectedGender ? customer.gender === selectedGender : true;
-    const matchesSource = selectedSource ? customer.source === selectedSource : true;
-    const matchesProject = selectedProject ? customer.projectName === selectedProject : true;
+    const matchesRegion = selectedRegion ? customer.region === selectedRegion : true
+    const matchesGender = selectedGender ? customer.gender === selectedGender : true
+    const matchesSource = selectedSource ? customer.source === selectedSource : true
+    const matchesProject = selectedProject ? customer.projectName === selectedProject : true
 
-    return matchesSearch && matchesRegion && matchesGender && matchesSource && matchesProject;
-  });
+    return matchesSearch && matchesRegion && matchesGender && matchesSource && matchesProject
+  })
 
   // Get unique values for filters
-  const regions = [...new Set(customers.map((c) => c.region))]
-  const sources = [...new Set(customers.map((c) => c.source))]
-  const projects = [...new Set(customers.map((c) => c.projectName))]
+  const regions = [...new Set(customersData.map((c) => c.region))]
+  const sources = [...new Set(customersData.map((c) => c.source))]
+  const projects = [...new Set(customersData.map((c) => c.projectName))]
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="shrink-0 flex justify-between mb-6">
+    <div className="space-y-6">
+      <div className="flex justify-between">
         <h1 className="text-2xl font-bold">客户池</h1>
         <Button>
           <UserPlus className="mr-2 h-4 w-4" /> 批量分发
         </Button>
       </div>
 
-      <div className="shrink-0 flex items-center gap-2 mb-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="搜索客户名称或微信ID..."
-            className="pl-8"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="搜索客户名称或微信ID..."
+              className="pl-8"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Filter className="mr-2 h-4 w-4" /> 筛选
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[200px]">
+              <div className="p-2">
+                <p className="mb-2 text-sm font-medium">地区</p>
+                <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="所有地区" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">所有地区</SelectItem>
+                    {regions.map((region) => (
+                      <SelectItem key={region} value={region}>
+                        {region}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <DropdownMenuSeparator />
+              <div className="p-2">
+                <p className="mb-2 text-sm font-medium">性别</p>
+                <Select value={selectedGender} onValueChange={setSelectedGender}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="所有性别" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">所有性别</SelectItem>
+                    <SelectItem value="男">男</SelectItem>
+                    <SelectItem value="女">女</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <DropdownMenuSeparator />
+              <div className="p-2">
+                <p className="mb-2 text-sm font-medium">来源</p>
+                <Select value={selectedSource} onValueChange={setSelectedSource}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="所有来源" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">所有来源</SelectItem>
+                    {sources.map((source) => (
+                      <SelectItem key={source} value={source}>
+                        {source}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <DropdownMenuSeparator />
+              <div className="p-2">
+                <p className="mb-2 text-sm font-medium">所属项目</p>
+                <Select value={selectedProject} onValueChange={setSelectedProject}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="所有项目" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">所有项目</SelectItem>
+                    {projects.map((project) => (
+                      <SelectItem key={project} value={project}>
+                        {project}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              <Filter className="mr-2 h-4 w-4" /> 筛选
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[200px]">
-            <div className="p-2">
-              <p className="mb-2 text-sm font-medium">地区</p>
-              <Select value={selectedRegion} onValueChange={setSelectedRegion}>
-                <SelectTrigger>
-                  <SelectValue placeholder="所有地区" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">所有地区</SelectItem>
-                  {regions.map((region) => (
-                    <SelectItem key={region} value={region}>
-                      {region}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <DropdownMenuSeparator />
-            <div className="p-2">
-              <p className="mb-2 text-sm font-medium">性别</p>
-              <Select value={selectedGender} onValueChange={setSelectedGender}>
-                <SelectTrigger>
-                  <SelectValue placeholder="所有性别" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">所有性别</SelectItem>
-                  <SelectItem value="男">男</SelectItem>
-                  <SelectItem value="女">女</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <DropdownMenuSeparator />
-            <div className="p-2">
-              <p className="mb-2 text-sm font-medium">来源</p>
-              <Select value={selectedSource} onValueChange={setSelectedSource}>
-                <SelectTrigger>
-                  <SelectValue placeholder="所有来源" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">所有来源</SelectItem>
-                  {sources.map((source) => (
-                    <SelectItem key={source} value={source}>
-                      {source}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <DropdownMenuSeparator />
-            <div className="p-2">
-              <p className="mb-2 text-sm font-medium">所属项目</p>
-              <Select value={selectedProject} onValueChange={setSelectedProject}>
-                <SelectTrigger>
-                  <SelectValue placeholder="所有项目" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">所有项目</SelectItem>
-                  {projects.map((project) => (
-                    <SelectItem key={project} value={project}>
-                      {project}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Button variant="outline" onClick={handleReset}>
-          <RefreshCw className="mr-2 h-4 w-4" /> 重置
-        </Button>
-      </div>
 
-      <div className="flex-1 min-h-0">
-        <div className="h-full overflow-auto rounded-md border">
+        <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
@@ -361,21 +343,17 @@ export default function CustomersPage() {
                     <TableCell>{customer.wechatId}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {customer.tags && customer.tags.length > 0 ? (
-                          customer.tags.map((tag, index) => (
-                            <Badge key={index} variant="outline">
-                              {tag}
-                            </Badge>
-                          ))
-                        ) : (
-                          <span className="text-sm text-muted-foreground">无标签</span>
-                        )}
+                        {customer.tags.map((tag, index) => (
+                          <Badge key={index} variant="outline">
+                            {tag}
+                          </Badge>
+                        ))}
                       </div>
                     </TableCell>
                     <TableCell>{customer.region}</TableCell>
                     <TableCell>{customer.source}</TableCell>
-                    <TableCell>{customer.projectName}</TableCell>
-                    <TableCell>{customer.createTime || "未记录"}</TableCell>
+                    <TableCell>{customer.companyName}</TableCell>
+                    <TableCell>{customer.createTime}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -408,12 +386,10 @@ export default function CustomersPage() {
             </TableBody>
           </Table>
         </div>
-      </div>
-      
-      {/* 固定在底部的分页控件 */}
-      {!isLoading && !error && customers.length > 0 && (
-        <div className="shrink-0 border-t py-4 px-4 bg-background">
-          <div className="flex items-center justify-between">
+        
+        {/* 分页控件 */}
+        {!isLoading && !error && customers.length > 0 && (
+          <div className="flex items-center justify-between px-2">
             <div className="flex items-center space-x-4">
               <div className="text-sm text-muted-foreground">
                 共 {totalItems} 条记录，当前第 {currentPage}/{totalPages} 页
@@ -425,10 +401,10 @@ export default function CustomersPage() {
                     <SelectValue placeholder={pageSize} />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
                     <SelectItem value="30">30</SelectItem>
                     <SelectItem value="50">50</SelectItem>
                     <SelectItem value="100">100</SelectItem>
-                    <SelectItem value="150">150</SelectItem>
                   </SelectContent>
                 </Select>
                 <span className="text-sm">条</span>
@@ -446,12 +422,14 @@ export default function CustomersPage() {
               
               {/* 数字分页按钮 */}
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                // 显示当前页码前后2页，以及第一页和最后一页
                 const shouldShow = 
                   page === 1 || 
                   page === totalPages || 
                   (page >= currentPage - 2 && page <= currentPage + 2);
                 
                 if (!shouldShow) {
+                  // 显示省略号
                   if (page === currentPage - 3 || page === currentPage + 3) {
                     return (
                       <span key={page} className="px-2">
@@ -508,8 +486,8 @@ export default function CustomersPage() {
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
