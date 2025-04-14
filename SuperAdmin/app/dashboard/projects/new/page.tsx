@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Plus, Trash } from "lucide-react"
 import Link from "next/link"
 
@@ -16,6 +17,7 @@ export default function NewProjectPage() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [devices, setDevices] = useState([{ id: "1", name: "" }])
+  const [status, setStatus] = useState("1") // 默认启用
 
   const handleAddDevice = () => {
     setDevices([...devices, { id: Date.now().toString(), name: "" }])
@@ -65,13 +67,21 @@ export default function NewProjectPage() {
 
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="phone">手机号</Label>
-                <Input id="phone" placeholder="请输入手机号" required />
+                <Label htmlFor="account">账号</Label>
+                <Input id="account" placeholder="请输入账号" required />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="account">账号</Label>
-                <Input id="account" placeholder="请输入账号" required />
+                <Label htmlFor="status">状态</Label>
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择状态" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">启用</SelectItem>
+                    <SelectItem value="0">禁用</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
@@ -83,6 +93,23 @@ export default function NewProjectPage() {
                 <Label htmlFor="confirmPassword">确认密码</Label>
                 <Input id="confirmPassword" type="password" placeholder="请再次输入密码" required />
               </div>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="realName">真实姓名</Label>
+                <Input id="realName" placeholder="请输入真实姓名" required />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="nickname">昵称</Label>
+                <Input id="nickname" placeholder="请输入昵称" required />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="memo">备注</Label>
+              <Textarea id="memo" placeholder="请输入备注信息（选填）" rows={2} />
             </div>
 
             <div className="space-y-2">

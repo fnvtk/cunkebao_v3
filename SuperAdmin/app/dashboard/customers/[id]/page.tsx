@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,10 +7,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ArrowLeft, MessageSquare, Phone, UserPlus } from "lucide-react"
-import { getCustomerDetail, CustomerDetail } from "@/lib/traffic-pool-api"
 
-// 示例数据（用于详细信息部分）
-const detailData = {
+// Sample customer data
+const customerData = {
+  id: "1",
+  name: "张三",
+  avatar: "/placeholder.svg?height=100&width=100",
+  wechatId: "zhangsan123",
+  gender: "男",
+  region: "北京",
+  source: "微信搜索",
+  tags: ["潜在客户", "高消费"],
+  projectName: "电商平台项目",
+  addedDate: "2023-06-10",
   devices: [
     { id: "d1", name: "iPhone 13 Pro", addedDate: "2023-06-10" },
     { id: "d2", name: "MacBook Pro", addedDate: "2023-06-12" },
@@ -55,43 +63,6 @@ const detailData = {
 }
 
 export default function CustomerDetailPage({ params }: { params: { id: string } }) {
-  const [customer, setCustomer] = useState<CustomerDetail | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const fetchCustomerDetail = async () => {
-      try {
-        setIsLoading(true)
-        const response = await getCustomerDetail(params.id)
-        if (response.code === 200) {
-          setCustomer(response.data)
-          setError(null)
-        } else {
-          setError(response.msg || "获取客户详情失败")
-        }
-      } catch (err: any) {
-        setError(err.message || "获取客户详情失败")
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchCustomerDetail()
-  }, [params.id])
-
-  if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">加载中...</div>
-  }
-
-  if (error) {
-    return <div className="flex items-center justify-center min-h-screen text-red-500">{error}</div>
-  }
-
-  if (!customer) {
-    return <div className="flex items-center justify-center min-h-screen">未找到客户信息</div>
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -115,14 +86,15 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
           </CardHeader>
           <CardContent className="flex flex-col items-center text-center">
             <Avatar className="h-24 w-24 mb-4">
-              <AvatarImage src={customer.avatar} alt={customer.nickname} />
-              <AvatarFallback>{customer.nickname.slice(0, 2)}</AvatarFallback>
+              <AvatarImage src={customerData.avatar} alt={customerData.name} />
+              <AvatarFallback>{customerData.name.slice(0, 2)}</AvatarFallback>
             </Avatar>
-            <h3 className="text-xl font-bold">{customer.nickname}</h3>
+            <h3 className="text-xl font-bold">{customerData.name}</h3>
+            <p className="text-sm text-muted-foreground mb-4">{customerData.wechatId}</p>
 
             <div className="flex flex-wrap justify-center gap-1 mb-6">
-              {customer.tags.map((tag, index) => (
-                <Badge key={index} variant="outline">
+              {customerData.tags.map((tag) => (
+                <Badge key={tag} variant="outline">
                   {tag}
                 </Badge>
               ))}
@@ -131,23 +103,23 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
             <div className="w-full space-y-2 text-left">
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">性别</span>
-                <span className="text-sm">{customer.gender}</span>
+                <span className="text-sm">{customerData.gender}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">地区</span>
-                <span className="text-sm">{customer.region}</span>
+                <span className="text-sm">{customerData.region}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">来源</span>
-                <span className="text-sm">{customer.source}</span>
+                <span className="text-sm">{customerData.source}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">所属项目</span>
-                <span className="text-sm">{customer.projectName}</span>
+                <span className="text-sm">{customerData.projectName}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">添加时间</span>
-                <span className="text-sm">{customer.addTime || '暂无'}</span>
+                <span className="text-sm">{customerData.addedDate}</span>
               </div>
             </div>
           </CardContent>
@@ -166,7 +138,7 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
               </TabsList>
 
               <TabsContent value="interactions" className="space-y-4">
-                {detailData.interactions.map((interaction) => (
+                {customerData.interactions.map((interaction) => (
                   <div key={interaction.id} className="flex gap-4 pb-4 border-b last:border-0">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
                       {interaction.type === "消息" ? (
@@ -190,7 +162,7 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
               </TabsContent>
 
               <TabsContent value="devices">
-                {detailData.devices.map((device) => (
+                {customerData.devices.map((device) => (
                   <div key={device.id} className="flex items-center justify-between py-2 border-b last:border-0">
                     <div>
                       <p className="font-medium">{device.name}</p>
@@ -201,8 +173,8 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
               </TabsContent>
 
               <TabsContent value="transactions">
-                {detailData.transactions.length > 0 ? (
-                  detailData.transactions.map((transaction) => (
+                {customerData.transactions.length > 0 ? (
+                  customerData.transactions.map((transaction) => (
                     <div key={transaction.id} className="flex items-center justify-between py-2 border-b last:border-0">
                       <div>
                         <p className="font-medium">{transaction.product}</p>
