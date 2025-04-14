@@ -24,7 +24,7 @@ class FriendTaskCommand extends Command
         
         try {
             // 从缓存获取初始页码，缓存10分钟有效
-            $pageIndex = Cache::get('friendTaskPage', 21);
+            $pageIndex = Cache::get('friendTaskPage', 0);
             $output->writeln('从缓存获取页码：' . $pageIndex);
             
             $pageSize = 1000; // 每页获取1000条记录

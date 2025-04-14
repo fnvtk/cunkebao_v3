@@ -3,6 +3,7 @@
 namespace app\api\controller;
 
 use app\api\model\DeviceModel;
+use app\api\model\DeviceGroupModel;
 use think\facade\Request;
 use think\facade\Env;
 use Endroid\QrCode\QrCode;
@@ -131,6 +132,122 @@ class DeviceController extends BaseController
         }
     }
 
+    /**
+     * 创建设备分组
+     * @return \think\response\Json
+     */
+    public function createGroup()
+    {
+        // 获取授权token
+        $authorization = trim($this->request->header('authorization', $this->authorization));
+        if (empty($authorization)) {
+            return errorJson('缺少授权信息');
+        }
+
+        try {
+            // 获取参数
+            $groupName = $this->request->param('groupName', '');
+            $groupMemo = $this->request->param('groupMemo', '');
+
+            if (empty($groupName)) {
+                return errorJson('分组名称不能为空');
+            }
+
+            // 构建请求参数
+            $params = [
+                'groupName' => $groupName,
+                'groupMemo' => $groupMemo
+            ];
+
+            // 设置请求头
+            $headerData = ['client:system'];
+            $header = setHeader($headerData, $authorization, 'plain');
+
+            // 发送请求
+            $result = requestCurl($this->baseUrl . 'api/DeviceGroup/new', $params, 'POST', $header);
+            $response = handleApiResponse($result);
+            
+            return successJson($response);
+        } catch (\Exception $e) {
+            return errorJson('创建设备分组失败：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 更新设备分组
+     * @return \think\response\Json
+     */
+    public function updateDeviceGroup()
+    {
+        // 获取授权token
+        $authorization = trim($this->request->header('authorization', $this->authorization));
+        if (empty($authorization)) {
+            return errorJson('缺少授权信息');
+        }
+
+        try {
+            // 获取参数
+            $id = $this->request->param('id', '');
+            $groupId = $this->request->param('groupId', '');
+
+            if (empty($id)) {
+                return errorJson('设备ID不能为空');
+            }
+
+            if (empty($groupId)) {
+                return errorJson('分组ID不能为空');
+            }
+
+            // 设置请求头
+            $headerData = ['client:system'];
+            $header = setHeader($headerData, $authorization, 'plain');
+
+            // 发送请求
+            $result = requestCurl($this->baseUrl . 'api/device/updateDeviceGroup?id=' . $id . '&groupId=' . $groupId, [], 'PUT', $header);
+            $response = handleApiResponse($result);
+            
+            return successJson($response);
+        } catch (\Exception $e) {
+            return errorJson('更新设备分组失败：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 获取设备分组列表
+     * @return \think\response\Json
+     */
+    public function getGroupList()
+    {
+        // 获取授权token
+        $authorization = trim($this->request->header('authorization', $this->authorization));
+        if (empty($authorization)) {
+            return errorJson('缺少授权信息');
+        }
+
+        try {
+            // 设置请求头
+            $headerData = ['client:system'];
+            $header = setHeader($headerData, $authorization, 'plain');
+
+            // 发送请求
+            $result = requestCurl($this->baseUrl . 'api/DeviceGroup/list', [], 'GET', $header);
+            $response = handleApiResponse($result);
+
+        
+            
+            // 保存数据到数据库
+            if (!empty($response)) {
+                foreach ($response as $item) {
+                    $this->saveDeviceGroup($item);
+                }
+            }
+            
+            return successJson($response);
+        } catch (\Exception $e) {
+            return errorJson('获取设备分组列表失败：' . $e->getMessage());
+        }
+    }
+
     /************************ 私有辅助方法 ************************/
 
     /**
@@ -189,6 +306,31 @@ class DeviceController extends BaseController
                 'autoGroup' => true,
             ]);
             DeviceModel::create($data);
+        }
+    }
+
+    /**
+     * 保存设备分组数据到数据库
+     * @param array $item 设备分组数据
+     */
+    private function saveDeviceGroup($item)
+    {
+        $data = [
+            'id' => $item['id'],
+            'tenantId' => $item['tenantId'],
+            'groupName' => $item['groupName'],
+            'groupMemo' => $item['groupMemo'],
+            'count' => isset($item['count']) ? $item['count'] : 0,
+            'createTime' => $item['createTime'] == '0001-01-01T00:00:00' ? 0 : strtotime($item['createTime'])
+        ];
+
+        // 使用ID作为唯一性判断
+        $group = DeviceGroupModel::where('id', $item['id'])->find();
+
+        if ($group) {
+            $group->save($data);
+        } else {
+            DeviceGroupModel::create($data);
         }
     }
 

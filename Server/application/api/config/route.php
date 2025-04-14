@@ -21,6 +21,9 @@ Route::group('v1', function () {
             Route::get('list', 'app\\api\\controller\\DeviceController@getList'); // 获取设备列表 √
             //Route::get('add/:accountId', 'app\\api\\controller\\DeviceController@addDevice'); // 生成设备二维码
             Route::post('add', 'app\\api\\controller\\DeviceController@addDevice'); // 生成设备二维码（POST方式） √
+            Route::post('updateDeviceGroup', 'app\\api\\controller\\DeviceController@updateDeviceGroup'); // 更新设备分组 √
+            Route::post('createGroup', 'app\\api\\controller\\DeviceController@createGroup'); // 创建设备分组 √
+            Route::get('groupList', 'app\\api\\controller\\DeviceController@getGroupList'); // 获取设备分组列表 √
         });
 
         // FriendTask控制器路由
