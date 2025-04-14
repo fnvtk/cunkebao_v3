@@ -30,4 +30,9 @@ Route::group('', function () {
         Route::get('list', 'app\\superadmin\\controller\\TrafficPool@getList');       // 获取客户池列表
         Route::get('detail', 'app\\superadmin\\controller\\TrafficPool@getDetail');   // 获取客户详情
     });
+
+    // 公司路由
+    Route::group('company', function () {
+        Route::post('create', 'app\\superadmin\\controller\\Company@create');
+    });
 })->middleware(['app\\superadmin\\middleware\\AdminAuth']); 
