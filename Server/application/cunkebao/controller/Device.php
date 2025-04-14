@@ -5,6 +5,7 @@ use app\cunkebao\model\DeviceHandleLog;
 use app\cunkebao\model\DeviceWechatLogin;
 use think\Controller;
 use app\cunkebao\model\Device as DeviceModel;
+use app\cunkebao\model\DeviceUser as DeviceUserModel;
 use think\Db;
 use think\facade\Request;
 
@@ -64,7 +65,7 @@ class Device extends Controller
                 $count = DeviceModel::getDeviceCount($where);
             } else {
                 // 非管理员需要查询关联表
-                $deviceIds = \app\common\model\DeviceUser::getUserDeviceIds(
+                $deviceIds = DeviceUserModel::getUserDeviceIds(
                     $userInfo['id'], 
                     $userInfo['companyId']
                 );
@@ -133,7 +134,7 @@ class Device extends Controller
             $order = Request::param('order', 'desc');
             
             // 添加公司ID过滤条件
-            $where['d.tenantId'] = $userInfo['companyId'];
+            $where['d.companyId'] = $userInfo['companyId'];
 
             // 根据用户管理员状态调整查询条件
             if ($userInfo['isAdmin'] == 1) {
@@ -141,7 +142,7 @@ class Device extends Controller
                 $list = DeviceModel::getDeviceList($where, "{$sort} {$order}", $page, $limit);
             } else {
                 // 非管理员需要查询关联表
-                $deviceIds = \app\common\model\DeviceUser::getUserDeviceIds(
+                $deviceIds = DeviceUserModel::getUserDeviceIds(
                     $userInfo['id'], 
                     $userInfo['companyId']
                 );

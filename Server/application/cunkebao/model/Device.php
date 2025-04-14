@@ -10,7 +10,7 @@ use think\Db;
 class Device extends Model
 {
     // 设置表名
-    protected $table = 's2_device';
+    protected $name = 'device';
 
     /**
      * 获取设备总数
@@ -20,8 +20,8 @@ class Device extends Model
     public static function getDeviceCount($where = [])
     {
         // 默认只统计未删除的设备
-        if (!isset($where['isDeleted']) && !isset($where['d.isDeleted'])) {
-            $where['isDeleted'] = 0;
+        if (!isset($where['deleteTime']) && !isset($where['d.deleteTime'])) {
+            $where['deleteTime'] = 0;
         }
         
         // 确定是否使用了表别名
@@ -52,14 +52,14 @@ class Device extends Model
     public static function getDeviceList($where = [], $order = 'd.id desc', $page = 1, $limit = 10)
     {
         // 默认只查询未删除的设备
-        if (!isset($where['isDeleted'])) {
-            $where['d.isDeleted'] = 0;
+        if (!isset($where['deleteTime'])) {
+            $where['d.deleteTime'] = 0;
         }
 
         // 构建查询对象
         $query = self::alias('d')
-            ->field(['d.id', 'd.imei', 'd.memo', 'w.wechatId', 'd.alive', 'w.totalFriend'])
-            ->leftJoin('tk_wechat_account w', 'd.imei = w.imei COLLATE utf8mb4_unicode_ci');
+            ->field(['d.id', 'd.imei', 'd.memo', 'l.wechatId', 'd.alive', '0 totalFriend'])
+            ->leftJoin('device_wechat_login l', 'd.id = l.deviceId');
 
         // 处理查询条件
         foreach ($where as $key => $value) {
@@ -92,7 +92,7 @@ class Device extends Model
                 'd.id', 'd.imei', 'd.memo', 'd.alive', 'd.taskConfig', 'd.lastUpdateTime',
                 'w.id as wechatId', 'w.thirtyDayMsgCount', 'w.totalFriend', 'd.extra'
             ])
-            ->leftJoin('tk_wechat_account w', 'd.imei = w.imei')
+            ->leftJoin('ck_wechat_account w', 'd.imei = w.imei')
             ->where('d.id', $id)
             ->where('d.isDeleted', 0)
             ->find();

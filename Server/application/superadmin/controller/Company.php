@@ -4,6 +4,7 @@ namespace app\superadmin\controller;
 use app\superadmin\model\Company as companyModel;
 use app\superadmin\model\Users;
 use GuzzleHttp\Client;
+use think\Controller;
 use think\Db;
 use think\facade\Config;
 use think\facade\Request;
@@ -12,7 +13,7 @@ use think\facade\Session;
 /**
  * 公司控制器
  */
-class Company extends Base
+class Company extends Controller
 {
     /**
      * 创建新项目
@@ -20,11 +21,6 @@ class Company extends Base
      */
     public function create()
     {
-        // 验证登录状态
-        if (!$this->checkLogin()) {
-            return json(['code' => 401, 'msg' => '请先登录']);
-        }
-
         // 获取参数
         $params = Request::only(['nickname', 'account', 'password', 'realName', 'memo']);
 
