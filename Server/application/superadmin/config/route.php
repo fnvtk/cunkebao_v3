@@ -2,16 +2,16 @@
 use think\facade\Route;
 
 // 超级管理员认证相关路由（不需要鉴权）
-Route::post('auth/login', 'app\\superadmin\\controller\\AuthController@login');
+Route::post('auth/login', 'app\superadmin\controller\AuthController@login');
 
 // 需要登录认证的路由组
 Route::group('', function () {
     // 菜单管理相关路由
     Route::group('menu', function () {
-        Route::get('tree', 'app\\superadmin\\controller\\MenuController@getTree');
-        Route::get('list', 'app\\superadmin\\controller\\MenuController@getList');
-        Route::post('save', 'app\\superadmin\\controller\\MenuController@save');
-        Route::delete('delete/:id', 'app\\superadmin\\controller\\MenuController@delete');
+        Route::get('tree', 'app\\superadmin\\controller\\MenuController@getMenuTree');
+        Route::get('list', 'app\\superadmin\\controller\\MenuController@getMenuList');
+        Route::post('save', 'app\\superadmin\\controller\\MenuController@saveMenu');
+        Route::delete('delete/:id', 'app\\superadmin\\controller\\MenuController@deleteMenu');
         Route::post('status', 'app\\superadmin\\controller\\MenuController@updateStatus');
         Route::get('toplevel', 'app\\superadmin\\controller\\MenuController@getTopLevelMenus');
     });
@@ -20,9 +20,9 @@ Route::group('', function () {
     Route::group('administrator', function () {
         Route::get('list', 'app\\superadmin\\controller\\AdministratorController@getList');
         Route::get('detail/:id', 'app\\superadmin\\controller\\AdministratorController@getDetail');
-        Route::post('update', 'app\\superadmin\\controller\\AdministratorController@update');
-        Route::post('add', 'app\\superadmin\\controller\\AdministratorController@add');
-        Route::delete('delete/:id', 'app\\superadmin\\controller\\AdministratorController@delete');
+        Route::post('update', 'app\\superadmin\\controller\\AdministratorController@updateAdmin');
+        Route::post('add', 'app\\superadmin\\controller\\AdministratorController@addAdmin');
+        Route::post('delete', 'app\\superadmin\\controller\\AdministratorController@deleteAdmin');
     });
 
     // 客户池管理路由
