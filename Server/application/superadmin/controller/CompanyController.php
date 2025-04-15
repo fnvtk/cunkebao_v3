@@ -102,11 +102,226 @@ class CompanyController extends Controller
     }
 
     /**
-     * 检查登录状态
-     * @return bool
+     * 获取项目列表
+     * @return \think\response\Json
      */
-    protected function checkLogin()
+    public function getList()
     {
-        return Session::has('admin_id');
+        // 获取分页参数
+        $page = $this->request->param('page/d', 1);
+        $limit = $this->request->param('limit/d', 10);
+        $keyword = $this->request->param('keyword/s', '');
+        
+        // 构建查询条件
+        $where = [];
+        if (!empty($keyword)) {
+            $where[] = ['name', 'like', "%{$keyword}%"];
+        }
+        
+        // 查询项目数据
+        $total = companyModel::where($where)->count();
+        $list = companyModel::where($where)
+            ->field('id, name, status, tenantId, companyId, memo, createTime')
+            ->order('id', 'desc')
+            ->page($page, $limit)
+            ->select();
+            
+        // 获取每个项目的子账号数量
+        $data = [];
+        foreach ($list as $item) {
+            // 查询该项目下的子账号数量
+            $userCount = Users::where('companyId', $item['companyId'])
+                ->where('deleteTime', 0)
+                ->count();
+                
+            $data[] = [
+                'id' => $item['id'],
+                'name' => $item['name'],
+                'status' => $item['status'],
+                'tenantId' => $item['tenantId'],
+                'companyId' => $item['companyId'],
+                'memo' => $item['memo'],
+                'userCount' => $userCount,
+                'createTime' => date('Y-m-d H:i:s', $item['createTime'])
+            ];
+        }
+        
+        return json([
+            'code' => 200,
+            'msg' => '获取成功',
+            'data' => [
+                'list' => $data,
+                'total' => $total,
+                'page' => $page,
+                'limit' => $limit
+            ]
+        ]);
+    }
+    
+    /**
+     * 获取项目详情
+     * @param int $id 项目ID
+     * @return \think\response\Json
+     */
+    public function getDetail($id)
+    {
+        $company = companyModel::get($id);
+        if (!$company) {
+            return json(['code' => 404, 'msg' => '项目不存在']);
+        }
+        
+        // 获取项目下的子账号数量
+        $userCount = Users::where('companyId', $id)
+            ->where('deleteTime', 0)
+            ->count();
+            
+        $data = [
+            'id' => $company->id,
+            'name' => $company->name,
+            'status' => $company->status,
+            'tenantId' => $company->tenantId,
+            'companyId' => $company->companyId,
+            'memo' => $company->memo,
+            'userCount' => $userCount,
+            'createTime' => date('Y-m-d H:i:s', $company->createTime)
+        ];
+        
+        return json([
+            'code' => 200,
+            'msg' => '获取成功',
+            'data' => $data
+        ]);
+    }
+    
+    /**
+     * 更新项目信息
+     * @return \think\response\Json
+     */
+    public function update()
+    {
+        if (!$this->request->isPost()) {
+            return json(['code' => 405, 'msg' => '请求方法不允许']);
+        }
+        
+        // 获取请求参数
+        $id = $this->request->post('id/d', 0);
+        $name = $this->request->post('name/s', '');
+        $status = $this->request->post('status/d');
+        $tenantId = $this->request->post('tenantId/d');
+        $companyId = $this->request->post('companyId/d');
+        $memo = $this->request->post('memo/s', '');
+        
+        // 参数验证
+        if (empty($id) || empty($name)) {
+            return json(['code' => 400, 'msg' => '请填写必要参数']);
+        }
+        
+        // 查询项目
+        $company = companyModel::get($id);
+        if (!$company) {
+            return json(['code' => 404, 'msg' => '项目不存在']);
+        }
+        
+        // 检查项目名称是否已存在（排除自身）
+        $exists = companyModel::where('name', $name)
+            ->where('id', '<>', $id)
+            ->find();
+        if ($exists) {
+            return json(['code' => 400, 'msg' => '项目名称已存在']);
+        }
+        
+        // 更新数据
+        $company->name = $name;
+        if (isset($status)) $company->status = $status;
+        if (isset($tenantId)) $company->tenantId = $tenantId;
+        if (isset($companyId)) $company->companyId = $companyId;
+        $company->memo = $memo;
+        $company->updateTime = time();
+        
+        if ($company->save()) {
+            return json([
+                'code' => 200,
+                'msg' => '更新成功'
+            ]);
+        }
+        
+        return json(['code' => 500, 'msg' => '更新失败']);
+    }
+    
+    /**
+     * 删除项目
+     * @return \think\response\Json
+     */
+    public function delete()
+    {
+        if (!$this->request->isPost()) {
+            return json(['code' => 405, 'msg' => '请求方法不允许']);
+        }
+        
+        $id = $this->request->post('id/d', 0);
+        if (empty($id)) {
+            return json(['code' => 400, 'msg' => '请指定要删除的项目']);
+        }
+        
+        // 查询项目
+        $company = companyModel::get($id);
+        if (!$company) {
+            return json(['code' => 404, 'msg' => '项目不存在']);
+        }
+        
+        // 检查是否有关联的子账号
+        $userCount = Users::where('companyId', $id)
+            ->where('deleteTime', 0)
+            ->count();
+        if ($userCount > 0) {
+            return json(['code' => 400, 'msg' => '该项目下还有关联的子账号，无法删除']);
+        }
+        
+        // 执行删除
+        if ($company->delete()) {
+            return json([
+                'code' => 200,
+                'msg' => '删除成功'
+            ]);
+        }
+        
+        return json(['code' => 500, 'msg' => '删除失败']);
+    }
+    
+    /**
+     * 更新项目状态
+     * @return \think\response\Json
+     */
+    public function updateStatus()
+    {
+        if (!$this->request->isPost()) {
+            return json(['code' => 405, 'msg' => '请求方法不允许']);
+        }
+        
+        $id = $this->request->post('id/d', 0);
+        $status = $this->request->post('status/d');
+        
+        if (empty($id) || !isset($status)) {
+            return json(['code' => 400, 'msg' => '参数不完整']);
+        }
+        
+        // 查询项目
+        $company = companyModel::get($id);
+        if (!$company) {
+            return json(['code' => 404, 'msg' => '项目不存在']);
+        }
+        
+        // 更新状态
+        $company->status = $status;
+        $company->updateTime = time();
+        
+        if ($company->save()) {
+            return json([
+                'code' => 200,
+                'msg' => '状态更新成功'
+            ]);
+        }
+        
+        return json(['code' => 500, 'msg' => '状态更新失败']);
     }
 } 

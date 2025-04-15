@@ -1,63 +1,63 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Plus, Search, MoreHorizontal, Edit, Eye, Trash } from "lucide-react"
+import { Plus, Search, MoreHorizontal, Edit, Eye, Trash, ChevronLeft, ChevronRight } from "lucide-react"
+import { toast } from "sonner"
 
-// Sample project data
-const projectsData = [
-  {
-    id: "1",
-    name: "电商平台项目",
-    phone: "13800138000",
-    accountCount: 5,
-    deviceCount: 12,
-    wechatFriends: 245,
-  },
-  {
-    id: "2",
-    name: "社交媒体营销",
-    phone: "13900139000",
-    accountCount: 8,
-    deviceCount: 20,
-    wechatFriends: 567,
-  },
-  {
-    id: "3",
-    name: "企业官网推广",
-    phone: "13700137000",
-    accountCount: 3,
-    deviceCount: 8,
-    wechatFriends: 120,
-  },
-  {
-    id: "4",
-    name: "教育平台项目",
-    phone: "13600136000",
-    accountCount: 10,
-    deviceCount: 25,
-    wechatFriends: 780,
-  },
-  {
-    id: "5",
-    name: "金融服务推广",
-    phone: "13500135000",
-    accountCount: 6,
-    deviceCount: 15,
-    wechatFriends: 320,
-  },
-]
+interface Project {
+  id: number
+  name: string
+  status: number
+  tenantId: number
+  companyId: number
+  memo: string | null
+  userCount: number
+  createTime: string
+}
 
 export default function ProjectsPage() {
   const [searchTerm, setSearchTerm] = useState("")
+  const [projects, setProjects] = useState<Project[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [pageSize] = useState(10)
 
-  const filteredProjects = projectsData.filter(
-    (project) => project.name.toLowerCase().includes(searchTerm.toLowerCase()) || project.phone.includes(searchTerm),
-  )
+  // 获取项目列表
+  useEffect(() => {
+    const fetchProjects = async () => {
+      setIsLoading(true)
+      try {
+        const response = await fetch(`http://yishi.com/company/list?page=${currentPage}&limit=${pageSize}`)
+        const data = await response.json()
+        
+        if (data.code === 200) {
+          setProjects(data.data.list)
+          setTotalPages(Math.ceil(data.data.total / pageSize))
+        } else {
+          toast.error(data.msg || "获取项目列表失败")
+        }
+      } catch (error) {
+        toast.error("获取项目列表失败")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchProjects()
+  }, [currentPage, pageSize])
+
+  // 切换页码
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -75,7 +75,7 @@ export default function ProjectsPage() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="搜索项目名称或手机号..."
+            placeholder="搜索项目名称..."
             className="pl-8"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -88,22 +88,26 @@ export default function ProjectsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>项目名称</TableHead>
-              <TableHead>手机号</TableHead>
-              <TableHead className="text-center">关联设备数</TableHead>
-              <TableHead className="text-center">子账号数</TableHead>
-              <TableHead className="text-center">微信好友总数</TableHead>
+              <TableHead>状态</TableHead>
+              <TableHead className="text-center">用户数量</TableHead>
+              <TableHead className="text-center">创建时间</TableHead>
               <TableHead className="text-right">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredProjects.length > 0 ? (
-              filteredProjects.map((project) => (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center">
+                  加载中...
+                </TableCell>
+              </TableRow>
+            ) : projects.length > 0 ? (
+              projects.map((project) => (
                 <TableRow key={project.id}>
                   <TableCell className="font-medium">{project.name}</TableCell>
-                  <TableCell>{project.phone}</TableCell>
-                  <TableCell className="text-center">{project.deviceCount}</TableCell>
-                  <TableCell className="text-center">{project.accountCount}</TableCell>
-                  <TableCell className="text-center">{project.wechatFriends}</TableCell>
+                  <TableCell>{project.status === 1 ? '启用' : '禁用'}</TableCell>
+                  <TableCell className="text-center">{project.userCount}</TableCell>
+                  <TableCell className="text-center">{project.createTime}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -133,7 +137,7 @@ export default function ProjectsPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={5} className="h-24 text-center">
                   未找到项目
                 </TableCell>
               </TableRow>
@@ -141,6 +145,40 @@ export default function ProjectsPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* 分页控件 */}
+      {!isLoading && projects.length > 0 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            <Button
+              key={page}
+              variant={page === currentPage ? "default" : "outline"}
+              size="icon"
+              onClick={() => handlePageChange(page)}
+            >
+              {page}
+            </Button>
+          ))}
+
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
