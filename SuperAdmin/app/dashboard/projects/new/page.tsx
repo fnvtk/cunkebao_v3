@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -10,36 +9,71 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Plus, Trash } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { toast } from "sonner"
 
 export default function NewProjectPage() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [devices, setDevices] = useState([{ id: "1", name: "" }])
-  const [status, setStatus] = useState("1") // 默认启用
+  const [formData, setFormData] = useState({
+    name: "",
+    account: "",
+    password: "",
+    confirmPassword: "",
+    realName: "",
+    nickname: "",
+    description: ""
+  })
 
-  const handleAddDevice = () => {
-    setDevices([...devices, { id: Date.now().toString(), name: "" }])
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [id]: value
+    }))
   }
 
-  const handleRemoveDevice = (id: string) => {
-    setDevices(devices.filter((device) => device.id !== id))
-  }
-
-  const handleDeviceChange = (id: string, value: string) => {
-    setDevices(devices.map((device) => (device.id === id ? { ...device, name: value } : device)))
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // 表单验证
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("两次输入的密码不一致")
+      return
+    }
+
     setIsSubmitting(true)
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const response = await fetch("http://yishi.com/company/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          account: formData.account,
+          password: formData.password,
+          realName: formData.realName,
+          nickname: formData.nickname,
+          description: formData.description
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.code === 200) {
+        toast.success("创建成功")
+        router.push("/dashboard/projects")
+      } else {
+        toast.error(data.msg || "创建失败")
+      }
+    } catch (error) {
+      toast.error("创建失败，请稍后重试")
+    } finally {
       setIsSubmitting(false)
-      router.push("/dashboard/projects")
-    }, 1500)
+    }
   }
 
   return (
@@ -61,78 +95,86 @@ export default function NewProjectPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="projectName">项目名称</Label>
-              <Input id="projectName" placeholder="请输入项目名称" required />
+              <Label htmlFor="name">项目名称</Label>
+              <Input 
+                id="name" 
+                placeholder="请输入项目名称" 
+                required 
+                value={formData.name}
+                onChange={handleChange}
+              />
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="account">账号</Label>
-                <Input id="account" placeholder="请输入账号" required />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="status">状态</Label>
-                <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="请选择状态" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">启用</SelectItem>
-                    <SelectItem value="0">禁用</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input 
+                  id="account" 
+                  placeholder="请输入账号" 
+                  required 
+                  value={formData.account}
+                  onChange={handleChange}
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="password">初始密码</Label>
-                <Input id="password" type="password" placeholder="请设置初始密码" required />
+                <Input 
+                  id="password" 
+                  type="password" 
+                  placeholder="请设置初始密码" 
+                  required 
+                  value={formData.password}
+                  onChange={handleChange}
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">确认密码</Label>
-                <Input id="confirmPassword" type="password" placeholder="请再次输入密码" required />
+                <Input 
+                  id="confirmPassword" 
+                  type="password" 
+                  placeholder="请再次输入密码" 
+                  required 
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                />
               </div>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="realName">真实姓名</Label>
-                <Input id="realName" placeholder="请输入真实姓名" required />
+                <Input 
+                  id="realName" 
+                  placeholder="请输入真实姓名" 
+                  required 
+                  value={formData.realName}
+                  onChange={handleChange}
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="nickname">昵称</Label>
-                <Input id="nickname" placeholder="请输入昵称" required />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>关联设备</Label>
-              <div className="space-y-3">
-                {devices.map((device, index) => (
-                  <div key={device.id} className="flex items-center gap-2">
-                    <Input
-                      placeholder={`设备 ${index + 1} 名称`}
-                      value={device.name}
-                      onChange={(e) => handleDeviceChange(device.id, e.target.value)}
-                    />
-                    {devices.length > 1 && (
-                      <Button type="button" variant="outline" size="icon" onClick={() => handleRemoveDevice(device.id)}>
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                <Button type="button" variant="outline" onClick={handleAddDevice} className="flex items-center gap-1">
-                  <Plus className="h-4 w-4" /> 添加设备
-                </Button>
+                <Input 
+                  id="nickname" 
+                  placeholder="请输入昵称" 
+                  required 
+                  value={formData.nickname}
+                  onChange={handleChange}
+                />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="description">项目介绍</Label>
-              <Textarea id="description" placeholder="请输入项目介绍（选填）" rows={4} />
+              <Textarea 
+                id="description" 
+                placeholder="请输入项目介绍（选填）" 
+                rows={4}
+                value={formData.description}
+                onChange={handleChange}
+              />
             </div>
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
