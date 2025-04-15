@@ -14,6 +14,10 @@ import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { WechatFriendSelector } from "@/components/WechatFriendSelector"
 import { WechatGroupSelector } from "@/components/WechatGroupSelector"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { api } from "@/lib/api"
+import { showToast } from "@/lib/toast"
+import { format } from "date-fns"
+import { zhCN } from "date-fns/locale"
 
 interface WechatFriend {
   id: string
@@ -31,6 +35,12 @@ interface WechatGroup {
   avatar: string
   owner: string
   customer: string
+}
+
+interface ApiResponse<T = any> {
+  code: number
+  msg: string
+  data: T
 }
 
 export default function NewContentLibraryPage() {
@@ -51,6 +61,7 @@ export default function NewContentLibraryPage() {
 
   const [isWechatFriendSelectorOpen, setIsWechatFriendSelectorOpen] = useState(false)
   const [isWechatGroupSelectorOpen, setIsWechatGroupSelectorOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   const removeFriend = (friendId: string) => {
     setFormData((prev) => ({
@@ -64,6 +75,54 @@ export default function NewContentLibraryPage() {
       ...prev,
       selectedGroups: prev.selectedGroups.filter((group) => group.id !== groupId),
     }))
+  }
+
+  const handleSubmit = async () => {
+    if (!formData.name) {
+      showToast("请输入内容库名称", "error")
+      return
+    }
+
+    if (formData.sourceType === "friends" && formData.selectedFriends.length === 0) {
+      showToast("请选择微信好友", "error")
+      return
+    }
+
+    if (formData.sourceType === "groups" && formData.selectedGroups.length === 0) {
+      showToast("请选择聊天群", "error")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const payload = {
+        name: formData.name,
+        sourceType: formData.sourceType === "friends" ? 1 : 2,
+        friends: formData.selectedFriends.map(f => f.id),
+        groups: formData.selectedGroups.map(g => g.id),
+        keywordInclude: formData.keywordsInclude.split(",").map(k => k.trim()).filter(Boolean),
+        keywordExclude: formData.keywordsExclude.split(",").map(k => k.trim()).filter(Boolean),
+        aiPrompt: formData.useAI ? formData.aiPrompt : "",
+        timeEnabled: formData.startDate && formData.endDate ? 1 : 0,
+        startTime: formData.startDate ? format(new Date(formData.startDate), "yyyy-MM-dd") : "",
+        endTime: formData.endDate ? format(new Date(formData.endDate), "yyyy-MM-dd") : "",
+        status: formData.enabled ? 1 : 0
+      }
+
+      const response = await api.post<ApiResponse>("/v1/content/library/create", payload)
+      
+      if (response.code === 200) {
+        showToast("创建成功", "success")
+        router.push("/content")
+      } else {
+        showToast(response.msg || "创建失败", "error")
+      }
+    } catch (error: any) {
+      console.error("创建内容库失败:", error)
+      showToast(error?.message || "请检查网络连接", "error")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -98,7 +157,7 @@ export default function NewContentLibraryPage() {
               <Label className="text-base">数据来源配置</Label>
               <Tabs
                 value={formData.sourceType}
-                onValueChange={(value: "friends" | "groups") => setFormData({ ...formData, sourceType: value })}
+                onValueChange={(value) => setFormData({ ...formData, sourceType: value as "friends" | "groups" })}
                 className="mt-1.5"
               >
                 <TabsList className="grid w-full grid-cols-2">
@@ -224,14 +283,16 @@ export default function NewContentLibraryPage() {
               <DateRangePicker
                 className="mt-1.5"
                 onChange={(range) => {
-                  if (range?.from) {
-                    setFormData({
-                      ...formData,
-                      startDate: range.from.toISOString(),
-                      endDate: range.to?.toISOString() || "",
-                    })
-                  }
+                  setFormData({
+                    ...formData,
+                    startDate: range?.from ? format(range.from, "yyyy-MM-dd") : "",
+                    endDate: range?.to ? format(range.to, "yyyy-MM-dd") : "",
+                  })
                 }}
+                value={formData.startDate && formData.endDate ? {
+                  from: new Date(formData.startDate),
+                  to: new Date(formData.endDate)
+                } : undefined}
               />
             </div>
 
@@ -246,11 +307,22 @@ export default function NewContentLibraryPage() {
         </Card>
 
         <div className="flex gap-4">
-          <Button type="button" variant="outline" className="flex-1" onClick={() => router.back()}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            className="flex-1" 
+            onClick={() => router.back()}
+            disabled={loading}
+          >
             取消
           </Button>
-          <Button type="submit" className="flex-1">
-            保存
+          <Button 
+            type="submit" 
+            className="flex-1"
+            onClick={handleSubmit}
+            disabled={loading}
+          >
+            {loading ? "保存中..." : "保存"}
           </Button>
         </div>
       </div>

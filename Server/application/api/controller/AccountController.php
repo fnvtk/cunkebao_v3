@@ -104,9 +104,9 @@ class AccountController extends BaseController
             if (empty($userName)) {
                 return errorJson('用户名不能为空');
             }
-            if (!preg_match('/^[a-zA-Z][a-zA-Z0-9]{5,9}$/', $userName)) {
-                return errorJson('用户名必须以字母开头，只能包含字母和数字，长度6-10位');
-            }
+            // if (!preg_match('/^[a-zA-Z][a-zA-Z0-9]{5,9}$/', $userName)) {
+            //     return errorJson('用户名必须以字母开头，只能包含字母和数字，长度6-10位');
+            // }
             if (empty($password)) {
                 return errorJson('密码不能为空');
             }

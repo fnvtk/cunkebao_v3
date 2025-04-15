@@ -168,6 +168,7 @@ class AuthService
         
         // 尝试从缓存获取授权信息
         $authorization = Cache::get($cacheKey);
+        $authorization = 'xwz8Uh2doczeTCqSvakElfZMPn-jRce5WTnKTz3ljqpa63PnUOy5beT3TDhxnGNsROofYzpUphfhraxPrQfXvSuMyxFj_vrMUenzptj6hdG8Y4h1NrPXHFUr5Rlw-cIq0uyZZhjYp6xDTLg-IipgyAvBPdJM0vIgbizbo-agd8_Ubwbl0EOPqrMscYdsGrnv9_Lbr_B4-tHMNMa6yerb6kP6rzx8KQ4mJ6Cr5OmPX2WAmFkYykS3p0erWtb9PGHcxgaI1SVkEF4vH2H_iSOxfz5v27xd4HFE63IA5ZtDHQBNeiR0avST36UJSTZz3vjta9FDsw';
         
         // 如果缓存中没有或已过期，则重新获取
         if (empty($authorization)) {

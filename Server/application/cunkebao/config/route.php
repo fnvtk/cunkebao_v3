@@ -57,4 +57,12 @@ Route::group('v1/', function () {
         Route::get('detail', 'app\\cunkebao\\controller\\WorkbenchController@detail'); // 获取工作台详情
         Route::post('update', 'app\\cunkebao\\controller\\WorkbenchController@update'); // 更新工作台
     });
+
+    // 内容库相关
+    Route::group('content/library', function () {
+        Route::post('create', 'app\\cunkebao\\controller\\ContentLibraryController@create'); // 创建内容库
+        Route::get('list', 'app\\cunkebao\\controller\\ContentLibraryController@getList'); // 获取内容库列表
+        Route::post('update', 'app\\cunkebao\\controller\\ContentLibraryController@update'); // 更新内容库
+        Route::delete('delete', 'app\\cunkebao\\controller\\ContentLibraryController@delete'); // 删除内容库
+    });
 })->middleware(['jwt']);

@@ -21,9 +21,11 @@ class ContentLibraryController extends Controller
         $page = $this->request->param('page', 1);
         $limit = $this->request->param('limit', 10);
         $keyword = $this->request->param('keyword', '');
+        $sourceType = $this->request->param('sourceType', ''); // 新增：来源类型，1=好友，2=群
 
         $where = [
-            ['userId', '=', $this->request->userInfo['id']]
+            ['userId', '=', $this->request->userInfo['id']],
+            ['isDel', '=', 0]  // 只查询未删除的记录
         ];
         
         // 添加名称模糊搜索
@@ -31,11 +33,33 @@ class ContentLibraryController extends Controller
             $where[] = ['name', 'like', '%' . $keyword . '%'];
         }
 
+   // 添加名称模糊搜索
+        if (!empty($sourceType)) {
+            $where[] = ['sourceType', '=', $sourceType];
+        }
+
+
+
         $list = ContentLibrary::where($where)
-            ->field('id,name,description,createTime,updateTime')
+            ->field('id,name,sourceFriends,sourceGroups,keywordInclude,keywordExclude,aiEnabled,aiPrompt,timeEnabled,timeStart,timeEnd,status,sourceType,userId,createTime,updateTime')
+            ->with(['user' => function($query) {
+                $query->field('id,username');
+            }])
             ->order('id', 'desc')
             ->page($page, $limit)
             ->select();
+
+        // 处理JSON字段
+        foreach ($list as &$item) {
+            $item['sourceFriends'] = json_decode($item['sourceFriends'] ?: '[]', true);
+            $item['sourceGroups'] = json_decode($item['sourceGroups'] ?: '[]', true);
+            $item['keywordInclude'] = json_decode($item['keywordInclude'] ?: '[]', true);
+            $item['keywordExclude'] = json_decode($item['keywordExclude'] ?: '[]', true);
+            // 添加创建人名称
+            $item['creatorName'] = $item['user']['username'] ?? '';
+            unset($item['user']); // 移除关联数据
+        }
+        unset($item);
 
         $total = ContentLibrary::where($where)->count();
 
@@ -46,38 +70,44 @@ class ContentLibraryController extends Controller
                 'list' => $list,
                 'total' => $total,
                 'page' => $page,
-                'limit' => $limit
             ]
         ]);
     }
 
     /**
      * 获取内容库详情
-     * @param int $id 内容库ID
      * @return \think\response\Json
      */
-    public function detail($id)
+    public function detail()
     {
+        $id = $this->request->param('id', 0);
         if (empty($id)) {
             return json(['code' => 400, 'msg' => '参数错误']);
         }
 
         $library = ContentLibrary::where([
             ['id', '=', $id],
-            ['userId', '=', $this->request->userInfo['id']]
+            ['userId', '=', $this->request->userInfo['id']],
+            ['isDel', '=', 0]  // 只查询未删除的记录
         ])
-        ->field('id,name,description,createTime,updateTime')
+        ->field('id,name,sourceFriends,sourceGroups,keywordInclude,keywordExclude,aiEnabled,aiPrompt,timeEnabled,timeStart,timeEnd,status,userId,companyId,createTime,updateTime')
         ->find();
 
         if (empty($library)) {
             return json(['code' => 404, 'msg' => '内容库不存在']);
         }
 
-        // 获取内容项目
-        $items = ContentItem::where('libraryId', $id)->select();
-        $library['items'] = $items;
+        // 处理JSON字段转数组
+        $library['sourceFriends'] = json_decode($library['sourceFriends'] ?: '[]', true);
+        $library['sourceGroups'] = json_decode($library['sourceGroups'] ?: '[]', true);
+        $library['keywordInclude'] = json_decode($library['keywordInclude'] ?: '[]', true);
+        $library['keywordExclude'] = json_decode($library['keywordExclude'] ?: '[]', true);
 
-        return json(['code' => 200, 'msg' => '获取成功', 'data' => $library]);
+        return json([
+            'code' => 200, 
+            'msg' => '获取成功', 
+            'data' => $library
+        ]);
     }
 
     /**
@@ -93,31 +123,52 @@ class ContentLibraryController extends Controller
         // 获取请求参数
         $param = $this->request->post();
 
-        // 简单验证
+        // 验证参数
         if (empty($param['name'])) {
             return json(['code' => 400, 'msg' => '内容库名称不能为空']);
         }
 
+        // 检查内容库名称是否已存在
+        $exists = ContentLibrary::where('name', $param['name'])->find();
+        if ($exists) {
+            return json(['code' => 400, 'msg' => '内容库名称已存在']);
+        }
+
         Db::startTrans();
         try {
+            // 构建数据
+            $data = [
+                'name' => $param['name'],
+                // 数据来源配置
+                'sourceFriends' => isset($param['friends']) ? json_encode($param['friends']) : '[]', // 选择的微信好友
+                'sourceGroups' => isset($param['groups']) ? json_encode($param['groups']) : '[]', // 选择的微信群
+                // 关键词配置
+                'keywordInclude' => isset($param['keywordInclude']) ? json_encode($param['keywordInclude']) : '[]', // 包含的关键词
+                'keywordExclude' => isset($param['keywordExclude']) ? json_encode($param['keywordExclude']) : '[]', // 排除的关键词
+                // AI配置
+                'aiEnabled' => isset($param['aiEnabled']) ? $param['aiEnabled'] : 0, // 是否启用AI
+                'aiPrompt' => isset($param['aiPrompt']) ? $param['aiPrompt'] : '', // AI提示词
+                // 时间配置
+                'timeEnabled' => isset($param['timeEnabled']) ? $param['timeEnabled'] : 0, // 是否启用时间限制
+                'timeStart' => isset($param['startTime']) ? strtotime($param['startTime']) : 0, // 开始时间（转换为时间戳）
+                'timeEnd' => isset($param['endTime']) ? strtotime($param['endTime']) : 0, // 结束时间（转换为时间戳）
+                // 来源类型
+                'sourceType' => isset($param['sourceType']) ? $param['sourceType'] : 0, // 1=好友，2=群，3=好友和群
+                // 基础信息
+                'status' => isset($param['status']) ? $param['status'] : 0, // 状态：0=禁用，1=启用
+                'userId' => $this->request->userInfo['id'],
+                'companyId' => $this->request->userInfo['companyId'],
+                'createTime' => time(),
+                'updateTime' => time()
+            ];
+
             // 创建内容库
             $library = new ContentLibrary;
-            $library->name = $param['name'];
-            $library->description = isset($param['description']) ? $param['description'] : '';
-            $library->userId = $this->request->userInfo['id'];
-            $library->companyId = $this->request->userInfo['companyId'];
-            $library->save();
+            $result = $library->save($data);
 
-            // 如果有内容项目，也一并创建
-            if (!empty($param['items']) && is_array($param['items'])) {
-                foreach ($param['items'] as $item) {
-                    $contentItem = new ContentItem;
-                    $contentItem->libraryId = $library->id;
-                    $contentItem->type = $item['type'];
-                    $contentItem->title = $item['title'] ?? '';
-                    $contentItem->contentData = $item['contentData'];
-                    $contentItem->save();
-                }
+            if (!$result) {
+                Db::rollback();
+                return json(['code' => 500, 'msg' => '创建内容库失败']);
             }
 
             Db::commit();
@@ -177,36 +228,33 @@ class ContentLibraryController extends Controller
 
     /**
      * 删除内容库
-     * @param int $id 内容库ID
      * @return \think\response\Json
      */
-    public function delete($id)
+    public function delete()
     {
+        $id = $this->request->param('id', 0);
         if (empty($id)) {
             return json(['code' => 400, 'msg' => '参数错误']);
         }
 
         $library = ContentLibrary::where([
             ['id', '=', $id],
-            ['userId', '=', $this->request->userInfo['id']]
+            ['userId', '=', $this->request->userInfo['id']],
+            ['isDel', '=', 0]  // 只删除未删除的记录
         ])->find();
 
-        if (!$library) {
+        if (empty($library)) {
             return json(['code' => 404, 'msg' => '内容库不存在']);
         }
 
-        Db::startTrans();
         try {
-            // 删除相关内容项目
-            ContentItem::where('libraryId', $id)->delete();
-            
-            // 删除内容库
-            $library->delete();
+            // 软删除
+            $library->isDel = 1;
+            $library->deleteTime = time();
+            $library->save();
 
-            Db::commit();
             return json(['code' => 200, 'msg' => '删除成功']);
         } catch (\Exception $e) {
-            Db::rollback();
             return json(['code' => 500, 'msg' => '删除失败：' . $e->getMessage()]);
         }
     }
