@@ -294,9 +294,9 @@ export default function CustomersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>客户信息</TableHead>
+                <TableHead>客户昵称</TableHead>
                 <TableHead>微信ID</TableHead>
-                <TableHead>标签</TableHead>
+                <TableHead>性别</TableHead>
                 <TableHead>地区</TableHead>
                 <TableHead>来源</TableHead>
                 <TableHead>公司名称</TableHead>
@@ -325,31 +325,23 @@ export default function CustomersPage() {
                         <Avatar>
                           <AvatarImage 
                             src={customer.avatar || "/placeholder.svg?height=40&width=40"} 
-                            alt={customer.nickname} 
+                            alt={customer.nickname || "未知"} 
                             onError={(e) => {
                               // 图片加载失败时使用默认图片
                               const target = e.target as HTMLImageElement;
                               target.src = "/placeholder.svg?height=40&width=40";
                             }}
                           />
-                          <AvatarFallback>{customer.nickname.slice(0, 2)}</AvatarFallback>
+                          <AvatarFallback>{(customer.nickname || "未知").slice(0, 2)}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-medium">{customer.nickname}</div>
+                          <div className="font-medium">{customer.nickname || "未知"}</div>
                           <div className="text-xs text-muted-foreground">{customer.gender}</div>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>{customer.wechatId}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {customer.tags.map((tag, index) => (
-                          <Badge key={index} variant="outline">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
+                    <TableCell>{customer.gender}</TableCell>
                     <TableCell>{customer.region}</TableCell>
                     <TableCell>{customer.source}</TableCell>
                     <TableCell>{customer.projectName}</TableCell>

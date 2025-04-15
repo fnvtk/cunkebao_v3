@@ -94,16 +94,16 @@ class AdministratorController extends Controller
         $permissionIds = [];
         if (!empty($admin['permissions'])) {
             $permissions = json_decode($admin['permissions'], true);
-            $permissions = json_decode($permissions, true);
+            $permissions = is_array($permissions) ? $permissions: json_decode($permissions, true);
 
             if (isset($permissions['ids'])) {
                 $permissionIds = is_string($permissions['ids']) ? explode(',', $permissions['ids']) : $permissions['ids'];
-                
+
                 // 确保所有ID都是整数
                 $permissionIds = array_map('intval', $permissionIds);
             }
         }
-        
+
         // 格式化数据
         $data = [
             'id' => $admin['id'],
@@ -116,7 +116,7 @@ class AdministratorController extends Controller
             'lastLogin' => !empty($admin['lastLoginTime']) ? date('Y-m-d H:i', $admin['lastLoginTime']) : '从未登录',
             'permissions' => $permissionIds, // 直接返回权限ID数组
         ];
-        
+
         return json([
             'code' => 200,
             'msg' => '获取成功',

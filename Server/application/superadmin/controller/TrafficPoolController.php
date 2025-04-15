@@ -31,7 +31,7 @@ class TrafficPoolController extends Controller
             ->join('traffic_source ts', 'tp.identifier = ts.identifier', 'RIGHT')
             ->join('company c', 'ts.companyId = c.companyId', 'LEFT')
             ->join('wechat_account wa', 'tp.wechatId = wa.wechatId', 'LEFT')
-            ->join('wechat_tag wt', 'wa.wechatId = wt.wechatId')
+            ->join('wechat_tag wt', 'wa.wechatId = wt.wechatId', 'LEFT')
             ->field([
                 'ts.id',
                 'tp.wechatId',
@@ -43,9 +43,8 @@ class TrafficPoolController extends Controller
                 'wa.nickname',
                 'wa.region',
                 'wt.tags'
-            ])
-            ->order('tp.createTime DESC');
-        
+            ]);
+
         // 执行分页查询
         $list = $query->paginate([
             'list_rows' => $limit,
@@ -71,6 +70,8 @@ class TrafficPoolController extends Controller
             // 处理标签显示
             if (is_string($item['tags'])) {
                 $item['tags'] = json_decode($item['tags'], true);
+            } else {
+                $item['tags'] = [];
             }
             
             return $item;
@@ -104,7 +105,7 @@ class TrafficPoolController extends Controller
         try {
             // 查询流量来源信息
             $sourceInfo = TrafficSource::alias('ts')
-                ->join('company c', 'ts.companyId = c.id', 'LEFT')
+                ->join('company c', 'ts.companyId = c.companyId', 'LEFT')
                 ->field([
                     'ts.fromd as source',
                     'ts.createTime as addTime',
