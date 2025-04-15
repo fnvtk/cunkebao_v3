@@ -10,6 +10,7 @@ Route::group('v1', function () {
         Route::group('account', function () {
             Route::get('list', 'app\\api\\controller\\AccountController@getList'); // 获取账号列表 √
             Route::post('create', 'app\\api\\controller\\AccountController@createAccount'); // 创建账号 √
+            Route::post('createNewAccount', 'app\\api\\controller\\AccountController@createNewAccount'); // 创建新账号（包含创建部门） √
             Route::post('department/create', 'app\\api\\controller\\AccountController@createDepartment'); // 创建部门 √
             Route::get('department/list', 'app\\api\\controller\\AccountController@getDepartmentList'); // 获取部门列表 √
             Route::post('department/update', 'app\\api\\controller\\AccountController@updateDepartment'); // 更新部门 √

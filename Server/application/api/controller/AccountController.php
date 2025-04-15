@@ -4,6 +4,7 @@ namespace app\api\controller;
 
 use app\api\model\CompanyAccountModel;
 use app\api\model\CompanyModel;
+use Library\S2\Logics\AccountLogic;
 use think\facade\Request;
 
 /**
@@ -23,6 +24,11 @@ class AccountController extends BaseController
      */
     public function getlist($pageIndex = '',$pageSize = '',$isJob = false)
     {
+
+        $api = new AccountLogic();
+        $api->login()->create();
+
+
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
@@ -133,7 +139,7 @@ class AccountController extends BaseController
             // 发送请求创建账号
             $result = requestCurl($this->baseUrl . 'api/account/newAccount', $params, 'POST', $header, 'json');
             
-            if (is_int($result)) {
+            if (is_numeric($result)) {
                 return successJson($result);
             } else {
                 return errorJson($result);
@@ -142,6 +148,114 @@ class AccountController extends BaseController
             return errorJson('创建账号失败：' . $e->getMessage());
         }
     }
+
+
+
+    /**
+     * 创建新账号（包含创建部门）
+     * @return \think\response\Json
+     */
+    public function createNewAccount()
+    {
+        // 获取授权token
+        $authorization = trim($this->request->header('authorization', $this->authorization));
+        if (empty($authorization)) {
+            return errorJson('缺少授权信息');
+        }
+
+        try {
+            // 获取参数
+            $departmentName = $this->request->param('departmentName', '');
+            $departmentMemo = $this->request->param('departmentMemo', '');
+            $accountName = $this->request->param('accountName', '');
+            $accountPassword = $this->request->param('accountPassword', '');
+            $accountRealName = $this->request->param('accountRealName', '');
+            $accountNickname = $this->request->param('accountNickname', '');
+            $accountMemo = $this->request->param('accountMemo', '');
+
+            // 验证参数
+            if (empty($departmentName)) {
+                return errorJson('部门名称不能为空');
+            }
+            if (empty($accountName)) {
+                return errorJson('账号名称不能为空');
+            }
+            if (empty($accountPassword)) {
+                return errorJson('账号密码不能为空');
+            }
+
+            // 检查部门是否已存在
+            $existingDepartment = CompanyModel::where('name', $departmentName)->find();
+            if ($existingDepartment) {
+                return errorJson('部门名称已存在');
+            }
+
+            // 检查账号是否已存在
+            $existingAccount = CompanyAccountModel::where('userName', $accountName)->find();
+            if ($existingAccount) {
+                return errorJson('账号名称已存在');
+            }
+
+            // 1. 创建部门
+            $departmentParams = [
+                'name' => $departmentName,
+                'memo' => $departmentMemo,
+                'departmentIdArr' => [914],
+                'parentId' => 914
+            ];
+
+            $headerData = ['client:system'];
+            $header = setHeader($headerData, $authorization, 'json');
+            $departmentResult = requestCurl($this->baseUrl . 'api/Department/createDepartment', $departmentParams, 'POST', $header, 'json');
+            
+            if (is_numeric($departmentResult)) {
+                // 保存部门到数据库
+                $department = CompanyModel::create([
+                    'id' => $departmentResult,
+                    'name' => $departmentName,
+                    'memo' => $departmentMemo,
+                    'tenantId' => 242,
+                    'isTop' => 0,
+                    'level' => 1,
+                    'parentId' => 914,
+                    'privileges' => '',
+                    'createTime' => time(),
+                    'lastUpdateTime' => 0
+                ]);
+            } else {
+                return errorJson('创建部门失败：' . $departmentResult);
+            }
+
+            // 2. 创建账号
+            $accountParams = [
+                'userName' => $accountName,
+                'password' => $accountPassword,
+                'realName' => $accountRealName,
+                'nickname' => $accountNickname,
+                'memo' => $accountMemo,
+                'departmentId' => $departmentResult,
+                'departmentIdArr' => [914, $departmentResult]
+            ];
+
+            $accountResult = requestCurl($this->baseUrl . 'api/Account/newAccount', $accountParams, 'POST', $header, 'json');
+
+
+
+
+
+            if (!is_numeric($accountResult)) {
+                // 如果创建账号失败，删除已创建的部门
+                $this->deleteDepartment($accountResult);
+                return errorJson('创建账号失败：' . $accountResult['msg']);
+            }
+
+            return successJson($accountResult,'账号创建成功');
+        } catch (\Exception $e) {
+            return errorJson('创建账号失败：' . $e->getMessage());
+        }
+    }
+
+
 
     /************************ 部门管理相关接口 ************************/
 
@@ -213,9 +327,9 @@ class AccountController extends BaseController
             }
 
             // 检查部门名称是否已存在
-            $departmentId = CompanyModel::where('name', $name)->value('id');
+            $departmentId = CompanyModel::where('name', $name)->find();
             if (!empty($departmentId)) {
-                return errorJson('公司名称已存在');
+                return successJson($departmentId);
             }
 
             // 构建请求参数
@@ -238,7 +352,14 @@ class AccountController extends BaseController
                 $res = CompanyModel::create([
                     'id' => $result,
                     'name' => $name,
-                    'memo' => $memo
+                    'memo' => $memo,
+                    'tenantId' => 242,
+                    'isTop' => 0,
+                    'level' => 1,
+                    'parentId' => 914,
+                    'privileges' => '',
+                    'createTime' => time(),
+                    'lastUpdateTime' => 0
                 ]);
                 return successJson($res);
             } else {
@@ -319,7 +440,7 @@ class AccountController extends BaseController
      * 删除部门
      * @return \think\response\Json
      */
-    public function deleteDepartment()
+    public function deleteDepartment($id = '')
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
@@ -329,7 +450,7 @@ class AccountController extends BaseController
 
         try {
             // 获取并验证部门ID
-            $id = $this->request->param('id', 0);
+            $id = !empty($id) ? $id : $this->request->param('id', '');
             if (empty($id)) {
                 return errorJson('部门ID不能为空');
             }
@@ -400,8 +521,8 @@ class AccountController extends BaseController
             'parentId' => isset($item['parentId']) ? $item['parentId'] : 0,
             'tenantId' => isset($item['tenantId']) ? $item['tenantId'] : 0,
             'privileges' => isset($item['privileges']) ? (is_array($item['privileges']) ? json_encode($item['privileges']) : $item['privileges']) : '',
-            'createTime' =>  isset($item['createTime']) ? $item['createTime'] : '',
-            'lastUpdateTime' => isset($item['lastUpdateTime']) ? $item['lastUpdateTime'] : ''
+            'createTime' =>  isset($item['createTime']) ? strtotime($item['createTime']) : 0,
+            'lastUpdateTime' => isset($item['lastUpdateTime']) ? ($item['lastUpdateTime'] == '0001-01-01T00:00:00' ? 0 : strtotime($item['lastUpdateTime'])) : 0
         ];
 
         // 使用id作为唯一性判断

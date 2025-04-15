@@ -270,10 +270,10 @@ class DeviceController extends BaseController
             'currentAccountId' => isset($item['currentAccountId']) ? $item['currentAccountId'] : 0,
             'imei' => $item['imei'],
             'memo' => isset($item['memo']) ? $item['memo'] : '',
-            'createTime' => isset($item['createTime']) ? $item['createTime'] : null,
+            'createTime' => isset($item['createTime']) ? strtotime($item['createTime']) : 0,
             'isDeleted' => isset($item['isDeleted']) ? $item['isDeleted'] : false,
             'deletedAndStop' => isset($item['deletedAndStop']) ? $item['deletedAndStop'] : false,
-            'deleteTime' => isset($item['deleteTime']) ? $item['deleteTime'] : null,
+            'deleteTime' => empty($item['isDeleted']) ? 0 : strtotime($item['deleteTime']),
             'rooted' => isset($item['rooted']) ? $item['rooted'] : false,
             'xPosed' => isset($item['xPosed']) ? $item['xPosed'] : false,
             'brand' => isset($item['brand']) ? $item['brand'] : '',
@@ -282,7 +282,7 @@ class DeviceController extends BaseController
             'softwareVersion' => isset($item['softwareVersion']) ? $item['softwareVersion'] : '',
             'extra' => isset($item['extra']) ? json_encode($item['extra']) : json_encode([]),
             'phone' => isset($item['phone']) ? $item['phone'] : '',
-            'lastUpdateTime' => isset($item['lastUpdateTime']) ? $item['lastUpdateTime'] : null
+            'lastUpdateTime' => isset($item['lastUpdateTime']) ? ($item['lastUpdateTime'] == '0001-01-01T00:00:00' ? 0 : strtotime($item['lastUpdateTime'])) : 0
         ];
 
         // 使用imei作为唯一性判断

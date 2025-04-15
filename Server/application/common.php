@@ -10,7 +10,7 @@
 // +----------------------------------------------------------------------
 
 // 应用公共文件
-
+use app\common\service\AuthService;
 
 if (!function_exists('requestCurl')) {
     /**
@@ -27,24 +27,24 @@ if (!function_exists('requestCurl')) {
         if (!empty($url)) {
             try {
                 $ch = curl_init();
-                
+
                 // 处理GET请求的参数
                 if (strtoupper($method) == 'GET' && !empty($params)) {
                     $url = $url . '?' . dataBuild($params);
                 }
-                
+
                 curl_setopt($ch, CURLOPT_URL, $url);
                 curl_setopt($ch, CURLOPT_HEADER, 0);
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
                 curl_setopt($ch, CURLOPT_TIMEOUT, 30); //30秒超时
                 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
                 curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
-                
+
                 // 处理不同的请求方法
                 if (strtoupper($method) != 'GET') {
                     // 设置请求方法
                     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, strtoupper($method));
-                    
+
                     // 处理参数格式
                     if ($type == 'dataBuild') {
                         $params = dataBuild($params);
@@ -53,11 +53,11 @@ if (!function_exists('requestCurl')) {
                     } else {
                         $params = dataBuild($params);
                     }
-                    
+
                     // 设置请求体
                     curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
                 }
-                
+
                 curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0); //是否验证对等证书,1则验证，0则不验证
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
                 $str = curl_exec($ch);
@@ -375,7 +375,13 @@ if (!function_exists('handleApiResponse')) {
         }
 
         // 不是JSON格式，直接返回原始数据
-        return $response;
+        if($response == '无效路径或登录状态失效'){
+            \think\facade\Cache::rm('system_refresh_token');
+            AuthService::getSystemAuthorization();
+        }
+        
+        return $decoded;
+        
     }
 }
 

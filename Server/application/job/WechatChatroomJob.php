@@ -77,6 +77,7 @@ class WechatChatroomJob
         $result = $wechatChatroomController->getlist($pageIndex,$pageSize,true);
         $response = json_decode($result,true);
         
+
         // 判断是否成功
         if ($response['code'] == 200) {
             $data = $response['data'];

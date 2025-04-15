@@ -102,7 +102,7 @@ class WechatFriendController extends BaseController
             'signature' => $item['signature'],
             'isDeleted' => $item['isDeleted'],
             'isPassed' => $item['isPassed'],
-            'deleteTime' => $item['deleteTime'],
+            'deleteTime' => !empty($item['isDeleted']) ? strtotime($item['deleteTime']) : 0,
             'accountId' => $item['accountId'],
             'extendFields' => is_array($item['extendFields']) ? json_encode($item['extendFields']) : json_encode([]),
             'accountUserName' => $item['accountUserName'],
@@ -115,13 +115,13 @@ class WechatFriendController extends BaseController
             'phone' => $item['phone'],
             'thirdParty' => is_array($item['thirdParty']) ? json_encode($item['thirdParty']) : json_encode([]),
             'groupId' => $item['groupId'],
-            'passTime' => $item['passTime'],
+            'passTime' => !empty($item['isPassed']) && $item['passTime'] != '0001-01-01T00:00:00' ? strtotime($item['passTime']) : 0,
             'additionalPicture' => $item['additionalPicture'],
             'desc' => $item['desc'],
             'country' => $item['country'],
             'privince' => isset($item['privince']) ? $item['privince'] : '',
             'city' => isset($item['city']) ? $item['city'] : '',
-            'createTime' => isset($item['createTime']) ? $item['createTime'] : '',
+            'createTime' => isset($item['createTime']) ? strtotime($item['createTime']) : 0,
             'updateTime' => time()
         ];
 

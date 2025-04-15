@@ -88,8 +88,8 @@ class WechatChatroomController extends BaseController
             'chatroomAvatar' => isset($item['chatroomAvatar']) ? $item['chatroomAvatar'] : '',
             'members' => is_array($item['members']) ? json_encode($item['members']) : json_encode([]),
             'isDeleted' => isset($item['isDeleted']) ? $item['isDeleted'] : 0,
-            'deleteTime' => isset($item['deleteTime']) ? $item['deleteTime'] : 0,
-            'createTime' => isset($item['createTime']) ? $item['createTime'] : time(),
+            'deleteTime' => !empty($item['isDeleted']) ? strtotime($item['deleteTime']) : 0,
+            'createTime' => isset($item['createTime']) ? strtotime($item['createTime']) : 0,
             'accountId' => isset($item['accountId']) ? $item['accountId'] : 0,
             'accountUserName' => isset($item['accountUserName']) ? $item['accountUserName'] : '',   
             'accountRealName' => isset($item['accountRealName']) ? $item['accountRealName'] : '',
@@ -107,12 +107,12 @@ class WechatChatroomController extends BaseController
             WechatChatroomModel::create($data);
         }
 
-        // 同时保存群成员数据
-        if (!empty($item['members'])) {
-            foreach ($item['members'] as $member) {
-                $this->saveChatroomMember($member, $item['chatroomId']);
-            }
-        }
+        // // 同时保存群成员数据
+        // if (!empty($item['members'])) {
+        //     foreach ($item['members'] as $member) {
+        //         $this->saveChatroomMember($member, $item['chatroomId']);
+        //     }
+        // }
     }
 
     /**
