@@ -23,7 +23,7 @@ class CompanyController extends Controller
     public function create()
     {
         // 获取参数
-        $params = Request::only(['name', 'nickname', 'account', 'password', 'realName', 'memo']);
+        $params = Request::only(['name', 'nickname', 'account', 'password', 'realName', 'description']);
 
         try {
             // 开启事务
@@ -33,7 +33,7 @@ class CompanyController extends Controller
             // 1. 调用创建部门接口
             $departmentResponse = $curl->setMethod('post')->send('v1/api/account/department/create', [
                 'name' => $params['name'],
-                'memo' => $params['memo'] ?: '',
+                'memo' => $params['description'] ?: '',
             ]);
 
             $departmentData = json_decode($departmentResponse, true);

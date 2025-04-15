@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { toast } from "sonner"
+import { toast, Toaster } from "sonner"
 
 export default function NewProjectPage() {
   const router = useRouter()
@@ -67,10 +67,10 @@ export default function NewProjectPage() {
         toast.success("创建成功")
         router.push("/dashboard/projects")
       } else {
-        toast.error(data.msg || "创建失败")
+        toast.error(data.msg)
       }
     } catch (error) {
-      toast.error("创建失败，请稍后重试")
+      toast.error("网络错误，请稍后重试")
     } finally {
       setIsSubmitting(false)
     }
@@ -78,6 +78,7 @@ export default function NewProjectPage() {
 
   return (
     <div className="space-y-6">
+      <Toaster richColors position="top-center" />
       <div className="flex items-center gap-2">
         <Button variant="outline" size="icon" asChild>
           <Link href="/dashboard/projects">
