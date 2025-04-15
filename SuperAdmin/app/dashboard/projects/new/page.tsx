@@ -108,11 +108,6 @@ export default function NewProjectPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="memo">备注</Label>
-              <Textarea id="memo" placeholder="请输入备注信息（选填）" rows={2} />
-            </div>
-
-            <div className="space-y-2">
               <Label>关联设备</Label>
               <div className="space-y-3">
                 {devices.map((device, index) => (
