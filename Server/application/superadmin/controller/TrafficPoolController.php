@@ -28,8 +28,8 @@ class TrafficPoolController extends Controller
         
         // 构建查询
         $query = TrafficPoolModel::alias('tp')
-            ->join('traffic_source ts', 'tp.identifier = ts.identifier', 'INNER')
-            ->join('company c', 'ts.companyId = c.id', 'LEFT')
+            ->join('traffic_source ts', 'tp.identifier = ts.identifier', 'RIGHT')
+            ->join('company c', 'ts.companyId = c.companyId', 'LEFT')
             ->join('wechat_account wa', 'tp.wechatId = wa.wechatId', 'LEFT')
             ->join('wechat_tag wt', 'wa.wechatId = wt.wechatId')
             ->field([

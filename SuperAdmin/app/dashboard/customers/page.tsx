@@ -352,8 +352,8 @@ export default function CustomersPage() {
                     </TableCell>
                     <TableCell>{customer.region}</TableCell>
                     <TableCell>{customer.source}</TableCell>
-                    <TableCell>{customer.companyName}</TableCell>
-                    <TableCell>{customer.createTime}</TableCell>
+                    <TableCell>{customer.projectName}</TableCell>
+                    <TableCell>{customer.addTime}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

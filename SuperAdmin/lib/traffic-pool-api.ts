@@ -12,8 +12,8 @@ export interface Customer {
   region: string;
   tags: string[];
   source: string;
-  companyName: string;
-  createTime: string;
+  projectName: string;
+  addTime: string;
   mobile: number;
 }
 
