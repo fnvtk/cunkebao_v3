@@ -113,29 +113,6 @@ export default function NewProjectPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>关联设备</Label>
-              <div className="space-y-3">
-                {devices.map((device, index) => (
-                  <div key={device.id} className="flex items-center gap-2">
-                    <Input
-                      placeholder={`设备 ${index + 1} 名称`}
-                      value={device.name}
-                      onChange={(e) => handleDeviceChange(device.id, e.target.value)}
-                    />
-                    {devices.length > 1 && (
-                      <Button type="button" variant="outline" size="icon" onClick={() => handleRemoveDevice(device.id)}>
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                <Button type="button" variant="outline" onClick={handleAddDevice} className="flex items-center gap-1">
-                  <Plus className="h-4 w-4" /> 添加设备
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="description">项目介绍</Label>
               <Textarea id="description" placeholder="请输入项目介绍（选填）" rows={4} />
             </div>

@@ -14,7 +14,7 @@ use think\facade\Validate;
 /**
  * 客户池控制器
  */
-class TrafficPool extends Controller
+class TrafficPoolController extends Controller
 {
     /**
      * 获取客户池列表

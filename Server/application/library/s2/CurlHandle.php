@@ -2,6 +2,7 @@
 
 namespace app\library\s2;
 
+use think\Exception;
 use think\facade\Cache;
 use think\facade\Env;
 use think\facade\Log;
@@ -68,10 +69,16 @@ class CurlHandle
         return $this;
     }
 
+    /**
+     * @param string $baseUrl
+     * @return $this
+     */
+    public function setBaseUrl(string $baseUrl): CurlHandle
+    {
+        $this->baseUrl = $baseUrl;
 
-
-
-
+        return $this;
+    }
 
     /**
      * @param string $url 请求的链接
@@ -81,12 +88,14 @@ class CurlHandle
      * @param string $type 数据类型，支持dataBuild、json等
      * @return bool|string
      */
-    public function requestCurl($url, $params = [], $method = 'GET',  $type = 'dataBuild')
+    public function send($url, $params = [], $type = 'dataBuild')
     {
         $str = '';
         if (!empty($url)) {
             try {
                 $ch = curl_init();
+                $method = $this->method;
+                $url = $this->baseUrl . $url;
 
                 // 处理GET请求的参数
                 if (strtoupper($method) == 'GET' && !empty($params)) {
@@ -121,6 +130,9 @@ class CurlHandle
                 curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0); //是否验证对等证书,1则验证，0则不验证
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
                 $str = curl_exec($ch);
+                if(curl_errno($ch)) {
+                    echo 'Curl error: ' .curl_errno($ch) . ':' . curl_error($ch);
+                }
                 curl_close($ch);
             } catch (Exception $e) {
                 $str = '';

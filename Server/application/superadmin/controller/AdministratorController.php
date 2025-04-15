@@ -8,7 +8,7 @@ use app\superadmin\model\Administrator as AdminModel;
 /**
  * 管理员控制器
  */
-class Administrator extends Controller
+class AdministratorController extends Controller
 {
     /**
      * 获取管理员列表

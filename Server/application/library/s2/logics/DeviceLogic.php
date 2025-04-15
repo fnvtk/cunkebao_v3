@@ -47,10 +47,7 @@ class DeviceLogic implements DeviceInterface
                 ->setHeader('Content-Type', 'text/plain')
                 ->setHeader('authorization', 'bearer ' . $JWT)
                 ->setMethod('get')
-                ->requestCurl('api/Account/myTenantPageAccounts', $params);
-
-            print_r($result);
-            exit();
+                ->send('api/Account/myTenantPageAccounts', $params);
 
             $response = handleApiResponse($result);
             // 保存数据到数据库

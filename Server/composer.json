@@ -25,7 +25,8 @@
         "aliyuncs/oss-sdk-php": "^2.7",
         "topthink/think-worker": "2.0.*",
         "topthink/think-queue": "2.0.*",
-        "textalk/websocket": "^1.5"
+        "textalk/websocket": "^1.5",
+        "guzzlehttp/guzzle": "^7.9"
     },
     "autoload": {
         "psr-4": {

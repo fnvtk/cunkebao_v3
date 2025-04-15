@@ -7,7 +7,7 @@ use app\superadmin\model\Menu as MenuModel;
 /**
  * 菜单控制器
  */
-class Menu extends Controller
+class MenuController extends Controller
 {
     /**
      * 获取菜单列表（树状结构）

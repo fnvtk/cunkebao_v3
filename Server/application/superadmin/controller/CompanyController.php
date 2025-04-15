@@ -1,6 +1,7 @@
 <?php
 namespace app\superadmin\controller;
 
+use app\library\s2\CurlHandle;
 use app\superadmin\model\Company as companyModel;
 use app\superadmin\model\Users;
 use GuzzleHttp\Client;
@@ -13,7 +14,7 @@ use think\facade\Session;
 /**
  * 公司控制器
  */
-class Company extends Controller
+class CompanyController extends Controller
 {
     /**
      * 创建新项目
@@ -22,43 +23,34 @@ class Company extends Controller
     public function create()
     {
         // 获取参数
-        $params = Request::only(['nickname', 'account', 'password', 'realName', 'memo']);
+        $params = Request::only(['name', 'nickname', 'account', 'password', 'realName', 'memo']);
 
         try {
             // 开启事务
             Db::startTrans();
-
-            // 创建Guzzle客户端
-            $client = new Client([
-                'base_uri' => Config::get('app.api_base_url'),
-                'timeout' => 10.0
-            ]);
+            $curl = CurlHandle::getInstant()->setBaseUrl('http://yishi.com/');
 
             // 1. 调用创建部门接口
-            $departmentResponse = $client->post('/v1/api/account/department/create', [
-                'json' => [
-                    'name' => $params['name'],
-                    'memo' => $params['memo'] ?: '',
-                ]
+            $departmentResponse = $curl->setMethod('post')->send('v1/api/account/department/create', [
+                'name' => $params['name'],
+                'memo' => $params['memo'] ?: '',
             ]);
 
-            $departmentData = json_decode($departmentResponse->getBody(), true);
+            $departmentData = json_decode($departmentResponse, true);
             if ($departmentData['code'] != 200) {
                 throw new \Exception($departmentData['msg']);
             }
 
             // 2. 调用创建账号接口
-            $accountResponse = $client->post('/v1/api/account/create', [
-                'json' => [
-                    'userName' => $params['account'],
-                    'password' => $params['password'],
-                    'realName' => $params['realName'],
-                    'nickname' => $params['nickname'],
-                    'departmentId' => $departmentData['data']['id']
-                ]
+            $accountResponse = $curl->setMethod('post')->send('v1/api/account/create', [
+                'userName' => $params['account'],
+                'password' => $params['password'],
+                'realName' => $params['realName'],
+                'nickname' => $params['nickname'],
+                'departmentId' => $departmentData['data']['id']
             ]);
 
-            $accountData = json_decode($accountResponse->getBody(), true);
+            $accountData = json_decode($accountResponse, true);
             if ($accountData['code'] != 200) {
                 throw new \Exception($accountData['msg']);
             }

@@ -4,7 +4,7 @@ namespace app\superadmin\controller;
 use think\Controller;
 use app\superadmin\model\Administrator;
 
-class Auth extends Controller
+class AuthController extends Controller
 {
     /**
      * 管理员登录
@@ -52,7 +52,7 @@ class Auth extends Controller
 
     /**
      * 创建登录令牌
-     * @param Administrator $admin
+     * @param AdministratorController $admin
      * @return string
      */
     private function createToken($admin)
