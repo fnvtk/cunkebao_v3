@@ -353,8 +353,11 @@ export default function DeviceDetailPage() {
       // 准备更新后的功能状态
       const updatedFeatures = { ...device.features, [feature]: checked }
       
-      // 创建API请求参数
-      const configUpdate = { [feature]: checked }
+      // 创建API请求参数，将布尔值转换为0/1
+      const configUpdate = {
+        deviceId: device.id,
+        [feature]: checked ? 1 : 0
+      }
       
       // 立即更新UI状态，提供即时反馈
       setDevice(prev => prev ? {
@@ -363,7 +366,7 @@ export default function DeviceDetailPage() {
       } : null)
       
       // 调用API更新服务器配置
-      const response = await updateDeviceTaskConfig(device.id, configUpdate)
+      const response = await updateDeviceTaskConfig(configUpdate)
       
       if (response && response.code === 200) {
         toast.success(`${getFeatureName(feature)}${checked ? '已启用' : '已禁用'}`)

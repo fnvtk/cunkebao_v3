@@ -127,5 +127,23 @@ export const deviceApi = {
     })
     return response.json()
   },
+
+  // 更新设备任务配置
+  async updateDeviceTaskConfig(params: {
+    deviceId: string;
+    autoAddFriend?: number;
+    autoReply?: number;
+    momentsSync?: number;
+    aiChat?: number;
+  }): Promise<ApiResponse<Device>> {
+    const response = await fetch(`${API_BASE}/task-config`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(params),
+    });
+    return response.json();
+  },
 }
 

@@ -26,24 +26,6 @@ class User extends Model
     protected $pk = 'id';
 
     /**
-     * 自动写入时间戳
-     * @var bool
-     */
-    protected $autoWriteTimestamp = true;
-
-    /**
-     * 创建时间字段
-     * @var string
-     */
-    protected $createTime = 'createTime';
-
-    /**
-     * 更新时间字段
-     * @var string
-     */
-    protected $updateTime = 'updateTime';
-
-    /**
      * 软删除字段
      * @var string
      */
