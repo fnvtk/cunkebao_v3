@@ -17,7 +17,8 @@ class GetDeviceDetailV1Controller extends BaseController
 {
     /**
      * 检查用户是否有权限操作指定设备
-     * @param int $userId 用户ID
+     *
+     * @param int $deviceId
      * @return void
      */
     protected function checkUserDevicePermission(int $deviceId): void

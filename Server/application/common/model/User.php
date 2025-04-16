@@ -14,6 +14,11 @@ class User extends Model
      */
     protected $table = 'ck_users';
 
+    // 自动写入时间戳
+    protected $autoWriteTimestamp = true;
+    protected $createTime = 'createTime';
+    protected $updateTime = 'updateTime';
+
     /**
      * 主键
      * @var string

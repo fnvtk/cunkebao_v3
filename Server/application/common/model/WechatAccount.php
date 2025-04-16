@@ -11,4 +11,10 @@ class WechatAccount extends Model
 {
     // 设置表名
     protected $name = 'wechat_account';
+
+    // 自动写入时间戳
+    protected $autoWriteTimestamp = true;
+    protected $createTime = 'createTime';
+    protected $updateTime = 'updateTime';
+
 } 
