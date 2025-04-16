@@ -1,35 +1,17 @@
 <?php
 namespace app\cunkebao\controller\device;
 
-use app\cunkebao\model\Device as DeviceModel;
-use app\cunkebao\model\DeviceUser as DeviceUserModel;
-use app\cunkebao\model\WechatFriend;
-use think\Controller;
+use app\common\model\Device as DeviceModel;
+use app\common\model\DeviceUser as DeviceUserModel;
+use app\common\model\WechatFriend;
+use app\cunkebao\controller\BaseController;
 use think\facade\Request;
 
 /**
  * 设备管理控制器
  */
-class GetDeviceListV1Controller extends Controller
+class GetDeviceListV1Controller extends BaseController
 {
-    /**
-     * 用户信息
-     * @var object
-     */
-    protected $user;
-    
-    /**
-     * 初始化
-     */
-    protected function initialize()
-    {
-        parent::initialize();
-
-        date_default_timezone_set('Asia/Shanghai');
-
-        $this->user = request()->userInfo;;
-    }
-
     /**
      * 构建查询条件
      *
@@ -50,7 +32,7 @@ class GetDeviceListV1Controller extends Controller
             $where['d.alive'] = $alive;
         }
 
-        $where['d.companyId'] = $this->user['companyId'];
+        $where['d.companyId'] = $this->getUserInfo('companyId');
         $where['d.deleteTime'] = 0;
 
         return array_merge($params, $where);
@@ -64,8 +46,8 @@ class GetDeviceListV1Controller extends Controller
     protected function makeDeviceIdsWhere(): array
     {
         $deviceIds = DeviceUserModel::where(
-            $this->user['id'],
-            $this->user['companyId']
+            $this->getUserInfo('id'),
+            $this->getUserInfo('companyId')
         )
             ->column('deviceId');
 
@@ -85,11 +67,12 @@ class GetDeviceListV1Controller extends Controller
      * @param int $limit 每页数量
      * @return \think\Paginator 分页对象
      */
-    protected function getDeviceList($where, $page = 1, $limit = 10)
+    protected function getDeviceList(array $where, int $page = 1, int $limit = 10)
     {
         $query = DeviceModel::alias('d')
             ->field(['d.id', 'd.imei', 'd.memo', 'l.wechatId', 'd.alive', '0 totalFriend'])
-            ->leftJoin('device_wechat_login l', 'd.id = l.deviceId');
+            ->leftJoin('device_wechat_login l', 'd.id = l.deviceId')
+            ->order('d.alive desc');
 
         foreach ($where as $key => $value) {
             if (is_numeric($key) && is_array($value) && isset($value[0]) && $value[0] === 'exp') {
@@ -136,7 +119,7 @@ class GetDeviceListV1Controller extends Controller
             $page = (int)Request::param('page', 1);
             $limit = (int)Request::param('limit', 10);
 
-            if ($this->user['isAdmin'] == 1) {
+            if ($this->getUserInfo('isAdmin') == 1) {
                 $where = $this->makeWhere();
                 $result = $this->getDeviceList($where, $page, $limit);
             } else {
@@ -148,14 +131,14 @@ class GetDeviceListV1Controller extends Controller
                 'code' => 200,
                 'msg' => '获取成功',
                 'data' => [
-                    'list'  => $this->countFriend($result),
+                    'list' => $this->countFriend($result),
                     'total' => $result->total(),
                 ]
             ]);
         } catch (\Exception $e) {
             return json([
                 'code' => $e->getCode(),
-                'msg'  => $e->getMessage()
+                'msg' => $e->getMessage()
             ]);
         }
     }

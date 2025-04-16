@@ -40,72 +40,7 @@ class Device extends Model
             return self::where($where)->count();
         }
     }
-    
 
-    /**
-     * 获取设备详情
-     * @param int $id 设备ID
-     * @return array|null 设备信息
-     */
-    public static function getDeviceInfo($id)
-    {
-        // 查询设备基础信息与关联的微信账号信息
-        $device = self::alias('d')
-            ->field([
-                'd.id', 'd.imei', 'd.memo', 'd.alive', 'd.taskConfig', 'd.lastUpdateTime',
-                'w.id as wechatId', 'w.thirtyDayMsgCount', 'w.totalFriend', 'd.extra'
-            ])
-            ->leftJoin('ck_wechat_account w', 'd.imei = w.imei')
-            ->where('d.id', $id)
-            ->where('d.isDeleted', 0)
-            ->find();
-
-        // 如果设备存在，处理额外信息
-        if ($device) {
-            // 解析电量信息
-            $battery = 0;
-            if (!empty($device['extra'])) {
-                $extra = json_decode($device['extra'], true);
-                if (is_array($extra) && isset($extra['battery'])) {
-                    $battery = intval($extra['battery']);
-                }
-            }
-            $device['battery'] = $battery;
-            
-            // 解析taskConfig字段获取功能开关
-            $features = [
-                'autoAddFriend' => false,
-                'autoReply' => false,
-                'contentSync' => false,
-                'aiChat' => false
-            ];
-            
-            if (!empty($device['taskConfig'])) {
-                $taskConfig = json_decode($device['taskConfig'], true);
-                if (is_array($taskConfig)) {
-                    // 映射taskConfig中的字段到前端需要的features
-                    $features['autoAddFriend'] = isset($taskConfig['autoAddFriend']) ? (bool)$taskConfig['autoAddFriend'] : false;
-                    $features['autoReply'] = isset($taskConfig['autoReply']) ? (bool)$taskConfig['autoReply'] : false;
-                    $features['contentSync'] = isset($taskConfig['momentsSync']) ? (bool)$taskConfig['momentsSync'] : false;
-                    $features['aiChat'] = isset($taskConfig['aiChat']) ? (bool)$taskConfig['aiChat'] : false;
-                }
-            }
-            
-            $device['features'] = $features;
-            unset($device['extra']);
-            unset($device['taskConfig']);
-
-            // 格式化最后活跃时间
-            $device['lastUpdateTime'] = !empty($device['lastUpdateTime']) ? date('Y-m-d H:i:s', strtotime($device['lastUpdateTime'])) : date('Y-m-d H:i:s');
-            
-            // 确保totalFriend和thirtyDayMsgCount有值，防止NULL
-            $device['totalFriend'] = intval($device['totalFriend'] ?? 0);
-            $device['thirtyDayMsgCount'] = intval($device['thirtyDayMsgCount'] ?? 0);
-        }
-
-        return $device;
-    }
-    
     /**
      * 添加设备
      * @param array $data 设备数据

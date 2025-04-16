@@ -13,7 +13,7 @@ class DeviceUser extends Model
      * 数据表名
      * @var string
      */
-    protected $table = 'tk_device_user';
+    protected $name = 'device_user';
     
     /**
      * 设置主键
@@ -150,26 +150,7 @@ class DeviceUser extends Model
         ])->delete() !== false;
     }
     
-    /**
-     * 检查用户是否有权限操作指定设备
-     * @param int $userId 用户ID
-     * @param int $deviceId 设备ID
-     * @param int $companyId 公司ID
-     * @return bool 是否有权限
-     */
-    public static function checkUserDevicePermission($userId, $deviceId, $companyId = null)
-    {
-        $where = [
-            'userId' => $userId,
-            'deviceId' => $deviceId
-        ];
-        
-        if (!is_null($companyId)) {
-            $where['companyId'] = $companyId;
-        }
-        
-        return self::where($where)->count() > 0;
-    }
+
     
     /**
      * 关联用户模型

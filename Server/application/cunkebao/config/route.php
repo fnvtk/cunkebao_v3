@@ -14,7 +14,7 @@ Route::group('v1/', function () {
         Route::get(':id/handle-logs', 'app\\cunkebao\\controller\\Device@handleLogs');    // 获取设备操作记录
         Route::get('', 'app\\cunkebao\\controller\\device\\GetDeviceListV1Controller@index');           // 获取设备列表
         Route::get('count', 'app\\cunkebao\\controller\\Device@count');      // 获取设备总数
-        Route::get(':id', 'app\\cunkebao\\controller\\Device@read');         // 获取设备详情
+        Route::get(':id', 'app\\cunkebao\\controller\\device\\GetDeviceDetailV1Controller@index');         // 获取设备详情
         Route::post('', 'app\\cunkebao\\controller\\Device@save');           // 添加设备
         Route::put('refresh', 'app\\cunkebao\\controller\\Device@refresh');  // 刷新设备状态
         Route::delete(':id', 'app\\cunkebao\\controller\\Device@delete');    // 删除设备
