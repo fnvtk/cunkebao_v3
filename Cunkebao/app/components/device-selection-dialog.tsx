@@ -269,7 +269,7 @@ export function DeviceSelectionDialog({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
                           <label htmlFor={`device-${device.id}`} className="font-medium truncate cursor-pointer">
-                            {device.name}
+                            {device.name || "未命名设备"}
                           </label>
                           <div
                             className={`px-2 py-1 rounded-full text-xs ${

@@ -60,7 +60,7 @@ export function DeviceSelectionDialog({ open, onOpenChange, selectedDevices, onS
       if (response.code === 200 && response.data.list) {
         const transformedDevices: Device[] = response.data.list.map(device => ({
           id: device.id,
-          name: device.memo || device.imei || '',
+          name: device.memo || "未命名设备",
           imei: device.imei || '',
           wxid: device.wechatId || '',
           status: device.alive === 1 ? "online" : "offline",

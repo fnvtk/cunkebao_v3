@@ -605,7 +605,7 @@ export default function DevicesPage() {
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <div className="font-medium truncate">{device.memo}</div>
+                        <div className="font-medium truncate">{device.memo || "未命名设备"}</div>
                         <Badge variant={device.status === "online" ? "default" : "secondary"} className="ml-2">
                           {device.status === "online" ? "在线" : "离线"}
                         </Badge>
