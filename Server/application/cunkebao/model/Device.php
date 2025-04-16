@@ -41,44 +41,7 @@ class Device extends Model
         }
     }
     
-    /**
-     * 获取设备列表
-     * @param array $where 查询条件
-     * @param string $order 排序方式
-     * @param int $page 页码
-     * @param int $limit 每页数量
-     * @return \think\Paginator 分页对象
-     */
-    public static function getDeviceList($where = [], $order = 'd.id desc', $page = 1, $limit = 10)
-    {
-        // 默认只查询未删除的设备
-        if (!isset($where['deleteTime'])) {
-            $where['d.deleteTime'] = 0;
-        }
 
-        // 构建查询对象
-        $query = self::alias('d')
-            ->field(['d.id', 'd.imei', 'd.memo', 'l.wechatId', 'd.alive', '0 totalFriend'])
-            ->leftJoin('device_wechat_login l', 'd.id = l.deviceId');
-
-        // 处理查询条件
-        foreach ($where as $key => $value) {
-            // 处理特殊的exp表达式条件
-            if (is_numeric($key) && is_array($value) && isset($value[0]) && $value[0] === 'exp') {
-                // 直接添加原始SQL表达式
-                $query->whereExp('', $value[1]);
-                continue;
-            }
-            
-            // 处理普通条件
-            $query->where($key, $value);
-        }
-
-        // 返回分页结果
-        return $query->order($order)
-            ->paginate($limit, false, ['page' => $page]);
-    }
-    
     /**
      * 获取设备详情
      * @param int $id 设备ID
