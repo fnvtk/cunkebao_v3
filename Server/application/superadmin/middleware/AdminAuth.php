@@ -28,10 +28,9 @@ class AdminAuth
         }
         
         // 获取管理员信息
-        $admin = \app\superadmin\model\Administrator::where([
+        $admin = \app\common\model\Administrator::where([
             ['id', '=', $adminId],
-            ['status', '=', 1],
-            ['deleteTime', '=', 0]
+            ['status', '=', 1]
         ])->find();
         
         // 如果管理员不存在，返回401未授权
@@ -63,7 +62,7 @@ class AdminAuth
     
     /**
      * 创建登录令牌
-     * @param \app\superadmin\model\Administrator $admin
+     * @param \app\common\model\Administrator $admin
      * @return string
      */
     private function createToken($admin)

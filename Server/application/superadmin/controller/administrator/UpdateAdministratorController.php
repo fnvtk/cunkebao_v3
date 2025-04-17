@@ -22,7 +22,7 @@ class UpdateAdministratorController extends BaseController
      */
     protected function udpateAdministrator(array $params): void
     {
-        $admin = AdministratorModel::where('deleteTime', 0)->find($params['id']);
+        $admin = AdministratorModel::find($params['id']);
 
         if (!$admin) {
             throw new \Exception('管理员不存在', 404);
@@ -48,10 +48,15 @@ class UpdateAdministratorController extends BaseController
     {
         $validate = Validate::make([
             'id' => 'require|regex:/^[1-9]\d*$/',
-            'account' => 'require|/\S+/',  // 这里做账号使用
+            'account' => 'require|/\S+/',
             'name' => 'require|/\S+/',
             'password' => '/\S+/',
             'permissionIds' => 'require|array',
+        ], [
+            'id.require' => '缺少必要参数',
+            'account.require' => '账号不能为空',
+            'name.require' => '姓名不能为空',
+            'permissionIds.require' => '请至少分配一种权限',
         ]);
 
         if (!$validate->check($params)) {

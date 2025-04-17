@@ -20,7 +20,7 @@ class GetAdministratorListController extends Controller
      */
     protected function makeWhere(array $params = []): array
     {
-        $where = [['deleteTime', '=', 0]];
+        $where = [];
 
         // 如果有搜索关键词
         if (!empty($keyword = $this->request->param('keyword/s', ''))) {
@@ -117,7 +117,7 @@ class GetAdministratorListController extends Controller
      * @param int $authId 权限ID
      * @return array
      */
-    protected function getPermissions($authId): array
+    protected function getPermissions(int $authId): array
     {
         $ids = $this->_getPermissions($authId);
 
@@ -143,10 +143,11 @@ class GetAdministratorListController extends Controller
                 'id' => $item->id,
                 'username' => $item->account,
                 'name' => $item->name,
-                'role' => $this->getRoleName($item->authId),
                 'status' => $item->status,
+                'createdAt' => date('Y-m-d H:i:s', $item->createdAt),
                 'lastLogin' => !empty($item->lastLoginTime) ? date('Y-m-d H:i:s', $item->lastLoginTime) : '从未登录',
-                'permissions' => $this->getPermissions($item->id)
+                'role' => $this->getRoleName($item->authId),
+                'permissions' => $this->getPermissions($item->id),
             ];
 
             array_push($result, $section);

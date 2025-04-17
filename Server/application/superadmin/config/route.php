@@ -1,4 +1,5 @@
 <?php
+
 use think\facade\Route;
 
 // 超级管理员认证相关路由（不需要鉴权）
@@ -15,14 +16,14 @@ Route::group('', function () {
         Route::post('status', 'app\superadmin\controller\MenuController@updateStatus');
         Route::get('toplevel', 'app\superadmin\controller\MenuController@getTopLevelMenus');
     });
-    
+
     // 管理员相关路由
     Route::group('administrator', function () {
         Route::get('list', 'app\superadmin\controller\administrator\GetAdministratorListController@index');
         Route::get('detail/:id', 'app\superadmin\controller\administrator\GetAdministratorDetailController@index');
         Route::post('update', 'app\superadmin\controller\administrator\UpdateAdministratorController@index');
         Route::post('add', 'app\superadmin\controller\administrator\AddAdministratorController@index');
-        Route::post('delete', 'app\superadmin\controller\AdministratorController@deleteAdmin');
+        Route::post('delete', 'app\superadmin\controller\administrator\DeleteAdministratorController@index');
     });
 
     // 客户池管理路由

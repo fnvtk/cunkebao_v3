@@ -23,7 +23,7 @@ class AddAdministratorController extends BaseController
      */
     protected function chekAdminIsExist(string $account)
     {
-        $exists = AdministratorModel::where('account', $account)->where('deleteTime', 0)->count() > 0;
+        $exists = AdministratorModel::where('account', $account)->count() > 0;
 
         if ($exists) {
             throw new \Exception('账号已存在', 400);
@@ -44,6 +44,11 @@ class AddAdministratorController extends BaseController
             'name' => 'require|/\S+/',
             'password' => 'require|/\S+/',
             'permissionIds' => 'require|array',
+        ], [
+            'account.require' => '账号不能为空',
+            'name.require' => '姓名不能为空',
+            'password.require' => '密码不能为空',
+            'permissionIds.require' => '请至少分配一种权限',
         ]);
 
         if (!$validate->check($params)) {

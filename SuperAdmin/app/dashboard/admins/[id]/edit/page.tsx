@@ -15,6 +15,13 @@ import { getAdministratorDetail, updateAdministrator } from "@/lib/admin-api"
 import { useToast } from "@/components/ui/use-toast"
 import { getTopLevelMenus } from "@/lib/menu-api"
 import { getAdminInfo } from "@/lib/utils"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface MenuPermission {
   id: number;
@@ -27,7 +34,7 @@ export default function EditAdminPage({ params }: { params: { id: string } }) {
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [adminInfo, setAdminInfo] = useState<any | null>(null)
-  const [username, setUsername] = useState("")
+  const [account, setAccount] = useState("")
   const [name, setName] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -35,6 +42,8 @@ export default function EditAdminPage({ params }: { params: { id: string } }) {
   const [selectedPermissions, setSelectedPermissions] = useState<number[]>([])
   const [currentAdmin, setCurrentAdmin] = useState<any | null>(null)
   const [canEditPermissions, setCanEditPermissions] = useState(false)
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
 
   // 加载管理员详情和菜单权限
   useEffect(() => {
@@ -50,7 +59,7 @@ export default function EditAdminPage({ params }: { params: { id: string } }) {
         
         if (adminResponse.code === 200 && adminResponse.data) {
           setAdminInfo(adminResponse.data)
-          setUsername(adminResponse.data.username)
+          setAccount(adminResponse.data.account)
           setName(adminResponse.data.name)
           
           // 判断是否可以编辑权限
@@ -114,11 +123,8 @@ export default function EditAdminPage({ params }: { params: { id: string } }) {
     
     // 验证密码
     if (password && password !== confirmPassword) {
-      toast({
-        title: "密码不匹配",
-        description: "两次输入的密码不一致",
-        variant: "destructive",
-      })
+      setErrorMessage("两次输入的密码不一致")
+      setErrorDialogOpen(true)
       return
     }
     
@@ -127,7 +133,7 @@ export default function EditAdminPage({ params }: { params: { id: string } }) {
     try {
       // 准备提交的数据
       const updateData: any = {
-        username,
+        account,
         name,
       }
       
@@ -154,19 +160,13 @@ export default function EditAdminPage({ params }: { params: { id: string } }) {
         // 更新成功后返回列表页
         router.push("/dashboard/admins")
       } else {
-        toast({
-          title: "更新失败",
-          description: response.msg || "请稍后重试",
-          variant: "destructive",
-        })
+        setErrorMessage(response.msg || "更新失败，请稍后重试")
+        setErrorDialogOpen(true)
       }
     } catch (error) {
       console.error("更新管理员信息出错:", error)
-      toast({
-        title: "更新失败",
-        description: "请检查网络连接后重试",
-        variant: "destructive",
-      })
+      setErrorMessage("更新失败，请检查网络连接后重试")
+      setErrorDialogOpen(true)
     } finally {
       setIsSubmitting(false)
     }
@@ -185,6 +185,20 @@ export default function EditAdminPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="space-y-6">
+      <Dialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>错误提示</DialogTitle>
+            <DialogDescription>{errorMessage}</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setErrorDialogOpen(false)}>
+              关闭
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex items-center gap-2">
         <Button variant="outline" size="icon" asChild>
           <Link href="/dashboard/admins">
@@ -203,11 +217,11 @@ export default function EditAdminPage({ params }: { params: { id: string } }) {
           <CardContent className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="username">账号</Label>
+                <Label htmlFor="account">账号</Label>
                 <Input
-                  id="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  id="account"
+                  value={account}
+                  onChange={(e) => setAccount(e.target.value)}
                   placeholder="请输入账号"
                   required
                 />

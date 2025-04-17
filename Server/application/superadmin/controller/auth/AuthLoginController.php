@@ -2,17 +2,16 @@
 
 namespace app\superadmin\controller\auth;
 
-use app\superadmin\controller\AdministratorController;
 use app\common\model\Administrator as AdministratorModel;
+use app\superadmin\controller\administrator\DeleteAdministratorController;
 use think\Controller;
-use think\Db;
 use think\Validate;
 
 class AuthLoginController extends Controller
 {
     /**
      * 创建登录令牌
-     * @param AdministratorController $admin
+     * @param DeleteAdministratorController $admin
      * @return string
      */
     protected function createToken($admin): string

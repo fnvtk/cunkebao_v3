@@ -24,7 +24,7 @@ interface MenuPermission {
 export default function NewAdminPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const [username, setUsername] = useState("")
+  const [account, setAccount] = useState("")
   const [name, setName] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -100,7 +100,7 @@ export default function NewAdminPage() {
     try {
       // 准备提交数据
       const data: any = {
-        username,
+        account,
         name,
         password,
       }
@@ -161,11 +161,11 @@ export default function NewAdminPage() {
           <CardContent className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="username">账号</Label>
+                <Label htmlFor="account">账号</Label>
                 <Input
-                  id="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  id="account"
+                  value={account}
+                  onChange={(e) => setAccount(e.target.value)}
                   placeholder="请输入账号"
                   required
                 />
