@@ -250,7 +250,7 @@ class AdministratorController extends Controller
         $admin->deleteTime = 0;
         $admin->save();
         
-        // 保存权限
+
         if (!empty($permissionIds)) {
             \app\superadmin\model\AdministratorPermissions::savePermissions($admin->id, $permissionIds);
         }

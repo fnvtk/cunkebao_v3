@@ -5,35 +5,28 @@ namespace app\superadmin\controller\administrator;
 use app\common\model\Administrator as AdministratorModel;
 use app\common\model\AdministratorPermissions as AdministratorPermissionsModel;
 use app\superadmin\controller\BaseController;
+use think\Controller;
 use think\Db;
 use think\Validate;
 
 /**
  * 管理员控制器
  */
-class UpdateAdministratorController extends BaseController
+class AddAdministratorController extends BaseController
 {
     /**
-     * 更新管理员信息
+     * 检查账号是否已存在
      *
-     * @param array $params
+     * @param string $account
      * @return void
      * @throws \Exception
      */
-    protected function udpateAdministrator(array $params): void
+    protected function chekAdminIsExist(string $account)
     {
-        $admin = AdministratorModel::where('deleteTime', 0)->find($params['id']);
+        $exists = AdministratorModel::where('account', $account)->where('deleteTime', 0)->count() > 0;
 
-        if (!$admin) {
-            throw new \Exception('管理员不存在', 404);
-        }
-
-        if (!empty($params['password'])) {
-            $params['password'] = md5($params['password']);
-        }
-
-        if (!$admin->save($params)) {
-            throw new \Exception('记录更新失败', 402);
+        if ($exists) {
+            throw new \Exception('账号已存在', 400);
         }
     }
 
@@ -47,10 +40,9 @@ class UpdateAdministratorController extends BaseController
     protected function dataValidate(array $params): self
     {
         $validate = Validate::make([
-            'id' => 'require|regex:/^[1-9]\d*$/',
-            'account' => 'require|/\S+/',  // 这里做账号使用
+            'account' => 'require|/\S+/',
             'name' => 'require|/\S+/',
-            'password' => '/\S+/',
+            'password' => 'require|/\S+/',
             'permissionIds' => 'require|array',
         ]);
 
@@ -64,15 +56,12 @@ class UpdateAdministratorController extends BaseController
     /**
      * 判断是否有权限修改
      *
-     * @param int $adminId
      * @return $this
      */
-    protected function checkPermission(int $adminId): self
+    protected function checkPermission(): self
     {
-        $currentAdminId = $this->getAdminInfo('id');
-
-        if ($currentAdminId != 1 && $currentAdminId != $adminId) {
-            throw new \Exception('您没有权限修改其他管理员', 403);
+        if ($this->getAdminInfo('id') != 1) {
+            throw new \Exception('您没有权限添加管理员', 403);
         }
 
         return $this;
@@ -81,8 +70,8 @@ class UpdateAdministratorController extends BaseController
     /**
      * 保存管理员权限
      *
-     * @param int $adminId
-     * @param array $permissionIds
+     * @param int $adminId 管理员ID
+     * @param array $permissionIds 权限ID数组
      * @return bool
      */
     protected function savePermissions(int $adminId, array $permissionIds)
@@ -106,37 +95,49 @@ class UpdateAdministratorController extends BaseController
     }
 
     /**
-     * 更新管理员信息
+     * 添加管理员信息
+     *
+     * @param array $params
+     * @return AdministratorModel
+     * @throws \Exception
+     */
+    protected function addAdministrator(array $params): AdministratorModel
+    {
+        $result = AdministratorModel::create(array_merge($params, ['password' => md5($params['password'])]));
+
+        if (!$result) {
+            throw new \Exception('添加管理员失败', 401);
+        }
+
+        return $result;
+    }
+
+    /**
+     * 添加管理员
      *
      * @return \think\response\Json
      */
     public function index()
     {
         try {
-            $params = $this->request->only(['id', 'account', 'name', 'password', 'permissionIds']);
+            $params = $this->request->only(['account', 'name', 'password', 'permissionIds']);
 
-            // 被修改的管理员id
-            $adminId = $params['id'] ?? 0;
-
-            $this->dataValidate($params)->checkPermission($adminId);
+            $this->dataValidate($params);
+            $this->checkPermission()->chekAdminIsExist($params['account']);
 
             Db::startTrans();
+            $admin = $this->addAdministrator($params);
 
-            $this->udpateAdministrator($params);
-
-            // 如果当前是超级管理员(ID为1)，并且修改的不是自己，则更新权限
-            if ($this->getAdminInfo('id') == 1
-                && $this->getAdminInfo('id') != $adminId
-                && !empty($params['permissionIds'])
-            ) {
-                $this->savePermissions($adminId, $params['permissionIds']);
+            // 保存权限
+            if (!empty($params['permissionIds'])) {
+                $this->savePermissions($admin->id, $params['permissionIds']);
             }
 
             Db::commit();
 
             return json([
                 'code' => 200,
-                'msg' => '更新成功',
+                'msg' => '添加成功',
             ]);
         } catch (\Exception $e) {
             Db::rollback();
