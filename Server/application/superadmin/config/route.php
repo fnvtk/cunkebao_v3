@@ -18,7 +18,7 @@ Route::group('', function () {
     
     // 管理员相关路由
     Route::group('administrator', function () {
-        Route::get('list', 'app\\superadmin\\controller\\AdministratorController@getList');
+        Route::get('list', 'app\\superadmin\\controller\\administrator\\GetAdministratorListController@index');
         Route::get('detail/:id', 'app\\superadmin\\controller\\AdministratorController@getDetail');
         Route::post('update', 'app\\superadmin\\controller\\AdministratorController@updateAdmin');
         Route::post('add', 'app\\superadmin\\controller\\AdministratorController@addAdmin');

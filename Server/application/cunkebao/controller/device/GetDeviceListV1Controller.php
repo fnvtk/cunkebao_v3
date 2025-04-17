@@ -61,6 +61,7 @@ class GetDeviceListV1Controller extends BaseController
 
     /**
      * 获取设备列表
+     *
      * @param array $where 查询条件
      * @param int $page 页码
      * @param int $limit 每页数量

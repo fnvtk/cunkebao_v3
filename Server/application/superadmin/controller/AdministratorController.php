@@ -1,9 +1,9 @@
 <?php
 namespace app\superadmin\controller;
 
+use app\superadmin\model\Administrator as AdminModel;
 use app\superadmin\model\AdministratorPermissions;
 use think\Controller;
-use app\superadmin\model\Administrator as AdminModel;
 
 /**
  * 管理员控制器
