@@ -41,7 +41,6 @@ class AuthLoginController extends Controller
         return $this;
     }
 
-
     /**
      * @param array $params
      * @return object|AdministratorModel
@@ -71,9 +70,9 @@ class AuthLoginController extends Controller
      * 更新登录信息
      *
      * @param AdministratorModel $admin
-     * @return void
+     * @return $this
      */
-    protected function saveLoginInfo(AdministratorModel $admin): void
+    protected function saveLoginInfo(AdministratorModel $admin): self
     {
         $admin->lastLoginTime = time();
         $admin->lastLoginIp = $this->request->ip();
@@ -81,6 +80,8 @@ class AuthLoginController extends Controller
         if (!$admin->save()) {
             throw new \Exception('拒绝登录', 403);
         }
+
+        return $this;
     }
 
     /**
@@ -106,9 +107,7 @@ class AuthLoginController extends Controller
             $params = $this->request->only(['account', 'password']);
 
             $admin = $this->dataValidate($params)->getAdministrator($params);
-
-            $this->saveLoginInfo($admin);
-            $this->setCookie($admin);
+            $this->saveLoginInfo($admin)->setCookie($admin);
 
             return json([
                 'code' => 200,

@@ -10,10 +10,11 @@ use think\Controller;
 class BaseController extends Controller
 {
     /**
-     * 用户信息
+     * 管理员信息
+     *
      * @var object
      */
-    protected $user;
+    protected $admin;
 
     /**
      * 初始化
@@ -26,20 +27,20 @@ class BaseController extends Controller
     }
 
     /**
-     * 获取用户信息
+     * 获取管理员信息
      *
      * @param string $column
      * @return mixed
      * @throws \Exception
      */
-    protected function getUserInfo(string $column = '')
+    protected function getAdminInfo(string $column = '')
     {
-        $user = $this->request->userInfo;
+        $admin = $this->request->adminInfo;
 
-        if (!$user) {
+        if (!$admin) {
             throw new \Exception('未授权访问，缺少有效的身份凭证', 401);
         }
 
-        return $column ? $user[$column] : $user;
+        return $column ? $admin[$column] : $admin;
     }
 } 

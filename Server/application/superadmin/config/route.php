@@ -20,7 +20,7 @@ Route::group('', function () {
     Route::group('administrator', function () {
         Route::get('list', 'app\\superadmin\\controller\\administrator\\GetAdministratorListController@index');
         Route::get('detail/:id', 'app\\superadmin\\controller\\administrator\\GetAdministratorDetailController@index');
-        Route::post('update', 'app\\superadmin\\controller\\AdministratorController@updateAdmin');
+        Route::post('update', 'app\\superadmin\\controller\\administrator\\UpdateAdministratorController@index');
         Route::post('add', 'app\\superadmin\\controller\\AdministratorController@addAdmin');
         Route::post('delete', 'app\\superadmin\\controller\\AdministratorController@deleteAdmin');
     });

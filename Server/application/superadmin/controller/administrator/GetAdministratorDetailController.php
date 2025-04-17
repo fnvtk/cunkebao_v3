@@ -22,7 +22,7 @@ class GetAdministratorDetailController extends BaseController
     {
         $admin = AdministratorModel::alias('a')
             ->field(
-                'a.id, a.account username, a.name, a.status, a.authId, a.createTime createdAt, a.lastLoginTime, p.permissions'
+                'a.id, a.account username, a.name, a.status, a.authId, a.createTime createdAt, a.lastLoginTime lastLogin, p.permissions'
             )
             ->leftJoin('administrator_permissions p', 'a.id = p.adminId')
             ->where('a.id', $adminId)
@@ -98,7 +98,8 @@ class GetAdministratorDetailController extends BaseController
                 'data' => array_merge($admin->toArray(), [
                     'roleName' => $roleName,
                     'permissions' => $permissionIds,
-                    'lastLogin' => !empty($admin->lastLoginTime) ? date('Y-m-d H:i', $admin->lastLoginTime) : '从未登录',
+                    'lastLogin' => !empty($admin->lastLogin) ? date('Y-m-d H:i', $admin->lastLogin) : '从未登录',
+                    'createdAt' => date('Y-m-d H:i', $admin->createdAt),
                 ])
             ]);
         } catch (\Exception $e) {
