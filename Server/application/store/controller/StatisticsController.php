@@ -28,25 +28,25 @@ class StatisticsController extends BaseController
             $lastEndTime = $timeRange['last_end_time'];
 
             // 1. 总客户数
-            $totalCustomers = WechatFriendModel::where(['wechatAccountId'=> $wechatAccountId])
+            $totalCustomers = WechatFriendModel::where(['ownerWechatId'=> $wechatAccountId])
             ->whereTime('createTime', '>=', $startTime)
             ->whereTime('createTime', '<', $endTime)
             ->count();
 
             // 上期总客户数
-            $lastTotalCustomers = WechatFriendModel::where(['wechatAccountId'=> $wechatAccountId])
+            $lastTotalCustomers = WechatFriendModel::where(['ownerWechatId'=> $wechatAccountId])
             ->whereTime('createTime', '>=', $lastStartTime)
             ->whereTime('createTime', '<', $lastEndTime)
             ->count();
 
             // 2. 新增客户数
-            $newCustomers = WechatFriendModel::where(['wechatAccountId'=> $wechatAccountId])
+            $newCustomers = WechatFriendModel::where(['ownerWechatId'=> $wechatAccountId])
             ->whereTime('createTime', '>=', $startTime)
             ->whereTime('createTime', '<', $endTime)
             ->count();
 
             // 上期新增客户数
-            $lastNewCustomers = WechatFriendModel::where(['wechatAccountId'=> $wechatAccountId])
+            $lastNewCustomers = WechatFriendModel::where(['ownerWechatId'=> $wechatAccountId])
             ->whereTime('createTime', '>=', $lastStartTime)
             ->whereTime('createTime', '<', $lastEndTime)
             ->count();
@@ -106,33 +106,33 @@ class StatisticsController extends BaseController
             $endTime = $timeRange['end_time'];
 
             // 1. 客户增长趋势数据
-            $totalCustomers = WechatFriendModel::where(['wechatAccountId'=> $wechatAccountId])
+            $totalCustomers = WechatFriendModel::where(['ownerWechatId'=> $wechatAccountId])
                 ->whereTime('createTime', '<', $endTime)
                 ->count();
 
-            $newCustomers = WechatFriendModel::where(['wechatAccountId'=> $wechatAccountId])
+            $newCustomers = WechatFriendModel::where(['ownerWechatId'=> $wechatAccountId])
                 ->whereTime('createTime', '>=', $startTime)
                 ->whereTime('createTime', '<', $endTime)
                 ->count();
 
             // 计算流失客户数（假设超过30天未互动的客户为流失客户）
-            $lostCustomers = WechatFriendModel::where(['wechatAccountId'=> $wechatAccountId,'isDeleted'=> 1])
+            $lostCustomers = WechatFriendModel::where(['ownerWechatId'=> $wechatAccountId])->where('createTime','>',0)
                 ->whereTime('deleteTime', '<', date('Y-m-d', strtotime('-30 days')))
                 ->count();
 
             // 2. 客户来源分布数据
             // 朋友推荐
-            $friendRecommend = WechatFriendModel::where(['wechatAccountId'=> $wechatAccountId])
+            $friendRecommend = WechatFriendModel::where(['ownerWechatId'=> $wechatAccountId])
                 ->whereIn('addFrom', [17, 1000017])
                 ->count();
 
             // 微信搜索
-            $wechatSearch = WechatFriendModel::where(['wechatAccountId'=> $wechatAccountId])
+            $wechatSearch = WechatFriendModel::where(['ownerWechatId'=> $wechatAccountId])
                 ->whereIn('addFrom', [3, 15, 1000003, 1000015])
                 ->count();
 
             // 微信群
-            $wechatGroup = WechatFriendModel::where(['wechatAccountId'=> $wechatAccountId])
+            $wechatGroup = WechatFriendModel::where(['ownerWechatId'=> $wechatAccountId])
                 ->whereIn('addFrom', [14, 1000014])
                 ->count();
 

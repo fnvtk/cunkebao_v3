@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronLeft, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -38,7 +38,8 @@ interface Task {
   config: TaskConfig
 }
 
-export default function EditAutoLikePage({ params }: { params: { id: string } }) {
+export default function EditAutoLikePage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params)
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [deviceDialogOpen, setDeviceDialogOpen] = useState(false)
@@ -62,7 +63,7 @@ export default function EditAutoLikePage({ params }: { params: { id: string } })
   const fetchTaskDetail = async () => {
     const loadingToast = showToast("正在加载任务信息...", "loading", true);
     try {
-      const response = await api.get<{code: number, msg: string, data: Task}>(`/v1/workbench/detail?id=${params.id}`)
+      const response = await api.get<{code: number, msg: string, data: Task}>(`/v1/workbench/detail?id=${resolvedParams.id}`)
       
       if (response.code === 200 && response.data) {
         const task = response.data
@@ -110,7 +111,7 @@ export default function EditAutoLikePage({ params }: { params: { id: string } })
     const loadingToast = showToast("正在更新任务...", "loading", true);
     try {
       const response = await api.post<ApiResponse>('/v1/workbench/update', {
-        id: params.id,
+        id: resolvedParams.id,
         type: 1,
         name: formData.taskName,
         interval: formData.likeInterval,

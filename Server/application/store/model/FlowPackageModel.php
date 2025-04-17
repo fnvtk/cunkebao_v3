@@ -6,7 +6,7 @@ use think\Model;
 
 class FlowPackageModel extends Model
 {
-    protected $table = 'ck_flow_package';
+    protected $name = 'flow_package';
 
     // 定义字段自动转换
     protected $type = [

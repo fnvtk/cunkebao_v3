@@ -201,21 +201,6 @@ export default function NewMomentsSyncPage() {
           )}
         </div>
       </div>
-
-      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t flex items-center justify-around px-6">
-        <button className="flex flex-col items-center text-blue-600">
-          <span className="text-sm mt-1">首页</span>
-        </button>
-        <button className="flex flex-col items-center text-gray-400">
-          <span className="text-sm mt-1">场景获客</span>
-        </button>
-        <button className="flex flex-col items-center text-gray-400">
-          <span className="text-sm mt-1">工作台</span>
-        </button>
-        <button className="flex flex-col items-center text-gray-400">
-          <span className="text-sm mt-1">我的</span>
-        </button>
-      </nav>
     </div>
   )
 }

@@ -168,9 +168,8 @@ class AuthService
         
         // 尝试从缓存获取授权信息
         $authorization = Cache::get($cacheKey);
-        $authorization = 'xwz8Uh2doczeTCqSvakElfZMPn-jRce5WTnKTz3ljqpa63PnUOy5beT3TDhxnGNsROofYzpUphfhraxPrQfXvSuMyxFj_vrMUenzptj6hdG8Y4h1NrPXHFUr5Rlw-cIq0uyZZhjYp6xDTLg-IipgyAvBPdJM0vIgbizbo-agd8_Ubwbl0EOPqrMscYdsGrnv9_Lbr_B4-tHMNMa6yerb6kP6rzx8KQ4mJ6Cr5OmPX2WAmFkYykS3p0erWtb9PGHcxgaI1SVkEF4vH2H_iSOxfz5v27xd4HFE63IA5ZtDHQBNeiR0avST36UJSTZz3vjta9FDsw';
-        
-        // 如果缓存中没有或已过期，则重新获取
+        $authorization = 'aXRi4R80zwTXo9V-VCXVYk4IMLl5ufKASoRtYHfaRh_uLwil_mO9U_jWfxeR1yupJIPuQCZknXGpctr9PTS1hbormw3RSrOwunNKTsvvcGzjTa0bBUz3S9W8x_PtvbY4_JpoXl8x8hm8cUa37zLlN7DQBAmj8He40FCxMTh1MC4xorM11aXoVFvYcrAkv_urHINWDmfNhH9icXzreiX9Uynw4fq7BkuP7yr6WHQ5z0NkOfKoMcesH4gPn_h_OLHC0T_ps2ky--M5HOvd5WgBmYRecNOcqbe4e0oIIO5ffANLsybyhLOEha3a03qKsyfAFWdf0A';
+       // 如果缓存中没有或已过期，则重新获取
         if (empty($authorization)) {
             try {
                 // 从环境变量中获取API用户名和密码

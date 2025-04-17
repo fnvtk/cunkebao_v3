@@ -1,58 +1,51 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { Search, RefreshCw, Loader2 } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Search, RefreshCw, Loader2 } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 import { api } from "@/lib/api"
 import { showToast } from "@/lib/toast"
 
-interface ServerDevice {
-  id: number
-  imei: string
-  memo: string
-  wechatId: string
-  alive: number
-  totalFriend: number
-}
-
 interface Device {
-  id: number
+  id: string
   name: string
   imei: string
-  wxid: string
-  status: "online" | "offline"
-  totalFriend: number
+  wechatId: string
+  memo?: string
+  alive: number
+  usedInPlans: number
+  lastActiveTime: string
 }
 
 interface DeviceSelectionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  selectedDevices: number[]
-  onSelect: (devices: number[]) => void
+  selectedDevices: string[]
+  onSelect: (devices: string[]) => void
 }
 
-export function DeviceSelectionDialog({ open, onOpenChange, selectedDevices, onSelect }: DeviceSelectionDialogProps) {
+export function DeviceSelectionDialog({
+  open,
+  onOpenChange,
+  selectedDevices,
+  onSelect,
+}: DeviceSelectionDialogProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
-  const [devices, setDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(false)
-  const [tempSelectedDevices, setTempSelectedDevices] = useState<number[]>(selectedDevices)
+  const [devices, setDevices] = useState<Device[]>([])
+  const [tempSelected, setTempSelected] = useState<string[]>([])
 
-  useEffect(() => {
-    if (open) {
-      setTempSelectedDevices(selectedDevices)
-      fetchDevices()
-    }
-  }, [open, selectedDevices])
-
+  // 获取设备列表
   const fetchDevices = async () => {
-    const loadingToast = showToast("正在加载设备列表...", "loading", true);
+    setLoading(true)
     try {
       setLoading(true)
       const response = await api.get<{code: number, msg: string, data: {list: ServerDevice[], total: number}}>('/v1/devices?page=1&limit=100')
@@ -71,58 +64,75 @@ export function DeviceSelectionDialog({ open, onOpenChange, selectedDevices, onS
         showToast(response.msg || "获取设备列表失败", "error")
       }
     } catch (error: any) {
-      console.error('获取设备列表失败:', error)
+      console.error("获取设备列表失败:", error)
       showToast(error?.message || "请检查网络连接", "error")
     } finally {
-      loadingToast.remove();
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (open) {
+      fetchDevices()
+      setTempSelected(selectedDevices)
+    }
+  }, [open, searchQuery, selectedDevices])
 
   const handleRefresh = () => {
     fetchDevices()
   }
 
-  const handleDeviceToggle = (deviceId: number, checked: boolean) => {
-    if (checked) {
-      setTempSelectedDevices(prev => [...prev, deviceId])
-    } else {
-      setTempSelectedDevices(prev => prev.filter(id => id !== deviceId))
-    }
-  }
-
-  const handleConfirm = () => {
-    onSelect(tempSelectedDevices)
-    onOpenChange(false)
-  }
-
-  // 过滤设备列表
   const filteredDevices = devices.filter(device => {
-    const matchesSearch = searchQuery === "" || 
+    const matchesSearch = !searchQuery || 
       device.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       device.imei.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      device.wxid.toLowerCase().includes(searchQuery.toLowerCase())
+      device.wechatId.toLowerCase().includes(searchQuery.toLowerCase())
     
-    const matchesStatus = statusFilter === "all" || device.status === statusFilter
+    const matchesStatus = statusFilter === "all" || 
+      (statusFilter === "online" && device.alive === 1) ||
+      (statusFilter === "offline" && device.alive === 0)
 
     return matchesSearch && matchesStatus
   })
 
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      setTempSelected(selectedDevices)
+    }
+    onOpenChange(open)
+  }
+
+  const handleSelectAll = () => {
+    if (tempSelected.length === filteredDevices.length) {
+      setTempSelected([])
+    } else {
+      setTempSelected(filteredDevices.map(device => device.id))
+    }
+  }
+
+  const handleDeviceToggle = (deviceId: string) => {
+    setTempSelected(prev => 
+      prev.includes(deviceId) 
+        ? prev.filter(id => id !== deviceId)
+        : [...prev, deviceId]
+    )
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>选择设备</DialogTitle>
         </DialogHeader>
 
-        <div className="flex items-center space-x-4 my-4">
+        <div className="flex items-center space-x-2 my-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
             <Input
               placeholder="搜索设备IMEI/备注/微信号"
+              className="pl-9"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -140,45 +150,75 @@ export function DeviceSelectionDialog({ open, onOpenChange, selectedDevices, onS
           </Button>
         </div>
 
-        <ScrollArea className="flex-1">
-          {loading ? (
-            <div className="flex justify-center items-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {filteredDevices.map((device) => (
-                <label
+        <div className="flex justify-between items-center mb-2">
+          <div className="text-sm text-gray-500">
+            已选择 {tempSelected.length} 个设备
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleSelectAll}
+              disabled={loading || filteredDevices.length === 0}
+            >
+              {tempSelected.length === filteredDevices.length ? "取消全选" : "全选"}
+            </Button>
+          </div>
+        </div>
+
+        <ScrollArea className="h-[400px] -mx-6 px-6">
+          <div className="space-y-2">
+            {loading ? (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                加载中...
+              </div>
+            ) : filteredDevices.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                暂无数据
+              </div>
+            ) : (
+              filteredDevices.map((device) => (
+                <Label
                   key={device.id}
-                  className="flex items-center space-x-3 p-4 rounded-lg hover:bg-gray-50 cursor-pointer"
-                  style={{paddingLeft: '0px',paddingRight: '0px'}}
+                  className="flex items-center justify-between p-4 rounded-lg border hover:bg-gray-50 cursor-pointer"
+                  htmlFor={device.id}
                 >
-                  <Checkbox 
-                    checked={tempSelectedDevices.includes(device.id)}
-                    onCheckedChange={(checked) => handleDeviceToggle(device.id, checked as boolean)}
-                    className="h-5 w-5"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{device.name}</span>
-                      <Badge variant={device.status === "online" ? "default" : "secondary"}>
-                        {device.status === "online" ? "在线" : "离线"}
-                      </Badge>
-                    </div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      <div>IMEI: {device.imei || '--'}</div>
-                      <div>微信号: {device.wxid || '--'}</div>
-                      <div>好友数: {device.totalFriend}</div>
+                  <div className="flex items-center space-x-3 flex-1 min-w-0">
+                    <Checkbox 
+                      id={device.id}
+                      checked={tempSelected.includes(device.id)}
+                      onCheckedChange={() => handleDeviceToggle(device.id)}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium truncate mb-1">{device.memo || device.imei}</div>
+                      <div className="text-sm text-gray-500 truncate mb-1">IMEI: {device.imei}</div>
+                      <div className="text-sm text-gray-500 truncate">{device.wechatId ? `微信号: ${device.wechatId}` : ''}</div>
+                      {device.usedInPlans > 0 && (
+                        <div className="text-sm text-orange-500 mt-1">
+                          已用于 {device.usedInPlans} 个计划
+                        </div>
+                      )}
                     </div>
                   </div>
-                </label>
-              ))}
-            </div>
-          )}
+                  <Badge variant={device.alive === 1 ? "default" : "secondary"}>
+                    {device.alive === 1 ? "在线" : "离线"}
+                  </Badge>
+                </Label>
+              ))
+            )}
+          </div>
         </ScrollArea>
 
-        <DialogFooter className="mt-4 flex gap-4 -mx-6 px-6">
-          <Button className="flex-1" onClick={handleConfirm}>确认</Button>
+        <DialogFooter className="mt-4">
+          {/* <Button variant="outline" onClick={() => handleDialogOpenChange(false)}>
+            取消
+          </Button> */}
+          <Button onClick={() => {
+            onSelect(tempSelected)
+            onOpenChange(false)
+          }}>
+            确定{tempSelected.length > 0 ? ` (${tempSelected.length})` : ''}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

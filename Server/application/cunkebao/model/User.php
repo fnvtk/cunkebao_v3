@@ -20,6 +20,6 @@ class User extends Model
     // 定义关联的工作台
     public function workbench()
     {
-        return $this->hasMany('Workbench', 'id', 'userId');
+        return $this->belongsTo('Workbench', 'id', 'userId');
     }
 } 

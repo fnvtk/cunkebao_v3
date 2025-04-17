@@ -34,8 +34,11 @@ interface SyncTask {
   lastSyncTime: string
   createTime: string
   creator: string
-  libraries?: string[]
-  devices?: string[]
+  config: {
+    devices: string[]
+    contentLibraryNames: string[]
+  }
+  creatorName: string
 }
 
 export default function MomentsSyncPage() {
@@ -309,19 +312,19 @@ export default function MomentsSyncPage() {
 
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div className="text-sm text-gray-500">
-                      <div>推送设备：{task.devices?.length || 0} 个</div>
-                      <div>内容库：{task.contentLib}</div>
+                      <div>推送设备：{task.config.devices.length || 0} 个</div>
+                      <div className="truncate">内容库：{task.config.contentLibraryNames?.join('、') || '--'}</div>
                     </div>
                     <div className="text-sm text-gray-500">
-                      <div>已同步：{task.syncCount} 条</div>
-                      <div>创建人：{task.creator}</div>
+                      <div>已同步：{task.syncCount || 0} 条</div>
+                      <div>创建人：{task.creatorName}</div>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between text-xs text-gray-500 border-t pt-4">
                     <div className="flex items-center">
                       <Clock className="w-4 h-4 mr-1" />
-                      上次同步：{task.lastSyncTime}
+                      上次同步：{task.lastSyncTime || '--'}
                     </div>
                     <div>创建时间：{task.createTime}</div>
                   </div>

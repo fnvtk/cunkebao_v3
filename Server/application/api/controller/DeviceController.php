@@ -212,6 +212,55 @@ class DeviceController extends BaseController
         }
     }
 
+
+    /**
+     * 更新设备分组
+     * @return \think\response\Json
+     */
+    public function updateaccount()
+    {
+        // 获取授权token
+        $authorization = trim($this->request->header('authorization', $this->authorization));
+        if (empty($authorization)) {
+            return errorJson('缺少授权信息');
+        }
+
+        try {
+            // 获取参数
+            $id = $this->request->param('id', '');
+            $accountId = $this->request->param('accountId', '');
+
+            if (empty($id)) {
+                return errorJson('设备ID不能为空');
+            }
+
+            if (empty($accountId)) {
+                return errorJson('账号id不能为空');
+            }
+
+            // 设置请求头
+            $headerData = ['client:system'];
+            $header = setHeader($headerData, $authorization, 'plain');
+
+            // 发送请求
+            $result = requestCurl($this->baseUrl . 'api/device/updateaccount?accountId=' . $accountId . '&deviceId=' . $id, [], 'PUT', $header);
+            $response = handleApiResponse($result);
+            
+
+            if(empty($response)){
+                return successJson([],'操作成功');
+            }else{
+                return errorJson([],$response);
+            }
+
+            
+        } catch (\Exception $e) {
+            return errorJson('更新设备分组失败：' . $e->getMessage());
+        }
+    }
+
+
+
     /**
      * 获取设备分组列表
      * @return \think\response\Json

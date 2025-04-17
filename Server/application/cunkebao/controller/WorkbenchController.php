@@ -162,19 +162,13 @@ class WorkbenchController extends Controller
                 $query->field('workbenchId,syncInterval,syncCount,syncType,startTime,endTime,accountType,devices,contentLibraries');
             },
             'user' => function($query) {
-                $query->field('username');
-            },
-            // 'groupPush' => function($query) {
-            //     $query->field('workbenchId,pushInterval,pushContent,pushTime,devices,targetGroups');
-            // },
-            // 'groupCreate' => function($query) {
-            //     $query->field('workbenchId,groupNamePrefix,maxGroups,membersPerGroup,devices,targetGroups');
-            // }
+                $query->field('id,username');
+            }
         ];
 
         $list = Workbench::where($where)
             ->with($with)
-            ->field('id,name,type,status,autoStart,createTime,updateTime')
+            ->field('id,name,type,status,autoStart,userId,createTime,updateTime')
             ->order('id', 'desc')
             ->page($page, $limit)
             ->select()
@@ -195,6 +189,15 @@ class WorkbenchController extends Controller
                             $item->config = $item->momentsSync;
                             $item->config->devices = json_decode($item->config->devices, true);
                             $item->config->contentLibraries = json_decode($item->config->contentLibraries, true);
+                            
+                            // 获取内容库名称
+                            if (!empty($item->config->contentLibraries)) {
+                                $libraryNames = \app\cunkebao\model\ContentLibrary::where('id', 'in', $item->config->contentLibraries)
+                                    ->column('name');
+                                $item->config->contentLibraryNames = $libraryNames;
+                            } else {
+                                $item->config->contentLibraryNames = [];
+                            }
                         }
                         unset($item->momentsSync,$item->moments_sync);
                         break;
@@ -217,6 +220,9 @@ class WorkbenchController extends Controller
                         unset($item->groupCreate,$item->group_create);
                         break;
                 }
+                // 添加创建人名称
+                $item['creatorName'] = $item->user ? $item->user->username : '';
+                unset($item['user']); // 移除关联数据
                 return $item;
             });
 
@@ -292,6 +298,7 @@ class WorkbenchController extends Controller
                     $workbench->config = $workbench->momentsSync;
                     $workbench->config->devices = json_decode($workbench->config->devices, true);
                     $workbench->config->contentLibraries = json_decode($workbench->config->contentLibraries, true);
+                    unset($workbench->momentsSync,$workbench->moments_sync);
                 }
                 break;
             case self::TYPE_GROUP_PUSH:

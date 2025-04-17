@@ -6,3 +6,7 @@ Backend/dist
 Backend/node_modules
 Store_vue/node_modules
 Store_vue/unpackage
+Server/.specstory/
+Store_vue/.specstory/
+*.zip
+*.cursorindexingignore

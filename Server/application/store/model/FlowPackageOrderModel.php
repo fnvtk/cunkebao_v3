@@ -10,7 +10,7 @@ use think\Model;
 class FlowPackageOrderModel extends Model
 {
     // 设置表名
-    protected $table = 'ck_flow_package_order';
+    protected $name = 'flow_package_order';
     
     // 自动写入时间戳
     protected $autoWriteTimestamp = true;

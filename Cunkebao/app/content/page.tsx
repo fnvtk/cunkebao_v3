@@ -34,6 +34,7 @@ interface ContentLibrary {
     avatar: string
   }[]
   creator: string
+  creatorName?: string
   itemCount: number
   lastUpdated: string
   enabled: boolean
@@ -74,7 +75,7 @@ export default function ContentLibraryPage() {
 
       if (response.code === 200 && response.data) {
         // 转换数据格式以匹配原有UI
-        const transformedLibraries = response.data.list.map((item) => {
+        const transformedLibraries = response.data.list.map((item: any) => {
           const transformedItem: ContentLibrary = {
             id: item.id,
             name: item.name,
@@ -83,7 +84,8 @@ export default function ContentLibraryPage() {
               ...(item.sourceFriends || []).map((id: string) => ({ id, nickname: `好友${id}`, avatar: "/placeholder.svg" })),
               ...(item.sourceGroups || []).map((id: string) => ({ id, nickname: `群组${id}`, avatar: "/placeholder.svg" }))
             ],
-            creator: item.creator || "系统",
+            creator: item.creatorName || "系统",
+            creatorName: item.creatorName,
             itemCount: 0,
             lastUpdated: item.updateTime,
             enabled: item.isEnabled === 1,

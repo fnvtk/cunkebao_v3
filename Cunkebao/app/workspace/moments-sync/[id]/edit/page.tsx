@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronLeft, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -12,18 +12,23 @@ import { Input } from "@/components/ui/input"
 import { api, ApiResponse } from "@/lib/api"
 import { showToast } from "@/lib/toast"
 
-// 定义基本设置表单数据类型，与BasicSettings组件的formData类型匹配
-interface BasicSettingsFormData {
-  taskName: string
-  startTime: string
-  endTime: string
-  syncCount: number
-  syncInterval: number
-  accountType: "business" | "personal"
-  enabled: boolean
+interface Task {
+  id: string
+  name: string
+  status: number
+  config: {
+    startTime: string
+    endTime: string
+    syncCount: number
+    syncInterval: number
+    syncType: number
+    devices: string[]
+    contentLibraries: string[]
+  }
 }
 
-export default function EditMomentsSyncPage({ params }: { params: { id: string } }) {
+export default function EditMomentsSyncPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params)
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [deviceDialogOpen, setDeviceDialogOpen] = useState(false)
@@ -34,31 +39,30 @@ export default function EditMomentsSyncPage({ params }: { params: { id: string }
     startTime: "06:00",
     endTime: "23:59",
     syncCount: 5,
-    syncInterval: 30, // 同步间隔，默认30分钟
+    syncInterval: 30,
     accountType: "business" as "business" | "personal",
     enabled: true,
     selectedDevices: [] as string[],
     selectedLibraries: [] as string[],
   })
 
-  // 获取任务详情
   useEffect(() => {
     const fetchTaskDetail = async () => {
       setIsLoading(true)
       try {
-        const response = await api.get<ApiResponse>(`/v1/workbench/detail?id=${params.id}`)
+        const response = await api.get<{code: number, msg: string, data: Task}>(`/v1/workbench/detail?id=${resolvedParams.id}`)
         if (response.code === 200 && response.data) {
           const taskData = response.data
           setFormData({
             taskName: taskData.name || "",
-            startTime: taskData.startTime || "06:00",
-            endTime: taskData.endTime || "23:59",
-            syncCount: taskData.syncCount || 5,
-            syncInterval: taskData.syncInterval || 30,
-            accountType: taskData.syncType === 1 ? "business" : "personal",
-            enabled: !!taskData.enabled,
-            selectedDevices: taskData.devices || [],
-            selectedLibraries: taskData.contentLibraries || [],
+            startTime: taskData.config.startTime || "06:00",
+            endTime: taskData.config.endTime || "23:59",
+            syncCount: taskData.config.syncCount || 5,
+            syncInterval: taskData.config.syncInterval || 30,
+            accountType: taskData.config.syncType === 1 ? "business" : "personal",
+            enabled: !!taskData.status,
+            selectedDevices: taskData.config.devices || [],
+            selectedLibraries: taskData.config.contentLibraries || [],
           })
         } else {
           showToast(response.msg || "获取任务详情失败", "error")
@@ -74,14 +78,9 @@ export default function EditMomentsSyncPage({ params }: { params: { id: string }
     }
 
     fetchTaskDetail()
-  }, [params.id, router])
+  }, [resolvedParams.id, router])
 
   const handleUpdateFormData = (data: Partial<typeof formData>) => {
-    setFormData((prev) => ({ ...prev, ...data }))
-  }
-
-  // 专门用于基本设置的更新函数
-  const handleBasicSettingsUpdate = (data: Partial<BasicSettingsFormData>) => {
     setFormData((prev) => ({ ...prev, ...data }))
   }
 
@@ -96,16 +95,16 @@ export default function EditMomentsSyncPage({ params }: { params: { id: string }
   const handleComplete = async () => {
     try {
       const response = await api.post<ApiResponse>('/v1/workbench/update', {
-        id: params.id,
-        type: 2, // 朋友圈同步任务类型为2
+        id: resolvedParams.id,
+        type: 2,
         name: formData.taskName,
         syncInterval: formData.syncInterval,
         syncCount: formData.syncCount,
-        syncType: formData.accountType === "business" ? 1 : 2, // 业务号为1，人设号为2
+        syncType: formData.accountType === "business" ? 1 : 2,
         startTime: formData.startTime,
         endTime: formData.endTime,
         accountType: formData.accountType === "business" ? 1 : 2,
-        status: formData.enabled ? 1 : 0, // 状态：0=禁用，1=启用
+        status: formData.enabled ? 1 : 0,
         devices: formData.selectedDevices,
         contentLibraries: formData.selectedLibraries
       });
@@ -150,16 +149,8 @@ export default function EditMomentsSyncPage({ params }: { params: { id: string }
         <div className="mt-8">
           {currentStep === 1 && (
             <BasicSettings 
-              formData={{
-                taskName: formData.taskName,
-                startTime: formData.startTime,
-                endTime: formData.endTime,
-                syncCount: formData.syncCount,
-                syncInterval: formData.syncInterval,
-                accountType: formData.accountType,
-                enabled: formData.enabled
-              }} 
-              onChange={handleBasicSettingsUpdate} 
+              formData={formData}
+              onChange={handleUpdateFormData} 
               onNext={handleNext} 
             />
           )}
@@ -249,21 +240,6 @@ export default function EditMomentsSyncPage({ params }: { params: { id: string }
           )}
         </div>
       </div>
-
-      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t flex items-center justify-around px-6">
-        <button className="flex flex-col items-center text-blue-600">
-          <span className="text-sm mt-1">首页</span>
-        </button>
-        <button className="flex flex-col items-center text-gray-400">
-          <span className="text-sm mt-1">场景获客</span>
-        </button>
-        <button className="flex flex-col items-center text-gray-400">
-          <span className="text-sm mt-1">工作台</span>
-        </button>
-        <button className="flex flex-col items-center text-gray-400">
-          <span className="text-sm mt-1">我的</span>
-        </button>
-      </nav>
     </div>
   )
 }
