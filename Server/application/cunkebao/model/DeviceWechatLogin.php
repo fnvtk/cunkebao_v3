@@ -11,33 +11,7 @@ class DeviceWechatLogin extends Model
     // 设置表名
     protected $name = 'device_wechat_login';
     
-    /**
-     * 查询设备关联的微信ID列表
-     * @param int $deviceId 设备ID
-     * @param int $companyId 公司/租户ID
-     * @return array 微信ID列表
-     */
-    public static function getDeviceWechatIds($deviceId, $companyId = null)
-    {
-        $query = self::where('deviceId', $deviceId);
-        
-        // 如果提供了公司ID，则添加对应的条件
-        if ($companyId !== null) {
-            $query->where('companyId', $companyId);
-        }
-        
-        // 提取微信ID
-        $records = $query->select();
-        $wechatIds = [];
-        
-        foreach ($records as $record) {
-            if (!empty($record['wechatId'])) {
-                $wechatIds[] = $record['wechatId'];
-            }
-        }
-        
-        return $wechatIds;
-    }
+
     
     /**
      * 根据微信ID查询关联的设备

@@ -33,7 +33,7 @@ Route::group('', function () {
 
     // 公司路由
     Route::group('company', function () {
-        Route::post('create', 'app\\superadmin\\controller\\CompanyController@create');
+        Route::post('create', 'app\\superadmin\\controller\\company\\CreateCompanyController@index');
         Route::get('list', 'app\\superadmin\\controller\\CompanyController@getList');
         Route::get('detail/:id', 'app\\superadmin\\controller\\CompanyController@getDetail');
     });

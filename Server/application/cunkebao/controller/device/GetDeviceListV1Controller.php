@@ -5,7 +5,6 @@ use app\common\model\Device as DeviceModel;
 use app\common\model\DeviceUser as DeviceUserModel;
 use app\common\model\WechatFriend;
 use app\cunkebao\controller\BaseController;
-use think\facade\Request;
 
 /**
  * 设备管理控制器
@@ -23,12 +22,12 @@ class GetDeviceListV1Controller extends BaseController
         $where = [];
 
         // 关键词搜索（同时搜索IMEI和备注）
-        if (!empty($keyword = Request::param('keyword'))) {
+        if (!empty($keyword = $this->request->param('keyword'))) {
             $where[] = ['exp', "d.imei LIKE '%{$keyword}%' OR d.memo LIKE '%{$keyword}%'"];
         }
 
         // 设备在线状态
-        if (is_numeric($alive = Request::param('alive'))) {
+        if (is_numeric($alive = $this->request->param('alive'))) {
             $where['d.alive'] = $alive;
         }
 
@@ -67,7 +66,7 @@ class GetDeviceListV1Controller extends BaseController
      * @param int $limit 每页数量
      * @return \think\Paginator 分页对象
      */
-    protected function getDeviceList(array $where, int $page = 1, int $limit = 10)
+    protected function getDeviceList(array $where, int $page = 1, int $limit = 10): \think\Paginator
     {
         $query = DeviceModel::alias('d')
             ->field(['d.id', 'd.imei', 'd.memo', 'l.wechatId', 'd.alive', '0 totalFriend'])
@@ -83,16 +82,16 @@ class GetDeviceListV1Controller extends BaseController
             $query->where($key, $value);
         }
 
-        return $query->paginate($limit, false, ['page' => $page]);
+        return $query->paginate($this->request->param('limit/d', 10), false, ['page' => $this->request->param('page/d', 1)]);
     }
 
     /**
      * 统计微信好友
      *
-     * @param object $list
+     * @param \think\Paginator $list
      * @return array
      */
-    protected function countFriend(object $list): array
+    protected function countFriend(\think\Paginator $list): array
     {
         $result = [];
 
@@ -116,15 +115,12 @@ class GetDeviceListV1Controller extends BaseController
     public function index()
     {
         try {
-            $page = (int)Request::param('page', 1);
-            $limit = (int)Request::param('limit', 10);
-
             if ($this->getUserInfo('isAdmin') == 1) {
                 $where = $this->makeWhere();
-                $result = $this->getDeviceList($where, $page, $limit);
+                $result = $this->getDeviceList($where);
             } else {
                 $where = $this->makeWhere($this->makeDeviceIdsWhere());
-                $result = $this->getDeviceList($where, $page, $limit);
+                $result = $this->getDeviceList($where);
             }
 
             return json([

@@ -1,6 +1,6 @@
 <?php
 
-namespace app\cunkebao\controller;
+namespace app\superadmin\controller;
 
 use think\Controller;
 
