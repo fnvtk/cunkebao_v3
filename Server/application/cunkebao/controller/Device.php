@@ -1,11 +1,9 @@
 <?php
 namespace app\cunkebao\controller;
 
-use app\cunkebao\model\DeviceHandleLog;
-use app\cunkebao\model\DeviceWechatLogin;
-use think\Controller;
 use app\cunkebao\model\Device as DeviceModel;
-use app\cunkebao\model\DeviceUser as DeviceUserModel;
+use app\cunkebao\model\DeviceHandleLog;
+use think\Controller;
 use think\Db;
 use think\facade\Request;
 
@@ -169,74 +167,6 @@ class Device extends Controller
             return json([
                 'code' => 500,
                 'msg' => '删除失败：' . $e->getMessage()
-            ]);
-        }
-    }
-
-    /**
-     * 获取设备关联的微信账号
-     * @return \think\response\Json
-     */
-    public function getRelatedAccounts()
-    {
-        try {
-            // 获取登录用户信息
-            $userInfo = request()->userInfo;
-
-            // 获取设备ID
-            $deviceId = $this->request->param('id/d');
-            if (empty($deviceId)) {
-                return json([
-                    'code' => 400,
-                    'msg' => '设备ID不能为空'
-                ]);
-            }
-            
-            // 检查用户是否有权限访问该设备
-            if ($userInfo['isAdmin'] != 1) {
-                // 非管理员需要检查是否有权限访问该设备
-                $hasPermission = \app\common\model\DeviceUser::checkUserDevicePermission(
-                    $userInfo['id'], 
-                    $deviceId, 
-                    $userInfo['companyId']
-                );
-                
-                if (!$hasPermission) {
-                    return json([
-                        'code' => 403,
-                        'msg' => '您没有权限查看该设备'
-                    ]);
-                }
-            }
-            
-            // 获取设备信息，确认设备存在
-            $device = DeviceModel::where('id', $deviceId)
-                ->where('isDeleted', 0)
-                ->find();
-                
-            if (!$device) {
-                return json([
-                    'code' => 404,
-                    'msg' => '设备不存在或已删除'
-                ]);
-            }
-
-            // 获取设备关联的微信账号
-            $wechatAccounts = DeviceWechatLogin::getDeviceRelatedAccounts($deviceId, $userInfo['companyId']);
-            
-            return json([
-                'code' => 200,
-                'msg' => '获取成功',
-                'data' => [
-                    'deviceId' => $deviceId,
-                    'accounts' => $wechatAccounts,
-                    'total' => count($wechatAccounts)
-                ]
-            ]);
-        } catch (\Exception $e) {
-            return json([
-                'code' => 500,
-                'msg' => '获取失败：' . $e->getMessage()
             ]);
         }
     }

@@ -66,7 +66,7 @@ class GetDeviceListV1Controller extends BaseController
      * @param int $limit 每页数量
      * @return \think\Paginator 分页对象
      */
-    protected function getDeviceList(array $where, int $page = 1, int $limit = 10)
+    protected function getDeviceList(array $where, int $page = 1, int $limit = 10): \think\Paginator
     {
         $query = DeviceModel::alias('d')
             ->field(['d.id', 'd.imei', 'd.memo', 'l.wechatId', 'd.alive', '0 totalFriend'])
@@ -82,7 +82,7 @@ class GetDeviceListV1Controller extends BaseController
             $query->where($key, $value);
         }
 
-        return $query->paginate($limit, false, ['page' => $page]);
+        return $query->paginate($this->request->param('limit/d', 10), false, ['page' => $this->request->param('page/d', 1)]);
     }
 
     /**
@@ -115,15 +115,12 @@ class GetDeviceListV1Controller extends BaseController
     public function index()
     {
         try {
-            $page = (int)$this->request->param('page', 1);
-            $limit = (int)$this->request->param('limit', 10);
-
             if ($this->getUserInfo('isAdmin') == 1) {
                 $where = $this->makeWhere();
-                $result = $this->getDeviceList($where, $page, $limit);
+                $result = $this->getDeviceList($where);
             } else {
                 $where = $this->makeWhere($this->makeDeviceIdsWhere());
-                $result = $this->getDeviceList($where, $page, $limit);
+                $result = $this->getDeviceList($where);
             }
 
             return json([
