@@ -5,7 +5,6 @@ use app\common\model\Device as DeviceModel;
 use app\common\model\DeviceUser as DeviceUserModel;
 use app\common\model\WechatFriend;
 use app\cunkebao\controller\BaseController;
-use think\facade\Request;
 
 /**
  * 设备管理控制器
@@ -23,12 +22,12 @@ class GetDeviceListV1Controller extends BaseController
         $where = [];
 
         // 关键词搜索（同时搜索IMEI和备注）
-        if (!empty($keyword = Request::param('keyword'))) {
+        if (!empty($keyword = $this->request->param('keyword'))) {
             $where[] = ['exp', "d.imei LIKE '%{$keyword}%' OR d.memo LIKE '%{$keyword}%'"];
         }
 
         // 设备在线状态
-        if (is_numeric($alive = Request::param('alive'))) {
+        if (is_numeric($alive = $this->request->param('alive'))) {
             $where['d.alive'] = $alive;
         }
 
@@ -116,8 +115,8 @@ class GetDeviceListV1Controller extends BaseController
     public function index()
     {
         try {
-            $page = (int)Request::param('page', 1);
-            $limit = (int)Request::param('limit', 10);
+            $page = (int)$this->request->param('page', 1);
+            $limit = (int)$this->request->param('limit', 10);
 
             if ($this->getUserInfo('isAdmin') == 1) {
                 $where = $this->makeWhere();

@@ -23,8 +23,6 @@ class BaseController extends Controller
         parent::initialize();
 
         date_default_timezone_set('Asia/Shanghai');
-
-        $this->user = request()->userInfo;
     }
 
     /**
@@ -36,10 +34,12 @@ class BaseController extends Controller
      */
     protected function getUserInfo(string $column = '')
     {
-        if (!$this->user) {
+        $user = $this->request->userInfo;
+
+        if (!$user) {
             throw new \Exception('未授权访问，缺少有效的身份凭证', 401);
         }
 
-        return $column ? $this->user[$column] : $this->user;
+        return $column ? $user[$column] : $user;
     }
 } 

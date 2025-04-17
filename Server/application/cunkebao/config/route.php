@@ -10,7 +10,7 @@ Route::group('v1/', function () {
 
     // 设备管理相关
     Route::group('devices', function () {
-        Route::get(':id/related-accounts', 'app\\cunkebao\\controller\\Device@getRelatedAccounts');   // 设备关联微信账号路由
+        Route::get(':id/related-accounts', 'app\\cunkebao\\controller\\device\\GetRelatedAccountsV1Controller@index');   // 设备关联微信账号路由
         Route::get(':id/handle-logs', 'app\\cunkebao\\controller\\Device@handleLogs');    // 获取设备操作记录
         Route::get('', 'app\\cunkebao\\controller\\device\\GetDeviceListV1Controller@index');           // 获取设备列表
         Route::get('count', 'app\\cunkebao\\controller\\Device@count');      // 获取设备总数
