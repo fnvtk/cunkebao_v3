@@ -74,10 +74,11 @@ class CreateCompanyController extends BaseController
     /**
      * 数据验证
      *
+     * @param array $params
      * @return $this
      * @throws \Exception
      */
-    protected function dataValidate(): self
+    protected function dataValidate(array $params): self
     {
         $validate = Validate::make([
             'name' => 'require|max:50|/\S+/',
@@ -88,7 +89,7 @@ class CreateCompanyController extends BaseController
             'description' => 'require|/\S+/',
         ]);
 
-        if (!$validate->check($this->request->post())) {
+        if (!$validate->check($params)) {
             throw new \Exception($validate->getError(), 400);
         }
 
@@ -181,8 +182,6 @@ class CreateCompanyController extends BaseController
         try {
             $params = $this->request->only(['name', 'nickname', 'account', 'password', 'realName', 'description']);
 
-            var_dump($params);
-            die;
             $department = $this->dataValidate($params)->creatS2About($params);
 
             Db::startTrans();

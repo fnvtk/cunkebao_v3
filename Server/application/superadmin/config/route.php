@@ -2,7 +2,7 @@
 use think\facade\Route;
 
 // 超级管理员认证相关路由（不需要鉴权）
-Route::post('auth/login', 'app\superadmin\controller\AuthController@login');
+Route::post('auth/login', 'app\superadmin\controller\auth\AuthLoginController@index');
 
 // 需要登录认证的路由组
 Route::group('', function () {
