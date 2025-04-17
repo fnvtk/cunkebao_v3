@@ -88,10 +88,10 @@ class GetDeviceListV1Controller extends BaseController
     /**
      * 统计微信好友
      *
-     * @param object $list
+     * @param \think\Paginator $list
      * @return array
      */
-    protected function countFriend(object $list): array
+    protected function countFriend(\think\Paginator $list): array
     {
         $result = [];
 

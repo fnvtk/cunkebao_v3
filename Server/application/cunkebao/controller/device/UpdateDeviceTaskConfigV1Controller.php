@@ -67,11 +67,16 @@ class UpdateDeviceTaskConfigV1Controller extends BaseController
     protected function addHandleLog(int $deviceId): void
     {
         $data = $this->request->post();
+        $content = null;
 
         if (isset($data['autoAddFriend']))/**/$content = $data['autoAddFriend'] ? '开启自动添加好友' : '关闭自动添加好友';
         if (isset($data['autoReply']))/*    */$content = $data['autoReply'] ? '开启自动回复' : '关闭自动回复';
         if (isset($data['momentsSync']))/*  */$content = $data['momentsSync'] ? '开启朋友圈同步' : '关闭朋友圈同步';
         if (isset($data['aiChat']))/*       */$content = $data['aiChat'] ? '开启AI会话' : '关闭AI会话';
+
+        if (empty($content)) {
+            throw new \Exception('参数错误', '400');
+        }
 
         DeviceHandleLogModel::addLog(
             [
@@ -109,7 +114,7 @@ class UpdateDeviceTaskConfigV1Controller extends BaseController
      */
     public function index()
     {
-        $id = Request::param('deviceId/d');
+        $id = $this->request->param('deviceId/d');
 
         $this->checkDeviceExists($id);
 
@@ -120,8 +125,8 @@ class UpdateDeviceTaskConfigV1Controller extends BaseController
         try {
             Db::startTrans();
 
-            $this->setTaskconf($id);
             $this->addHandleLog($id);
+            $this->setTaskconf($id);
 
             Db::commit();
 
