@@ -157,7 +157,7 @@ class GetAdministratorListController extends Controller
 
     /**
      * 获取管理员列表
-     * 
+     *
      * @return \think\response\Json
      */
     public function index()
@@ -174,5 +174,4 @@ class GetAdministratorListController extends Controller
             ]
         ]);
     }
-
 } 

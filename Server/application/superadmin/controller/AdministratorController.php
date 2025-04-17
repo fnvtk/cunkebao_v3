@@ -120,29 +120,10 @@ class AdministratorController extends Controller
         return json([
             'code' => 200,
             'msg' => '获取成功',
-            'data' => $data
+            'data' => array_merge()
         ]);
     }
-    
-    /**
-     * 根据权限ID获取角色名称
-     * @param int $authId 权限ID
-     * @return string
-     */
-    private function getRoleName($authId)
-    {
-        // 可以从权限表中查询，这里为演示简化处理
-        switch($authId) {
-            case 1:
-                return '超级管理员';
-            case 2:
-                return '项目管理员';
-            case 3:
-                return '客户管理员';
-            default:
-                return '普通管理员';
-        }
-    }
+
     
     /**
      * 根据权限ID获取权限列表
