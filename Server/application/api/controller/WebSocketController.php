@@ -418,7 +418,7 @@ class WebSocketController extends BaseController
                 $momentEntity = $moment['momentEntity'] ?? [];
                 
                 // 检查朋友圈数据是否已存在
-                $exists = Db::name('wechat_moments')
+                $exists = Db::table('s2_wechat_moments')
                     ->where('snsId', $moment['snsId'])
                     ->where('wechatAccountId', $wechatAccountId)
                     ->find();
@@ -441,13 +441,13 @@ class WebSocketController extends BaseController
                     
                 if ($exists) {
                     // 如果已存在，则更新数据
-                    Db::name('wechat_moments')->where('id', $exists['id'])->update($dataToSave);
+                    Db::table('s2_wechat_moments')->where('id', $exists['id'])->update($dataToSave);
                 } else {
                     // 如果不存在，则插入新数据
                     $dataToSave['wechatAccountId'] = $wechatAccountId;
                     $dataToSave['wechatFriendId'] = $wechatFriendId;
                     $dataToSave['create_time'] = time();
-                    Db::name('wechat_moments')->insert($dataToSave);
+                    Db::table('s2_wechat_moments')->insert($dataToSave);
                 }
             }
             

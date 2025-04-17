@@ -285,17 +285,6 @@
 		background-color: #f5f7fa;
 		z-index: 10000;
 		overflow-y: auto;
-		transform-origin: right;
-		animation: slideInFromRight 0.3s ease;
-	}
-	
-	@keyframes slideInFromRight {
-		from {
-			transform: translateX(100%);
-		}
-		to {
-			transform: translateX(0);
-		}
 	}
 	
 	.header {

@@ -70,9 +70,10 @@ class GetDeviceListV1Controller extends BaseController
     protected function getDeviceList(array $where, int $page = 1, int $limit = 10): \think\Paginator
     {
         $query = DeviceModel::alias('d')
-            ->field(['d.id', 'd.imei', 'd.memo', 'l.wechatId', 'd.alive', '0 totalFriend'])
+            ->field(['d.id', 'd.imei', 'd.memo', 'l.wechatId', 'd.alive','wa.nickname','wa.alias', '0 totalFriend'])
             ->leftJoin('device_wechat_login l', 'd.id = l.deviceId')
-            ->order('d.alive desc');
+            ->leftJoin('wechat_account wa', 'l.wechatId = wa.wechatId')
+            ->order('d.id desc');
 
         foreach ($where as $key => $value) {
             if (is_numeric($key) && is_array($value) && isset($value[0]) && $value[0] === 'exp') {

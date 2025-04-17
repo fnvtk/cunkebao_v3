@@ -19,7 +19,8 @@ class StatisticsController extends BaseController
         try {
             $companyId =  $this->userInfo['companyId'];
             $wechatAccountId = $this->device['wechatAccountId'];
-           
+            $ownerWechatId = $this->device['wechatId'];
+
             // 获取时间范围
             $timeRange = $this->getTimeRange();
             $startTime = $timeRange['start_time'];
@@ -27,40 +28,44 @@ class StatisticsController extends BaseController
             $lastStartTime = $timeRange['last_start_time'];
             $lastEndTime = $timeRange['last_end_time'];
 
+
+
+         
+            
             // 1. 总客户数
-            $totalCustomers = WechatFriendModel::where(['ownerWechatId'=> $wechatAccountId])
+            $totalCustomers = WechatFriendModel::where(['ownerWechatId'=> $ownerWechatId])
             ->whereTime('createTime', '>=', $startTime)
             ->whereTime('createTime', '<', $endTime)
             ->count();
 
             // 上期总客户数
-            $lastTotalCustomers = WechatFriendModel::where(['ownerWechatId'=> $wechatAccountId])
+            $lastTotalCustomers = WechatFriendModel::where(['ownerWechatId'=> $ownerWechatId])
             ->whereTime('createTime', '>=', $lastStartTime)
             ->whereTime('createTime', '<', $lastEndTime)
             ->count();
 
             // 2. 新增客户数
-            $newCustomers = WechatFriendModel::where(['ownerWechatId'=> $wechatAccountId])
+            $newCustomers = WechatFriendModel::where(['ownerWechatId'=> $ownerWechatId])
             ->whereTime('createTime', '>=', $startTime)
             ->whereTime('createTime', '<', $endTime)
             ->count();
 
             // 上期新增客户数
-            $lastNewCustomers = WechatFriendModel::where(['ownerWechatId'=> $wechatAccountId])
+            $lastNewCustomers = WechatFriendModel::where(['ownerWechatId'=> $ownerWechatId])
             ->whereTime('createTime', '>=', $lastStartTime)
             ->whereTime('createTime', '<', $lastEndTime)
             ->count();
 
             //3. 互动次数
             $interactionCount = WechatMessageModel::where(['wechatAccountId'=> $wechatAccountId])
-            ->where('createTime', '>=', strtotime($startTime))
-            ->where('createTime', '<', strtotime($endTime))
+            ->where('createTime', '>=', $startTime)
+            ->where('createTime', '<', $endTime)
             ->count();
 
             // 上期互动次数
             $lastInteractionCount = WechatMessageModel::where(['wechatAccountId'=> $wechatAccountId])
-            ->where('createTime', '>=', strtotime($lastStartTime))
-            ->where('createTime', '<', strtotime($lastEndTime))
+            ->where('createTime', '>=', $lastStartTime)
+            ->where('createTime', '<', $lastEndTime)
             ->count();
         
 
@@ -99,6 +104,11 @@ class StatisticsController extends BaseController
         try {
             $companyId =  $this->userInfo['companyId'];
             $wechatAccountId = $this->device['wechatAccountId'];
+            $ownerWechatId = $this->device['wechatId'];
+
+
+
+
             
             // 获取时间范围
             $timeRange = $this->getTimeRange();
@@ -106,34 +116,36 @@ class StatisticsController extends BaseController
             $endTime = $timeRange['end_time'];
 
             // 1. 客户增长趋势数据
-            $totalCustomers = WechatFriendModel::where(['ownerWechatId'=> $wechatAccountId])
+            $totalCustomers = WechatFriendModel::where(['ownerWechatId'=> $ownerWechatId])
                 ->whereTime('createTime', '<', $endTime)
                 ->count();
 
-            $newCustomers = WechatFriendModel::where(['ownerWechatId'=> $wechatAccountId])
+            $newCustomers = WechatFriendModel::where(['ownerWechatId'=> $ownerWechatId])
                 ->whereTime('createTime', '>=', $startTime)
                 ->whereTime('createTime', '<', $endTime)
                 ->count();
 
             // 计算流失客户数（假设超过30天未互动的客户为流失客户）
-            $lostCustomers = WechatFriendModel::where(['ownerWechatId'=> $wechatAccountId])->where('createTime','>',0)
-                ->whereTime('deleteTime', '<', date('Y-m-d', strtotime('-30 days')))
+            $thirtyDaysAgo = strtotime('-30 days');
+            $lostCustomers = WechatFriendModel::where(['ownerWechatId'=> $ownerWechatId])
+                ->where('createTime', '>', 0)
+                ->where('deleteTime', '<', $thirtyDaysAgo)
                 ->count();
 
             // 2. 客户来源分布数据
             // 朋友推荐
-            $friendRecommend = WechatFriendModel::where(['ownerWechatId'=> $wechatAccountId])
-                ->whereIn('addFrom', [17, 1000017])
+            $friendRecommend = WechatFriendModel::where(['ownerWechatId'=> $ownerWechatId])
+                // ->whereIn('addFrom', [17, 1000017])
                 ->count();
 
             // 微信搜索
-            $wechatSearch = WechatFriendModel::where(['ownerWechatId'=> $wechatAccountId])
-                ->whereIn('addFrom', [3, 15, 1000003, 1000015])
+            $wechatSearch = WechatFriendModel::where(['ownerWechatId'=> $ownerWechatId])
+                // ->whereIn('addFrom', [3, 15, 1000003, 1000015])
                 ->count();
 
             // 微信群
-            $wechatGroup = WechatFriendModel::where(['ownerWechatId'=> $wechatAccountId])
-                ->whereIn('addFrom', [14, 1000014])
+            $wechatGroup = WechatFriendModel::where(['ownerWechatId'=> $ownerWechatId])
+                // ->whereIn('addFrom', [14, 1000014])
                 ->count();
 
             // 其他渠道（总数减去已知渠道）
@@ -198,15 +210,15 @@ class StatisticsController extends BaseController
             $startTime = $timeRange['start_time'];
             $endTime = $timeRange['end_time'];
             
-            // 转换为时间戳
-            $startTimestamp = strtotime($startTime);
-            $endTimestamp = strtotime($endTime);
+            // 不再需要转换为时间戳，因为getTimeRange已经转换
+            // $startTimestamp = strtotime($startTime);
+            // $endTimestamp = strtotime($endTime);
 
             // 1. 互动频率分析
             // 高频互动用户数（每天3次以上）
             $highFrequencyUsers = WechatMessageModel::where(['wechatAccountId' => $wechatAccountId])
-                ->where('createTime', '>=', $startTimestamp)
-                ->where('createTime', '<', $endTimestamp)
+                ->where('createTime', '>=', $startTime)
+                ->where('createTime', '<', $endTime)
                 ->field('wechatFriendId, COUNT(*) as count')
                 ->group('wechatFriendId')
                 ->having('count > 3')
@@ -214,8 +226,8 @@ class StatisticsController extends BaseController
                 
             // 中频互动用户数（每天1-3次）
             $midFrequencyUsers = WechatMessageModel::where(['wechatAccountId' => $wechatAccountId])
-                ->where('createTime', '>=', $startTimestamp)
-                ->where('createTime', '<', $endTimestamp)
+                ->where('createTime', '>=', $startTime)
+                ->where('createTime', '<', $endTime)
                 ->field('wechatFriendId, COUNT(*) as count')
                 ->group('wechatFriendId')
                 ->having('count >= 1 AND count <= 3')
@@ -223,8 +235,8 @@ class StatisticsController extends BaseController
                 
             // 低频互动用户数（仅有1次）
             $lowFrequencyUsers = WechatMessageModel::where(['wechatAccountId' => $wechatAccountId])
-                ->where('createTime', '>=', $startTimestamp)
-                ->where('createTime', '<', $endTimestamp)
+                ->where('createTime', '>=', $startTime)
+                ->where('createTime', '<', $endTime)
                 ->field('wechatFriendId, COUNT(*) as count')
                 ->group('wechatFriendId')
                 ->having('count = 1')
@@ -236,8 +248,8 @@ class StatisticsController extends BaseController
                 'wechatAccountId' => $wechatAccountId,
                 'msgType' => 1 
             ])
-                ->where('createTime', '>=', $startTimestamp)
-                ->where('createTime', '<', $endTimestamp)
+                ->where('createTime', '>=', $startTime)
+                ->where('createTime', '<', $endTime)
                 ->count();
                 
             // 图片互动数量
@@ -245,8 +257,8 @@ class StatisticsController extends BaseController
                 'wechatAccountId' => $wechatAccountId,
                 'msgType' => 3
             ])
-                ->where('createTime', '>=', $startTimestamp)
-                ->where('createTime', '<', $endTimestamp)
+                ->where('createTime', '>=', $startTime)
+                ->where('createTime', '<', $endTime)
                 ->count();
                 
             // 群聊互动数量
@@ -254,16 +266,16 @@ class StatisticsController extends BaseController
                 'wechatAccountId' => $wechatAccountId,
                 'type' => 2 
             ])
-                ->where('createTime', '>=', $startTimestamp)
-                ->where('createTime', '<', $endTimestamp)
+                ->where('createTime', '>=', $startTime)
+                ->where('createTime', '<', $endTime)
                 ->count();
                 
             // 产品咨询数量 (通过消息内容模糊查询)
             $productInquiries = WechatMessageModel::where([
                 'wechatAccountId' => $wechatAccountId
             ])
-                ->where('createTime', '>=', $startTimestamp)
-                ->where('createTime', '<', $endTimestamp)
+                ->where('createTime', '>=', $startTime)
+                ->where('createTime', '<', $endTime)
                 ->where('content', 'like', '%产品%')
                 ->whereOr('content', 'like', '%价格%')
                 ->whereOr('content', 'like', '%购买%')
@@ -304,8 +316,11 @@ class StatisticsController extends BaseController
 
     /**
      * 获取时间范围
+     * 
+     * @param bool $toTimestamp 是否将日期转为时间戳，默认为true
+     * @return array 时间范围数组
      */
-    private function getTimeRange()
+    private function getTimeRange($toTimestamp = true)
     {
         // 可选：today, yesterday, this_week, last_week, this_month, this_quarter, this_year
         $timeType = input('time_type', 'this_week');
@@ -369,6 +384,14 @@ class StatisticsController extends BaseController
                 $endTime = date('Y-m-d', strtotime('monday next week'));
                 $lastStartTime = date('Y-m-d', strtotime('monday last week'));
                 $lastEndTime = $startTime;
+        }
+
+        // 如果需要转换为时间戳
+        if ($toTimestamp) {
+            $startTime = strtotime($startTime);
+            $endTime = strtotime($endTime);
+            $lastStartTime = strtotime($lastStartTime);
+            $lastEndTime = strtotime($lastEndTime);
         }
 
         return [

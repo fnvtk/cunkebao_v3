@@ -3,7 +3,7 @@
 		<view class="side-menu-mask" @tap="closeSideMenu"></view>
 		<view class="side-menu">
 			<view class="side-menu-header">
-				<text class="side-menu-title">艺施赋能</text>
+				<text class="side-menu-title">美业赋能</text>
 				<text class="close-icon" @tap="closeSideMenu">
 					<u-icon name="close" color="#333" size="24"></u-icon>
 				</text>
@@ -488,18 +488,6 @@
 		z-index: 2;
 		display: flex;
 		flex-direction: column;
-		animation: slideIn 0.3s ease;
-		overflow-y: auto;
-		transition: transform 0.3s ease;
-	}
-	
-	@keyframes slideIn {
-		from {
-			transform: translateX(-100%);
-		}
-		to {
-			transform: translateX(0);
-		}
 	}
 	
 	.side-menu-header {

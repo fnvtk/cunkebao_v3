@@ -38,4 +38,11 @@ Route::group('v1/store', function () {
         Route::get('customer-analysis', 'app\\store\\controller\\StatisticsController@getCustomerAnalysis'); // 获取客户分析数据
         Route::get('interaction-analysis', 'app\\store\\controller\\StatisticsController@getInteractionAnalysis'); // 获取互动分析数据
     });
+
+    // 供应商相关路由
+    Route::group('vendor', function () {
+        Route::get('list', 'app\\store\\controller\\VendorController@getList'); // 获取供应商列表
+        Route::get('detail', 'app\\store\\controller\\VendorController@detail'); // 获取供应商详情
+        Route::post('order', 'app\\store\\controller\\VendorController@createOrder'); // 创建订单
+    });
 })->middleware(['jwt']);

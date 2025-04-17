@@ -3,11 +3,11 @@
 		<!-- 头部 -->
 		<view class="header">
 			<view class="back-icon" @tap="closePage">
-				<u-icon name="arrow-left" color="#333" size="26"></u-icon>
+				<text class="uni-icons-arrow-left" style="font-size: 26px; color: #333;">&#xe6db;</text>
 			</view>
 			<view class="title">{{packageData.name}}</view>
 			<view class="close-icon" @tap="closePage">
-				<u-icon name="close" color="#333" size="24"></u-icon>
+				<text class="uni-icons-close" style="font-size: 24px; color: #333;">&#xe607;</text>
 			</view>
 		</view>
 		
@@ -216,17 +216,6 @@
 		background-color: #f5f7fa;
 		z-index: 10000;
 		overflow-y: auto;
-		transform-origin: right;
-		animation: slideInFromRight 0.3s ease;
-	}
-	
-	@keyframes slideInFromRight {
-		from {
-			transform: translateX(100%);
-		}
-		to {
-			transform: translateX(0);
-		}
 	}
 	
 	.header {

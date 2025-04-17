@@ -60,11 +60,12 @@ export function DeviceSelectionDialog({ open, onOpenChange, selectedDevices, onS
       if (response.code === 200 && response.data.list) {
         const transformedDevices: Device[] = response.data.list.map(device => ({
           id: device.id,
-          name: device.memo || device.imei || '',
+          name: device.memo || '设备_' + device.id,
           imei: device.imei || '',
-          wxid: device.wechatId || '',
+          wxid: device.alias || device.wechatId || '',
           status: device.alive === 1 ? "online" : "offline",
-          totalFriend: device.totalFriend || 0
+          totalFriend: device.totalFriend || 0,
+          nickname: device.nickname || ''
         }))
         setDevices(transformedDevices)
       } else {
@@ -175,7 +176,7 @@ export function DeviceSelectionDialog({ open, onOpenChange, selectedDevices, onS
                     </div>
                     <div className="text-sm text-gray-500 mt-1">
                       <div>IMEI: {device.imei || '--'}</div>
-                      <div>微信号: {device.wxid || '--'}</div>
+                      <div>微信号: {device.wxid || '--'}（{device.nickname || ''}）</div>
                     </div>
                   </div>
                 </label>

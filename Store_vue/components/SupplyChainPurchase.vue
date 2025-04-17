@@ -4,16 +4,29 @@
 			<!-- 头部 -->
 			<view class="header">
 				<view class="back-icon" @tap="closePage">
-					<u-icon name="arrow-left" color="#333" size="26"></u-icon>
+					<text class="uni-icons-arrow-left" style="font-size: 26px; color: #333;">&#xe6db;</text>
 				</view>
 				<view class="title">供应链采购</view>
 				<view class="close-icon" @tap="closePage">
-					<u-icon name="close" color="#333" size="24"></u-icon>
+					<text class="uni-icons-close" style="font-size: 24px; color: #333;">&#xe607;</text>
 				</view>
 			</view>
 			
+			<!-- 加载状态 -->
+			<view v-if="loading && packages.length === 0" class="loading-container">
+				<u-loading size="34" mode="circle" color="#CA8A04"></u-loading>
+				<text class="loading-text">加载中...</text>
+			</view>
+			
+			<!-- 错误提示 -->
+			<view v-else-if="error" class="error-container">
+				<u-icon name="error-circle" size="40" color="#ff4d4f"></u-icon>
+				<text class="error-text">{{error}}</text>
+				<button class="retry-button" @tap="fetchVendorList">重试</button>
+			</view>
+			
 			<!-- 套餐卡片区域 -->
-			<view class="package-list">
+			<view v-else class="package-list">
 				<view 
 					v-for="item in packages" 
 					:key="item.id" 
@@ -29,7 +42,7 @@
 						<view class="package-info">
 							<view class="package-name">
 								{{item.name}}
-								<text v-if="item.specialTag" class="special-tag">{{item.specialTag}}</text>
+								<text v-if="item.tags && item.tags.length > 0" class="special-tag">{{item.tags[0]}}</text>
 							</view>
 							<view class="package-price">
 								<text class="price-value">¥{{item.price}}</text>
@@ -37,8 +50,23 @@
 							</view>
 							<view class="advance-payment" v-if="item.advancePayment">预付款: ¥{{item.advancePayment}}</view>
 						</view>
-						<view class="discount-tag" v-if="item.discount">{{item.discount}}</view>
+						<view class="discount-tag" v-if="item.discount">{{(parseFloat(item.discount) * 10).toFixed(2)}}折</view>
 					</view>
+				</view>
+				
+				<!-- 加载更多 -->
+				<view class="load-more" v-if="hasMore">
+					<u-loadmore
+						:status="loadMoreStatus"
+						@loadmore="loadMore"
+						icon-type="flower"
+						color="#CA8A04"
+					></u-loadmore>
+				</view>
+				
+				<!-- 无数据提示 -->
+				<view v-if="packages.length === 0 && !loading" class="no-data">
+					<u-empty text="暂无供应商数据" mode="data"></u-empty>
 				</view>
 			</view>
 		</view>
@@ -54,6 +82,7 @@
 
 <script>
 	import SupplyItemDetail from './SupplyItemDetail.vue';
+	import { supplyApi } from '../api/modules/supply';
 	
 	export default {
 		name: 'SupplyChainPurchase',
@@ -69,163 +98,28 @@
 		data() {
 			return {
 				// 套餐数据
-				packages: [
-					{
-						id: 1,
-						name: '基础套餐',
-						price: '2980',
-						originalPrice: '3725',
-						discount: '8折',
-						specialTag: '',
-						advancePayment: '745',
-						services: [
-							{
-								name: '头部护理SPA',
-								price: '598',
-								originalPrice: '718',
-								duration: '60分钟',
-								image: '/static/spa1.png'
-							},
-							{
-								name: '臂油SPA',
-								price: '618',
-								originalPrice: '838',
-								duration: '90分钟',
-								image: '/static/spa2.png'
-							},
-							{
-								name: '法/LAWF型颜度护理',
-								price: '1580',
-								originalPrice: '1896',
-								duration: '120分钟',
-								image: '/static/spa3.png'
-							}
-						],
-						details: [
-							{ label: '采购额度', value: '3000元' },
-							{ label: '套餐时长', value: '30天' },
-							{ label: '采购种类', value: '标准品类' }
-						],
-						privileges: [
-							'标准采购价格',
-							'7天内发货',
-							'基础供应商渠道'
-						]
-					},
-					{
-						id: 2,
-						name: '进级套餐',
-						price: '6980',
-						originalPrice: '9971',
-						discount: '7折',
-						specialTag: '',
-						advancePayment: '',
-						services: [
-							{
-								name: '进阶头部护理SPA',
-								price: '898',
-								originalPrice: '1218',
-								duration: '90分钟',
-								image: '/static/spa1.png'
-							},
-							{
-								name: '全身SPA',
-								price: '1618',
-								originalPrice: '2138',
-								duration: '120分钟',
-								image: '/static/spa2.png'
-							},
-							{
-								name: '高级LAWF型颜度护理',
-								price: '2880',
-								originalPrice: '3596',
-								duration: '150分钟',
-								image: '/static/spa3.png'
-							},
-							{
-								name: '肌肤管理',
-								price: '1290',
-								originalPrice: '1590',
-								duration: '60分钟',
-								image: '/static/spa4.png'
-							}
-						],
-						details: [
-							{ label: '采购额度', value: '7000元' },
-							{ label: '套餐时长', value: '30天' },
-							{ label: '采购种类', value: '全部品类' }
-						],
-						privileges: [
-							'优惠采购价格',
-							'3天内发货',
-							'优质供应商渠道',
-							'专属采购顾问'
-						]
-					},
-					{
-						id: 3,
-						name: '尊享套餐',
-						price: '19800',
-						originalPrice: '33000',
-						discount: '6折',
-						specialTag: '品优惠',
-						advancePayment: '',
-						services: [
-							{
-								name: '尊享头部护理SPA',
-								price: '1298',
-								originalPrice: '1818',
-								duration: '120分钟',
-								image: '/static/spa1.png'
-							},
-							{
-								name: '尊享全身SPA',
-								price: '2618',
-								originalPrice: '3738',
-								duration: '180分钟',
-								image: '/static/spa2.png'
-							},
-							{
-								name: '奢华LAWF型颜度护理',
-								price: '4880',
-								originalPrice: '6996',
-								duration: '210分钟',
-								image: '/static/spa3.png'
-							},
-							{
-								name: '尊享肌肤管理',
-								price: '2490',
-								originalPrice: '3290',
-								duration: '90分钟',
-								image: '/static/spa4.png'
-							},
-							{
-								name: '私人定制美容方案',
-								price: '5990',
-								originalPrice: '8990',
-								duration: '全天候',
-								image: '/static/spa5.png'
-							}
-						],
-						details: [
-							{ label: '采购额度', value: '20000元' },
-							{ label: '套餐时长', value: '30天' },
-							{ label: '采购种类', value: '全部品类(含限定)' }
-						],
-						privileges: [
-							'最优采购价格',
-							'24小时内发货',
-							'顶级供应商渠道',
-							'一对一专属顾问',
-							'供应链优化方案',
-							'库存管理系统'
-						]
-					}
-				],
+				packages: [],
 				// 套餐详情页面
 				showPackageDetail: false,
 				// 当前选中的套餐
-				currentPackage: null
+				currentPackage: null,
+				// 分页相关
+				currentPage: 1,
+				pageSize: 10,
+				total: 0,
+				hasMore: true,
+				// 加载状态
+				loading: false,
+				loadMoreStatus: 'loading', // 'loading', 'nomore', 'loadmore'
+				// 错误信息
+				error: null
+			}
+		},
+		watch: {
+			show(newVal) {
+				if (newVal && this.packages.length === 0) {
+					this.fetchVendorList();
+				}
 			}
 		},
 		methods: {
@@ -240,6 +134,72 @@
 			// 关闭套餐详情
 			closePackageDetail() {
 				this.showPackageDetail = false;
+			},
+			// 获取供应商套餐数据
+			async fetchVendorList(isLoadMore = false) {
+				if (this.loading) return;
+				
+				this.loading = true;
+				if (!isLoadMore) this.error = null;
+				
+				if (!isLoadMore) {
+					uni.showLoading({
+						title: '加载中...',
+						mask: true
+					});
+				}
+				
+				try {
+					const response = await supplyApi.getVendorList(this.currentPage, this.pageSize);
+					
+					if (response.code === 200) {
+						// 处理返回的数据，注意接口返回的数据有嵌套的list字段
+						const list = response.data.list || [];
+						const newPackages = list.map(item => ({
+							id: item.id,
+							userId: item.userId,
+							companyId: item.companyId,
+							name: item.name,
+							price: parseFloat(item.price).toFixed(2),
+							originalPrice: parseFloat(item.originalPrice).toFixed(2),
+							discount: item.discount,
+							advancePayment: item.advancePayment ? parseFloat(item.advancePayment).toFixed(2) : '',
+							tags: item.tags,
+							description: item.description,
+							cover: item.cover,
+							status: item.status,
+							createTime: item.createTime,
+							updateTime: item.updateTime
+						}));
+						
+						if (isLoadMore) {
+							this.packages = [...this.packages, ...newPackages];
+						} else {
+							this.packages = newPackages;
+						}
+						
+						// 更新分页信息
+						this.total = response.data.total || 0;
+						this.hasMore = this.packages.length < this.total;
+						this.loadMoreStatus = this.hasMore ? 'loadmore' : 'nomore';
+					} else {
+						this.error = response.msg || '获取数据失败';
+					}
+				} catch (err) {
+					this.error = '获取供应商数据失败，请稍后重试';
+					console.error('获取供应商数据错误:', err);
+				} finally {
+					this.loading = false;
+					if (!isLoadMore) uni.hideLoading();
+				}
+			},
+			// 加载更多
+			loadMore() {
+				if (!this.hasMore || this.loading) return;
+				
+				this.loadMoreStatus = 'loading';
+				this.currentPage++;
+				this.fetchVendorList(true);
 			}
 		}
 	}
@@ -255,17 +215,6 @@
 		background-color: #fff;
 		z-index: 10000;
 		overflow-y: auto;
-		transform-origin: right;
-		animation: slideInFromRight 0.3s ease;
-	}
-	
-	@keyframes slideInFromRight {
-		from {
-			transform: translateX(100%);
-		}
-		to {
-			transform: translateX(0);
-		}
 	}
 	
 	.header {
@@ -420,5 +369,55 @@
 		position: relative;
 		width: 100%;
 		height: 100%;
+	}
+	
+	/* 加载状态 */
+	.loading-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 60px 0;
+	}
+	
+	.loading-text {
+		margin-top: 15px;
+		font-size: 14px;
+		color: #666;
+	}
+	
+	/* 错误提示 */
+	.error-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 60px 0;
+	}
+	
+	.error-text {
+		margin: 15px 0;
+		font-size: 14px;
+		color: #ff4d4f;
+	}
+	
+	.retry-button {
+		padding: 6px 20px;
+		font-size: 14px;
+		color: #fff;
+		background-color: #CA8A04;
+		border-radius: 4px;
+	}
+	
+	/* 加载更多 */
+	.load-more {
+		padding: 10px 0;
+		text-align: center;
+	}
+	
+	/* 无数据提示 */
+	.no-data {
+		padding: 40px 0;
+		text-align: center;
 	}
 </style> 
