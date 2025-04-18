@@ -3,12 +3,15 @@
 namespace app\common\model;
 
 use think\Model;
+use think\model\concern\SoftDelete;
 
 /**
  * 设备模型类
  */
 class Device extends Model
 {
+    use SoftDelete;
+
     // 设置表名
     protected $name = 'device';
 
@@ -16,4 +19,5 @@ class Device extends Model
     protected $autoWriteTimestamp = true;
     protected $createTime = 'createTime';
     protected $updateTime = 'updateTime';
+    protected $deleteTime = 'deleteTime';
 } 

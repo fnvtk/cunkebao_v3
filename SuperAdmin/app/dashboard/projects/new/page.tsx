@@ -64,9 +64,9 @@ export default function NewProjectPage() {
           account: formData.account,
           password: formData.password,
           realName: formData.realName,
-          nickname: formData.nickname,
+          username: formData.nickname,
           description: formData.description,
-          status: formData.status // 添加状态参数
+          status: formData.status
         }),
       })
 
