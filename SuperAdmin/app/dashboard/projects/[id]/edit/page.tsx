@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,58 +10,110 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Plus, Trash } from "lucide-react"
 import Link from "next/link"
+import { toast, Toaster } from "sonner"
 
-// Sample project data for editing
-const projectData = {
-  id: "1",
-  name: "电商平台项目",
-  phone: "13800138000",
-  account: "ecommerce_admin",
-  description: "这是一个电商平台推广项目，主要针对年轻用户群体，通过微信社交渠道进行产品推广和销售转化。",
-  devices: [
-    { id: "d1", name: "iPhone 13 Pro" },
-    { id: "d2", name: "Huawei P40" },
-    { id: "d3", name: "Samsung S21" },
-  ],
+interface Device {
+  id: number
+  memo: string
 }
 
 export default function EditProjectPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [projectName, setProjectName] = useState(projectData.name)
-  const [phone, setPhone] = useState(projectData.phone)
-  const [account, setAccount] = useState(projectData.account)
-  const [description, setDescription] = useState(projectData.description)
-  const [devices, setDevices] = useState(projectData.devices)
+  const [isLoading, setIsLoading] = useState(true)
+  const [projectName, setProjectName] = useState("")
+  const [account, setAccount] = useState("")
+  const [description, setDescription] = useState("")
+  const [devices, setDevices] = useState<Device[]>([])
+  const [realName, setRealName] = useState("")
+  const [nickname, setNickname] = useState("")
+  const [status, setStatus] = useState("1")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
 
-  const handleAddDevice = () => {
-    setDevices([...devices, { id: Date.now().toString(), name: "" }])
-  }
+  useEffect(() => {
+    const fetchProjectDetail = async () => {
+      try {
+        const response = await fetch(`http://yishi.com/company/detail/${params.id}`)
+        const data = await response.json()
 
-  const handleRemoveDevice = (id: string) => {
-    setDevices(devices.filter((device) => device.id !== id))
-  }
+        if (data.code === 200) {
+          setProjectName(data.data.name || "")
+          setAccount(data.data.account || "")
+          setDescription(data.data.memo || "")
+          setDevices(data.data.devices || [])
+          setRealName(data.data.realName || "")
+          setNickname(data.data.username || "")
+          setStatus(data.data.status.toString())
+        } else {
+          toast.error(data.msg || "获取项目信息失败")
+        }
+      } catch (error) {
+        toast.error("网络错误，请稍后重试")
+      } finally {
+        setIsLoading(false)
+      }
+    }
 
-  const handleDeviceChange = (id: string, value: string) => {
-    setDevices(devices.map((device) => (device.id === id ? { ...device, name: value } : device)))
-  }
+    fetchProjectDetail()
+  }, [params.id])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (password && password !== confirmPassword) {
+      toast.error("两次输入的密码不一致")
+      return
+    }
+    
     setIsSubmitting(true)
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const response = await fetch(`http://yishi.com/company/update/${params.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: projectName,
+          account,
+          memo: description,
+          realName,
+          username: nickname,
+          status: parseInt(status),
+          ...(password && { password })
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.code === 200) {
+        toast.success("更新成功")
+        router.push("/dashboard/projects")
+      } else {
+        toast.error(data.msg)
+      }
+    } catch (error) {
+      toast.error("网络错误，请稍后重试")
+    } finally {
       setIsSubmitting(false)
-      router.push(`/dashboard/projects/${params.id}`)
-    }, 1500)
+    }
+  }
+
+  const handleAddDevice = () => {
+    router.push(`/dashboard/projects/${params.id}/devices/new`)
+  }
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">加载中...</div>
   }
 
   return (
     <div className="space-y-6">
+      <Toaster richColors position="top-center" />
       <div className="flex items-center gap-2">
         <Button variant="outline" size="icon" asChild>
-          <Link href={`/dashboard/projects/${params.id}`}>
+          <Link href="/dashboard/projects">
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
@@ -89,23 +140,70 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
 
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="phone">手机号</Label>
+                <Label htmlFor="account">账号</Label>
                 <Input
-                  id="phone"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  id="account"
+                  type="number"
+                  value={account}
+                  onChange={(e) => setAccount(e.target.value)}
                   placeholder="请输入手机号"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="account">账号</Label>
+                <Label htmlFor="status">状态</Label>
+                <select
+                  id="status"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="1">启用</option>
+                  <option value="0">禁用</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">密码</Label>
                 <Input
-                  id="account"
-                  value={account}
-                  onChange={(e) => setAccount(e.target.value)}
-                  placeholder="请输入账号"
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="不修改请留空"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">确认密码</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="不修改请留空"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="realName">真实姓名</Label>
+                <Input
+                  id="realName"
+                  value={realName}
+                  onChange={(e) => setRealName(e.target.value)}
+                  placeholder="请输入真实姓名"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="nickname">昵称</Label>
+                <Input
+                  id="nickname"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="请输入昵称"
                   required
                 />
               </div>
@@ -114,16 +212,12 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
             <div className="space-y-2">
               <Label>关联设备</Label>
               <div className="space-y-3">
-                {devices.map((device, index) => (
+                {devices.length > 0 && devices.map((device) => (
                   <div key={device.id} className="flex items-center gap-2">
                     <Input
-                      placeholder={`设备 ${index + 1} 名称`}
-                      value={device.name}
-                      onChange={(e) => handleDeviceChange(device.id, e.target.value)}
+                      value={device.memo}
+                      readOnly
                     />
-                    <Button type="button" variant="outline" size="icon" onClick={() => handleRemoveDevice(device.id)}>
-                      <Trash className="h-4 w-4" />
-                    </Button>
                   </div>
                 ))}
                 <Button type="button" variant="outline" onClick={handleAddDevice} className="flex items-center gap-1">
@@ -145,7 +239,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
             <Button variant="outline" asChild>
-              <Link href={`/dashboard/projects/${params.id}`}>取消</Link>
+              <Link href="/dashboard/projects">取消</Link>
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? "保存中..." : "保存修改"}
