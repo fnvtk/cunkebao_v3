@@ -100,6 +100,7 @@ class AccountController extends BaseController
             $memo = $this->request->param('memo', '');
             $departmentId = $this->request->param('departmentId', 0);
 
+
             // 参数验证
             if (empty($userName)) {
                 return errorJson('用户名不能为空');
@@ -120,6 +121,14 @@ class AccountController extends BaseController
             if (empty($departmentId)) {
                 return errorJson('公司ID不能为空');
             }
+
+            // 检查账号是否已存在
+            $existingAccount = CompanyAccountModel::where('userName', $userName)->find();
+            if(!empty($existingAccount)){
+                return successJson($existingAccount);
+            }
+
+
 
             // 构建请求参数
             $params = [
