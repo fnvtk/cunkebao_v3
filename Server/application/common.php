@@ -517,15 +517,6 @@ if (!function_exists('exit_data')) {
 }
 
 /**
- * 调试打印变量并终止程序
- * @return void
- */
-function dd()
-{
-    call_user_func_array(['app\\common\\helper\\Debug', 'dd'], func_get_args());
-}
-
-/**
  * 调试打印变量但不终止程序
  * @return void
  */

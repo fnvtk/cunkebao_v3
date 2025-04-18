@@ -6,7 +6,9 @@ use app\common\model\Company as CompanyModel;
 use app\common\model\User as UsersModel;
 use app\library\s2\CurlHandle;
 use app\superadmin\controller\BaseController;
+use Eison\Utils\Helper\ArrHelper;
 use think\Db;
+use think\facade\Env;
 use think\Validate;
 
 /**
@@ -15,60 +17,28 @@ use think\Validate;
 class CreateCompanyController extends BaseController
 {
     /**
-     * 获取 CURL
-     *
-     * @return CurlHandle|null
-     */
-    protected function getCurl()
-    {
-        return CurlHandle::getInstant()->setMethod('post')->setBaseUrl('http://yishi.com/');
-    }
-
-    /**
      * S2 创建部门并返回id
      *
      * @param array $params
      * @return array
      */
-    protected function s2CreateDepartment(array $params): array
+    protected function s2CreateDepartment(array $params): ?array
     {
-        $response = $this->getCurl()->setMethod('post')->send('v1/api/account/department/create', [
-            'name' => $params['name'],
-            'memo' => $params['description'],
-        ]);
+        $params = ArrHelper::getValue('name=departmentName,memo=departmentMemo,account=accountName,password=accountPassword,realName=accountRealName,nickname=accountNickname,accountMemo', $params);
+
+        // 创建公司部门
+        $response = CurlHandle::getInstant()
+            ->setBaseUrl(Env::get('rpc.API_BASE_URL'))
+            ->setMethod('post')
+            ->send('/v1/api/account/createNewAccount', $params);
 
         $result = json_decode($response, true);
 
         if ($result['code'] != 200) {
-            throw new \Exception($result['msg'], '20011');
+            throw new \Exception($result['msg'], 210 . $result['code']);
         }
 
-        return $result['data'];
-    }
-
-    /**
-     * S2 创建部门账号
-     *
-     * @param array $params
-     * @param int $departmentId
-     * @return array
-     * @throws \Exception
-     */
-    protected function s2CreateUserAccountWithinDepartment(array $params, int $departmentId): array
-    {
-        $response = $this->getCurl()->send('v1/api/account/create', [
-            'userName' => $params['account'],
-            'password' => $params['password'],
-            'realName' => $params['realName'],
-            'nickname' => $params['nickname'],
-            'departmentId' => $departmentId
-        ]);
-
-        $result = json_decode($response, true);
-
-        if ($result['code'] != 200) {
-            throw new \Exception($result['msg'], '20011');
-        }
+        return $result['data'] ?: null;
     }
 
     /**
@@ -84,9 +54,19 @@ class CreateCompanyController extends BaseController
             'name' => 'require|max:50|/\S+/',
             'nickname' => 'require|max:20|/\S+/',
             'account' => 'require|regex:/^1[3-9]\d{9}$/',
+            'status' => 'require|in:0,1',
             'password' => 'require|/\S+/',
             'realName' => 'require|/\S+/',
-            'description' => 'require|/\S+/',
+            'memo' => '/\S+/',
+        ], [
+            'name.require' => '请输入项目名称',
+            'nickname.require' => '请输入用户昵称',
+            'account.require' => '请输入账号',
+            'account.regex' => '账号为手机号',
+            'status.require' => '缺少重要参数',
+            'status.in' => '非法参数',
+            'password.require' => '请输入密码',
+            'realName.require' => '请输入真实姓名',
         ]);
 
         if (!$validate->check($params)) {
@@ -105,31 +85,29 @@ class CreateCompanyController extends BaseController
      */
     protected function creatS2About(array $params): array
     {
-        // 1. 调用创建部门接口
         $department = $this->s2CreateDepartment($params);
 
-        // 2. 调用创建账号接口
-        $this->s2CreateUserAccountWithinDepartment($params, $department['id']);
+        if (!$department || !isset($department['id']) || !isset($department['departmentId'])) {
+            throw new \Exception('S2返参异常', 210402);
+        }
 
-        return $department;
+        return array_merge($params, [
+            'companyId' => $department['departmentId'],
+            's2_accountId' => $department['id'],
+        ]);
     }
 
     /**
      * 存客宝创建项目
      *
      * @param array $params
-     * @return array
+     * @return void
      * @throws \Exception
      */
-    protected function ckbCreateCompany(array $params): array
+    protected function ckbCreateCompany(array $params): void
     {
-        $result = CompanyModel::create(
-            [
-                'companyId' => $departmentData['id'],
-                'name' => $departmentData['name'],
-                'mome' => $departmentData['memo']
-            ]
-        );
+        $params = ArrHelper::getValue('companyId,name,memo,status', $params);
+        $result = CompanyModel::create($params);
 
         if (!$result) {
             throw new \Exception('创建公司记录失败', 402);
@@ -140,19 +118,18 @@ class CreateCompanyController extends BaseController
      * 存客宝创建账号
      *
      * @param array $params
-     * @return array
+     * @return void
      * @throws \Exception
      */
-    protected function ckbCreateUser(array $params): array
+    protected function ckbCreateUser(array $params): void
     {
-        $result = UsersModel::create(
-            [
-                'account' => $params['account'],
-                'passwordMd5' => md5($params['password']),
-                'passwordLocal' => $params['password'],
-                'companyId' => $departmentData['data']['id']
-            ]
-        );
+        $params = ArrHelper::getValue('nickname=username,account,password=passwordLocal,companyId,s2_accountId,status', $params);
+
+        $result = UsersModel::create(array_merge($params, [
+            'passwordMd5' => md5($params['passwordLocal']),
+            'isAdmin' => 1,  // 主要账号默认1
+            'typeId'  => 1,  // 类型：运营后台/操盘手传1、 门店传2
+        ]));
 
         if (!$result) {
             throw new \Exception('创建用户记录失败', 402);
@@ -161,38 +138,37 @@ class CreateCompanyController extends BaseController
 
     /**
      * @param array $params
-     * @return array
+     * @return void
      * @throws \Exception
      */
-    protected function createCkbAbout(array $params): array
+    protected function createCkbAbout(array $params)
     {
         // 1. 存客宝创建项目
         $this->ckbCreateCompany($params);
 
         // 2. 存客宝创建操盘手总账号
-        $this->ckbCreateUser();
+        $this->ckbCreateUser($params);
     }
 
     /**
      * 创建新项目
+     *
      * @return \think\response\Json
      */
     public function index()
     {
         try {
-            $params = $this->request->only(['name', 'nickname', 'account', 'password', 'realName', 'description']);
-
-            $department = $this->dataValidate($params)->creatS2About($params);
+            $params = $this->request->only(['name', 'status', 'nickname', 'account', 'password', 'realName', 'memo']);
+            $params = $this->dataValidate($params)->creatS2About($params);
 
             Db::startTrans();
-            $this->createCkbAbout($department);
+            $this->createCkbAbout($params);
             Db::commit();
 
             return json([
                 'code' => 200,
                 'msg' => '创建成功'
             ]);
-
         } catch (\Exception $e) {
             Db::rollback();
 

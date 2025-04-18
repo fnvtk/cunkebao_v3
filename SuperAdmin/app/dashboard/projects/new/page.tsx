@@ -23,7 +23,8 @@ export default function NewProjectPage() {
     confirmPassword: "",
     realName: "",
     nickname: "",
-    description: ""
+    description: "",
+    status: "1" // 默认启用
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -31,6 +32,13 @@ export default function NewProjectPage() {
     setFormData(prev => ({
       ...prev,
       [id]: value
+    }))
+  }
+
+  const handleStatusChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      status: value
     }))
   }
 
@@ -57,7 +65,8 @@ export default function NewProjectPage() {
           password: formData.password,
           realName: formData.realName,
           nickname: formData.nickname,
-          description: formData.description
+          description: formData.description,
+          status: formData.status // 添加状态参数
         }),
       })
 
@@ -111,11 +120,25 @@ export default function NewProjectPage() {
                 <Label htmlFor="account">账号</Label>
                 <Input 
                   id="account" 
-                  placeholder="请输入账号" 
+                  type="number"
+                  placeholder="请输入手机号" 
                   required 
                   value={formData.account}
                   onChange={handleChange}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="status">状态</Label>
+                <Select value={formData.status} onValueChange={handleStatusChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择状态" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">启用</SelectItem>
+                    <SelectItem value="0">禁用</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
