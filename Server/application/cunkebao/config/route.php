@@ -64,4 +64,9 @@ Route::group('v1/', function () {
         Route::post('update', 'app\\cunkebao\\controller\\ContentLibraryController@update'); // 更新内容库
         Route::delete('delete', 'app\\cunkebao\\controller\\ContentLibraryController@delete'); // 删除内容库
     });
+
+    // 好友相关
+    Route::group('friend', function () {
+        Route::get('', 'app\\cunkebao\\controller\\FriendController@index'); // 获取好友列表
+    });
 })->middleware(['jwt']);

@@ -10,3 +10,4 @@ Server/.specstory/
 Store_vue/.specstory/
 *.zip
 *.cursorindexingignore
+*.md
