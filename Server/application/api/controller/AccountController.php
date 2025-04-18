@@ -26,10 +26,6 @@ class AccountController extends BaseController
     public function getlist($pageIndex = '', $pageSize = '', $isJob = false)
     {
 
-        $api = new AccountLogic();
-        $api->login()->create();
-
-
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
@@ -284,7 +280,7 @@ class AccountController extends BaseController
                 return successJson($res, '账号创建成功');
             } else {
                 // 如果创建账号失败，删除已创建的部门
-                $this->deleteDepartment($departmentResult);
+                $this->deleteDepartment($accountResult);
                 DB::rollback();
                 return errorJson('创建账号失败：' . $accountResult);
             }
@@ -329,6 +325,7 @@ class AccountController extends BaseController
 
             // 保存数据到数据库
             if (!empty($response)) {
+                CompanyModel::where('1=1')->delete();
                 $this->processDepartments($response);
             }
 
@@ -506,7 +503,7 @@ class AccountController extends BaseController
             $header = setHeader($headerData, $authorization, 'json');
 
             // 发送删除请求
-            $result = requestCurl($this->baseUrl . 'api/Department/del/' . $id, [], 'DELETE', $header, 'json');
+            $result = requestCurl($this->baseUrl . 'api/Department/del/' . $id, [], 'DELETE', $header);
 
             if ($result) {
                 return errorJson($result);
