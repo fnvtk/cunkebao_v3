@@ -67,6 +67,6 @@ Route::group('v1/', function () {
 
     // 好友相关
     Route::group('friend', function () {
-        Route::get('', 'app\\cunkebao\\controller\\FriendController@index'); // 获取好友列表
+        Route::get('', 'app\\cunkebao\\controller\\friend\\GetFriendListV1Controller@index'); // 获取好友列表
     });
 })->middleware(['jwt']);

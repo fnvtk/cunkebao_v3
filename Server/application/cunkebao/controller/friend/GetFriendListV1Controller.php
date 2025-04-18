@@ -19,6 +19,9 @@ class GetFriendListV1Controller extends BaseController
      */
     public function index()
     {
+        $page = $this->request->param('page',1);
+        $limit = $this->request->param('limit',20);
+
         try {
 
             $where = [];
@@ -26,8 +29,11 @@ class GetFriendListV1Controller extends BaseController
                 $where['companyId'] = $this->getUserInfo('companyId');
             } else {
                 $where['companyId'] = $this->getUserInfo('companyId');
-                $where['userId'] = $this->getUserInfo('id');
+                //$where['userId'] = $this->getUserInfo('id');
             }
+
+            print_r($where);
+            exit;
 
 
             $data = WechatFriend::alias('wf')
@@ -36,6 +42,8 @@ class GetFriendListV1Controller extends BaseController
                 ->leftJoin('wechat_account wa2','wf.ownerWechatId = wa2.wechatId')
                 ->where($where);
 
+            $total = $data->count();
+            $list = $data->page($page, $limit)->select();
 
 
 
@@ -44,8 +52,8 @@ class GetFriendListV1Controller extends BaseController
                 'code' => 200,
                 'msg' => '获取成功',
                 'data' => [
-                    'list' => $data->select(),
-                    'total' => $data->total(),
+                    'list' => $list,
+                    'total' => $total,
                 ]
             ]);
         } catch (\Exception $e) {
