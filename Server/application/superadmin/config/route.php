@@ -36,6 +36,6 @@ Route::group('', function () {
     Route::group('company', function () {
         Route::post('create', 'app\superadmin\controller\company\CreateCompanyController@index');
         Route::get('list', 'app\superadmin\controller\CompanyController@getList');
-        Route::get('detail/:id', 'app\superadmin\controller\CompanyController@getDetail');
+        Route::get('detail/:id', 'app\superadmin\controller\company\GetCompanyDetailForUpdateController@index');
     });
 })->middleware(['app\superadmin\middleware\AdminAuth']); 

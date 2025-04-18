@@ -24,7 +24,7 @@ class CreateCompanyController extends BaseController
      */
     protected function s2CreateDepartment(array $params): ?array
     {
-        $params = ArrHelper::getValue('name=departmentName,memo=departmentMemo,account=accountName,password=accountPassword,realName=accountRealName,nickname=accountNickname,accountMemo', $params);
+        $params = ArrHelper::getValue('name=departmentName,memo=departmentMemo,account=accountName,password=accountPassword,realName=accountRealName,username=accountNickname,accountMemo', $params);
 
         // 创建公司部门
         $response = CurlHandle::getInstant()
@@ -52,7 +52,7 @@ class CreateCompanyController extends BaseController
     {
         $validate = Validate::make([
             'name' => 'require|max:50|/\S+/',
-            'nickname' => 'require|max:20|/\S+/',
+            'username' => 'require|max:20|/\S+/',
             'account' => 'require|regex:/^1[3-9]\d{9}$/',
             'status' => 'require|in:0,1',
             'password' => 'require|/\S+/',
@@ -60,7 +60,7 @@ class CreateCompanyController extends BaseController
             'memo' => '/\S+/',
         ], [
             'name.require' => '请输入项目名称',
-            'nickname.require' => '请输入用户昵称',
+            'username.require' => '请输入用户昵称',
             'account.require' => '请输入账号',
             'account.regex' => '账号为手机号',
             'status.require' => '缺少重要参数',
@@ -123,7 +123,10 @@ class CreateCompanyController extends BaseController
      */
     protected function ckbCreateUser(array $params): void
     {
-        $params = ArrHelper::getValue('nickname=username,account,password=passwordLocal,companyId,s2_accountId,status', $params);
+        $params = ArrHelper::getValue(
+            'username,account,password=passwordLocal,companyId,s2_accountId,status,realName',
+            $params
+        );
 
         $result = UsersModel::create(array_merge($params, [
             'passwordMd5' => md5($params['passwordLocal']),
@@ -158,7 +161,7 @@ class CreateCompanyController extends BaseController
     public function index()
     {
         try {
-            $params = $this->request->only(['name', 'status', 'nickname', 'account', 'password', 'realName', 'memo']);
+            $params = $this->request->only(['name', 'status', 'username', 'account', 'password', 'realName', 'memo']);
             $params = $this->dataValidate($params)->creatS2About($params);
 
             Db::startTrans();
