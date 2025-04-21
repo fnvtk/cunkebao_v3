@@ -111,6 +111,24 @@ class ContentLibraryController extends Controller
         $library['timeEnd'] = date('Y-m-d', $library['timeEnd']);
     }
 
+    // 获取好友详细信息
+    if (!empty($library['sourceFriends'])) {
+        $friendIds = $library['sourceFriends'];
+        $friendsInfo = [];
+        
+        if (!empty($friendIds)) {
+            // 查询好友信息，使用wechat_account表
+            $friendsInfo = Db::name('wechat_account')
+                ->field('wechatId, nickname, avatar')
+                ->whereIn('wechatId', $friendIds)
+                ->select();
+        }
+        
+        // 将好友信息添加到返回数据中
+        $library['selectedFriends'] = $friendsInfo;
+    }
+
+
 
         return json([
             'code' => 200, 
