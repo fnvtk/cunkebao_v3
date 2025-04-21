@@ -90,7 +90,7 @@ class ContentLibraryController extends Controller
             ['userId', '=', $this->request->userInfo['id']],
             ['isDel', '=', 0]  // 只查询未删除的记录
         ])
-        ->field('id,name,sourceFriends,sourceGroups,keywordInclude,keywordExclude,aiEnabled,aiPrompt,timeEnabled,timeStart,timeEnd,status,userId,companyId,createTime,updateTime')
+        ->field('id,name,sourceType,sourceFriends,sourceGroups,keywordInclude,keywordExclude,aiEnabled,aiPrompt,timeEnabled,timeStart,timeEnd,status,userId,companyId,createTime,updateTime')
         ->find();
 
         if (empty($library)) {
@@ -102,6 +102,15 @@ class ContentLibraryController extends Controller
         $library['sourceGroups'] = json_decode($library['sourceGroups'] ?: '[]', true);
         $library['keywordInclude'] = json_decode($library['keywordInclude'] ?: '[]', true);
         $library['keywordExclude'] = json_decode($library['keywordExclude'] ?: '[]', true);
+
+    // 将时间戳转换为日期格式（精确到日）
+    if (!empty($library['timeStart'])) {
+        $library['timeStart'] = date('Y-m-d', $library['timeStart']);
+    }
+    if (!empty($library['timeEnd'])) {
+        $library['timeEnd'] = date('Y-m-d', $library['timeEnd']);
+    }
+
 
         return json([
             'code' => 200, 

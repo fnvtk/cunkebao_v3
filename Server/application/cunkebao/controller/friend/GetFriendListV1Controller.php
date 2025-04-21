@@ -21,25 +21,30 @@ class GetFriendListV1Controller extends BaseController
     {
         $page = $this->request->param('page',1);
         $limit = $this->request->param('limit',20);
-
+        $keyword = $this->request->param('keyword','');
         try {
 
             $where = [];
             if ($this->getUserInfo('isAdmin') == 1) {
-                $where['companyId'] = $this->getUserInfo('companyId');
+                $where['wf.companyId'] = $this->getUserInfo('companyId');
+                $where['wf.deleteTime'] = 0;
             } else {
-                $where['companyId'] = $this->getUserInfo('companyId');
+                $where['wf.companyId'] = $this->getUserInfo('companyId');
+                $where['wf.deleteTime'] = 0;
                 //$where['userId'] = $this->getUserInfo('id');
             }
 
-            print_r($where);
-            exit;
+
+            
+            if($keyword){
+                $where['wa1.nickname'] = ['like','%'.$keyword.'%'];
+            }
 
 
             $data = WechatFriend::alias('wf')
-                ->field(['wa1.nickname','wa1.avatar','wa1.alias','wa1.wechatId','wa2.nickname as ownerNickname','wa2.alias as ownerAlias','wf.createTime'])
-                ->leftJoin('wechat_account wa1','wf.wechatId = wa1.wechatId')
-                ->leftJoin('wechat_account wa2','wf.ownerWechatId = wa2.wechatId')
+                ->field(['wa1.nickname','wa1.avatar','wa1.alias','wf.wechatId','wa2.nickname as ownerNickname','wa2.alias as ownerAlias','wa2.wechatId as ownerWechatId','wf.createTime'])
+                ->Join('wechat_account wa1','wf.wechatId = wa1.wechatId')
+                ->Join('wechat_account wa2','wf.ownerWechatId = wa2.wechatId')
                 ->where($where);
 
             $total = $data->count();
