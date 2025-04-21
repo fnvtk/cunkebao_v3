@@ -19,4 +19,5 @@ return [
     'message:friendsList' => 'app\command\MessageFriendsListCommand', // 微信好友消息列表 √ 
     'message:chatroomList' => 'app\command\MessageChatroomListCommand', // 微信群聊消息列表 √
     'department:list' => 'app\command\DepartmentListCommand', // 部门列表 √
+    'content:sync' => 'app\command\SyncContentCommand', // 同步内容库 √
 ];
