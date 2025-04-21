@@ -7,6 +7,11 @@ Route::post('auth/login', 'app\superadmin\controller\auth\AuthLoginController@in
 
 // 需要登录认证的路由组
 Route::group('', function () {
+    // 仪表盘概述
+    Route::group('dashboard', function () {
+        Route::get('base', 'app\superadmin\controller\dashboard\GetBasestatisticsController@index');
+    });
+
     // 菜单管理相关路由
     Route::group('menu', function () {
         Route::get('tree', 'app\superadmin\controller\MenuController@getMenuTree');
