@@ -38,5 +38,6 @@ Route::group('', function () {
         Route::post('update', 'app\superadmin\controller\company\UpdateCompanyController@index');
         Route::get('list', 'app\superadmin\controller\company\GetCompanyListController@index');
         Route::get('detail/:id', 'app\superadmin\controller\company\GetCompanyDetailForUpdateController@index');
+        Route::post('delete/:id', 'app\superadmin\controller\company\DeleteCompanyController@index');
     });
-})->middleware(['app\superadmin\middleware\AdminAuth']); 
+})->middleware(['app\superadmin\middleware\AdminAuth']);
