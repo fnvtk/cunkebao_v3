@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
 
 interface Project {
   id: number
@@ -26,6 +27,7 @@ interface Project {
   memo: string | null
   userCount: number
   createTime: string
+  deviceCount: number
 }
 
 export default function ProjectsPage() {
@@ -138,8 +140,9 @@ export default function ProjectsPage() {
             <TableRow>
               <TableHead>项目名称</TableHead>
               <TableHead>状态</TableHead>
-              <TableHead className="text-center">用户数量</TableHead>
-              <TableHead className="text-center">创建时间</TableHead>
+              <TableHead>用户数量</TableHead>
+              <TableHead>设备数量</TableHead>
+              <TableHead>创建时间</TableHead>
               <TableHead className="text-right">操作</TableHead>
             </TableRow>
           </TableHeader>
@@ -154,8 +157,13 @@ export default function ProjectsPage() {
               projects.map((project) => (
                 <TableRow key={project.id}>
                   <TableCell className="font-medium">{project.name}</TableCell>
-                  <TableCell>{project.status === 1 ? '启用' : '禁用'}</TableCell>
+                  <TableCell>
+                    <Badge variant={project.status === 1 ? "default" : "secondary"}>
+                      {project.status === 1 ? "启用" : "禁用"}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-center">{project.userCount}</TableCell>
+                  <TableCell className="text-center">{project.deviceCount}</TableCell>
                   <TableCell className="text-center">{project.createTime}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
