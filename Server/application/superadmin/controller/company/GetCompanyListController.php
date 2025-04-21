@@ -3,8 +3,10 @@
 namespace app\superadmin\controller\company;
 
 use app\common\model\Company as CompanyModel;
+use app\common\model\Device as DeviceModel;
 use app\common\model\User as usersModel;
 use app\superadmin\controller\BaseController;
+use Eison\Utils\Helper\ArrHelper;
 
 /**
  * 公司控制器
@@ -28,6 +30,20 @@ class GetCompanyListController extends BaseController
 
         return array_merge($params, $where);
     }
+
+    /**
+     * 获取设备统计
+     *
+     * @return array
+     */
+    protected function getDevices()
+    {
+        $devices = DeviceModel::field('companyId, count(id) as numCount')->group('companyId')->select();
+        $devices = $devices ? $devices->toArray() : array();
+
+        return ArrHelper::columnTokey('companyId', $devices);
+    }
+
 
     /**
      * 获取项目列表
@@ -71,15 +87,18 @@ class GetCompanyListController extends BaseController
     /**
      * 构建返回数据
      *
-     * @param \think\Paginator $list
+     * @param \think\Paginator $Companylist
      * @return array
      */
-    protected function makeReturnedResult(\think\Paginator $list): array
+    protected function makeReturnedResult(\think\Paginator $Companylist): array
     {
         $result = [];
+        $devices = $this->getDevices();
 
-        foreach ($list->items() as $item) {
+        foreach ($Companylist->items() as $item) {
+
             $item->userCount = $this->countUserInCompany($item->companyId);
+            $item->deviceCount = $devices[$item->companyId]['numCount'] ?? 0;
 
             array_push($result, $item->toArray());
         }
