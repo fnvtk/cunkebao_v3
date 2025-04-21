@@ -96,7 +96,6 @@ class GetCompanyListController extends BaseController
         $devices = $this->getDevices();
 
         foreach ($Companylist->items() as $item) {
-
             $item->userCount = $this->countUserInCompany($item->companyId);
             $item->deviceCount = $devices[$item->companyId]['numCount'] ?? 0;
 
