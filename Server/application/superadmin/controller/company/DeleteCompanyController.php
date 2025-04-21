@@ -61,16 +61,14 @@ class DeleteCompanyController extends BaseController
      * @param int $companId
      * @throws \Exception
      */
-    protected function deleteUser(int $companId): void
+    protected function deleteUsers(int $companId): void
     {
-        $user = UserModel::where('companyId', $companId)->find();
+        $users = UserModel::where('companyId', $companId)->select();
 
-        if (!$user) {
-            throw new \Exception('用户不存在', 404);
-        }
-
-        if (!$user->delete()) {
-            throw new \Exception('用户删除失败', 400);
+        foreach ($users as $user) {
+            if (!$user->delete()) {
+                throw new \Exception($user->username . ' 用户删除失败', 400);
+            }
         }
     }
 
@@ -87,7 +85,7 @@ class DeleteCompanyController extends BaseController
         $this->deleteCompany($companId);
 
         // 2. 删除用户
-        $this->deleteUser($companId);
+        $this->deleteUsers($companId);
 
         return $this;
     }

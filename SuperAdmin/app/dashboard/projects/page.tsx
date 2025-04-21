@@ -8,6 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Plus, Search, MoreHorizontal, Edit, Eye, Trash, ChevronLeft, ChevronRight } from "lucide-react"
 import { toast } from "sonner"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface Project {
   id: number
@@ -27,6 +35,9 @@ export default function ProjectsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [pageSize] = useState(10)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deletingProjectId, setDeletingProjectId] = useState<number | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // 获取项目列表
   useEffect(() => {
@@ -56,6 +67,44 @@ export default function ProjectsPage() {
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page)
+    }
+  }
+
+  const handleDeleteClick = (projectId: number) => {
+    setDeletingProjectId(projectId)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deletingProjectId) return
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch("http://yishi.com/company/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: deletingProjectId
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.code === 200) {
+        toast.success("删除成功")
+        // 刷新项目列表
+        window.location.reload()
+      } else {
+        toast.error(data.msg || "删除失败")
+      }
+    } catch (error) {
+      toast.error("网络错误，请稍后重试")
+    } finally {
+      setIsDeleting(false)
+      setDeleteDialogOpen(false)
+      setDeletingProjectId(null)
     }
   }
 
@@ -127,7 +176,10 @@ export default function ProjectsPage() {
                             <Edit className="mr-2 h-4 w-4" /> 编辑项目
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem 
+                          className="text-red-600"
+                          onClick={() => handleDeleteClick(project.id)}
+                        >
                           <Trash className="mr-2 h-4 w-4" /> 删除项目
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -179,6 +231,34 @@ export default function ProjectsPage() {
           </Button>
         </div>
       )}
+
+      {/* 删除确认对话框 */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认删除</DialogTitle>
+            <DialogDescription>
+              删除项目将会删除本项目关联的所有账号，项目删除后不可恢复，是否确认删除？
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "删除中..." : "确认删除"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
