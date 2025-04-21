@@ -106,7 +106,7 @@ class CreateCompanyController extends BaseController
      */
     protected function ckbCreateCompany(array $params): void
     {
-        $params = ArrHelper::getValue('companyId,name,memo,status', $params);
+        $params = ArrHelper::getValue('companyId=id,companyId,name,memo,status', $params);
         $result = CompanyModel::create($params);
 
         if (!$result) {

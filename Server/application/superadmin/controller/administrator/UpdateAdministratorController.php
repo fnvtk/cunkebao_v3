@@ -51,12 +51,12 @@ class UpdateAdministratorController extends BaseController
             'account' => 'require|/\S+/',
             'name' => 'require|/\S+/',
             'password' => '/\S+/',
-            'permissionIds' => 'require|array',
+            'permissionIds' => 'array',
         ], [
             'id.require' => '缺少必要参数',
             'account.require' => '账号不能为空',
             'name.require' => '姓名不能为空',
-            'permissionIds.require' => '请至少分配一种权限',
+            'permissionIds.array' => '请至少分配一种权限',
         ]);
 
         if (!$validate->check($params)) {
@@ -70,14 +70,19 @@ class UpdateAdministratorController extends BaseController
      * 判断是否有权限修改
      *
      * @param int $adminId
+     * @param array $params
      * @return $this
      */
-    protected function checkPermission(int $adminId): self
+    protected function checkPermission(int $adminId, array $params): self
     {
         $currentAdminId = $this->getAdminInfo('id');
 
         if ($currentAdminId != 1 && $currentAdminId != $adminId) {
             throw new \Exception('您没有权限修改其他管理员', 403);
+        }
+
+        if ($params['id'] != 1 && empty($params['permissionIds'])) {
+            throw new \Exception('请至少分配一种权限', 403);
         }
 
         return $this;
@@ -123,7 +128,7 @@ class UpdateAdministratorController extends BaseController
             // 被修改的管理员id
             $adminId = $params['id'] ?? 0;
 
-            $this->dataValidate($params)->checkPermission($adminId);
+            $this->dataValidate($params)->checkPermission($adminId, $params);
 
             Db::startTrans();
 

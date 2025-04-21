@@ -28,13 +28,14 @@ Route::group('', function () {
 
     // 客户池管理路由
     Route::group('trafficPool', function () {
-        Route::get('list', 'app\superadmin\controller\TrafficPoolController@getList');       // 获取客户池列表
-        Route::get('detail', 'app\superadmin\controller\TrafficPoolController@getDetail');   // 获取客户详情
+        Route::get('list', 'app\superadmin\controller\TrafficPoolController@getList');
+        Route::get('detail', 'app\superadmin\controller\TrafficPoolController@getDetail');
     });
 
     // 公司路由
     Route::group('company', function () {
         Route::post('create', 'app\superadmin\controller\company\CreateCompanyController@index');
+        Route::post('update', 'app\superadmin\controller\company\UpdateCompanyController@index');
         Route::get('list', 'app\superadmin\controller\company\GetCompanyListController@index');
         Route::get('detail/:id', 'app\superadmin\controller\company\GetCompanyDetailForUpdateController@index');
     });

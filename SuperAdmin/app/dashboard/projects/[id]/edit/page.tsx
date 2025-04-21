@@ -69,12 +69,13 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
     setIsSubmitting(true)
 
     try {
-      const response = await fetch(`http://yishi.com/company/update/${params.id}`, {
+      const response = await fetch(`http://yishi.com/company/update`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          id: params.id,
           name: projectName,
           account,
           memo: description,
