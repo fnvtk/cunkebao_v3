@@ -7,6 +7,11 @@ Route::post('auth/login', 'app\superadmin\controller\auth\AuthLoginController@in
 
 // 需要登录认证的路由组
 Route::group('', function () {
+    // 仪表盘概述
+    Route::group('dashboard', function () {
+        Route::get('base', 'app\superadmin\controller\dashboard\GetBasestatisticsController@index');
+    });
+
     // 菜单管理相关路由
     Route::group('menu', function () {
         Route::get('tree', 'app\superadmin\controller\MenuController@getMenuTree');
@@ -28,14 +33,16 @@ Route::group('', function () {
 
     // 客户池管理路由
     Route::group('trafficPool', function () {
-        Route::get('list', 'app\superadmin\controller\TrafficPoolController@getList');       // 获取客户池列表
-        Route::get('detail', 'app\superadmin\controller\TrafficPoolController@getDetail');   // 获取客户详情
+        Route::get('list', 'app\superadmin\controller\TrafficPoolController@getList');
+        Route::get('detail', 'app\superadmin\controller\TrafficPoolController@getDetail');
     });
 
     // 公司路由
     Route::group('company', function () {
         Route::post('create', 'app\superadmin\controller\company\CreateCompanyController@index');
+        Route::post('update', 'app\superadmin\controller\company\UpdateCompanyController@index');
+        Route::post('delete', 'app\superadmin\controller\company\DeleteCompanyController@index');
         Route::get('list', 'app\superadmin\controller\company\GetCompanyListController@index');
         Route::get('detail/:id', 'app\superadmin\controller\company\GetCompanyDetailForUpdateController@index');
     });
-})->middleware(['app\superadmin\middleware\AdminAuth']); 
+})->middleware(['app\superadmin\middleware\AdminAuth']);

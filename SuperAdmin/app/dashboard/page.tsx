@@ -1,65 +1,59 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, FolderKanban, UserCog } from "lucide-react"
-import useAuthCheck from "@/hooks/useAuthCheck"
-import { getAdminInfo, getGreeting } from "@/lib/utils"
-import ClientOnly from "@/components/ClientOnly"
+import { Building2, Users, UserCog } from "lucide-react"
+import { toast } from "sonner"
+
+interface DashboardStats {
+  companyCount: number
+  adminCount: number
+  customerCount: number
+}
 
 export default function DashboardPage() {
-  const [greeting, setGreeting] = useState("")
-  const [userName, setUserName] = useState("")
-
-  // 验证用户是否已登录
-  useAuthCheck()
+  const [stats, setStats] = useState<DashboardStats>({
+    companyCount: 0,
+    adminCount: 0,
+    customerCount: 0
+  })
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // 获取用户信息
-    const adminInfo = getAdminInfo()
-    if (adminInfo) {
-      setUserName(adminInfo.name || "管理员")
-    } else {
-      setUserName("管理员")
-    }
-  }, [])
+    const fetchStats = async () => {
+      try {
+        const response = await fetch("http://yishi.com/dashboard/base")
+        const data = await response.json()
 
-  // 单独处理问候语，避免依赖问题
-  useEffect(() => {
-    // 设置问候语
-    const updateGreeting = () => {
-      if (userName) {
-        setGreeting(getGreeting(userName))
+        if (data.code === 200) {
+          setStats(data.data)
+        } else {
+          toast.error(data.msg || "获取统计信息失败")
+        }
+      } catch (error) {
+        toast.error("网络错误，请稍后重试")
+      } finally {
+        setIsLoading(false)
       }
     }
-    
-    updateGreeting()
-    
-    // 每分钟更新一次问候语，以防用户长时间停留在页面
-    const interval = setInterval(updateGreeting, 60000)
-    
-    return () => clearInterval(interval)
-  }, [userName])
+
+    fetchStats()
+  }, [])
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">欢迎使用超级管理员后台</h1>
-      <p className="text-muted-foreground">
-        <ClientOnly fallback={`你好，${userName}！`}>
-          {greeting || getGreeting(userName)}
-        </ClientOnly>
-        ！通过此平台，您可以管理项目、客户和管理员权限。
-      </p>
+      <h1 className="text-2xl font-bold">仪表盘</h1>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">项目总数</CardTitle>
-            <FolderKanban className="h-4 w-4 text-muted-foreground" />
+            <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">24</div>
-            <p className="text-xs text-muted-foreground">较上月增长 12%</p>
+            <div className="text-2xl font-bold">
+              {isLoading ? "..." : stats.companyCount}
+            </div>
           </CardContent>
         </Card>
 
@@ -69,8 +63,9 @@ export default function DashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,284</div>
-            <p className="text-xs text-muted-foreground">较上月增长 8%</p>
+            <div className="text-2xl font-bold">
+              {isLoading ? "..." : stats.customerCount}
+            </div>
           </CardContent>
         </Card>
 
@@ -80,8 +75,9 @@ export default function DashboardPage() {
             <UserCog className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
-            <p className="text-xs text-muted-foreground">较上月增长 2 人</p>
+            <div className="text-2xl font-bold">
+              {isLoading ? "..." : stats.adminCount}
+            </div>
           </CardContent>
         </Card>
       </div>

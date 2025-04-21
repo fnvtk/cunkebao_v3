@@ -29,7 +29,7 @@ class GetCompanyDetailForUpdateController extends BaseController
     }
 
     /**
-     * 获取下古墓详情
+     * 获取项目详情
      *
      * @param int $id
      * @return CompanyModel

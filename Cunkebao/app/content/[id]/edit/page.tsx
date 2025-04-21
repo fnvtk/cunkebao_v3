@@ -98,7 +98,7 @@ export default function EditContentLibraryPage({ params }: { params: Promise<{ i
           const data = response.data
           
           // 直接使用API返回的好友和群组数据
-          const friends = data.sourceFriends || [];
+          const friends = data.selectedFriends || [];
           const groups = data.sourceGroups || [];
           
           setFormData({
