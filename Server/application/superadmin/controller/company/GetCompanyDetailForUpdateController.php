@@ -39,7 +39,7 @@ class GetCompanyDetailForUpdateController extends BaseController
     {
         $detail = CompanyModel::alias('c')
             ->field([
-                'c.id', 'c.name', 'c.status', 'c.memo', 'c.companyId', 'u.account', 'u.username', 'u.realName',
+                'c.id', 'c.name', 'c.status', 'c.memo', 'c.companyId', 'u.account', 'u.username', 'u.phone',
             ])
             ->leftJoin('users u', 'c.companyId = u.companyId')
             ->find($id);

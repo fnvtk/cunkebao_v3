@@ -24,7 +24,7 @@ class CreateCompanyController extends BaseController
      */
     protected function s2CreateDepartment(array $params): ?array
     {
-        $params = ArrHelper::getValue('name=departmentName,memo=departmentMemo,account=accountName,password=accountPassword,realName=accountRealName,username=accountNickname,accountMemo', $params);
+        $params = ArrHelper::getValue('name=departmentName,memo=departmentMemo,account=accountName,password=accountPassword,username=accountRealName,username=accountNickname,accountMemo', $params);
 
         // 创建公司部门
         $response = CurlHandle::getInstant()
@@ -52,21 +52,22 @@ class CreateCompanyController extends BaseController
     {
         $validate = Validate::make([
             'name' => 'require|max:50|/\S+/',
+            'account' => 'require|max:20|/\S+/',
             'username' => 'require|max:20|/\S+/',
-            'account' => 'require|regex:/^1[3-9]\d{9}$/',
+            'phone' => 'require|regex:/^1[3-9]\d{9}$/',
             'status' => 'require|in:0,1',
             'password' => 'require|/\S+/',
-            'realName' => 'require|/\S+/',
             'memo' => '/\S+/',
         ], [
             'name.require' => '请输入项目名称',
-            'username.require' => '请输入用户昵称',
             'account.require' => '请输入账号',
-            'account.regex' => '账号为手机号',
+            'account.max' => '账号长度受限',
+            'username.require' => '请输入用户昵称',
+            'phone.require' => '请输入手机号',
+            'phone.regex' => '手机号格式错误',
             'status.require' => '缺少重要参数',
             'status.in' => '非法参数',
             'password.require' => '请输入密码',
-            'realName.require' => '请输入真实姓名',
         ]);
 
         if (!$validate->check($params)) {
@@ -161,7 +162,7 @@ class CreateCompanyController extends BaseController
     public function index()
     {
         try {
-            $params = $this->request->only(['name', 'status', 'username', 'account', 'password', 'realName', 'memo']);
+            $params = $this->request->only(['name', 'status', 'username', 'account', 'password', 'phone', 'memo']);
             $params = $this->dataValidate($params)->creatS2About($params);
 
             Db::startTrans();

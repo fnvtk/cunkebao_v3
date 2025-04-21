@@ -44,7 +44,12 @@ class UpdateCompanyController extends BaseController
      */
     protected function getUserDetailByCompanyId(): ?UsersModel
     {
-        $user = UsersModel::where(['companyId' => $this->companyId])->find();
+        $where = [
+            'isAdmin' => 1,   // 必须保证 isAdmin 有且只有一个
+            'companyId' => $this->companyId,
+        ];
+
+        $user = UsersModel::where($where)->find();
 
         if (!$user) {
             throw new \Exception('用户不存在', 404);
@@ -162,18 +167,19 @@ class UpdateCompanyController extends BaseController
             'id' => 'require',
             'name' => 'require|max:50|/\S+/',
             'username' => 'require|max:20|/\S+/',
-            'account' => 'require|regex:/^1[3-9]\d{9}$/',
-            'status' => 'require|in:0,1',
-            'realName' => 'require|/\S+/',
+            'account' => 'require|max:20|/\S+/',
+            'phone' => 'require|regex:/^1[3-9]\d{9}$/',
+            'status' => 'require|in:0,1'
         ], [
             'id.require' => '非法请求',
             'name.require' => '请输入项目名称',
             'username.require' => '请输入用户昵称',
             'account.require' => '请输入账号',
-            'account.regex' => '账号为手机号',
+            'account.max' => '账号长度受限',
+            'phone.require' => '请输入手机号',
+            'phone.regex' => '手机号格式错误',
             'status.require' => '缺少重要参数',
             'status.in' => '非法参数',
-            'realName.require' => '请输入真实姓名',
         ]);
 
         if (!$validate->check($params)) {
@@ -191,7 +197,7 @@ class UpdateCompanyController extends BaseController
     public function index()
     {
         try {
-            $params = $this->request->only(['id', 'name', 'status', 'username', 'account', 'password', 'realName', 'memo']);
+            $params = $this->request->only(['id', 'name', 'status', 'username', 'account', 'password', 'phone', 'memo']);
 
             // 数据验证
             $this->dataValidate($params);

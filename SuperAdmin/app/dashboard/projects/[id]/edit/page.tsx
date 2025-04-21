@@ -25,7 +25,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   const [account, setAccount] = useState("")
   const [description, setDescription] = useState("")
   const [devices, setDevices] = useState<Device[]>([])
-  const [realName, setRealName] = useState("")
+  const [phone, setPhone] = useState("")
   const [nickname, setNickname] = useState("")
   const [status, setStatus] = useState("1")
   const [password, setPassword] = useState("")
@@ -42,7 +42,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
           setAccount(data.data.account || "")
           setDescription(data.data.memo || "")
           setDevices(data.data.devices || [])
-          setRealName(data.data.realName || "")
+          setPhone(data.data.phone || "")
           setNickname(data.data.username || "")
           setStatus(data.data.status.toString())
         } else {
@@ -79,7 +79,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
           name: projectName,
           account,
           memo: description,
-          realName,
+          phone,
           username: nickname,
           status: parseInt(status),
           ...(password && { password })
@@ -144,10 +144,9 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                 <Label htmlFor="account">账号</Label>
                 <Input
                   id="account"
-                  type="number"
                   value={account}
                   onChange={(e) => setAccount(e.target.value)}
-                  placeholder="请输入手机号"
+                  placeholder="请输入登录的账号"
                   required
                 />
               </div>
@@ -188,12 +187,13 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="realName">真实姓名</Label>
+                <Label htmlFor="phone">手机号</Label>
                 <Input
-                  id="realName"
-                  value={realName}
-                  onChange={(e) => setRealName(e.target.value)}
-                  placeholder="请输入真实姓名"
+                  id="phone"
+                  type="number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="手机号可用于登录"
                   required
                 />
               </div>
