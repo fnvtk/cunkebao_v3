@@ -84,12 +84,11 @@ class GetMenuTreeController extends BaseController
     protected function getTopMenusInPermissionIds(array $permissionIds): array
     {
         $where = [
-            'id' => ['in', $permissionIds],
             'parentId' => 0,
             'status' => 1,
         ];
 
-        return MenuModel::where($where)->order('sort', 'asc')->select()->toArray();
+        return MenuModel::where($where)->whereIn('id', $permissionIds)->order('sort', 'asc')->select()->toArray();
     }
 
     /**
@@ -100,12 +99,7 @@ class GetMenuTreeController extends BaseController
      */
     protected function getAllChildrenInPermissionIds(array $topMenuIds): array
     {
-        $where = [
-            'parentId' => ['in', $topMenuIds],
-            'status' => 1,
-        ];
-
-        return MenuModel::where($where)->order('sort', 'asc')->select()->toArray();
+        return MenuModel::where('status', 1)->whereIn('parentId', $topMenuIds)->order('sort', 'asc')->select()->toArray();
     }
 
     /**
@@ -119,18 +113,21 @@ class GetMenuTreeController extends BaseController
         $topMenus = $this->getTopMenusInPermissionIds($permissionIds);
 
         // 菜单ID集合，用于获取子菜单
-        $menuIds = array_column($topMenus, 'id');
+        $childMenus = $this->getAllChildrenInPermissionIds(
+            array_column($topMenus, 'id')
+        );
 
-        return $this->getAllChildrenInPermissionIds($menuIds);
+        return $this->_makeMenuTree($topMenus, $childMenus);
     }
 
     /**
      * 构建菜单树.
      *
+     * @param array $topMenus
      * @param array $childMenus
      * @return array
      */
-    protected function _makeMenuTree(array $childMenus): array
+    protected function _makeMenuTree(array $topMenus, array $childMenus): array
     {
         // 将子菜单按照父ID进行分组
         $childMenusGroup = [];
@@ -158,15 +155,8 @@ class GetMenuTreeController extends BaseController
      */
     protected function getMenuTreeByPermissions(array $permissionIds): array
     {
-        if ($permissionIds) {
-            $childMenus = $this->getUserMenus($permissionIds);
-
-            // 构建菜单树
-            return $this->_makeMenuTree($childMenus);
-        }
-
         // 如果没有权限，返回空数组
-        return [];
+        return $permissionIds ? $this->getUserMenus($permissionIds) : [];
     }
 
     /**
