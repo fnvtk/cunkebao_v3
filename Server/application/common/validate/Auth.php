@@ -13,7 +13,7 @@ class Auth extends Validate
      * @var array
      */
     protected $rule = [
-        'account' => 'require|mobile',
+        'account' => 'require',
         'password' => 'require|length:6,64',
         'code' => 'require|length:4,6',
         'typeId' => 'require|in:1,2',
@@ -25,7 +25,6 @@ class Auth extends Validate
      */
     protected $message = [
         'account.require' => '账号不能为空',
-        'account.mobile' => '账号格式不正确（需要是手机号）',
         'password.require' => '密码不能为空',
         'password.length' => '密码长度必须在6-64个字符之间',
         'code.require' => '验证码不能为空',
