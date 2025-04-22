@@ -4,6 +4,9 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Building2, Users, UserCog } from "lucide-react"
 import { toast } from "sonner"
+import useAuthCheck from "@/hooks/useAuthCheck"
+import { getAdminInfo, getGreeting } from "@/lib/utils"
+import ClientOnly from "@/components/ClientOnly"
 
 interface DashboardStats {
   companyCount: number
@@ -18,18 +21,33 @@ export default function DashboardPage() {
     customerCount: 0
   })
   const [isLoading, setIsLoading] = useState(true)
+  const [greeting, setGreeting] = useState("")
+  const [userName, setUserName] = useState("")
+
+  // 验证用户是否已登录
+  useAuthCheck()
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
+      setIsLoading(true)
       try {
+        // 获取统计信息
         const response = await fetch("http://yishi.com/dashboard/base")
         const data = await response.json()
-
         if (data.code === 200) {
           setStats(data.data)
         } else {
           toast.error(data.msg || "获取统计信息失败")
         }
+        
+        // 获取用户信息
+        const adminInfo = getAdminInfo()
+        if (adminInfo) {
+          setUserName(adminInfo.name || "管理员")
+        } else {
+          setUserName("管理员")
+        }
+
       } catch (error) {
         toast.error("网络错误，请稍后重试")
       } finally {
@@ -37,12 +55,34 @@ export default function DashboardPage() {
       }
     }
 
-    fetchStats()
+    fetchData()
   }, [])
+
+  // 单独处理问候语，避免依赖问题
+  useEffect(() => {
+    const updateGreeting = () => {
+      if (userName) {
+        setGreeting(getGreeting(userName))
+      }
+    }
+
+    updateGreeting()
+    
+    // 每分钟更新一次问候语，以防用户长时间停留在页面
+    const interval = setInterval(updateGreeting, 60000)
+    
+    return () => clearInterval(interval)
+  }, [userName])
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">仪表盘</h1>
+      <h1 className="text-3xl font-bold">欢迎使用超级管理员后台</h1>
+      <p className="text-muted-foreground">
+        <ClientOnly fallback={`你好，${userName}！`}>
+          {greeting || getGreeting(userName)}
+        </ClientOnly>
+        ！通过此平台，您可以管理项目、客户和管理员权限。
+      </p>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
