@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { ChevronLeft, Filter, Search, RefreshCw, Plus, Edit, Trash2, Eye, MoreVertical } from "lucide-react"
+import { ChevronLeft, Filter, Search, RefreshCw, Plus, Edit, Trash2, Eye, MoreVertical, Users } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import Image from "next/image"
 import { api } from "@/lib/api"
 import { showToast } from "@/lib/toast"
+import { WechatGroupMemberSelector } from "@/components/WechatGroupMemberSelector"
 
 interface ApiResponse<T = any> {
   code: number
@@ -22,6 +23,16 @@ interface ApiResponse<T = any> {
 interface LibraryListResponse {
   list: ContentLibrary[]
   total: number
+}
+
+interface WechatGroupMember {
+  id: string
+  nickname: string
+  wechatId: string
+  avatar: string
+  gender?: "male" | "female"
+  role?: "owner" | "admin" | "member"
+  joinTime?: string
 }
 
 interface ContentLibrary {
@@ -41,6 +52,8 @@ interface ContentLibrary {
   // 新增字段
   sourceFriends: string[]
   sourceGroups: string[]
+  friendsData?: any[]
+  groupsData?: any[]
   keywordInclude: string[]
   keywordExclude: string[]
   isEnabled: number
@@ -52,6 +65,7 @@ interface ContentLibrary {
   createTime: string
   updateTime: string
   sourceType: number
+  selectedGroupMembers?: WechatGroupMember[]
 }
 
 export default function ContentLibraryPage() {
@@ -60,6 +74,9 @@ export default function ContentLibraryPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("all")
   const [loading, setLoading] = useState(false)
+  const [isGroupMemberSelectorOpen, setIsGroupMemberSelectorOpen] = useState(false)
+  const [currentGroupId, setCurrentGroupId] = useState<string>("")
+  const [selectedGroupMembers, setSelectedGroupMembers] = useState<WechatGroupMember[]>([])
 
   // 获取内容库列表
   const fetchLibraries = useCallback(async () => {
@@ -76,13 +93,25 @@ export default function ContentLibraryPage() {
       if (response.code === 200 && response.data) {
         // 转换数据格式以匹配原有UI
         const transformedLibraries = response.data.list.map((item: any) => {
+          // 提取好友数据，确保有头像
+          const friendsData = Array.isArray(item.selectedFriends) ? item.selectedFriends : [];
+          const groupsData = Array.isArray(item.selectedGroups) ? item.selectedGroups : [];
+          
           const transformedItem: ContentLibrary = {
             id: item.id,
             name: item.name,
             source: item.sourceType === 1 ? "friends" : "groups",
             targetAudience: [
-              ...(item.sourceFriends || []).map((id: string) => ({ id, nickname: `好友${id}`, avatar: "/placeholder.svg" })),
-              ...(item.sourceGroups || []).map((id: string) => ({ id, nickname: `群组${id}`, avatar: "/placeholder.svg" }))
+              ...friendsData.map((friend: any) => ({ 
+                id: friend.id, 
+                nickname: friend.nickname || `好友${friend.id}`, 
+                avatar: friend.avatar || "/placeholder.svg" 
+              })),
+              ...groupsData.map((group: any) => ({ 
+                id: group.id, 
+                nickname: group.name || `群组${group.id}`, 
+                avatar: group.avatar || "/placeholder.svg" 
+              }))
             ],
             creator: item.creatorName || "系统",
             creatorName: item.creatorName,
@@ -92,6 +121,8 @@ export default function ContentLibraryPage() {
             // 新增字段
             sourceFriends: item.sourceFriends || [],
             sourceGroups: item.sourceGroups || [],
+            friendsData: friendsData,
+            groupsData: groupsData,
             keywordInclude: item.keywordInclude || [],
             keywordExclude: item.keywordExclude || [],
             isEnabled: item.isEnabled,
@@ -102,7 +133,8 @@ export default function ContentLibraryPage() {
             status: item.status,
             createTime: item.createTime,
             updateTime: item.updateTime,
-            sourceType: item.sourceType
+            sourceType: item.sourceType,
+            selectedGroupMembers: item.selectedGroupMembers || []
           }
           return transformedItem
         })
@@ -156,6 +188,17 @@ export default function ContentLibraryPage() {
 
   const handleRefresh = () => {
     fetchLibraries()
+  }
+
+  const handleSelectGroupMembers = (groupId: string) => {
+    setCurrentGroupId(groupId)
+    setSelectedGroupMembers([])
+    setIsGroupMemberSelectorOpen(true)
+  }
+
+  const handleSaveSelectedMembers = (members: WechatGroupMember[]) => {
+    setSelectedGroupMembers(members)
+    showToast(`已选择 ${members.length} 名群成员`, "success")
   }
 
   const filteredLibraries = libraries.filter(
@@ -245,7 +288,43 @@ export default function ContentLibraryPage() {
                         <div className="text-sm text-gray-500 space-y-1">
                           <div className="flex items-center space-x-1">
                             <span>来源：</span>
-                            <div className="w-4 h-4 bg-gray-200 rounded-full"></div>
+                            {library.sourceType === 1 && library.sourceFriends?.length > 0 ? (
+                              <div className="flex -space-x-1 overflow-hidden">
+                                {(library.friendsData || []).slice(0, 3).map((friend) => (
+                                  <img 
+                                    key={friend.id}
+                                    src={friend.avatar || "/placeholder.svg"} 
+                                    alt={friend.nickname || `好友${friend.id}`}
+                                    className="inline-block h-6 w-6 rounded-full ring-2 ring-white"
+                                  />
+                                ))}
+                                {library.sourceFriends.length > 3 && (
+                                  <span className="flex items-center justify-center h-6 w-6 rounded-full bg-gray-200 text-xs font-medium text-gray-800">
+                                    +{library.sourceFriends.length - 3}
+                                  </span>
+                                )}
+                              </div>
+                            ) : library.sourceType === 2 && library.sourceGroups?.length > 0 ? (
+                              <div className="flex items-center space-x-2">
+                                <div className="flex -space-x-1 overflow-hidden">
+                                  {(library.groupsData || []).slice(0, 3).map((group) => (
+                                    <img 
+                                      key={group.id}
+                                      src={group.avatar || "/placeholder.svg"} 
+                                      alt={group.name || `群组${group.id}`}
+                                      className="inline-block h-6 w-6 rounded-full ring-2 ring-white"
+                                    />
+                                  ))}
+                                  {library.sourceGroups.length > 3 && (
+                                    <span className="flex items-center justify-center h-6 w-6 rounded-full bg-gray-200 text-xs font-medium text-gray-800">
+                                      +{library.sourceGroups.length - 3}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="w-6 h-6 bg-gray-200 rounded-full"></div>
+                            )}
                           </div>
                           <div>创建人：{library.creator}</div>
                           <div>内容数量：{library.itemCount}</div>
@@ -287,6 +366,14 @@ export default function ContentLibraryPage() {
           </div>
         </Card>
       </div>
+
+      <WechatGroupMemberSelector
+        open={isGroupMemberSelectorOpen}
+        onOpenChange={setIsGroupMemberSelectorOpen}
+        groupId={currentGroupId}
+        selectedMembers={selectedGroupMembers}
+        onSelect={handleSaveSelectedMembers}
+      />
     </div>
   )
 }

@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { api } from "@/lib/api"
 import { showToast } from "@/lib/toast"
-import { WechatGroup } from "@/types/wechat"
+import { WechatGroupMember } from "@/types/wechat"
 
 interface ApiResponse<T = any> {
   code: number
@@ -17,21 +17,28 @@ interface ApiResponse<T = any> {
   data: T
 }
 
-interface GroupListResponse {
+interface GroupMemberListResponse {
   list: any[]
   total: number
 }
 
-interface WechatGroupSelectorProps {
+interface WechatGroupMemberSelectorProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  selectedGroups: WechatGroup[]
-  onSelect: (groups: WechatGroup[]) => void
+  groupId: string
+  selectedMembers: WechatGroupMember[]
+  onSelect: (members: WechatGroupMember[]) => void
 }
 
-export function WechatGroupSelector({ open, onOpenChange, selectedGroups, onSelect }: WechatGroupSelectorProps) {
+export function WechatGroupMemberSelector({ 
+  open, 
+  onOpenChange, 
+  groupId,
+  selectedMembers, 
+  onSelect 
+}: WechatGroupMemberSelectorProps) {
   const [searchQuery, setSearchQuery] = useState("")
-  const [groups, setGroups] = useState<WechatGroup[]>([])
+  const [members, setMembers] = useState<WechatGroupMember[]>([])
   const [loading, setLoading] = useState(false)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -39,40 +46,42 @@ export function WechatGroupSelector({ open, onOpenChange, selectedGroups, onSele
   const pageSize = 20
 
   useEffect(() => {
-    if (open) {
-      fetchGroups(1)
+    if (open && groupId) {
+      fetchGroupMembers(1)
     }
-  }, [open])
+  }, [open, groupId])
 
-  const fetchGroups = async (pageNum: number) => {
+  const fetchGroupMembers = async (pageNum: number) => {
     setLoading(true)
     try {
       const queryParams = new URLSearchParams({
         page: pageNum.toString(),
         limit: pageSize.toString(),
+        groupId: groupId,
         ...(searchQuery ? { keyword: searchQuery } : {})
       })
       
-      const response = await api.get<ApiResponse<GroupListResponse>>(`/v1/chatroom?${queryParams.toString()}`)
+      const response = await api.get<ApiResponse<GroupMemberListResponse>>(`/v1/chatroom/getMemberList?${queryParams.toString()}`)
       
       if (response.code === 200 && response.data) {
-        const groupsList = response.data.list.map(item => ({
-          id: item.id || `group-${Math.random()}`,
-          name: item.name || item.chatroomName || '未知群聊',
-          memberCount: item.memberCount || 0,
-          avatar: item.avatar || '/placeholder.svg',
-          customer: item.ownerNickname || '--'
+        const membersList = response.data.list.map((item: any) => ({
+          id: item.id || `member-${Math.random()}`,
+          nickname: item.name || item.ownerNickname || '未知成员',
+          wechatId: item.ownerWechatId || '',
+          avatar: item.ownerAvatar || item.avatar || '/placeholder.svg',
+          role: item.isOwner ? 'owner' : (item.isAdmin ? 'admin' : 'member'),
+          joinTime: item.createTime ? new Date(item.createTime * 1000).toLocaleString() : '--'
         }))
         
-        setGroups(groupsList)
+        setMembers(membersList)
         setTotalItems(response.data.total)
         setTotalPages(Math.ceil(response.data.total / pageSize))
         setPage(pageNum)
       } else {
-        showToast(response.msg || "获取群聊列表失败", "error")
+        showToast(response.msg || "获取群成员列表失败", "error")
       }
     } catch (error: any) {
-      console.error("获取群聊列表失败:", error)
+      console.error("获取群成员列表失败:", error)
       showToast(error?.message || "请检查网络连接", "error")
     } finally {
       setLoading(false)
@@ -80,18 +89,18 @@ export function WechatGroupSelector({ open, onOpenChange, selectedGroups, onSele
   }
 
   const handleSearch = () => {
-    fetchGroups(1)
+    fetchGroupMembers(1)
   }
 
   const handlePrevPage = () => {
     if (page > 1) {
-      fetchGroups(page - 1)
+      fetchGroupMembers(page - 1)
     }
   }
 
   const handleNextPage = () => {
     if (page < totalPages) {
-      fetchGroups(page + 1)
+      fetchGroupMembers(page + 1)
     }
   }
 
@@ -99,13 +108,13 @@ export function WechatGroupSelector({ open, onOpenChange, selectedGroups, onSele
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>选择聊天群</DialogTitle>
+          <DialogTitle>选择群成员</DialogTitle>
         </DialogHeader>
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="搜索群聊"
+              placeholder="搜索群成员"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -124,29 +133,33 @@ export function WechatGroupSelector({ open, onOpenChange, selectedGroups, onSele
         <div className="mt-4 space-y-2 max-h-[400px] overflow-y-auto">
           {loading ? (
             <div className="text-center py-4">加载中...</div>
-          ) : groups.length === 0 ? (
-            <div className="text-center py-4">未找到匹配的群聊</div>
+          ) : members.length === 0 ? (
+            <div className="text-center py-4">未找到匹配的群成员</div>
           ) : (
-            groups.map((group) => (
-              <div key={group.id} className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg">
+            members.map((member) => (
+              <div key={member.id} className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg">
                 <Checkbox
-                  checked={selectedGroups.some((g) => g.id === group.id)}
+                  checked={selectedMembers.some((m) => m.id === member.id)}
                   onCheckedChange={(checked) => {
                     if (checked) {
-                      onSelect([...selectedGroups, group])
+                      onSelect([...selectedMembers, member])
                     } else {
-                      onSelect(selectedGroups.filter((g) => g.id !== group.id))
+                      onSelect(selectedMembers.filter((m) => m.id !== member.id))
                     }
                   }}
                 />
-                <Avatar className="h-10 w-10 rounded-lg">
-                  <AvatarImage src={group.avatar} />
-                  <AvatarFallback className="rounded-lg">{group.name?.[0] || '群'}</AvatarFallback>
+                <Avatar>
+                  <AvatarImage src={member.avatar} />
+                  <AvatarFallback>{member.nickname?.[0] || '?'}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{group.name}</div>
+                  <div className="font-medium truncate">
+                    {member.nickname}
+                    {member.role === 'owner' && <span className="ml-1 text-xs text-red-500">(群主)</span>}
+                    {member.role === 'admin' && <span className="ml-1 text-xs text-blue-500">(管理员)</span>}
+                  </div>
                   <div className="text-sm text-gray-500">
-                    <div className="truncate">归属客户：{group.customer}</div>
+                    {member.wechatId && <div className="truncate">微信ID：{member.wechatId}</div>}
                   </div>
                 </div>
               </div>
@@ -158,7 +171,7 @@ export function WechatGroupSelector({ open, onOpenChange, selectedGroups, onSele
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t pt-4 mt-4">
             <div className="text-sm text-gray-500">
-              总计 {totalItems} 个群聊
+              总计 {totalItems} 个成员
             </div>
             <div className="flex items-center space-x-2">
               <Button 
@@ -188,10 +201,11 @@ export function WechatGroupSelector({ open, onOpenChange, selectedGroups, onSele
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             取消
           </Button>
-          <Button onClick={() => onOpenChange(false)}>确定 ({selectedGroups.length})</Button>
+          <Button onClick={() => onOpenChange(false)}>
+            确定 ({selectedMembers.length})
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
   )
-}
-
+} 

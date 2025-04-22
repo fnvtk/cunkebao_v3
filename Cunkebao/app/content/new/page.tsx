@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronLeft, X } from "lucide-react"
+import { ChevronLeft, X, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,29 +13,14 @@ import { useRouter } from "next/navigation"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { WechatFriendSelector } from "@/components/WechatFriendSelector"
 import { WechatGroupSelector } from "@/components/WechatGroupSelector"
+import { WechatGroupMemberSelector } from "@/components/WechatGroupMemberSelector"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { api } from "@/lib/api"
 import { showToast } from "@/lib/toast"
 import { format } from "date-fns"
 import { zhCN } from "date-fns/locale"
-
-interface WechatFriend {
-  id: string
-  nickname: string
-  wechatId: string
-  avatar: string
-  gender: "male" | "female"
-  customer: string
-}
-
-interface WechatGroup {
-  id: string
-  name: string
-  memberCount: number
-  avatar: string
-  owner: string
-  customer: string
-}
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { WechatFriend, WechatGroup, WechatGroupMember } from "@/types/wechat"
 
 interface ApiResponse<T = any> {
   code: number
@@ -54,6 +39,7 @@ export default function NewContentLibraryPage() {
     endDate: "",
     selectedFriends: [] as WechatFriend[],
     selectedGroups: [] as WechatGroup[],
+    selectedGroupMembers: [] as WechatGroupMember[],
     useAI: false,
     aiPrompt: "",
     enabled: true,
@@ -61,6 +47,8 @@ export default function NewContentLibraryPage() {
 
   const [isWechatFriendSelectorOpen, setIsWechatFriendSelectorOpen] = useState(false)
   const [isWechatGroupSelectorOpen, setIsWechatGroupSelectorOpen] = useState(false)
+  const [isWechatGroupMemberSelectorOpen, setIsWechatGroupMemberSelectorOpen] = useState(false)
+  const [currentGroupId, setCurrentGroupId] = useState<string>("")
   const [loading, setLoading] = useState(false)
 
   const removeFriend = (friendId: string) => {
@@ -75,6 +63,11 @@ export default function NewContentLibraryPage() {
       ...prev,
       selectedGroups: prev.selectedGroups.filter((group) => group.id !== groupId),
     }))
+  }
+
+  const handleSelectGroupMembers = (groupId: string) => {
+    setCurrentGroupId(groupId)
+    setIsWechatGroupMemberSelectorOpen(true)
   }
 
   const handleSubmit = async () => {
@@ -100,6 +93,7 @@ export default function NewContentLibraryPage() {
         sourceType: formData.sourceType === "friends" ? 1 : 2,
         friends: formData.selectedFriends.map(f => f.id),
         groups: formData.selectedGroups.map(g => g.id),
+        groupMembers: formData.selectedGroupMembers.map(m => m.id),
         keywordInclude: formData.keywordsInclude.split(",").map(k => k.trim()).filter(Boolean),
         keywordExclude: formData.keywordsExclude.split(",").map(k => k.trim()).filter(Boolean),
         aiPrompt: formData.useAI ? formData.aiPrompt : "",
@@ -204,11 +198,58 @@ export default function NewContentLibraryPage() {
                             />
                             <span>{group.name}</span>
                           </div>
-                          <Button variant="ghost" size="sm" onClick={() => removeGroup(group.id)}>
-                            <X className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleSelectGroupMembers(group.id)}
+                              className="mr-1"
+                            >
+                              <Users className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => removeGroup(group.id)}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
+                    </div>
+                  )}
+                  
+                  {formData.selectedGroupMembers.length > 0 && (
+                    <div className="mt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-sm font-medium">已选择群成员 ({formData.selectedGroupMembers.length})</Label>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setFormData({...formData, selectedGroupMembers: []})}
+                        >
+                          清空
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-md max-h-[150px] overflow-y-auto">
+                        {formData.selectedGroupMembers.map((member) => (
+                          <div key={member.id} className="flex items-center bg-white px-2 py-1 rounded border">
+                            <Avatar className="h-6 w-6 mr-2">
+                              <AvatarImage src={member.avatar} />
+                              <AvatarFallback>{member.nickname?.[0] || '?'}</AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm">{member.nickname}</span>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-6 w-6 p-0 ml-1"
+                              onClick={() => setFormData({
+                                ...formData,
+                                selectedGroupMembers: formData.selectedGroupMembers.filter(m => m.id !== member.id)
+                              })}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </TabsContent>
@@ -339,6 +380,14 @@ export default function NewContentLibraryPage() {
         onOpenChange={setIsWechatGroupSelectorOpen}
         selectedGroups={formData.selectedGroups}
         onSelect={(groups) => setFormData({ ...formData, selectedGroups: groups })}
+      />
+
+      <WechatGroupMemberSelector
+        open={isWechatGroupMemberSelectorOpen}
+        onOpenChange={setIsWechatGroupMemberSelectorOpen}
+        groupId={currentGroupId}
+        selectedMembers={formData.selectedGroupMembers}
+        onSelect={(members) => setFormData({ ...formData, selectedGroupMembers: members })}
       />
     </div>
   )

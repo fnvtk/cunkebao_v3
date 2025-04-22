@@ -66,7 +66,7 @@ Route::group('v1', function () {
         // WechatChatroom控制器路由
         Route::group('chatroom', function () {
             Route::get('list', 'app\\api\\controller\\WechatChatroomController@getList'); // 获取微信群聊列表 √
-            //Route::get('members/:wechatChatroomId', 'app\\api\\controller\\WechatChatroomController@listChatroomMember'); // 获取群成员列表 √
+            Route::get('members', 'app\\api\\controller\\WechatChatroomController@listChatroomMember'); // 获取群成员列表 √
            // Route::get('sync', 'app\\api\\controller\\WechatChatroomController@syncChatrooms'); // 同步微信群聊数据 √
         });
 

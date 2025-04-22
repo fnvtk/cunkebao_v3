@@ -57,6 +57,43 @@ class ContentLibraryController extends Controller
             $item['keywordExclude'] = json_decode($item['keywordExclude'] ?: '[]', true);
             // 添加创建人名称
             $item['creatorName'] = $item['user']['username'] ?? '';
+
+
+            // 获取好友详细信息
+            if (!empty($item['sourceFriends'] && $item['sourceType'] == 1)) {
+                $friendIds = $item['sourceFriends'];
+                $friendsInfo = [];
+
+                if (!empty($friendIds)) {
+                    // 查询好友信息，使用wechat_friend表
+                    $friendsInfo = Db::name('wechat_friend')->alias('wf')
+                        ->field('wf.id,wf.wechatId, wa.nickname, wa.avatar')
+                        ->join('wechat_account wa', 'wf.wechatId = wa.wechatId')
+                        ->whereIn('wf.id', $friendIds)
+                        ->select();
+                }
+
+                // 将好友信息添加到返回数据中
+                $item['selectedFriends'] = $friendsInfo;
+            }
+
+            // 获取群组详细信息
+            if (!empty($item['sourceGroups']) && $item['sourceType'] == 2) {
+                $groupIds = $item['sourceGroups'];
+                $groupsInfo = [];
+
+                if (!empty($groupIds)) {
+                    // 查询群组信息
+                    $groupsInfo = Db::name('wechat_group')->alias('g')
+                        ->field('g.id, g.chatroomId, g.name, g.avatar, g.ownerWechatId')
+                        ->whereIn('g.id', $groupIds)
+                        ->select();
+                }
+
+                // 将群组信息添加到返回数据中
+                $item['selectedGroups'] = $groupsInfo;
+            }
+
             unset($item['user']); // 移除关联数据
         }
         unset($item);
@@ -117,15 +154,34 @@ class ContentLibraryController extends Controller
         $friendsInfo = [];
         
         if (!empty($friendIds)) {
-            // 查询好友信息，使用wechat_account表
-            $friendsInfo = Db::name('wechat_account')
-                ->field('wechatId, nickname, avatar')
-                ->whereIn('wechatId', $friendIds)
-                ->select();
+           // 查询好友信息，使用wechat_friend表
+            $friendsInfo = Db::name('wechat_friend')->alias('wf')
+            ->field('wf.id,wf.wechatId, wa.nickname, wa.avatar')
+            ->join('wechat_account wa', 'wf.wechatId = wa.wechatId')
+            ->whereIn('wf.id', $friendIds)
+            ->select();
         }
         
         // 将好友信息添加到返回数据中
         $library['selectedFriends'] = $friendsInfo;
+    }
+
+    // 获取群组详细信息
+    if (!empty($library['sourceGroups'])) {
+        $groupIds = $library['sourceGroups'];
+        $groupsInfo = [];
+        
+        if (!empty($groupIds)) {
+            // 查询群组信息
+            $groupsInfo = Db::name('wechat_group')->alias('g')
+                ->field('g.id, g.chatroomId, g.name, g.avatar, g.ownerWechatId,wa.nickname as ownerNickname,wa.avatar as ownerAvatar,wa.alias as ownerAlias')
+                ->join('wechat_account wa', 'g.ownerWechatId = wa.wechatId')
+                ->whereIn('g.id', $groupIds)
+                ->select();
+        }
+        
+        // 将群组信息添加到返回数据中
+        $library['selectedGroups'] = $groupsInfo;
     }
 
 
@@ -163,15 +219,21 @@ class ContentLibraryController extends Controller
 
         Db::startTrans();
         try {
+
+            $keywordInclude = isset($param['keywordInclude']) ? json_encode($param['keywordInclude'],256) : json_encode([]);
+            $keywordExclude = isset($param['keywordExclude']) ? json_encode($param['keywordExclude'],256) : json_encode([]);
+            $sourceType = isset($param['sourceType']) ? $param['sourceType'] : 1;
+
+
             // 构建数据
             $data = [
                 'name' => $param['name'],
                 // 数据来源配置
-                'sourceFriends' => isset($param['friends']) ? json_encode($param['friends']) : '[]', // 选择的微信好友
-                'sourceGroups' => isset($param['groups']) ? json_encode($param['groups']) : '[]', // 选择的微信群
+                'sourceFriends' => $sourceType == 1 ? json_encode($param['friends']) : json_encode([]), // 选择的微信好友
+                'sourceGroups' => $sourceType == 2 ? json_encode($param['groups']) : json_encode([]), // 选择的微信群
                 // 关键词配置
-                'keywordInclude' => isset($param['keywordInclude']) ? json_encode($param['keywordInclude']) : '[]', // 包含的关键词
-                'keywordExclude' => isset($param['keywordExclude']) ? json_encode($param['keywordExclude']) : '[]', // 排除的关键词
+                'keywordInclude' => $keywordInclude, // 包含的关键词
+                'keywordExclude' => $keywordExclude, // 排除的关键词
                 // AI配置
                 'aiEnabled' => isset($param['aiEnabled']) ? $param['aiEnabled'] : 0, // 是否启用AI
                 'aiPrompt' => isset($param['aiPrompt']) ? $param['aiPrompt'] : '', // AI提示词
@@ -180,7 +242,7 @@ class ContentLibraryController extends Controller
                 'timeStart' => isset($param['startTime']) ? strtotime($param['startTime']) : 0, // 开始时间（转换为时间戳）
                 'timeEnd' => isset($param['endTime']) ? strtotime($param['endTime']) : 0, // 结束时间（转换为时间戳）
                 // 来源类型
-                'sourceType' => isset($param['sourceType']) ? $param['sourceType'] : 0, // 1=好友，2=群，3=好友和群
+                'sourceType' => $sourceType, // 1=好友，2=群，3=好友和群
                 // 基础信息
                 'status' => isset($param['status']) ? $param['status'] : 0, // 状态：0=禁用，1=启用
                 'userId' => $this->request->userInfo['id'],
@@ -240,9 +302,27 @@ class ContentLibraryController extends Controller
 
         Db::startTrans();
         try {
+
+            $keywordInclude = isset($param['keywordInclude']) ? json_encode($param['keywordInclude'],256) : json_encode([]);
+            $keywordExclude = isset($param['keywordExclude']) ? json_encode($param['keywordExclude'],256) : json_encode([]);
+
+
             // 更新内容库基本信息
             $library->name = $param['name'];
-            $library->description = isset($param['description']) ? $param['description'] : '';
+            $library->sourceType = isset($param['sourceType']) ? $param['sourceType'] : 1;
+            $library->sourceFriends = $param['sourceType'] == 1 ? json_encode($param['friends']) : json_encode([]);
+            $library->sourceGroups = $param['sourceType'] == 2 ? json_encode($param['groups']) : json_encode([]);
+            $library->keywordInclude = $keywordInclude;
+            $library->keywordExclude = $keywordExclude;
+            $library->aiEnabled = isset($param['aiEnabled']) ? $param['aiEnabled'] : 0;
+            $library->aiPrompt = isset($param['aiPrompt']) ? $param['aiPrompt'] : '';
+            $library->timeEnabled = isset($param['timeEnabled']) ? $param['timeEnabled'] : 0;
+            $library->timeStart = isset($param['startTime']) ? strtotime($param['startTime']) : 0;
+            $library->timeEnd = isset($param['endTime']) ? strtotime($param['endTime']) : 0;
+            $library->status = isset($param['status']) ? $param['status'] : 0;
+            $library->updateTime = time();
+            
+
             $library->save();
 
             Db::commit();

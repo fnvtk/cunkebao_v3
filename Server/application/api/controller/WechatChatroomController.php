@@ -120,16 +120,28 @@ class WechatChatroomController extends BaseController
      * @param string $wechatChatroomId 微信群ID
      * @return \think\response\Json
      */
-    public function listChatroomMember($wechatChatroomId = '')
+    public function listChatroomMember($wechatChatroomId = '',$chatroomId = '',$isJob = false)
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
+        $wechatChatroomId = !empty($wechatChatroomId) ? $wechatChatroomId : $this->request->param('id', '');
+        $chatroomId = !empty($chatroomId) ? $chatroomId : $this->request->param('chatroomId', '');
+
+        
         if (empty($authorization)) {
-            return errorJson('缺少授权信息');
+            if($isJob){
+                return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
+            }else{
+                return errorJson('缺少授权信息');
+            }
         }
 
         if (empty($wechatChatroomId)) {
-            return errorJson('群ID不能为空');
+            if($isJob){
+                return json_encode(['code'=>500,'msg'=>'群ID不能为空']);
+            }else{
+                return errorJson('群ID不能为空');
+            }
         }
 
         try {
@@ -147,15 +159,23 @@ class WechatChatroomController extends BaseController
             $response = handleApiResponse($result);
 
             // 保存数据到数据库
-            if (!empty($response['results'])) {
-                foreach ($response['results'] as $item) {
-                    $this->saveChatroomMember($item, $wechatChatroomId);
+            if (!empty($response)) {
+                foreach ($response as $item) {
+                    $this->saveChatroomMember($item, $chatroomId);
                 }
             }
             
-            return successJson($response);
+            if($isJob){
+                return json_encode(['code'=>200,'msg'=>'success','data'=>$response]);
+            }else{
+                return successJson($response);
+            }
         } catch (\Exception $e) {
-            return errorJson('获取群成员列表失败：' . $e->getMessage());
+            if($isJob){
+                return json_encode(['code'=>500,'msg'=>'获取群成员列表失败：' . $e->getMessage()]);
+            }else{
+                return errorJson('获取群成员列表失败：' . $e->getMessage());
+            }
         }
     }
 

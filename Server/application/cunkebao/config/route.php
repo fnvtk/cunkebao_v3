@@ -70,4 +70,12 @@ Route::group('v1/', function () {
     Route::group('friend', function () {
         Route::get('', 'app\\cunkebao\\controller\\friend\\GetFriendListV1Controller@index'); // 获取好友列表
     });
+
+    //群相关
+    Route::group('chatroom', function () {
+        Route::get('', 'app\\cunkebao\\controller\\chatroom\\GetChatroomListV1Controller@index'); // 获取群列表
+        Route::get('getMemberList', 'app\\cunkebao\\controller\\chatroom\\GetChatroomListV1Controller@getMemberList'); // 获取群详情
+        
+    });
+
 })->middleware(['jwt']);

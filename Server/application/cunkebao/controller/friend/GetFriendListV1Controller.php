@@ -5,6 +5,7 @@ use app\common\model\Device as DeviceModel;
 use app\common\model\DeviceUser as DeviceUserModel;
 use app\common\model\WechatFriend;
 use app\cunkebao\controller\BaseController;
+use think\Db;
 
 /**
  * 设备管理控制器
@@ -26,29 +27,29 @@ class GetFriendListV1Controller extends BaseController
 
             $where = [];
             if ($this->getUserInfo('isAdmin') == 1) {
-                $where['wf.companyId'] = $this->getUserInfo('companyId');
-                $where['wf.deleteTime'] = 0;
+                $where[] = ['wf.companyId','=',$this->getUserInfo('companyId')];
+                $where[] = ['wf.deleteTime','=',0];
             } else {
-                $where['wf.companyId'] = $this->getUserInfo('companyId');
-                $where['wf.deleteTime'] = 0;
-                //$where['userId'] = $this->getUserInfo('id');
+                $where[] = ['wf.companyId','=',$this->getUserInfo('companyId')];
+                $where[] = ['wf.deleteTime','=',0];
+                //$where[] = ['wf.userId','=',$this->getUserInfo('id')];
             }
 
 
             
-            if($keyword){
-                $where['wa1.nickname'] = ['like','%'.$keyword.'%'];
+            if(!empty($keyword)){
+                $where[] = ['wa1.nickname','like','%'.$keyword.'%'];
             }
 
 
             $data = WechatFriend::alias('wf')
-                ->field(['wa1.nickname','wa1.avatar','wa1.alias','wf.wechatId','wa2.nickname as ownerNickname','wa2.alias as ownerAlias','wa2.wechatId as ownerWechatId','wf.createTime'])
+                ->field(['wa1.nickname','wa1.avatar','wa1.alias','wf.id','wf.wechatId','wa2.nickname as ownerNickname','wa2.alias as ownerAlias','wa2.wechatId as ownerWechatId','wf.createTime'])
                 ->Join('wechat_account wa1','wf.wechatId = wa1.wechatId')
                 ->Join('wechat_account wa2','wf.ownerWechatId = wa2.wechatId')
                 ->where($where);
 
             $total = $data->count();
-            $list = $data->page($page, $limit)->select();
+            $list = $data->page($page, $limit)->order('wf.id DESC')->select();
 
 
 

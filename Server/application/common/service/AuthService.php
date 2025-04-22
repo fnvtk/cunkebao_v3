@@ -168,7 +168,7 @@ class AuthService
         
         // 尝试从缓存获取授权信息
         $authorization = Cache::get($cacheKey);
-       // $authorization = 'aXRi4R80zwTXo9V-VCXVYk4IMLl5ufKASoRtYHfaRh_uLwil_mO9U_jWfxeR1yupJIPuQCZknXGpctr9PTS1hbormw3RSrOwunNKTsvvcGzjTa0bBUz3S9W8x_PtvbY4_JpoXl8x8hm8cUa37zLlN7DQBAmj8He40FCxMTh1MC4xorM11aXoVFvYcrAkv_urHINWDmfNhH9icXzreiX9Uynw4fq7BkuP7yr6WHQ5z0NkOfKoMcesH4gPn_h_OLHC0T_ps2ky--M5HOvd5WgBmYRecNOcqbe4e0oIIO5ffANLsybyhLOEha3a03qKsyfAFWdf0A';
+        $authorization = 'mYpVVhPY7PxctvYw1pn1VCTS2ck0yZG8q11gAiJrRN_D3q7KXXBPAfXoAmqs7kKHeaAx-h4GB7DiqVIQJ09HiXVhaQT6PtgLX3w8YV16erThC-lG1fyJB4DJxu-QxA3Q8ogSs1WFOa8aAXD1QQUZ7Kbjkw_VMLL4lrfe0Yjaqy3DnO7aL1xGnNjjX8P5uqCAZgHKlN8NjuDEGyYvXygW1YyoK9pNpwvq-6DYKjLWdmbHvFaAybHf-hU1XyrFavZqcZYxIoVXjfJ5ASp4XxeCWqMCzwtSoz9RAvwLAlNxGweowtuyX9389ZaXI-zbqb2T0S8llg';
        // 如果缓存中没有或已过期，则重新获取
         if (empty($authorization)) {
             try {
