@@ -14,12 +14,7 @@ Route::group('', function () {
 
     // 菜单管理相关路由
     Route::group('menu', function () {
-        Route::get('tree', 'app\superadmin\controller\MenuController@getMenuTree');
-        Route::get('list', 'app\superadmin\controller\MenuController@getMenuList');
-        Route::post('save', 'app\superadmin\controller\MenuController@saveMenu');
-        Route::delete('delete/:id', 'app\superadmin\controller\MenuController@deleteMenu');
-        Route::post('status', 'app\superadmin\controller\MenuController@updateStatus');
-        Route::get('toplevel', 'app\superadmin\controller\MenuController@getTopLevelMenus');
+        Route::get('tree', 'app\superadmin\controller\Menu\GetMenuTreeController@index');
     });
 
     // 管理员相关路由
