@@ -1,14 +1,12 @@
 <?php
 namespace app\cunkebao\controller\device;
 
-use app\cunkebao\controller\BaseController;
 use app\common\model\Device as DeviceModel;
 use app\common\model\DeviceHandleLog as DeviceHandleLogModel;
-use app\library\s2\CurlHandle;
-use Couchbase\ViewOptions;
+use app\cunkebao\controller\BaseController;
+use library\s2\CurlHandle;
 use think\Db;
 use think\Validate;
-use think\facade\Request;
 
 /**
  * 设备管理控制器

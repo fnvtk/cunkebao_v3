@@ -5,6 +5,7 @@ namespace app\superadmin\controller\administrator;
 use app\common\model\Administrator as AdministratorModel;
 use app\common\model\AdministratorPermissions as AdministratorPermissionsModel;
 use app\superadmin\controller\BaseController;
+use library\ResponseHelper;
 use think\Controller;
 use think\Db;
 use think\Validate;
@@ -41,12 +42,12 @@ class AddAdministratorController extends BaseController
     {
         $validate = Validate::make([
             'account' => 'require|/\S+/',
-            'name' => 'require|/\S+/',
+            'username' => 'require|/\S+/',
             'password' => 'require|/\S+/',
             'permissionIds' => 'require|array',
         ], [
             'account.require' => '账号不能为空',
-            'name.require' => '姓名不能为空',
+            'username.require' => '用户名不能为空',
             'password.require' => '密码不能为空',
             'permissionIds.require' => '请至少分配一种权限',
         ]);
@@ -125,7 +126,7 @@ class AddAdministratorController extends BaseController
     public function index()
     {
         try {
-            $params = $this->request->only(['account', 'name', 'password', 'permissionIds']);
+            $params = $this->request->only(['account', 'username', 'password', 'permissionIds']);
 
             $this->dataValidate($params);
             $this->checkPermission()->chekAdminIsExist($params['account']);
@@ -140,17 +141,10 @@ class AddAdministratorController extends BaseController
 
             Db::commit();
 
-            return json([
-                'code' => 200,
-                'msg' => '添加成功',
-            ]);
+            return ResponseHelper::success();
         } catch (\Exception $e) {
             Db::rollback();
-
-            return json([
-                'code' => $e->getCode(),
-                'msg' => $e->getMessage()
-            ]);
+            return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
     }
 } 

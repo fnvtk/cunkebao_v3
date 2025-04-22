@@ -5,6 +5,7 @@ namespace app\superadmin\controller\administrator;
 use app\common\model\Administrator as AdministratorModel;
 use app\common\model\AdministratorPermissions as AdministratorPermissionsModel;
 use app\common\model\Menu as MenuModel;
+use library\ResponseHelper;
 use think\Controller;
 
 /**
@@ -24,7 +25,7 @@ class GetAdministratorListController extends Controller
 
         // 如果有搜索关键词
         if (!empty($keyword = $this->request->param('keyword/s', ''))) {
-            $where[] = ['account|name', 'like', "%{$keyword}%"];
+            $where[] = ['account|username', 'like', "%{$keyword}%"];
         }
 
         return array_merge($params, $where);
@@ -34,15 +35,13 @@ class GetAdministratorListController extends Controller
      * 获取管理员列表
      *
      * @param array $where 查询条件
-     * @param int $page 页码
-     * @param int $limit 每页数量
      * @return \think\Paginator 分页对象
      */
     protected function getAdministratorList(array $where): \think\Paginator
     {
         $query = AdministratorModel::alias('a')
             ->field(
-                'id, account, name, status, authId, createTime createdAt, lastLoginTime, lastLoginIp'
+                'id, account, username, status, authId, createTime createdAt, lastLoginTime, lastLoginIp'
             );
 
         foreach ($where as $key => $value) {
@@ -141,8 +140,8 @@ class GetAdministratorListController extends Controller
         foreach ($list->items() as $item) {
             $section = [
                 'id' => $item->id,
-                'username' => $item->account,
-                'name' => $item->name,
+                'account' => $item->account,
+                'username' => $item->username,
                 'status' => $item->status,
                 'createdAt' => date('Y-m-d H:i:s', $item->createdAt),
                 'lastLogin' => !empty($item->lastLoginTime) ? date('Y-m-d H:i:s', $item->lastLoginTime) : '从未登录',
@@ -166,13 +165,11 @@ class GetAdministratorListController extends Controller
         $where = $this->makeWhere();
         $result = $this->getAdministratorList($where);
 
-        return json([
-            'code' => 200,
-            'msg' => '获取成功',
-            'data' => [
+        return ResponseHelper::success(
+            [
                 'list' => $this->makeReturnedResult($result),
                 'total' => $result->total(),
             ]
-        ]);
+        );
     }
 } 

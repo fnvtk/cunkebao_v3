@@ -1,8 +1,8 @@
 <?php
 namespace app\common\controller;
 
-use app\common\helper\ResponseHelper;
 use app\common\service\AuthService;
+use library\ResponseHelper;
 use think\Controller;
 use think\facade\Request;
 

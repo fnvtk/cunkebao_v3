@@ -4,9 +4,10 @@ namespace app\superadmin\controller\company;
 
 use app\common\model\Company as CompanyModel;
 use app\common\model\User as UsersModel;
-use app\library\s2\CurlHandle;
 use app\superadmin\controller\BaseController;
 use Eison\Utils\Helper\ArrHelper;
+use library\ResponseHelper;
+use library\s2\CurlHandle;
 use think\Db;
 use think\facade\Env;
 use think\Validate;
@@ -167,20 +168,14 @@ class CreateCompanyController extends BaseController
             $params = $this->dataValidate($params)->creatS2About($params);
 
             Db::startTrans();
-            $this->createCkbAbout($params);
-            Db::commit();
 
-            return json([
-                'code' => 200,
-                'msg' => '创建成功'
-            ]);
+            $this->createCkbAbout($params);
+
+            Db::commit();
+            return ResponseHelper::success();
         } catch (\Exception $e) {
             Db::rollback();
-
-            return json([
-                'code' => $e->getCode(),
-                'msg' => $e->getMessage()
-            ]);
+            return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
     }
 } 

@@ -1,10 +1,12 @@
 <?php
-namespace app\common\helper;
+
+namespace library;
 
 class ResponseHelper
 {
     /**
      * 成功响应
+     *
      * @param mixed $data 响应数据
      * @param string $msg 响应消息
      * @param int $code 响应代码
@@ -21,6 +23,7 @@ class ResponseHelper
 
     /**
      * 错误响应
+     *
      * @param string $msg 错误消息
      * @param int $code 错误代码
      * @param mixed $data 错误数据
@@ -37,6 +40,7 @@ class ResponseHelper
 
     /**
      * 未授权响应
+     *
      * @param string $msg 错误消息
      * @return \think\response\Json
      */
@@ -47,6 +51,7 @@ class ResponseHelper
 
     /**
      * 禁止访问响应
+     *
      * @param string $msg 错误消息
      * @return \think\response\Json
      */

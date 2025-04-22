@@ -4,6 +4,7 @@ namespace app\superadmin\controller\traffic;
 
 use app\common\model\TrafficPool as TrafficPoolModel;
 use app\superadmin\controller\BaseController;
+use library\ResponseHelper;
 use think\facade\Request;
 
 /**
@@ -105,15 +106,13 @@ class GetPoolListController extends BaseController
     {
         $list = $this->gePoolList();
 
-        return json([
-            'code' => 200,
-            'msg' => '获取成功',
-            'data' => [
+        return ResponseHelper::success(
+            [
                 'list' => $this->makeReturnedValue($list)->items(),
                 'total' => $list->total(),
                 'page' => $list->currentPage(),
                 'limit' => $list->listRows()
             ]
-        ]);
+        );
     }
 } 

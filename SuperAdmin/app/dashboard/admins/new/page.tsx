@@ -25,7 +25,7 @@ export default function NewAdminPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [account, setAccount] = useState("")
-  const [name, setName] = useState("")
+  const [username, setUserName] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [isLoading, setIsLoading] = useState(true)
@@ -172,12 +172,12 @@ export default function NewAdminPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="name">姓名</Label>
+                <Label htmlFor="username">用户名</Label>
                 <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="请输入姓名"
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUserName(e.target.value)}
+                  placeholder="请输入用户名"
                   required
                 />
               </div>

@@ -4,6 +4,7 @@ namespace app\superadmin\controller\dashboard;
 
 use app\common\model\Administrator as AdministratorModel;
 use app\common\model\Company as CompanyModel;
+use library\ResponseHelper;
 use think\Controller;
 
 /**
@@ -48,14 +49,12 @@ class GetBasestatisticsController extends Controller
      */
     public function index()
     {
-        return json([
-            'code' => 200,
-            'msg' => '获取成功',
-            'data' => [
+        return ResponseHelper::success(
+            [
                 'companyCount' => $this->getCompanyCount(),
-                'adminCount' => $this->getAdminCount(),
+                'adminCount'    => $this->getAdminCount(),
                 'customerCount' => $this->getCustomerCount(),
             ]
-        ]);
+        );
     }
 }

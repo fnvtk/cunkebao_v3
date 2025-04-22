@@ -5,6 +5,7 @@ namespace app\superadmin\controller\company;
 use app\common\model\Company as CompanyModel;
 use app\common\model\Device as DeviceModel;
 use app\superadmin\controller\BaseController;
+use library\ResponseHelper;
 
 /**
  * 公司控制器
@@ -64,16 +65,11 @@ class GetCompanyDetailForUpdateController extends BaseController
             $data = $this->getCompanyDetail($id);
             $devices = $this->getDevicesByCompanyId($data['companyId']);
 
-            return json([
-                'code' => 200,
-                'msg' => '获取成功',
-                'data' => array_merge($data, compact('devices')),
-            ]);
+            return ResponseHelper::success(
+                array_merge($data, compact('devices'))
+            );
         } catch (\Exception $e) {
-            return json([
-                'code' => $e->getCode(),
-                'msg' => $e->getMessage()
-            ]);
+            return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
     }
 } 

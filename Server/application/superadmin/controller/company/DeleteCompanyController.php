@@ -5,6 +5,7 @@ namespace app\superadmin\controller\company;
 use app\common\model\Company as CompanyModel;
 use app\common\model\User as UserModel;
 use app\superadmin\controller\BaseController;
+use library\ResponseHelper;
 use think\Db;
 use think\Validate;
 
@@ -111,23 +112,15 @@ class DeleteCompanyController extends BaseController
             $params = $this->request->only('id');
             $companId = $params['id'];
 
-            $this->dataValidate($params);
-
             Db::startTrans();
-            $this->delteCkbAbout($companId)->deleteS2About($companId);
-            Db::commit();
 
-            return json([
-                'code' => 200,
-                'msg' => '删除成功'
-            ]);
+            $this->dataValidate($params)->delteCkbAbout($companId)->deleteS2About($companId);
+
+            Db::commit();
+            return ResponseHelper::success();
         } catch (\Exception $e) {
             Db::rollback();
-
-            return json([
-                'code' => $e->getCode(),
-                'msg' => $e->getMessage()
-            ]);
+            return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
     }
 }

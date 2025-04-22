@@ -25,8 +25,8 @@ import {
 const adminsData = [
   {
     id: "1",
-    username: "admin_zhang",
-    name: "张管理",
+    account: "admin_zhang",
+    username: "张管理",
     role: "超级管理员",
     permissions: ["项目管理", "客户池", "管理员权限"],
     createdAt: "2023-05-01",
@@ -34,8 +34,8 @@ const adminsData = [
   },
   {
     id: "2",
-    username: "admin_li",
-    name: "李管理",
+    account: "admin_li",
+    username: "李管理",
     role: "项目管理员",
     permissions: ["项目管理", "客户池"],
     createdAt: "2023-05-10",
@@ -43,8 +43,8 @@ const adminsData = [
   },
   {
     id: "3",
-    username: "admin_wang",
-    name: "王管理",
+    account: "admin_wang",
+    username: "王管理",
     role: "客户管理员",
     permissions: ["客户池"],
     createdAt: "2023-05-15",
@@ -52,8 +52,8 @@ const adminsData = [
   },
   {
     id: "4",
-    username: "admin_zhao",
-    name: "赵管理",
+    account: "admin_zhao",
+    username: "赵管理",
     role: "项目管理员",
     permissions: ["项目管理"],
     createdAt: "2023-05-20",
@@ -98,8 +98,10 @@ export default function AdminsPage() {
         // 加载失败时显示示例数据
         setAdministrators(adminsData.map(admin => ({
           ...admin,
-          id: Number(admin.id)
-        })) as Administrator[])
+          id: Number(admin.id),
+          name: admin.username,
+          status: 1
+        })))
         setTotalCount(adminsData.length)
       }
     } catch (error) {
@@ -112,8 +114,10 @@ export default function AdminsPage() {
       // 加载失败时显示示例数据
       setAdministrators(adminsData.map(admin => ({
         ...admin,
-        id: Number(admin.id)
-      })) as Administrator[])
+        id: Number(admin.id),
+        name: admin.username,
+        status: 1
+      })))
       setTotalCount(adminsData.length)
     } finally {
       setIsLoading(false)
@@ -155,7 +159,7 @@ export default function AdminsPage() {
       if (response.code === 200) {
         toast({
           title: "删除成功",
-          description: `管理员 ${adminToDelete.name} 已成功删除`,
+          description: `管理员 ${adminToDelete.username} 已成功删除`,
           variant: "success",
         })
         
@@ -213,7 +217,7 @@ export default function AdminsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>账号</TableHead>
-              <TableHead>姓名</TableHead>
+              <TableHead>用户名</TableHead>
               <TableHead>角色</TableHead>
               <TableHead>权限</TableHead>
               <TableHead>创建时间</TableHead>
@@ -233,8 +237,8 @@ export default function AdminsPage() {
             ) : administrators.length > 0 ? (
               administrators.map((admin) => (
                 <TableRow key={admin.id}>
-                  <TableCell className="font-medium">{admin.username}</TableCell>
-                  <TableCell>{admin.name}</TableCell>
+                  <TableCell className="font-medium">{admin.account}</TableCell>
+                  <TableCell>{admin.username}</TableCell>
                   <TableCell>
                     <Badge variant={admin.role === "超级管理员" ? "default" : "outline"}>{admin.role}</Badge>
                   </TableCell>
@@ -317,7 +321,7 @@ export default function AdminsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除管理员</AlertDialogTitle>
             <AlertDialogDescription>
-              您确定要删除管理员 "{adminToDelete?.name}" 吗？此操作无法撤销。
+              您确定要删除管理员 "{adminToDelete?.username}" 吗？此操作无法撤销。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -1,11 +1,9 @@
 <?php
 
-namespace app\library\s2;
+namespace library\s2;
 
 use think\Exception;
-use think\facade\Cache;
 use think\facade\Env;
-use think\facade\Log;
 
 class CurlHandle
 {

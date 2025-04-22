@@ -5,6 +5,7 @@ namespace app\superadmin\controller\Menu;
 use app\common\model\Menu as MenuModel;
 use app\common\model\AdministratorPermissions as AdministratorPermissionsModel;
 use app\superadmin\controller\BaseController;
+use library\ResponseHelper;
 use think\facade\Cache;
 
 /**
@@ -182,10 +183,6 @@ class GetMenuTreeController extends BaseController
             );
         }
 
-        return json([
-            'code' => 200,
-            'msg' => '获取成功',
-            'data' => $menuTree
-        ]);
+        return ResponseHelper::success($menuTree);
     }
 } 

@@ -7,6 +7,7 @@ use app\common\model\Device as DeviceModel;
 use app\common\model\User as usersModel;
 use app\superadmin\controller\BaseController;
 use Eison\Utils\Helper\ArrHelper;
+use library\ResponseHelper;
 
 /**
  * 公司控制器
@@ -115,13 +116,11 @@ class GetCompanyListController extends BaseController
         $where = $this->makeWhere();
         $result = $this->getCompanyList($where);
 
-        return json([
-            'code' => 200,
-            'msg' => '获取成功',
-            'data' => [
+        return ResponseHelper::success(
+            [
                 'list' => $this->makeReturnedResult($result),
                 'total' => $result->total(),
             ]
-        ]);
+        );
     }
 } 

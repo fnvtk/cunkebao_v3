@@ -6,6 +6,7 @@ use app\common\model\Company as CompanyModel;
 use app\common\model\User as UsersModel;
 use app\superadmin\controller\BaseController;
 use Eison\Utils\Helper\ArrHelper;
+use library\ResponseHelper;
 use think\Db;
 use think\Validate;
 
@@ -99,6 +100,8 @@ class UpdateCompanyController extends BaseController
     }
 
     /**
+     * 更新存客宝端数据
+     *
      * @param array $params
      * @return self
      * @throws \Exception
@@ -115,6 +118,8 @@ class UpdateCompanyController extends BaseController
     }
 
     /**
+     * 更新触客宝端数据
+     * 
      * @param array $params
      * @return self
      * @throws \Exception
@@ -208,17 +213,10 @@ class UpdateCompanyController extends BaseController
             $this->updateCkbAbout($params)->updateS2About($params);
             Db::commit();
 
-            return json([
-                'code' => 200,
-                'msg' => '更新成功'
-            ]);
+            return ResponseHelper::success();
         } catch (\Exception $e) {
             Db::rollback();
-
-            return json([
-                'code' => $e->getCode(),
-                'msg' => $e->getMessage()
-            ]);
+            return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
     }
 } 

@@ -5,6 +5,7 @@ namespace app\superadmin\controller\administrator;
 use app\common\model\Administrator as AdministratorModel;
 use app\common\model\AdministratorPermissions as AdministratorPermissionsModel;
 use app\superadmin\controller\BaseController;
+use library\ResponseHelper;
 use think\Db;
 use think\Validate;
 
@@ -49,13 +50,13 @@ class UpdateAdministratorController extends BaseController
         $validate = Validate::make([
             'id' => 'require|regex:/^[1-9]\d*$/',
             'account' => 'require|/\S+/',
-            'name' => 'require|/\S+/',
+            'username' => 'require|/\S+/',
             'password' => '/\S+/',
             'permissionIds' => 'array',
         ], [
             'id.require' => '缺少必要参数',
             'account.require' => '账号不能为空',
-            'name.require' => '姓名不能为空',
+            'username.require' => '用户名不能为空',
             'permissionIds.array' => '请至少分配一种权限',
         ]);
 
@@ -123,7 +124,7 @@ class UpdateAdministratorController extends BaseController
     public function index()
     {
         try {
-            $params = $this->request->only(['id', 'account', 'name', 'password', 'permissionIds']);
+            $params = $this->request->only(['id', 'account', 'username', 'password', 'permissionIds']);
 
             // 被修改的管理员id
             $adminId = $params['id'] ?? 0;
@@ -143,18 +144,10 @@ class UpdateAdministratorController extends BaseController
             }
 
             Db::commit();
-
-            return json([
-                'code' => 200,
-                'msg' => '更新成功',
-            ]);
+            return ResponseHelper::success();
         } catch (\Exception $e) {
             Db::rollback();
-
-            return json([
-                'code' => $e->getCode(),
-                'msg' => $e->getMessage()
-            ]);
+            return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
     }
 } 

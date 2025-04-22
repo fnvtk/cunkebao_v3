@@ -4,6 +4,7 @@ namespace app\superadmin\controller\administrator;
 
 use app\common\model\Administrator as AdministratorModel;
 use app\superadmin\controller\BaseController;
+use library\ResponseHelper;
 use think\Db;
 
 /**
@@ -22,7 +23,7 @@ class GetAdministratorDetailController extends BaseController
     {
         $admin = AdministratorModel::alias('a')
             ->field(
-                'a.id, a.account, a.name, a.status, a.authId, a.createTime createdAt, a.lastLoginTime lastLogin, p.permissions'
+                'a.id, a.account, a.username, a.status, a.authId, a.createTime createdAt, a.lastLoginTime lastLogin, p.permissions'
             )
             ->leftJoin('administrator_permissions p', 'a.id = p.adminId')
             ->where('a.id', $adminId)
@@ -91,21 +92,16 @@ class GetAdministratorDetailController extends BaseController
             $roleName = $this->getRoleName($admin->authId);
             $permissionIds = $this->parsePermissions($admin->permissions);
 
-            return json([
-                'code' => 200,
-                'msg' => '获取成功',
-                'data' => array_merge($admin->toArray(), [
+            return ResponseHelper::success(
+                array_merge($admin->toArray(), [
                     'roleName' => $roleName,
                     'permissions' => $permissionIds,
                     'lastLogin' => $admin->lastLogin ? date('Y-m-d H:i', $admin->lastLogin) : '从未登录',
                     'createdAt' => date('Y-m-d H:i', $admin->createdAt),
                 ])
-            ]);
+            );
         } catch (\Exception $e) {
-            return json([
-                'code' => $e->getCode(),
-                'msg' => $e->getMessage()
-            ]);
+            return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
     }
 }

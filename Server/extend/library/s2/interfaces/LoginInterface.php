@@ -1,6 +1,6 @@
 <?php
 
-namespace app\library\s2\interfaces;
+namespace library\s2\interfaces;
 
 interface LoginInterface
 {

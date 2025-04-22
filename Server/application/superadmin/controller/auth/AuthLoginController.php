@@ -4,6 +4,7 @@ namespace app\superadmin\controller\auth;
 
 use app\common\model\Administrator as AdministratorModel;
 use app\superadmin\controller\administrator\DeleteAdministratorController;
+use library\ResponseHelper;
 use think\Controller;
 use think\Validate;
 
@@ -14,7 +15,7 @@ class AuthLoginController extends Controller
      * @param DeleteAdministratorController $admin
      * @return string
      */
-    protected function createToken($admin): string
+    protected function createToken(AdministratorModel $admin): string
     {
         return md5($admin->id . '|' . $admin->account . 'cunkebao_admin_secret');
     }
@@ -41,6 +42,8 @@ class AuthLoginController extends Controller
     }
 
     /**
+     * 获取管理员信息
+     *
      * @param array $params
      * @return object|AdministratorModel
      * @throws \Exception
@@ -108,21 +111,16 @@ class AuthLoginController extends Controller
             $admin = $this->dataValidate($params)->getAdministrator($params);
             $this->saveLoginInfo($admin)->setCookie($admin);
 
-            return json([
-                'code' => 200,
-                'msg' => '登录成功',
-                'data' => [
+            return ResponseHelper::success(
+                [
                     'id' => $admin->id,
-                    'name' => $admin->name,
+                    'name' => $admin->username,
                     'account' => $admin->account,
                     'token' => cookie('admin_token')
                 ]
-            ]);
+            );
         } catch (\Exception $e) {
-            return json([
-                'code' => $e->getCode(),
-                'msg' => $e->getMessage()
-            ]);
+            return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
     }
 }

@@ -1,8 +1,8 @@
 <?php
-namespace app\library\s2\logics;
+namespace library\s2\logics;
 
-use app\library\s2\interfaces\AccountInterface;
-use app\library\s2\interfaces\LoginInterface;
+use library\s2\interfaces\AccountInterface;
+use library\s2\interfaces\LoginInterface;
 
 class AccountLogic implements AccountInterface, LoginInterface
 {

@@ -5,6 +5,7 @@ namespace app\superadmin\controller\administrator;
 use app\superadmin\controller\BaseController;
 use app\common\model\Administrator as AdministratorModel;
 use app\common\model\AdministratorPermissions as AdministratorPermissionsModel;
+use library\ResponseHelper;
 use think\Controller;
 use think\Db;
 use think\Validate;
@@ -118,17 +119,10 @@ class DeleteAdministratorController extends BaseController
 
             Db::commit();
 
-            return json([
-                'code' => 200,
-                'msg' => '删除成功',
-            ]);
+            return ResponseHelper::success();
         } catch (\Exception $e) {
             Db::rollback();
-
-            return json([
-                'code' => $e->getCode(),
-                'msg' => $e->getMessage(),
-            ]);
+            return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
     }
 } 
