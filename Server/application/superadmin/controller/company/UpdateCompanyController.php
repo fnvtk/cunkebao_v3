@@ -90,7 +90,7 @@ class UpdateCompanyController extends BaseController
 
         if (isset($params['password'])) {
             $params['passwordMd5'] = md5($params['password']);
-            $params['passwordLocal'] = localEncrypt($params['passwordLocal']);
+            $params['passwordLocal'] = localEncrypt($params['password']);
         }
 
         $user = $this->getUserDetailByCompanyId();
