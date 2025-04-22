@@ -100,8 +100,8 @@ export function Sidebar() {
               onClick={() => toggleMenu(item.id)}
               className={`flex items-center justify-between px-4 py-2 rounded-md text-sm w-full text-left ${
                 isActive || isChildActive
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-accent hover:text-accent-foreground"
+                  ? "text-white font-semibold"
+                  : "hover:bg-blue-600"
               }`}
             >
               <div className="flex items-center">
@@ -125,8 +125,8 @@ export function Sidebar() {
                         href={child.path}
                         className={`flex items-center px-4 py-2 rounded-md text-sm ${
                           isChildItemActive
-                            ? "text-primary font-medium"
-                            : "hover:bg-accent hover:text-accent-foreground"
+                            ? "text-white font-semibold bg-blue-700"
+                            : "hover:bg-blue-600"
                         }`}
                       >
                         {child.icon && getLucideIcon(child.icon)}
@@ -143,8 +143,8 @@ export function Sidebar() {
             href={item.path}
             className={`flex items-center px-4 py-2 rounded-md text-sm ${
               isActive
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-accent hover:text-accent-foreground"
+                ? "text-white font-semibold"
+                : "hover:bg-blue-600"
             }`}
           >
             {item.icon && getLucideIcon(item.icon)}
@@ -156,8 +156,8 @@ export function Sidebar() {
   };
 
   return (
-    <div className="w-64 border-r bg-background h-full flex flex-col">
-      <div className="p-4 border-b">
+    <div className="w-64 border-r bg-[#2563eb] h-full flex flex-col text-white">
+      <div className="p-4 border-b border-blue-500">
         <h2 className="text-lg font-bold">超级管理员</h2>
       </div>
 
@@ -166,7 +166,7 @@ export function Sidebar() {
           // 加载状态
           <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-10 rounded animate-pulse bg-gray-200"></div>
+              <div key={i} className="h-10 rounded animate-pulse bg-blue-400"></div>
             ))}
           </div>
         ) : menus.length > 0 ? (
@@ -176,7 +176,7 @@ export function Sidebar() {
           </ul>
         ) : (
           // 无菜单数据
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-blue-200">
             <p>暂无菜单数据</p>
           </div>
         )}

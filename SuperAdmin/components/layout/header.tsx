@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import styles from './header.module.css';
 
 interface AdminInfo {
   id: number;
@@ -39,7 +40,7 @@ export function Header() {
   }
 
   return (
-    <header className="h-16 border-b px-6 flex items-center justify-between bg-background">
+    <header className={`${styles.contentHeader} border-b px-6 flex items-center justify-between bg-background`}>
       <div className="flex-1"></div>
 
       <div className="flex items-center gap-4">

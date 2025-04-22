@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { getTrafficPoolList } from "@/lib/traffic-pool-api"
 import { Customer } from "@/lib/traffic-pool-api"
+import { PaginationControls } from "@/components/ui/pagination-controls"
 
 // Sample customer data
 const customersData = [
@@ -123,8 +124,7 @@ export default function CustomersPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
-  const [pageSize, setPageSize] = useState(10)
-  const [jumpToPage, setJumpToPage] = useState("")
+  const [pageSize, setPageSize] = useState(100)
 
   // 获取客户列表数据
   useEffect(() => {
@@ -140,10 +140,14 @@ export default function CustomersPage() {
         } else {
           setError(response.msg || "获取客户列表失败");
           setCustomers([]);
+          setTotalItems(0); // Reset totals on error
+          setTotalPages(0);
         }
       } catch (err: any) {
         setError(err.message || "获取客户列表失败");
         setCustomers([]);
+        setTotalItems(0); // Reset totals on error
+        setTotalPages(0);
       } finally {
         setIsLoading(false);
       }
@@ -152,27 +156,10 @@ export default function CustomersPage() {
     fetchCustomers();
   }, [currentPage, pageSize, searchTerm]);
 
-  // 切换页码
-  const goToPage = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
-
-  // 处理页码跳转
-  const handleJumpToPage = () => {
-    const page = parseInt(jumpToPage);
-    if (!isNaN(page) && page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-      setJumpToPage("");
-    }
-  };
-
-  // 处理每页显示条数变化
-  const handlePageSizeChange = (size: string) => {
-    const newSize = parseInt(size);
+  // 修改后的页面大小处理函数
+  const handlePageSizeChange = (newSize: number) => {
     setPageSize(newSize);
-    setCurrentPage(1); // 重置为第一页
+    setCurrentPage(1); // Reset to first page when page size changes
   };
 
   // Filter customers based on search and filters (兼容示例数据)
@@ -308,12 +295,12 @@ export default function CustomersPage() {
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={8} className="h-24 text-center">
-                    正在加载...
+                    加载中...
                   </TableCell>
                 </TableRow>
               ) : error ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-24 text-center text-red-500">
+                  <TableCell colSpan={8} className="h-24 text-center text-red-600">
                     {error}
                   </TableCell>
                 </TableRow>
@@ -379,106 +366,15 @@ export default function CustomersPage() {
           </Table>
         </div>
         
-        {/* 分页控件 */}
-        {!isLoading && !error && customers.length > 0 && (
-          <div className="flex items-center justify-between px-2">
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-muted-foreground">
-                共 {totalItems} 条记录，当前第 {currentPage}/{totalPages} 页
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm">每页显示:</span>
-                <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
-                  <SelectTrigger className="h-8 w-[70px]">
-                    <SelectValue placeholder={pageSize} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="30">30</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                    <SelectItem value="100">100</SelectItem>
-                  </SelectContent>
-                </Select>
-                <span className="text-sm">条</span>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage <= 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              
-              {/* 数字分页按钮 */}
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                // 显示当前页码前后2页，以及第一页和最后一页
-                const shouldShow = 
-                  page === 1 || 
-                  page === totalPages || 
-                  (page >= currentPage - 2 && page <= currentPage + 2);
-                
-                if (!shouldShow) {
-                  // 显示省略号
-                  if (page === currentPage - 3 || page === currentPage + 3) {
-                    return (
-                      <span key={page} className="px-2">
-                        ...
-                      </span>
-                    );
-                  }
-                  return null;
-                }
-
-                return (
-                  <Button
-                    key={page}
-                    variant={page === currentPage ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => goToPage(page)}
-                    className="min-w-[2.5rem]"
-                  >
-                    {page}
-                  </Button>
-                );
-              })}
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage >= totalPages}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              
-              {/* 页码跳转 */}
-              <div className="flex items-center space-x-2 ml-2">
-                <span className="text-sm">跳转到</span>
-                <Input
-                  type="number"
-                  value={jumpToPage}
-                  onChange={(e) => setJumpToPage(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleJumpToPage()}
-                  className="h-8 w-16 text-center"
-                  min={1}
-                  max={totalPages}
-                />
-                <span className="text-sm">页</span>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={handleJumpToPage}
-                  disabled={!jumpToPage || isNaN(parseInt(jumpToPage)) || parseInt(jumpToPage) < 1 || parseInt(jumpToPage) > totalPages}
-                >
-                  确定
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* 使用新的分页组件 */} 
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          onPageChange={setCurrentPage} // 直接传递setCurrentPage
+          onPageSizeChange={handlePageSizeChange}
+        />
       </div>
     </div>
   )

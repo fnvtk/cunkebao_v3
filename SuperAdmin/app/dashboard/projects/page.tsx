@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Plus, Search, MoreHorizontal, Edit, Eye, Trash, ChevronLeft, ChevronRight } from "lucide-react"
+import { Plus, Search, MoreHorizontal, Edit, Eye, Trash } from "lucide-react"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
+import { PaginationControls } from "@/components/ui/pagination-controls"
 
 interface Project {
   id: number
@@ -36,7 +37,8 @@ export default function ProjectsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [pageSize] = useState(10)
+  const [pageSize, setPageSize] = useState(10)
+  const [totalItems, setTotalItems] = useState(0)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingProjectId, setDeletingProjectId] = useState<number | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -51,12 +53,19 @@ export default function ProjectsPage() {
         
         if (data.code === 200) {
           setProjects(data.data.list)
+          setTotalItems(data.data.total)
           setTotalPages(Math.ceil(data.data.total / pageSize))
         } else {
           toast.error(data.msg || "获取项目列表失败")
+          setProjects([])
+          setTotalItems(0)
+          setTotalPages(0)
         }
       } catch (error) {
         toast.error("获取项目列表失败")
+        setProjects([])
+        setTotalItems(0)
+        setTotalPages(0)
       } finally {
         setIsLoading(false)
       }
@@ -65,11 +74,10 @@ export default function ProjectsPage() {
     fetchProjects()
   }, [currentPage, pageSize])
 
-  // 切换页码
-  const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page)
-    }
+  // 处理页面大小变化
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize)
+    setCurrentPage(1)
   }
 
   const handleDeleteClick = (projectId: number) => {
@@ -96,8 +104,26 @@ export default function ProjectsPage() {
 
       if (data.code === 200) {
         toast.success("删除成功")
-        // 刷新项目列表
-        window.location.reload()
+        // Fetch projects again after delete
+        const fetchProjects = async () => {
+          setIsLoading(true)
+          try {
+            const response = await fetch(`http://yishi.com/company/list?page=${currentPage}&limit=${pageSize}`)
+            const data = await response.json()
+            if (data.code === 200) {
+              setProjects(data.data.list)
+              setTotalItems(data.data.total)
+              setTotalPages(Math.ceil(data.data.total / pageSize))
+              if (currentPage > Math.ceil(data.data.total / pageSize) && Math.ceil(data.data.total / pageSize) > 0) {
+                setCurrentPage(Math.ceil(data.data.total / pageSize));
+              }
+            } else {
+              setProjects([]); setTotalItems(0); setTotalPages(0);
+            }
+          } catch (error) { setProjects([]); setTotalItems(0); setTotalPages(0); } 
+          finally { setIsLoading(false); }
+        }
+        fetchProjects();
       } else {
         toast.error(data.msg || "删除失败")
       }
@@ -206,41 +232,15 @@ export default function ProjectsPage() {
         </Table>
       </div>
 
-      {/* 分页控件 */}
-      {!isLoading && projects.length > 0 && (
-        <div className="flex items-center justify-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <Button
-              key={page}
-              variant={page === currentPage ? "default" : "outline"}
-              size="icon"
-              onClick={() => handlePageChange(page)}
-            >
-              {page}
-            </Button>
-          ))}
+      <PaginationControls
+        currentPage={currentPage}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        totalItems={totalItems}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={handlePageSizeChange}
+      />
 
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
-
-      {/* 删除确认对话框 */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
