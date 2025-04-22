@@ -162,9 +162,9 @@ export default function ProjectsPage() {
                       {project.status === 1 ? "启用" : "禁用"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-center">{project.userCount}</TableCell>
-                  <TableCell className="text-center">{project.deviceCount}</TableCell>
-                  <TableCell className="text-center">{project.createTime}</TableCell>
+                  <TableCell>{project.userCount}</TableCell>
+                  <TableCell>{project.deviceCount}</TableCell>
+                  <TableCell>{project.createTime}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
