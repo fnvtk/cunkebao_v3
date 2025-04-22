@@ -84,11 +84,12 @@ class UpdateCompanyController extends BaseController
      */
     protected function updateUserAccount(array $params): void
     {
-        $params = ArrHelper::getValue('username,account,password=passwordLocal,realName,status', $params);
+        $params = ArrHelper::getValue('username,account,password,realName,status', $params);
         $params = ArrHelper::rmValue($params);
 
-        if (isset($params['passwordLocal'])) {
-            $params['passwordMd5'] = md5($params['passwordLocal']);
+        if (isset($params['password'])) {
+            $params['passwordMd5'] = md5($params['password']);
+            $params['passwordLocal'] = localEncrypt($params['passwordLocal']);
         }
 
         $user = $this->getUserDetailByCompanyId();

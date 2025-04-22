@@ -93,7 +93,7 @@ class CreateCompanyController extends BaseController
         }
 
         return array_merge($params, [
-            'companyId' => $department['departmentId'],
+            'companyId'    => $department['departmentId'],
             's2_accountId' => $department['id'],
         ]);
     }
@@ -125,14 +125,15 @@ class CreateCompanyController extends BaseController
     protected function ckbCreateUser(array $params): void
     {
         $params = ArrHelper::getValue(
-            'username,account,password=passwordLocal,companyId,s2_accountId,status,realName',
+            'username,account,password,companyId,s2_accountId,status,realName',
             $params
         );
 
         $result = UsersModel::create(array_merge($params, [
-            'passwordMd5' => md5($params['passwordLocal']),
+            'passwordLocal' => localEncrypt($params['password']),
+            'passwordMd5' => md5($params['password']),
             'isAdmin' => 1,  // 主要账号默认1
-            'typeId'  => 1,  // 类型：运营后台/操盘手传1、 门店传2
+            'typeId' => 1,   // 类型：运营后台/操盘手传1、 门店传2
         ]));
 
         if (!$result) {
