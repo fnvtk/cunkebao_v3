@@ -42,7 +42,7 @@ class GetCompanyDetailForUpdateController extends BaseController
                 'c.id', 'c.name', 'c.status', 'c.memo', 'c.companyId',
                 'u.account', 'u.username', 'u.phone', 'u.s2_accountId'
             ])
-            ->leftJoin('users u', 'c.companyId = u.companyId')
+            ->leftJoin('users u', 'c.companyId = u.companyId and u.isAdmin = 1')
             ->find($id);
 
         if (!$detail) {

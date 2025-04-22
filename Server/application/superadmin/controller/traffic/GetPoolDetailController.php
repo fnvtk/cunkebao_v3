@@ -1,100 +1,25 @@
 <?php
-namespace app\superadmin\controller;
 
-use app\superadmin\model\TrafficPool as TrafficPoolModel;
-use app\superadmin\model\TrafficSource;
-use app\superadmin\model\Company;
-use app\superadmin\model\WechatAccount;
-use app\superadmin\model\WechatTag;
+namespace app\superadmin\controller\traffic;
+
+use app\common\model\Company as CompanyModel;
+use app\common\model\TrafficPool as TrafficPoolModel;
+use app\common\model\TrafficSource as TrafficSourceModel;
+use app\common\model\WechatAccount as WechatAccountModel;
+use app\common\model\WechatTag as WechatTagModel;
 use think\Controller;
 use think\facade\Request;
-use think\facade\Session;
-use think\facade\Validate;
 
 /**
  * 客户池控制器
  */
-class TrafficPoolController extends Controller
+class GetPoolDetailController extends Controller
 {
-    /**
-     * 获取客户池列表
-     * @return \think\response\Json
-     */
-    public function getList()
-    {
-        // 获取分页参数
-        $page = Request::param('page/d', 1);
-        $limit = Request::param('limit/d', 30);
-        
-        // 构建查询
-        $query = TrafficPoolModel::alias('tp')
-            ->join('traffic_source ts', 'tp.identifier = ts.identifier', 'RIGHT')
-            ->join('company c', 'ts.companyId = c.companyId', 'LEFT')
-            ->join('wechat_account wa', 'tp.wechatId = wa.wechatId', 'LEFT')
-            ->join('wechat_tag wt', 'wa.wechatId = wt.wechatId', 'LEFT')
-            ->field([
-                'ts.id',
-                'tp.wechatId',
-                'ts.createTime as addTime',
-                'ts.fromd as source',
-                'c.name as projectName',
-                'wa.avatar',
-                'wa.gender',
-                'wa.nickname',
-                'wa.region',
-                'wt.tags'
-            ]);
-
-        // 执行分页查询
-        $list = $query->paginate([
-            'list_rows' => $limit,
-            'page' => $page
-        ]);
-        
-        // 处理性别显示
-        $list->each(function($item) {
-            // 处理性别显示
-            switch($item['gender']) {
-                case 1:
-                    $item['gender'] = '男';
-                    break;
-                case 2:
-                    $item['gender'] = '女';
-                    break;
-                default:
-                    $item['gender'] = '保密';
-            }
-
-            $item['addTime'] = $item['addTime'] ? date('Y-m-d H:i:s', $item['addTime']) : null;
-
-            // 处理标签显示
-            if (is_string($item['tags'])) {
-                $item['tags'] = json_decode($item['tags'], true);
-            } else {
-                $item['tags'] = [];
-            }
-            
-            return $item;
-        });
-        
-        // 返回结果
-        return json([
-            'code' => 200,
-            'msg' => '获取成功',
-            'data' => [
-                'total' => $list->total(),
-                'list' => $list->items(),
-                'page' => $list->currentPage(),
-                'limit' => $list->listRows()
-            ]
-        ]);
-    }
-
     /**
      * 获取客户详情
      * @return \think\response\Json
      */
-    public function getDetail()
+    public function index()
     {
         // 获取参数
         $id = Request::param('id/d');
@@ -104,7 +29,7 @@ class TrafficPoolController extends Controller
 
         try {
             // 查询流量来源信息
-            $sourceInfo = TrafficSource::alias('ts')
+            $sourceInfo = TrafficSourceModel::alias('ts')
                 ->join('company c', 'ts.companyId = c.companyId', 'LEFT')
                 ->field([
                     'ts.fromd as source',
@@ -133,7 +58,7 @@ class TrafficPoolController extends Controller
             // 如果存在微信ID，查询微信账号信息
             if ($poolInfo && $poolInfo['wechatId']) {
                 // 查询微信账号信息
-                $wechatInfo = WechatAccount::where('wechatId', $poolInfo['wechatId'])
+                $wechatInfo = WechatAccountModel::where('wechatId', $poolInfo['wechatId'])
                     ->field('avatar,nickname,region,gender')
                     ->find();
 
@@ -146,13 +71,13 @@ class TrafficPoolController extends Controller
                     ]);
 
                     // 查询标签信息
-                    $tagInfo = WechatTag::where('wechatId', $poolInfo['wechatId'])
+                    $tagInfo = WechatTagModel::where('wechatId', $poolInfo['wechatId'])
                         ->field('tags')
                         ->find();
 
                     if ($tagInfo) {
-                        $result['tags'] = is_string($tagInfo['tags']) ? 
-                            json_decode($tagInfo['tags'], true) : 
+                        $result['tags'] = is_string($tagInfo['tags']) ?
+                            json_decode($tagInfo['tags'], true) :
                             $tagInfo['tags'];
                     } else {
                         $result['tags'] = [];
@@ -189,7 +114,7 @@ class TrafficPoolController extends Controller
      */
     protected function formatGender($gender)
     {
-        switch($gender) {
+        switch ($gender) {
             case 1:
                 return '男';
             case 2:
@@ -197,14 +122,5 @@ class TrafficPoolController extends Controller
             default:
                 return '保密';
         }
-    }
-
-    /**
-     * 检查登录状态
-     * @return bool
-     */
-    protected function checkLogin()
-    {
-        return Session::has('admin_id');
     }
 } 

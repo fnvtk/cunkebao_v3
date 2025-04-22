@@ -29,7 +29,7 @@ Route::group('', function () {
     // 客户池管理路由
     Route::group('trafficPool', function () {
         Route::get('list', 'app\superadmin\controller\traffic\GetPoolListController@index');
-        Route::get('detail', 'app\superadmin\controller\traffic\TrafficPoolController@getDetail');
+        Route::get('detail', 'app\superadmin\controller\traffic\GetPoolDetailController@index');
     });
 
     // 公司路由
