@@ -85,7 +85,7 @@ class UpdateCompanyController extends BaseController
      */
     protected function updateUserAccount(array $params): void
     {
-        $params = ArrHelper::getValue('username,account,password,realName,status', $params);
+        $params = ArrHelper::getValue('username,account,password,phone,status', $params);
         $params = ArrHelper::rmValue($params);
 
         if (isset($params['password'])) {
@@ -119,7 +119,7 @@ class UpdateCompanyController extends BaseController
 
     /**
      * 更新触客宝端数据
-     * 
+     *
      * @param array $params
      * @return self
      * @throws \Exception
@@ -142,7 +142,7 @@ class UpdateCompanyController extends BaseController
      * @return void
      * @throws \Exception
      */
-    protected function checkCompanyNameAndAccountExists(array $where): void
+    protected function checkCompanyNameOrAccountOrPhoneExists(array $where): void
     {
         extract($where);
 
@@ -152,11 +152,16 @@ class UpdateCompanyController extends BaseController
             throw new \Exception('项目名称已存在', 403);
         }
 
-        // 账号尽量不重名
         // TODO（数据迁移时，存客宝，主账号先查询出id，通过id查询出S2的最新信息，然后更新。）
         $exists = UsersModel::where(compact('account'))->where('companyId', '<>', $id)->count() > 0;
         if ($exists) {
             throw new \Exception('用户账号已存在', 403);
+        }
+
+        // 手机号不重复
+        $exists = UsersModel::where(compact('phone'))->where('companyId', '<>', $id)->count() > 0;
+        if ($exists) {
+            throw new \Exception('手机号已存在', 403);
         }
     }
 
@@ -207,7 +212,7 @@ class UpdateCompanyController extends BaseController
 
             // 数据验证
             $this->dataValidate($params);
-            $this->checkCompanyNameAndAccountExists(ArrHelper::getValue('id,name,account', $params));
+            $this->checkCompanyNameOrAccountOrPhoneExists(ArrHelper::getValue('id,name,account,phone', $params));
 
             Db::startTrans();
             $this->updateCkbAbout($params)->updateS2About($params);

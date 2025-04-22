@@ -126,7 +126,7 @@ class CreateCompanyController extends BaseController
     protected function ckbCreateUser(array $params): void
     {
         $params = ArrHelper::getValue(
-            'username,account,password,companyId,s2_accountId,status,realName',
+            'username,account,password,companyId,s2_accountId,status,phone',
             $params
         );
 
@@ -157,6 +157,36 @@ class CreateCompanyController extends BaseController
     }
 
     /**
+     * 检查项目名称是否已存在
+     *
+     * @param array $where
+     * @return void
+     * @throws \Exception
+     */
+    protected function checkCompanyNameOrAccountOrPhoneExists(array $where): void
+    {
+        extract($where);
+
+        // 项目名称尽量不重名
+        $exists = CompanyModel::where(compact('name'))->count() > 0;
+        if ($exists) {
+            throw new \Exception('项目名称已存在', 403);
+        }
+
+        // 账号不重名
+        $exists = UsersModel::where(compact('account'))->count() > 0;
+        if ($exists) {
+            throw new \Exception('用户账号已存在', 403);
+        }
+
+        // 手机号不重名
+        $exists = UsersModel::where(compact('phone'))->count() > 0;
+        if ($exists) {
+            throw new \Exception('手机号已存在', 403);
+        }
+    }
+
+    /**
      * 创建新项目
      *
      * @return \think\response\Json
@@ -168,7 +198,7 @@ class CreateCompanyController extends BaseController
             $params = $this->dataValidate($params)->creatS2About($params);
 
             Db::startTrans();
-
+            $this->checkCompanyNameOrAccountOrPhoneExists(ArrHelper::getValue('name,account,phone', $params));
             $this->createCkbAbout($params);
 
             Db::commit();

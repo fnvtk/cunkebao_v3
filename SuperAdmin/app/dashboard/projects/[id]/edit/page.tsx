@@ -141,7 +141,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
 
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="account">账号</Label>
+                <Label htmlFor="account">登录账号</Label>
                 <Input
                   id="account"
                   value={account}
@@ -161,29 +161,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                   required
                 />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">密码</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="不修改请留空"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">确认密码</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="不修改请留空"
-                />
-              </div>
-
+              
               <div className="space-y-2">
                 <Label htmlFor="phone">手机号</Label>
                 <Input
@@ -207,6 +185,28 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                   <option value="1">启用</option>
                   <option value="0">禁用</option>
                 </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">密码</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="不修改请留空"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">确认密码</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="不修改请留空"
+                />
               </div>
             </div>
 

@@ -21,7 +21,7 @@ export default function NewProjectPage() {
     account: "",
     password: "",
     confirmPassword: "",
-    realName: "",
+    phone: "",
     nickname: "",
     description: "",
     status: "1" // 默认启用
@@ -63,7 +63,7 @@ export default function NewProjectPage() {
           name: formData.name,
           account: formData.account,
           password: formData.password,
-          realName: formData.realName,
+          phone: formData.phone,
           username: formData.nickname,
           description: formData.description,
           status: formData.status
@@ -117,17 +117,38 @@ export default function NewProjectPage() {
 
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="account">账号</Label>
+                <Label htmlFor="account">登录账号</Label>
                 <Input 
                   id="account" 
-                  type="number"
-                  placeholder="请输入手机号" 
+                  placeholder="请输入登录的账号"
                   required 
                   value={formData.account}
                   onChange={handleChange}
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="nickname">昵称</Label>
+                <Input 
+                  id="nickname" 
+                  placeholder="用于账号登录后显示的用户名，可以填真实姓名"
+                  required 
+                  value={formData.nickname}
+                  onChange={handleChange}
+                />
+              </div>
+         
+              <div className="space-y-2">
+                <Label htmlFor="phone">手机号</Label>
+                <Input 
+                  id="phone" 
+                  type="number"
+                  placeholder="手机号可用于登录"
+                  required 
+                  value={formData.phone}
+                  onChange={handleChange}
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="status">状态</Label>
                 <Select value={formData.status} onValueChange={handleStatusChange}>
@@ -161,30 +182,6 @@ export default function NewProjectPage() {
                   placeholder="请再次输入密码" 
                   required 
                   value={formData.confirmPassword}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="realName">真实姓名</Label>
-                <Input 
-                  id="realName" 
-                  placeholder="请输入真实姓名" 
-                  required 
-                  value={formData.realName}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="nickname">昵称</Label>
-                <Input 
-                  id="nickname" 
-                  placeholder="请输入昵称" 
-                  required 
-                  value={formData.nickname}
                   onChange={handleChange}
                 />
               </div>
