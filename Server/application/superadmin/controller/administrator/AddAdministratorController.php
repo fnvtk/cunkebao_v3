@@ -41,12 +41,13 @@ class AddAdministratorController extends BaseController
     protected function dataValidate(array $params): self
     {
         $validate = Validate::make([
-            'account' => 'require|/\S+/',
+            'account' => 'require|regex:^[a-zA-Z0-9]+$|/\S+/',
             'username' => 'require|/\S+/',
             'password' => 'require|/\S+/',
             'permissionIds' => 'require|array',
         ], [
             'account.require' => '账号不能为空',
+            'account.regex' => '账号只能用数字或者字母或者数字字母组合',
             'username.require' => '用户名不能为空',
             'password.require' => '密码不能为空',
             'permissionIds.require' => '请至少分配一种权限',

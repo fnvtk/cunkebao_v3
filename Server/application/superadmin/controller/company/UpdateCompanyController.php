@@ -178,7 +178,7 @@ class UpdateCompanyController extends BaseController
             'id' => 'require',
             'name' => 'require|max:50|/\S+/',
             'username' => 'require|max:20|/\S+/',
-            'account' => 'require|max:20|/\S+/',
+            'account' => 'require|regex:^[a-zA-Z0-9]+$|max:20|/\S+/',
             'phone' => 'require|regex:/^1[3-9]\d{9}$/',
             'status' => 'require|in:0,1'
         ], [
@@ -186,6 +186,7 @@ class UpdateCompanyController extends BaseController
             'name.require' => '请输入项目名称',
             'username.require' => '请输入用户昵称',
             'account.require' => '请输入账号',
+            'account.regex' => '账号只能用数字或者字母或者数字字母组合',
             'account.max' => '账号长度受限',
             'phone.require' => '请输入手机号',
             'phone.regex' => '手机号格式错误',

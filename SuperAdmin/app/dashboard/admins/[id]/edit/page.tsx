@@ -59,7 +59,7 @@ export default function EditAdminPage({ params }: { params: { id: string } }) {
         
         if (adminResponse.code === 200 && adminResponse.data) {
           setAdminInfo(adminResponse.data)
-          setAccount(adminResponse.data.username)
+          setAccount(adminResponse.data.account)
           setUserName(adminResponse.data.username)
           
           // 判断是否可以编辑权限
@@ -222,7 +222,7 @@ export default function EditAdminPage({ params }: { params: { id: string } }) {
                   id="account"
                   value={account}
                   onChange={(e) => setAccount(e.target.value)}
-                  placeholder="请输入账号"
+                  placeholder="只能用数字或者字母或者数字字母组合"
                   required
                 />
               </div>

@@ -49,13 +49,14 @@ class UpdateAdministratorController extends BaseController
     {
         $validate = Validate::make([
             'id' => 'require|regex:/^[1-9]\d*$/',
-            'account' => 'require|/\S+/',
+            'account' => 'require|regex:^[a-zA-Z0-9]+$|/\S+/',
             'username' => 'require|/\S+/',
             'password' => '/\S+/',
             'permissionIds' => 'array',
         ], [
             'id.require' => '缺少必要参数',
             'account.require' => '账号不能为空',
+            'account.regex' => '账号只能用数字或者字母或者数字字母组合',
             'username.require' => '用户名不能为空',
             'permissionIds.array' => '请至少分配一种权限',
         ]);
