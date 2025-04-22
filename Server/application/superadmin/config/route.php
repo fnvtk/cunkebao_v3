@@ -15,6 +15,7 @@ Route::group('', function () {
     // 菜单管理相关路由
     Route::group('menu', function () {
         Route::get('tree', 'app\superadmin\controller\Menu\GetMenuTreeController@index');
+        Route::get('toplevel', 'app\superadmin\controller\Menu\GetTopLevelForPermissionController@index');
     });
 
     // 管理员相关路由
