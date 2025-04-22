@@ -59,7 +59,7 @@ export default function EditAdminPage({ params }: { params: { id: string } }) {
         
         if (adminResponse.code === 200 && adminResponse.data) {
           setAdminInfo(adminResponse.data)
-          setAccount(adminResponse.data.account)
+          setAccount(adminResponse.data.username)
           setUserName(adminResponse.data.username)
           
           // 判断是否可以编辑权限
@@ -134,7 +134,7 @@ export default function EditAdminPage({ params }: { params: { id: string } }) {
       // 准备提交的数据
       const updateData: any = {
         account,
-        name,
+        username,
       }
       
       // 如果有设置密码，则添加密码字段

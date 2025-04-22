@@ -101,7 +101,7 @@ export default function NewAdminPage() {
       // 准备提交数据
       const data: any = {
         account,
-        name,
+        username,
         password,
       }
       
