@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, use } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -55,6 +55,8 @@ const detailData = {
 }
 
 export default function CustomerDetailPage({ params }: { params: { id: string } }) {
+  const { id } = use(params)
+
   const [customer, setCustomer] = useState<CustomerDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -63,7 +65,7 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
     const fetchCustomerDetail = async () => {
       try {
         setIsLoading(true)
-        const response = await getCustomerDetail(params.id)
+        const response = await getCustomerDetail(id)
         if (response.code === 200) {
           setCustomer(response.data)
           setError(null)
@@ -78,7 +80,7 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
     }
 
     fetchCustomerDetail()
-  }, [params.id])
+  }, [id])
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">加载中...</div>

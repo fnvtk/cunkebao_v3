@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,7 +18,7 @@ interface Device {
 }
 
 export default function EditProjectPage({ params }: { params: { id: string } }) {
-  const id = params.id
+  const { id } = use(params)
 
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)

@@ -60,7 +60,7 @@ export default function EditAdminPage({ params }: { params: { id: string } }) {
         if (adminResponse.code === 200 && adminResponse.data) {
           const adminData = adminResponse.data;
           setAdminInfo(adminData)
-          setAccount(adminData.account)
+          setAccount(adminData.account || adminData.name || adminData.username || "")
           setUserName(adminData.username || "")
           
           const isEditingSelf = currentAdminInfo && parseInt(id) === currentAdminInfo.id
@@ -122,6 +122,7 @@ export default function EditAdminPage({ params }: { params: { id: string } }) {
       const updateData: any = {
         account: account,
         username: username,
+        name: account,
       }
       
       if (password) {

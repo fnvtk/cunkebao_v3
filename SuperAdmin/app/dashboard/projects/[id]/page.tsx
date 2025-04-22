@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, use } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -31,6 +31,8 @@ const projectData = {
 }
 
 export default function ProjectDetailPage({ params }: { params: { id: string } }) {
+  const { id } = use(params)
+
   const [activeTab, setActiveTab] = useState("overview")
 
   return (
@@ -45,7 +47,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
           <h1 className="text-2xl font-bold">{projectData.name}</h1>
         </div>
         <Button asChild>
-          <Link href={`/dashboard/projects/${params.id}/edit`}>
+          <Link href={`/dashboard/projects/${id}/edit`}>
             <Edit className="mr-2 h-4 w-4" /> 编辑项目
           </Link>
         </Button>
