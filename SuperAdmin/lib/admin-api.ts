@@ -4,7 +4,7 @@ import { apiRequest, ApiResponse } from './api-utils';
 export interface Administrator {
   id: number;
   username: string;
-  name: string;
+  account: string;
   role: string;
   status: number;
   createdAt: string;
@@ -16,7 +16,7 @@ export interface Administrator {
 export interface AdministratorDetail {
   id: number;
   username: string;
-  name: string;
+  account: string;
   authId: number;
   roleName: string;
   status: number;
@@ -96,7 +96,7 @@ export async function updateAdministrator(
   id: number | string,
   data: {
     username: string;
-    name: string;
+    account: string;
     password?: string;
     permissionIds?: number[];
   }
@@ -115,7 +115,7 @@ export async function updateAdministrator(
 export async function addAdministrator(
   data: {
     username: string;
-    name: string;
+    account: string;
     password: string;
     permissionIds?: number[];
   }

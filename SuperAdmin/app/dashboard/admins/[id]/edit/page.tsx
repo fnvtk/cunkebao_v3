@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ArrowLeft, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { Checkbox } from "@/components/ui/checkbox"
-import { getAdministratorDetail, updateAdministrator } from "@/lib/admin-api"
+import { getAdministratorDetail, updateAdministrator, AdministratorDetail } from "@/lib/admin-api"
 import { useToast } from "@/components/ui/use-toast"
 import { getTopLevelMenus } from "@/lib/menu-api"
 import { getAdminInfo } from "@/lib/utils"
@@ -29,11 +29,13 @@ interface MenuPermission {
 }
 
 export default function EditAdminPage({ params }: { params: { id: string } }) {
+  const { id } = use(params);
+
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [adminInfo, setAdminInfo] = useState<any | null>(null)
+  const [adminInfo, setAdminInfo] = useState<AdministratorDetail | null>(null)
   const [account, setAccount] = useState("")
   const [username, setUserName] = useState("")
   const [password, setPassword] = useState("")
@@ -50,41 +52,30 @@ export default function EditAdminPage({ params }: { params: { id: string } }) {
     const fetchData = async () => {
       setIsLoading(true)
       try {
-        // 获取当前登录的管理员信息
         const currentAdminInfo = getAdminInfo()
         setCurrentAdmin(currentAdminInfo)
         
-        // 获取管理员详情
-        const adminResponse = await getAdministratorDetail(params.id)
+        const adminResponse = await getAdministratorDetail(id)
         
         if (adminResponse.code === 200 && adminResponse.data) {
-          setAdminInfo(adminResponse.data)
-          setAccount(adminResponse.data.account)
-          setUserName(adminResponse.data.username)
+          const adminData = adminResponse.data;
+          setAdminInfo(adminData)
+          setAccount(adminData.account)
+          setUserName(adminData.username || "")
           
-          // 判断是否可以编辑权限
-          // 只有超级管理员(ID为1)可以编辑其他人的权限
-          // 编辑自己时不能修改权限
-          const isEditingSelf = currentAdminInfo && parseInt(params.id) === currentAdminInfo.id
+          const isEditingSelf = currentAdminInfo && parseInt(id) === currentAdminInfo.id
           const isSuperAdmin = currentAdminInfo && currentAdminInfo.id === 1
           
           setCanEditPermissions(!!(isSuperAdmin && !isEditingSelf))
           
-          // 如果可以编辑权限，则获取菜单权限
           if (isSuperAdmin && !isEditingSelf) {
             const menuResponse = await getTopLevelMenus()
             if (menuResponse.code === 200 && menuResponse.data) {
               setMenuPermissions(menuResponse.data)
               
-              // 获取管理员已有的权限
-              const permissionsResponse = await getAdministratorDetail(params.id)
-              if (permissionsResponse.code === 200 && permissionsResponse.data) {
-                // 如果有权限数据，则设置选中的权限
-                if (permissionsResponse.data.permissions) {
-                  // 处理权限ID数组，确保是数字类型
-                  const permissionIds = permissionsResponse.data.permissions.map(Number);
-                  setSelectedPermissions(permissionIds);
-                }
+              if (adminData.permissions) {
+                const permissionIds = adminData.permissions.map(Number);
+                setSelectedPermissions(permissionIds);
               }
             }
           }
@@ -108,20 +99,17 @@ export default function EditAdminPage({ params }: { params: { id: string } }) {
     }
 
     fetchData()
-  }, [params.id])
+  }, [id])
 
-  // 切换权限选择
   const togglePermission = (permissionId: number) => {
     setSelectedPermissions((prev) =>
       prev.includes(permissionId) ? prev.filter((id) => id !== permissionId) : [...prev, permissionId],
     )
   }
 
-  // 提交表单
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // 验证密码
     if (password && password !== confirmPassword) {
       setErrorMessage("两次输入的密码不一致")
       setErrorDialogOpen(true)
@@ -131,24 +119,20 @@ export default function EditAdminPage({ params }: { params: { id: string } }) {
     setIsSubmitting(true)
     
     try {
-      // 准备提交的数据
       const updateData: any = {
-        account,
-        username,
+        account: account,
+        username: username,
       }
       
-      // 如果有设置密码，则添加密码字段
       if (password) {
         updateData.password = password
       }
       
-      // 如果可以编辑权限，则添加权限字段
       if (canEditPermissions) {
         updateData.permissionIds = selectedPermissions
       }
       
-      // 调用更新API
-      const response = await updateAdministrator(params.id, updateData)
+      const response = await updateAdministrator(id, updateData)
       
       if (response.code === 200) {
         toast({
@@ -156,8 +140,6 @@ export default function EditAdminPage({ params }: { params: { id: string } }) {
           description: "管理员信息已更新",
           variant: "success",
         })
-        
-        // 更新成功后返回列表页
         router.push("/dashboard/admins")
       } else {
         setErrorMessage(response.msg || "更新失败，请稍后重试")
@@ -222,7 +204,7 @@ export default function EditAdminPage({ params }: { params: { id: string } }) {
                   id="account"
                   value={account}
                   onChange={(e) => setAccount(e.target.value)}
-                  placeholder="只能用数字或者字母或者数字字母组合"
+                  placeholder="请输入账号"
                   required
                 />
               </div>

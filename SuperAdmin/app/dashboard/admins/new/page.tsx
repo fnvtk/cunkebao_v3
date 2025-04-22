@@ -166,7 +166,7 @@ export default function NewAdminPage() {
                   id="account"
                   value={account}
                   onChange={(e) => setAccount(e.target.value)}
-                  placeholder="请输入账号"
+                  placeholder="只能用数字或者字母或者数字字母组合"
                   required
                 />
               </div>

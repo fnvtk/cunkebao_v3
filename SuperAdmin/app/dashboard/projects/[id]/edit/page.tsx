@@ -18,6 +18,8 @@ interface Device {
 }
 
 export default function EditProjectPage({ params }: { params: { id: string } }) {
+  const id = params.id
+
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -34,7 +36,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   useEffect(() => {
     const fetchProjectDetail = async () => {
       try {
-        const response = await fetch(`http://yishi.com/company/detail/${params.id}`)
+        const response = await fetch(`http://yishi.com/company/detail/${id}`)
         const data = await response.json()
 
         if (data.code === 200) {
@@ -56,7 +58,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
     }
 
     fetchProjectDetail()
-  }, [params.id])
+  }, [id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -75,7 +77,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          id: params.id,
+          id: id,
           name: projectName,
           account,
           memo: description,
@@ -102,7 +104,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   }
 
   const handleAddDevice = () => {
-    router.push(`/dashboard/projects/${params.id}/devices/new`)
+    router.push(`/dashboard/projects/${id}/devices/new`)
   }
 
   if (isLoading) {
