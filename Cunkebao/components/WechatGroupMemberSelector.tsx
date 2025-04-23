@@ -43,13 +43,15 @@ export function WechatGroupMemberSelector({
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
+  const [tempSelectedMembers, setTempSelectedMembers] = useState<WechatGroupMember[]>([])
   const pageSize = 20
 
   useEffect(() => {
     if (open && groupId) {
       fetchGroupMembers(1)
+      setTempSelectedMembers([...selectedMembers])
     }
-  }, [open, groupId])
+  }, [open, groupId, selectedMembers])
 
   const fetchGroupMembers = async (pageNum: number) => {
     setLoading(true)
@@ -64,14 +66,26 @@ export function WechatGroupMemberSelector({
       const response = await api.get<ApiResponse<GroupMemberListResponse>>(`/v1/chatroom/getMemberList?${queryParams.toString()}`)
       
       if (response.code === 200 && response.data) {
-        const membersList = response.data.list.map((item: any) => ({
-          id: item.id || `member-${Math.random()}`,
-          nickname: item.nickname || '未知成员',
-          wechatId: item.identifier || '',
-          avatar: item.avatar || '/placeholder.svg',
-          role: item.isOwner ? 'owner' : (item.isAdmin ? 'admin' : 'member'),
-          joinTime: item.createTime ? new Date(item.createTime * 1000).toLocaleString() : '--'
-        }))
+        const membersList = response.data.list.map((item: any) => {
+          // 确定角色类型
+          let role: "owner" | "admin" | "member" | undefined;
+          if (item.isOwner) {
+            role = "owner";
+          } else if (item.isAdmin) {
+            role = "admin";
+          } else {
+            role = "member";
+          }
+          
+          return {
+            id: item.id || `member-${Math.random()}`,
+            nickname: item.name || item.ownerNickname || '未知成员',
+            wechatId: item.ownerWechatId || item.identifier || '',
+            avatar: item.ownerAvatar || item.avatar || '/placeholder.svg',
+            role: role,
+            joinTime: item.createTime ? new Date(item.createTime * 1000).toLocaleString() : '--'
+          };
+        });
         
         setMembers(membersList)
         setTotalItems(response.data.total)
@@ -139,12 +153,12 @@ export function WechatGroupMemberSelector({
             members.map((member) => (
               <div key={member.id} className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg">
                 <Checkbox
-                  checked={selectedMembers.some((m) => m.id === member.id)}
+                  checked={tempSelectedMembers.some((m) => m.id === member.id)}
                   onCheckedChange={(checked) => {
                     if (checked) {
-                      onSelect([...selectedMembers, member])
+                      setTempSelectedMembers([...tempSelectedMembers, member])
                     } else {
-                      onSelect(selectedMembers.filter((m) => m.id !== member.id))
+                      setTempSelectedMembers(tempSelectedMembers.filter((m) => m.id !== member.id))
                     }
                   }}
                 />
@@ -201,8 +215,11 @@ export function WechatGroupMemberSelector({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             取消
           </Button>
-          <Button onClick={() => onOpenChange(false)}>
-            确定 ({selectedMembers.length})
+          <Button onClick={() => {
+            onSelect(tempSelectedMembers)
+            onOpenChange(false)
+          }}>
+            确定 ({tempSelectedMembers.length})
           </Button>
         </div>
       </DialogContent>

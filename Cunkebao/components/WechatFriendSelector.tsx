@@ -48,13 +48,15 @@ export function WechatFriendSelector({ open, onOpenChange, selectedFriends, onSe
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
+  const [tempSelectedFriends, setTempSelectedFriends] = useState<WechatFriend[]>([])
   const pageSize = 20
 
   useEffect(() => {
     if (open) {
       fetchFriends(1)
+      setTempSelectedFriends([...selectedFriends])
     }
-  }, [open])
+  }, [open, selectedFriends])
 
   const fetchFriends = async (pageNum: number) => {
     setLoading(true)
@@ -145,12 +147,12 @@ export function WechatFriendSelector({ open, onOpenChange, selectedFriends, onSe
             friends.map((friend) => (
               <div key={friend.id} className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg">
                 <Checkbox
-                  checked={selectedFriends.some((f) => f.id === friend.id)}
+                  checked={tempSelectedFriends.some((f) => f.id === friend.id)}
                   onCheckedChange={(checked) => {
                     if (checked) {
-                      onSelect([...selectedFriends, friend])
+                      setTempSelectedFriends([...tempSelectedFriends, friend])
                     } else {
-                      onSelect(selectedFriends.filter((f) => f.id !== friend.id))
+                      setTempSelectedFriends(tempSelectedFriends.filter((f) => f.id !== friend.id))
                     }
                   }}
                 />
@@ -204,7 +206,12 @@ export function WechatFriendSelector({ open, onOpenChange, selectedFriends, onSe
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             取消
           </Button>
-          <Button onClick={() => onOpenChange(false)}>确定 ({selectedFriends.length})</Button>
+          <Button onClick={() => {
+            onSelect(tempSelectedFriends)
+            onOpenChange(false)
+          }}>
+            确定 ({tempSelectedFriends.length})
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

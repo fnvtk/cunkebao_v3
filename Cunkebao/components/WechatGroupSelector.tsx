@@ -36,13 +36,15 @@ export function WechatGroupSelector({ open, onOpenChange, selectedGroups, onSele
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
+  const [tempSelectedGroups, setTempSelectedGroups] = useState<WechatGroup[]>([])
   const pageSize = 20
 
   useEffect(() => {
     if (open) {
       fetchGroups(1)
+      setTempSelectedGroups([...selectedGroups])
     }
-  }, [open])
+  }, [open, selectedGroups])
 
   const fetchGroups = async (pageNum: number) => {
     setLoading(true)
@@ -130,12 +132,12 @@ export function WechatGroupSelector({ open, onOpenChange, selectedGroups, onSele
             groups.map((group) => (
               <div key={group.id} className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg">
                 <Checkbox
-                  checked={selectedGroups.some((g) => g.id === group.id)}
+                  checked={tempSelectedGroups.some((g) => g.id === group.id)}
                   onCheckedChange={(checked) => {
                     if (checked) {
-                      onSelect([...selectedGroups, group])
+                      setTempSelectedGroups([...tempSelectedGroups, group])
                     } else {
-                      onSelect(selectedGroups.filter((g) => g.id !== group.id))
+                      setTempSelectedGroups(tempSelectedGroups.filter((g) => g.id !== group.id))
                     }
                   }}
                 />
@@ -188,7 +190,12 @@ export function WechatGroupSelector({ open, onOpenChange, selectedGroups, onSele
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             取消
           </Button>
-          <Button onClick={() => onOpenChange(false)}>确定 ({selectedGroups.length})</Button>
+          <Button onClick={() => {
+            onSelect(tempSelectedGroups)
+            onOpenChange(false)
+          }}>
+            确定 ({tempSelectedGroups.length})
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
