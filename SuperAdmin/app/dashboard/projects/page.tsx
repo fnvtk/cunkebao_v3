@@ -48,7 +48,7 @@ export default function ProjectsPage() {
     const fetchProjects = async () => {
       setIsLoading(true)
       try {
-        const response = await fetch(`http://yishi.com/company/list?page=${currentPage}&limit=${pageSize}`)
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/list?page=${currentPage}&limit=${pageSize}`)
         const data = await response.json()
         
         if (data.code === 200) {
@@ -90,7 +90,7 @@ export default function ProjectsPage() {
 
     setIsDeleting(true)
     try {
-      const response = await fetch("http://yishi.com/company/delete", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/delete`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -108,7 +108,7 @@ export default function ProjectsPage() {
         const fetchProjects = async () => {
           setIsLoading(true)
           try {
-            const response = await fetch(`http://yishi.com/company/list?page=${currentPage}&limit=${pageSize}`)
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/list?page=${currentPage}&limit=${pageSize}`)
             const data = await response.json()
             if (data.code === 200) {
               setProjects(data.data.list)

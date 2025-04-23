@@ -32,7 +32,7 @@ export default function DashboardPage() {
       setIsLoading(true)
       try {
         // 获取统计信息
-        const response = await fetch("http://yishi.com/dashboard/base")
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/dashboard/base`)
         const data = await response.json()
         if (data.code === 200) {
           setStats(data.data)
