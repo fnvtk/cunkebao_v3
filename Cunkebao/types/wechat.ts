@@ -31,4 +31,5 @@ export interface WechatGroupMember {
   gender?: "male" | "female"
   role?: "owner" | "admin" | "member"
   joinTime?: string
+  groupId?: string
 } 

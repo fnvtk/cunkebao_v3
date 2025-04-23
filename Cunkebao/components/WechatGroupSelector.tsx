@@ -77,8 +77,8 @@ export function WechatGroupSelector({ open, onOpenChange, selectedGroups, onSele
       console.error("获取群聊列表失败:", error)
       showToast(error?.message || "请检查网络连接", "error")
     } finally {
-      setLoading(false)
-    }
+    setLoading(false)
+  }
   }
 
   const handleSearch = () => {
@@ -105,14 +105,14 @@ export function WechatGroupSelector({ open, onOpenChange, selectedGroups, onSele
         </DialogHeader>
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="搜索群聊"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="搜索群聊"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="pl-9"
-            />
+            className="pl-9"
+          />
           </div>
           <Button 
             variant="outline" 

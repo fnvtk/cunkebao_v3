@@ -49,7 +49,10 @@ export function WechatGroupMemberSelector({
   useEffect(() => {
     if (open && groupId) {
       fetchGroupMembers(1)
-      setTempSelectedMembers([...selectedMembers])
+      
+      // 过滤出当前群组的已选成员
+      const currentGroupSelectedMembers = selectedMembers.filter(member => member.groupId === groupId)
+      setTempSelectedMembers(currentGroupSelectedMembers)
     }
   }, [open, groupId, selectedMembers])
 
@@ -77,16 +80,39 @@ export function WechatGroupMemberSelector({
             role = "member";
           }
           
-          return {
-            id: item.id || `member-${Math.random()}`,
+          const memberId = item.id || `member-${Math.random()}`;
+          
+          // 创建成员对象
+          const member = {
+            id: memberId,
             nickname: item.name || item.ownerNickname || '未知成员',
             wechatId: item.ownerWechatId || item.identifier || '',
             avatar: item.ownerAvatar || item.avatar || '/placeholder.svg',
             role: role,
-            joinTime: item.createTime ? new Date(item.createTime * 1000).toLocaleString() : '--'
+            joinTime: item.createTime ? new Date(item.createTime * 1000).toLocaleString() : '--',
+            groupId: groupId
           };
+          
+          return member;
         });
         
+        // 处理已选择的成员
+        // 如果已选择的成员在新获取的成员列表中，更新其信息
+        const updatedTempSelected = tempSelectedMembers.map(selected => {
+          const foundInNewList = membersList.find(m => m.id === selected.id);
+          if (foundInNewList) {
+            return {
+              ...selected,
+              nickname: foundInNewList.nickname,
+              avatar: foundInNewList.avatar,
+              wechatId: foundInNewList.wechatId,
+              role: foundInNewList.role
+            };
+          }
+          return selected;
+        });
+        
+        setTempSelectedMembers(updatedTempSelected);
         setMembers(membersList)
         setTotalItems(response.data.total)
         setTotalPages(Math.ceil(response.data.total / pageSize))
@@ -115,6 +141,16 @@ export function WechatGroupMemberSelector({
   const handleNextPage = () => {
     if (page < totalPages) {
       fetchGroupMembers(page + 1)
+    }
+  }
+
+  const handleSelect = (member: WechatGroupMember, checked: boolean) => {
+    if (checked) {
+      // 添加成员
+      setTempSelectedMembers([...tempSelectedMembers, member]);
+    } else {
+      // 移除成员
+      setTempSelectedMembers(tempSelectedMembers.filter(m => m.id !== member.id));
     }
   }
 
@@ -154,13 +190,7 @@ export function WechatGroupMemberSelector({
               <div key={member.id} className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg">
                 <Checkbox
                   checked={tempSelectedMembers.some((m) => m.id === member.id)}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      setTempSelectedMembers([...tempSelectedMembers, member])
-                    } else {
-                      setTempSelectedMembers(tempSelectedMembers.filter((m) => m.id !== member.id))
-                    }
-                  }}
+                  onCheckedChange={(checked) => handleSelect(member, checked === true)}
                 />
                 <Avatar>
                   <AvatarImage src={member.avatar} />
@@ -216,8 +246,10 @@ export function WechatGroupMemberSelector({
             取消
           </Button>
           <Button onClick={() => {
-            onSelect(tempSelectedMembers)
-            onOpenChange(false)
+            // 从selectedMembers中移除当前群组的所有成员，然后添加新选择的成员
+            const otherGroupMembers = selectedMembers.filter(member => member.groupId !== groupId);
+            onSelect([...otherGroupMembers, ...tempSelectedMembers]);
+            onOpenChange(false);
           }}>
             确定 ({tempSelectedMembers.length})
           </Button>

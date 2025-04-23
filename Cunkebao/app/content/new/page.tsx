@@ -88,12 +88,24 @@ export default function NewContentLibraryPage() {
 
     setLoading(true)
     try {
+      // 将群成员数据转换为{"群ID":[成员ID1, 成员ID2...]}的格式
+      const groupMembersMap: Record<string, string[]> = {}
+      
+      formData.selectedGroupMembers.forEach(member => {
+        if (member.groupId) {
+          if (!groupMembersMap[member.groupId]) {
+            groupMembersMap[member.groupId] = []
+          }
+          groupMembersMap[member.groupId].push(member.id)
+        }
+      })
+      
       const payload = {
         name: formData.name,
         sourceType: formData.sourceType === "friends" ? 1 : 2,
         friends: formData.selectedFriends.map(f => f.id),
         groups: formData.selectedGroups.map(g => g.id),
-        groupMembers: formData.selectedGroupMembers.map(m => m.id),
+        groupMembers: groupMembersMap, // 使用JSON字符串传递群成员数据
         keywordInclude: formData.keywordsInclude.split(",").map(k => k.trim()).filter(Boolean),
         keywordExclude: formData.keywordsExclude.split(",").map(k => k.trim()).filter(Boolean),
         aiPrompt: formData.useAI ? formData.aiPrompt : "",
@@ -196,16 +208,21 @@ export default function NewContentLibraryPage() {
                               alt={group.name}
                               className="w-8 h-8 rounded-full"
                             />
-                            <span>{group.name}</span>
+                            <span className="truncate max-w-[220px]">{group.name}</span>
                           </div>
                           <div className="flex items-center">
                             <Button 
                               variant="ghost" 
                               size="sm" 
                               onClick={() => handleSelectGroupMembers(group.id)}
-                              className="mr-1"
+                              className={`mr-1 ${formData.selectedGroupMembers.some(m => m.groupId === group.id) ? 'text-blue-500' : ''}`}
                             >
                               <Users className="h-4 w-4" />
+                              {formData.selectedGroupMembers.some(m => m.groupId === group.id) && (
+                                <span className="ml-1 text-xs">
+                                  +{formData.selectedGroupMembers.filter(m => m.groupId === group.id).length}
+                                </span>
+                              )}
                             </Button>
                           <Button variant="ghost" size="sm" onClick={() => removeGroup(group.id)}>
                             <X className="h-4 w-4" />
@@ -213,43 +230,6 @@ export default function NewContentLibraryPage() {
                           </div>
                         </div>
                       ))}
-                    </div>
-                  )}
-                  
-                  {formData.selectedGroupMembers.length > 0 && (
-                    <div className="mt-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <Label className="text-sm font-medium">已选择群成员 ({formData.selectedGroupMembers.length})</Label>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => setFormData({...formData, selectedGroupMembers: []})}
-                        >
-                          清空
-                        </Button>
-                      </div>
-                      <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-md max-h-[150px] overflow-y-auto">
-                        {formData.selectedGroupMembers.map((member) => (
-                          <div key={member.id} className="flex items-center bg-white px-2 py-1 rounded border">
-                            <Avatar className="h-6 w-6 mr-2">
-                              <AvatarImage src={member.avatar} />
-                              <AvatarFallback>{member.nickname?.[0] || '?'}</AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm">{member.nickname}</span>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              className="h-6 w-6 p-0 ml-1"
-                              onClick={() => setFormData({
-                                ...formData,
-                                selectedGroupMembers: formData.selectedGroupMembers.filter(m => m.id !== member.id)
-                              })}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
                     </div>
                   )}
                 </TabsContent>
