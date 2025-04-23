@@ -24,10 +24,25 @@ interface ProjectProfile {
   userCount: number
 }
 
+interface Device {
+  id: number
+  memo: string
+  phone: string
+  model: string
+  brand: string
+  alive: number
+  deviceId: number
+  wechatId: string
+  friendCount: number
+  wAlive: number
+  imei: string
+}
+
 export default function ProjectDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [profile, setProfile] = useState<ProjectProfile | null>(null)
+  const [devices, setDevices] = useState<Device[]>([])
   const [activeTab, setActiveTab] = useState("overview")
   const { id } = use(params)
 
@@ -51,6 +66,27 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
 
     fetchProjectProfile()
   }, [id])
+
+  useEffect(() => {
+    const fetchDevices = async () => {
+      if (activeTab === "devices") {
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/devices?companyId=${id}`)
+          const data = await response.json()
+
+          if (data.code === 200) {
+            setDevices(data.data)
+          } else {
+            toast.error(data.msg || "获取设备列表失败")
+          }
+        } catch (error) {
+          toast.error("网络错误，请稍后重试")
+        }
+      }
+    }
+
+    fetchDevices()
+  }, [activeTab, id])
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">加载中...</div>
@@ -155,18 +191,26 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 <TableHeader>
                   <TableRow>
                     <TableHead>设备名称</TableHead>
+                    <TableHead>设备型号</TableHead>
+                    <TableHead>品牌</TableHead>
+                    <TableHead>IMEI</TableHead>
+                    <TableHead>设备状态</TableHead>
+                    <TableHead>微信状态</TableHead>
                     <TableHead className="text-right">微信好友数量</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {/* Assuming devices are fetched from the profile */}
-                  {/* Replace with actual devices data */}
-                  {/* {profile.devices.map((device) => (
+                  {devices.map((device) => (
                     <TableRow key={device.id}>
-                      <TableCell className="font-medium">{device.name}</TableCell>
-                      <TableCell className="text-right">{device.wechatFriends}</TableCell>
+                      <TableCell className="font-medium">{device.memo}</TableCell>
+                      <TableCell>{device.model}</TableCell>
+                      <TableCell>{device.brand}</TableCell>
+                      <TableCell>{device.imei}</TableCell>
+                      <TableCell>{device.alive === 1 ? "在线" : "离线"}</TableCell>
+                      <TableCell>{device.wAlive === 1 ? "在线" : device.wAlive === 0 ? "离线" : "未登录微信"}</TableCell>
+                      <TableCell className="text-right">{device.friendCount || 0}</TableCell>
                     </TableRow>
-                  ))} */}
+                  ))}
                 </TableBody>
               </Table>
             </CardContent>

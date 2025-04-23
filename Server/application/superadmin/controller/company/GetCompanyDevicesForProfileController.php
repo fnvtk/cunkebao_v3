@@ -23,7 +23,7 @@ class GetCompanyDevicesForProfileController extends Controller
     {
         $companyId = $this->request->param('companyId/d', 0);
 
-        $devices = DeviceModel::where(compact('companyId'))->field('id,memo,phone,model,brand,alive,id deviceId')
+        $devices = DeviceModel::where(compact('companyId'))->field('id,memo,imei,phone,model,brand,alive,id deviceId')
             ->select()
             ->toArray();
 
