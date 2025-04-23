@@ -24,7 +24,7 @@ class GetCompanySubusersForProfileController extends Controller
             'isAdmin' => 0
         ];
 
-        return UserModel::field('id,account,username,avatar,status,createTime,typeId')->where($where)->select()->toArray();
+        return UserModel::field('id,account,phone,username,avatar,status,createTime,typeId')->where($where)->select()->toArray();
     }
 
     /**

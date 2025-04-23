@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ArrowLeft, Edit } from "lucide-react"
 import { toast } from "sonner"
 import { use } from "react"
+import Image from "next/image"
 
 interface ProjectProfile {
   id: number
@@ -38,16 +39,31 @@ interface Device {
   imei: string
 }
 
+interface SubUser {
+  id: number
+  account: string
+  username: string
+  phone: string
+  avatar: string
+  status: number
+  createTime: string
+  typeId: number
+}
+
 export default function ProjectDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
+  const [isDevicesLoading, setIsDevicesLoading] = useState(false)
+  const [isSubUsersLoading, setIsSubUsersLoading] = useState(false)
   const [profile, setProfile] = useState<ProjectProfile | null>(null)
   const [devices, setDevices] = useState<Device[]>([])
+  const [subUsers, setSubUsers] = useState<SubUser[]>([])
   const [activeTab, setActiveTab] = useState("overview")
   const { id } = use(params)
 
   useEffect(() => {
     const fetchProjectProfile = async () => {
+      setIsLoading(true)
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/profile/${id}`)
         const data = await response.json()
@@ -70,6 +86,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
   useEffect(() => {
     const fetchDevices = async () => {
       if (activeTab === "devices") {
+        setIsDevicesLoading(true)
         try {
           const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/devices?companyId=${id}`)
           const data = await response.json()
@@ -81,11 +98,45 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
           }
         } catch (error) {
           toast.error("网络错误，请稍后重试")
+        } finally {
+          setIsDevicesLoading(false)
         }
       }
     }
 
     fetchDevices()
+  }, [activeTab, id])
+
+  useEffect(() => {
+    const fetchSubUsers = async () => {
+      if (activeTab === "accounts") {
+        setIsSubUsersLoading(true)
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/subusers`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              companyId: parseInt(id)
+            })
+          })
+          const data = await response.json()
+
+          if (data.code === 200) {
+            setSubUsers(data.data)
+          } else {
+            toast.error(data.msg || "获取子账号列表失败")
+          }
+        } catch (error) {
+          toast.error("网络错误，请稍后重试")
+        } finally {
+          setIsSubUsersLoading(false)
+        }
+      }
+    }
+
+    fetchSubUsers()
   }, [activeTab, id])
 
   if (isLoading) {
@@ -187,32 +238,36 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
               <CardDescription>项目关联的所有设备及其微信好友数量</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>设备名称</TableHead>
-                    <TableHead>设备型号</TableHead>
-                    <TableHead>品牌</TableHead>
-                    <TableHead>IMEI</TableHead>
-                    <TableHead>设备状态</TableHead>
-                    <TableHead>微信状态</TableHead>
-                    <TableHead className="text-right">微信好友数量</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {devices.map((device) => (
-                    <TableRow key={device.id}>
-                      <TableCell className="font-medium">{device.memo}</TableCell>
-                      <TableCell>{device.model}</TableCell>
-                      <TableCell>{device.brand}</TableCell>
-                      <TableCell>{device.imei}</TableCell>
-                      <TableCell>{device.alive === 1 ? "在线" : "离线"}</TableCell>
-                      <TableCell>{device.wAlive === 1 ? "在线" : device.wAlive === 0 ? "离线" : "未登录微信"}</TableCell>
-                      <TableCell className="text-right">{device.friendCount || 0}</TableCell>
+              {isDevicesLoading ? (
+                <div className="flex items-center justify-center py-8">加载中...</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>设备名称</TableHead>
+                      <TableHead>设备型号</TableHead>
+                      <TableHead>品牌</TableHead>
+                      <TableHead>IMEI</TableHead>
+                      <TableHead>设备状态</TableHead>
+                      <TableHead>微信状态</TableHead>
+                      <TableHead className="text-right">微信好友数量</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {devices.map((device) => (
+                      <TableRow key={device.id}>
+                        <TableCell className="font-medium">{device.memo}</TableCell>
+                        <TableCell>{device.model}</TableCell>
+                        <TableCell>{device.brand}</TableCell>
+                        <TableCell>{device.imei}</TableCell>
+                        <TableCell>{device.alive === 1 ? "在线" : "离线"}</TableCell>
+                        <TableCell>{device.wAlive === 1 ? "在线" : device.wAlive === 0 ? "离线" : "未登录微信"}</TableCell>
+                        <TableCell className="text-right">{device.friendCount || 0}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -224,24 +279,48 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
               <CardDescription>项目下的所有子账号</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>账号名称</TableHead>
-                    <TableHead className="text-right">创建时间</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {/* Assuming subAccounts are fetched from the profile */}
-                  {/* Replace with actual subAccounts data */}
-                  {/* {profile.subAccounts.map((account) => (
-                    <TableRow key={account.id}>
-                      <TableCell className="font-medium">{account.username}</TableCell>
-                      <TableCell className="text-right">{account.createdAt}</TableCell>
+              {isSubUsersLoading ? (
+                <div className="flex items-center justify-center py-8">加载中...</div>
+              ) : subUsers.length === 0 ? (
+                <div className="flex items-center justify-center py-8 text-muted-foreground">暂无数据</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>头像</TableHead>
+                      <TableHead>账号ID</TableHead>
+                      <TableHead>登录账号</TableHead>
+                      <TableHead>昵称</TableHead>
+                      <TableHead>手机号</TableHead>
+                      <TableHead>状态</TableHead>
+                      <TableHead>账号类型</TableHead>
+                      <TableHead className="text-right">创建时间</TableHead>
                     </TableRow>
-                  ))} */}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {subUsers.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <Image
+                            src={user.avatar}
+                            alt={user.username}
+                            width={32}
+                            height={32}
+                            className="rounded-full"
+                          />
+                        </TableCell>
+                        <TableCell>{user.id}</TableCell>
+                        <TableCell>{user.account}</TableCell>
+                        <TableCell>{user.username}</TableCell>
+                        <TableCell>{user.phone}</TableCell>
+                        <TableCell>{user.status === 1 ? "登录" : "禁用"}</TableCell>
+                        <TableCell>{user.typeId === 1 ? "操盘手" : "门店顾问"}</TableCell>
+                        <TableCell className="text-right">{user.createTime}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
