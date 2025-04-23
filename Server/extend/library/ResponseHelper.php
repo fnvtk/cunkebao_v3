@@ -29,7 +29,7 @@ class ResponseHelper
      * @param mixed $data 错误数据
      * @return \think\response\Json
      */
-    public static function error($msg = '操作失败', $code = 400, $data = null)
+    public static function error($msg = '操作失败', $code = 400, $data = [])
     {
         return json([
             'code' => $code,

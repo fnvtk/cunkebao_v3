@@ -35,6 +35,8 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [project, setProject] = useState<Project | null>(null)
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const { id } = use(params)
 
   useEffect(() => {
