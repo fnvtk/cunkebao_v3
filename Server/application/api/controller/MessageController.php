@@ -391,25 +391,26 @@ class MessageController extends BaseController
     /**
      * 保存群聊消息记录到数据库
      * @param array $item 消息记录数据
+     * @return bool 是否保存成功
      */
     private function saveChatroomMessage($item)
     {
-        
-
         // 检查消息是否已存在
-        $exists = WechatMessageModel::where('id', $item['id']) ->find();
+        $exists = WechatMessageModel::where('id', $item['id'])->find();
                     
         // 如果消息已存在，直接返回
         if ($exists) {
-            return;
+            return true;
         }
 
         // 处理发送者信息
         $sender = $item['sender'] ?? [];
         
-        // 处理消息内容，提取真正的消息内容
+        // 处理消息内容，提取发送者ID和消息内容
         $originalContent = $item['content'] ?? '';
-        $processedContent = $this->processMessageContent($originalContent);
+        $processedResult = $this->processMessageContent($originalContent);
+        $senderId = $processedResult['senderId'];
+        $processedContent = $processedResult['content'];
 
         // 将毫秒时间戳转换为秒级时间戳
         $createTime = isset($item['createTime']) ? strtotime($item['createTime']) : null;
@@ -422,7 +423,7 @@ class MessageController extends BaseController
             'wechatChatroomId' => $item['wechatChatroomId'],
             // sender信息，添加sender前缀
             'senderNickname' => $sender['nickname'] ?? '',
-            'senderWechatId' => $sender['wechatId'] ?? '',
+            'senderWechatId' => $sender['wechatId'] ?? $senderId, // 使用提取的发送者ID作为备选
             'senderIsAdmin' => $sender['isAdmin'] ?? false,
             'senderIsDeleted' => $sender['isDeleted'] ?? false,
             'senderChatroomNickname' => $sender['chatroomNickname'] ?? '',
@@ -449,26 +450,57 @@ class MessageController extends BaseController
         ];
 
         // 创建新记录
-        WechatMessageModel::create($data);
+        try {
+            WechatMessageModel::create($data);
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 
     /**
-     * 处理消息内容，提取真正的消息内容
-     * @param string $content 原始内容
-     * @return string 处理后的内容
+     * 处理消息内容，提取发送者ID和消息内容
+     * @param string $content 原始消息内容
+     * @return array 包含senderId和content的数组
      */
     private function processMessageContent($content)
     {
         if (empty($content)) {
-            return '';
+            return [
+                'senderId' => '',
+                'content' => ''
+            ];
         }
 
-        // 处理普通消息格式：wxid_vr2qafb1vg0d22:\n安德玛儿童
-        if (preg_match('/^[^:]+:\n(.+)$/s', $content, $matches)) {
-            return trim($matches[1]);
+        // 处理消息格式：wxid_vr2qafb1vg0d22:\n安德玛儿童
+        if (preg_match('/^([^:]+):\n(.+)$/s', $content, $matches)) {
+            $senderId = trim($matches[1]);
+            $messageContent = trim($matches[2]);
+            
+            // 检查消息内容是否为JSON格式
+            if (substr($messageContent, 0, 1) === '{' && substr($messageContent, -1) === '}') {
+                try {
+                    // 尝试解析JSON
+                    $jsonData = json_decode($messageContent, true);
+                    if (json_last_error() == JSON_ERROR_NONE && isset($jsonData['text'])) {
+                        // 如果是合法的JSON且包含text字段，则提取text字段作为内容
+                        $messageContent = $jsonData['text'];
+                    }
+                } catch (\Exception $e) {
+                    // JSON解析出错，保持原内容不变
+                }
+            }
+            
+            return [
+                'senderId' => $senderId,
+                'content' => $messageContent
+            ];
         }
         
         // 如果没有匹配到格式，则返回原始内容
-        return $content;
+        return [
+            'senderId' => '',
+            'content' => $content
+        ];
     }
 } 

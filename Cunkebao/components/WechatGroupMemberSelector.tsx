@@ -66,9 +66,9 @@ export function WechatGroupMemberSelector({
       if (response.code === 200 && response.data) {
         const membersList = response.data.list.map((item: any) => ({
           id: item.id || `member-${Math.random()}`,
-          nickname: item.name || item.ownerNickname || '未知成员',
-          wechatId: item.ownerWechatId || '',
-          avatar: item.ownerAvatar || item.avatar || '/placeholder.svg',
+          nickname: item.nickname || '未知成员',
+          wechatId: item.identifier || '',
+          avatar: item.avatar || '/placeholder.svg',
           role: item.isOwner ? 'owner' : (item.isAdmin ? 'admin' : 'member'),
           joinTime: item.createTime ? new Date(item.createTime * 1000).toLocaleString() : '--'
         }))
