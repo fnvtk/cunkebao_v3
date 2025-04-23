@@ -127,7 +127,7 @@ class ContentLibraryController extends Controller
             ['userId', '=', $this->request->userInfo['id']],
             ['isDel', '=', 0]  // 只查询未删除的记录
         ])
-        ->field('id,name,sourceType,sourceFriends,sourceGroups,keywordInclude,keywordExclude,aiEnabled,aiPrompt,timeEnabled,timeStart,timeEnd,status,userId,companyId,createTime,updateTime')
+        ->field('id,name,sourceType,sourceFriends,sourceGroups,keywordInclude,keywordExclude,aiEnabled,aiPrompt,timeEnabled,timeStart,timeEnd,status,userId,companyId,createTime,updateTime,groupMembers')
         ->find();
 
         if (empty($library)) {
@@ -139,6 +139,7 @@ class ContentLibraryController extends Controller
         $library['sourceGroups'] = json_decode($library['sourceGroups'] ?: '[]', true);
         $library['keywordInclude'] = json_decode($library['keywordInclude'] ?: '[]', true);
         $library['keywordExclude'] = json_decode($library['keywordExclude'] ?: '[]', true);
+        $library['groupMembers'] = json_decode($library['groupMembers'] ?: '[]', true);
 
     // 将时间戳转换为日期格式（精确到日）
     if (!empty($library['timeStart'])) {
@@ -212,7 +213,7 @@ class ContentLibraryController extends Controller
         }
 
         // 检查内容库名称是否已存在
-        $exists = ContentLibrary::where('name', $param['name'])->find();
+        $exists = ContentLibrary::where(['name' => $param['name'],'userId' => $this->request->userInfo['id'],'isDel' => 0])->find();
         if ($exists) {
             return json(['code' => 400, 'msg' => '内容库名称已存在']);
         }
@@ -231,6 +232,7 @@ class ContentLibraryController extends Controller
                 // 数据来源配置
                 'sourceFriends' => $sourceType == 1 ? json_encode($param['friends']) : json_encode([]), // 选择的微信好友
                 'sourceGroups' => $sourceType == 2 ? json_encode($param['groups']) : json_encode([]), // 选择的微信群
+                'groupMembers' =>  $sourceType == 2 ? json_encode($param['groupMembers']) : json_encode([]), // 群组成员
                 // 关键词配置
                 'keywordInclude' => $keywordInclude, // 包含的关键词
                 'keywordExclude' => $keywordExclude, // 排除的关键词
@@ -312,6 +314,7 @@ class ContentLibraryController extends Controller
             $library->sourceType = isset($param['sourceType']) ? $param['sourceType'] : 1;
             $library->sourceFriends = $param['sourceType'] == 1 ? json_encode($param['friends']) : json_encode([]);
             $library->sourceGroups = $param['sourceType'] == 2 ? json_encode($param['groups']) : json_encode([]);
+            $library->groupMembers = $param['sourceType'] == 2 ? json_encode($param['groupMembers']) : json_encode([]);
             $library->keywordInclude = $keywordInclude;
             $library->keywordExclude = $keywordExclude;
             $library->aiEnabled = isset($param['aiEnabled']) ? $param['aiEnabled'] : 0;

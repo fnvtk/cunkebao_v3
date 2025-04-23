@@ -20,7 +20,7 @@ class DeviceController extends BaseController
      * @param bool $isJob 是否为定时任务调用
      * @return \think\response\Json
      */
-    public function getlist($pageIndex = '',$pageSize = '',$isJob = false)
+    public function getlist($pageIndex = '',$pageSize = '',$isJob = false,$isDel = 0)
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
@@ -33,6 +33,14 @@ class DeviceController extends BaseController
         }
 
         try {
+            // 根据isDel设置对应的deleteType值
+            $deleteType = 'unDeleted'; // 默认值
+            if ($isDel == 1) {
+                $deleteType = 'deleted';
+            } elseif ($isDel == 2) {
+                $deleteType = 'deletedAndStop';
+            }
+            
             // 构建请求参数
             $params = [
                 'accountId' => $this->request->param('accountId', ''),
@@ -41,7 +49,7 @@ class DeviceController extends BaseController
                 'groupId' => $this->request->param('groupId', ''),
                 'brand' => $this->request->param('brand', ''),
                 'model' => $this->request->param('model', ''),
-                'deleteType' => $this->request->param('deleteType', 'unDeleted'),
+                'deleteType' => $this->request->param('deleteType', $deleteType),
                 'operatingSystem' => $this->request->param('operatingSystem', ''),
                 'softwareVersion' => $this->request->param('softwareVersion', ''),
                 'phoneAppVersion' => $this->request->param('phoneAppVersion', ''),

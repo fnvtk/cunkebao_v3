@@ -13,7 +13,7 @@ class WechatChatroomController extends BaseController
      * 获取微信群聊列表
      * @return \think\response\Json
      */
-    public function getlist($pageIndex = '',$pageSize = '',$isJob = false)
+    public function getlist($pageIndex = '',$pageSize = '',$isJob = false, $isDel = '')
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
@@ -26,11 +26,19 @@ class WechatChatroomController extends BaseController
        }
 
         try {
+            // 根据isDel设置对应的isDeleted值
+            $isDeleted = '';
+            if ($isDel === '0' || $isDel === 0) {
+                $isDeleted = false;
+            } elseif ($isDel === '1' || $isDel === 1) {
+                $isDeleted = true;
+            }
+            
             // 构建请求参数
             $params = [
                 'keyword' =>  $this->request->param('keyword', ''),
                 'wechatAccountKeyword' => $this->request->param('wechatAccountKeyword', ''),
-                'isDeleted' => $this->request->param('isDeleted', ''),
+                'isDeleted' => $this->request->param('isDeleted', $isDeleted),
                 'allotAccountId' => $this->request->param('allotAccountId', ''),
                 'groupId' => $this->request->param('groupId', ''),
                 'wechatChatroomId' => $this->request->param('wechatChatroomId', 0),

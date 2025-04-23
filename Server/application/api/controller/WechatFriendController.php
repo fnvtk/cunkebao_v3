@@ -16,7 +16,7 @@ class WechatFriendController extends BaseController
      * @param bool $isJob 是否为任务调用
      * @return \think\response\Json
      */
-    public function getlist($pageIndex = '', $pageSize = '', $preFriendId = '', $isJob = false)
+    public function getlist($pageIndex = '', $pageSize = '', $preFriendId = '', $isJob = false,$isDel = '')
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
@@ -29,6 +29,14 @@ class WechatFriendController extends BaseController
         }
 
         try {
+            // 根据isDel设置对应的isDeleted值
+            $isDeleted = null; // 默认值
+            if ($isDel === '0' || $isDel === 0) {
+                $isDeleted = false;
+            } elseif ($isDel === '1' || $isDel === 1) {
+                $isDeleted = true;
+            }
+            
             // 构建请求参数
             $params = [
                 'accountKeyword' => '',
@@ -39,7 +47,7 @@ class WechatFriendController extends BaseController
                 'extendFields' => '{}',
                 'gender' => '',
                 'groupId' => null,
-                'isDeleted' => null,
+                'isDeleted' => $isDeleted,
                 'isPass' => null,
                 'keyword' => input('keyword', ''),
                 'labels' => '[]',

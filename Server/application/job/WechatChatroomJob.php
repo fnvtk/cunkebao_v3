@@ -2,123 +2,100 @@
 
 namespace app\job;
 
-use think\queue\Job;
+use app\command\WechatChatroomCommand;
 use think\facade\Log;
-use think\Queue;
-use think\facade\Config;
 use think\facade\Cache;
-use app\api\controller\WechatChatroomController;
+use think\Queue;
+use app\common\BusinessLogic;
 
 class WechatChatroomJob
 {
     /**
-     * 队列任务处理
-     * @param Job $job 队列任务
-     * @param array $data 任务数据
-     * @return void
+     * 队列执行方法
+     * @param $data 数据
+     * @return array|bool
      */
-    public function fire(Job $job, $data)
+    public function fire($job, $data)
     {
         try {
-            // 如果任务执行成功后删除任务
-            if ($this->processWechatChatroomList($data, $job->attempts())) {
-                $job->delete();
-                Log::info('微信群列表任务执行成功，页码：' . $data['pageIndex']);
-            } else {
-                if ($job->attempts() > 3) {
-                    // 超过重试次数，删除任务
-                    Log::error('微信群列表任务执行失败，已超过重试次数，页码：' . $data['pageIndex']);
-                    $job->delete();
-                } else {
-                    // 任务失败，重新放回队列
-                    Log::warning('微信群列表任务执行失败，重试次数：' . $job->attempts() . '，页码：' . $data['pageIndex']);
-                    $job->release(Config::get('queue.failed_delay', 10));
-                }
-            }
-        } catch (\Exception $e) {
-            // 出现异常，记录日志
-            Log::error('微信群列表任务异常：' . $e->getMessage());
-            if ($job->attempts() > 3) {
-                $job->delete();
-            } else {
-                $job->release(Config::get('queue.failed_delay', 10));
-            }
-        }
-    }
-    
-    /**
-     * 处理微信群列表获取
-     * @param array $data 任务数据
-     * @param int $attempts 重试次数
-     * @return bool
-     */
-    protected function processWechatChatroomList($data, $attempts)
-    {
-        // 获取参数
-        $pageIndex = isset($data['pageIndex']) ? $data['pageIndex'] : 0;
-        $pageSize = isset($data['pageSize']) ? $data['pageSize'] : 100;
-        
-        Log::info('开始获取微信群列表，页码：' . $pageIndex . '，页大小：' . $pageSize);
-        
-        // 实例化控制器
-        $wechatChatroomController = new WechatChatroomController();
-        
-        // 构建请求参数
-        $params = [
-            'pageIndex' => $pageIndex,
-            'pageSize' => $pageSize
-        ];
-        
-        // 设置请求信息
-        $request = request();
-        $request->withGet($params);
-        
-        // 调用设备列表获取方法
-        $result = $wechatChatroomController->getlist($pageIndex,$pageSize,true);
-        $response = json_decode($result,true);
-        
-
-        // 判断是否成功
-        if ($response['code'] == 200) {
-            $data = $response['data'];
+            // 获取数据
+            $pageIndex = $data['pageIndex'];
+            $pageSize = $data['pageSize'];
+            $isDel = $data['isDel'];
+            $jobId = isset($data['jobId']) ? $data['jobId'] : '';
+            $cacheKey = isset($data['cacheKey']) ? $data['cacheKey'] : '';
+            $queueLockKey = isset($data['queueLockKey']) ? $data['queueLockKey'] : '';
             
-            // 判断是否有下一页
-            if (!empty($data) && count($data['results']) > 0) {
-                // 更新缓存中的页码，设置10分钟过期
-                Cache::set('chatroomPage', $pageIndex + 1, 86400);
-                Log::info('更新缓存，下一页页码：' . ($pageIndex + 1) . '，缓存时间：10分钟');
+            // 记录日志
+            Log::info('开始处理微信聊天室列表任务: ' . json_encode([
+                'pageIndex' => $pageIndex,
+                'pageSize' => $pageSize,
+                'isDel' => $isDel,
+                'jobId' => $jobId,
+                'cacheKey' => $cacheKey,
+                'queueLockKey' => $queueLockKey
+            ]));
+            
+            // 如果没有提供缓存键，根据删除状态和任务ID生成一个
+            if (empty($cacheKey)) {
+                $cacheKeyPrefix = "chatroomPage:" . ($jobId ?: date('YmdHis') . rand(1000, 9999));
+                $cacheKeySuffix = $isDel === '' ? '' : ":{$isDel}";
+                $cacheKey = $cacheKeyPrefix . $cacheKeySuffix;
+            }
+            
+            // 如果没有提供队列锁键，生成一个
+            if (empty($queueLockKey)) {
+                $queueLockKey = "queue_lock:wechat_chatroom:{$isDel}";
+            }
+            
+            // 调用业务逻辑获取微信聊天室列表
+            $logic = new BusinessLogic();
+            $result = $logic->wechatChatroomList($pageIndex, $pageSize, $isDel);
+            
+            if ($result['code'] == 1) {
+                $dataCount = count($result['data']['list']);
+                $totalCount = $result['data']['total'];
                 
-                // 有下一页，将下一页任务添加到队列
-                $nextPageIndex = $pageIndex + 1;
-                $this->addNextPageToQueue($nextPageIndex, $pageSize);
-                Log::info('添加下一页任务到队列，页码：' . $nextPageIndex);
+                Log::info("微信聊天室列表获取成功，当前页:{$pageIndex}，获取数量:{$dataCount}，总数量:{$totalCount}");
+                
+                // 计算是否还有下一页
+                $hasNextPage = ($pageIndex + 1) * $pageSize < $totalCount;
+                
+                if ($hasNextPage) {
+                    // 缓存页码信息，设置有效期1天
+                    $nextPageIndex = $pageIndex + 1;
+                    Cache::set($cacheKey, $nextPageIndex, 86400);
+                    Log::info("更新缓存页码: {$nextPageIndex}, 缓存键: {$cacheKey}");
+                    
+                    // 添加下一页任务到队列
+                    $command = new WechatChatroomCommand();
+                    $command->addToQueue($nextPageIndex, $pageSize, $isDel, $jobId, $cacheKey, $queueLockKey);
+                    Log::info("已添加下一页任务到队列: 页码 {$nextPageIndex}");
+                } else {
+                    // 处理完所有页面，重置页码并释放队列锁
+                    Cache::set($cacheKey, 0, 86400);
+                    Cache::delete($queueLockKey);
+                    Log::info("所有微信聊天室列表页面处理完毕，重置页码为0，释放队列锁: {$queueLockKey}");
+                }
             } else {
-                // 没有下一页，重置缓存，设置10分钟过期
-                Cache::set('chatroomPage', 0, 86400);
-                Log::info('获取完成，重置缓存，缓存时间：10分钟');
+                // API调用出错，记录错误并释放队列锁
+                Log::error("微信聊天室列表获取失败: " . $result['msg']);
+                Cache::delete($queueLockKey);
+                Log::info("由于错误释放队列锁: {$queueLockKey}");
             }
             
+            $job->delete();
             return true;
-        } else {
-            $errorMsg = isset($response['msg']) ? $response['msg'] : '未知错误';
-            Log::error('获取微信群列表失败：' . $errorMsg);
+        } catch (\Exception $e) {
+            // 出现异常，记录错误并释放队列锁
+            Log::error('微信聊天室列表任务处理异常: ' . $e->getMessage());
+            if (!empty($queueLockKey)) {
+                Cache::delete($queueLockKey);
+                Log::info("由于异常释放队列锁: {$queueLockKey}");
+            }
+            
+            $job->delete();
             return false;
         }
-    }
-    
-    /**
-     * 添加下一页任务到队列
-     * @param int $pageIndex 页码
-     * @param int $pageSize 每页大小
-     */
-    protected function addNextPageToQueue($pageIndex, $pageSize)
-    {
-        $data = [
-            'pageIndex' => $pageIndex,
-            'pageSize' => $pageSize
-        ];
-        
-        // 添加到队列，设置任务名为 wechat_chatroom
-        Queue::push(self::class, $data, 'wechat_chatroom');
     }
 } 
