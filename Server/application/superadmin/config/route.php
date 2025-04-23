@@ -42,5 +42,6 @@ Route::group('', function () {
         Route::get('detail/:id', 'app\superadmin\controller\company\GetCompanyDetailForUpdateController@index');
         Route::get('profile/:id', 'app\superadmin\controller\company\GetCompanyDetailForProfileController@index');
         Route::get('devices', 'app\superadmin\controller\company\GetCompanyDevicesForProfileController@index');
+        Route::get('subusers', 'app\superadmin\controller\company\GetCompanySubusersForProfileController@index');
     });
 })->middleware(['app\superadmin\middleware\AdminAuth']);
