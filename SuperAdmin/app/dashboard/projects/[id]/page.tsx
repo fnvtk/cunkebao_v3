@@ -28,6 +28,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [profile, setProfile] = useState<ProjectProfile | null>(null)
+  const [activeTab, setActiveTab] = useState("overview")
   const { id } = use(params)
 
   useEffect(() => {
@@ -77,7 +78,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
         </Button>
       </div>
 
-      <Tabs value="overview" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">项目概览</TabsTrigger>
           <TabsTrigger value="devices">关联设备</TabsTrigger>
