@@ -240,6 +240,8 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
             <CardContent>
               {isDevicesLoading ? (
                 <div className="flex items-center justify-center py-8">加载中...</div>
+              ) : devices.length === 0 ? (
+                <div className="flex items-center justify-center py-8 text-muted-foreground">暂无数据</div>
               ) : (
                 <Table>
                   <TableHeader>
