@@ -60,7 +60,9 @@ class GetCompanyDetailForProfileController extends BaseController
      */
     protected function getUsersCountByCompanyId(int $companyId): int
     {
-        return UserModel::where('companyId', $companyId)->count();
+        $where = array_merge(compact('companyId'), array('isAdmin' => 0));
+
+        return UserModel::where($where)->count();
     }
 
     /**
