@@ -17,4 +17,14 @@ class DeviceWechatLogin extends Model
     protected $createTime = 'createTime';
     protected $updateTime = 'updateTime';
 
-} 
+    /**
+     * 获取设备最新登录记录的id
+     *
+     * @param array $deviceIds
+     * @return array
+     */
+    public static function getDevicesLatestLogin(array $deviceIds): array
+    {
+        return self::fieldRaw('max(id) as lastedId,deviceId')->whereIn('deviceId', $deviceIds)->group('deviceId')->select()->toArray();
+    }
+}

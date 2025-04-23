@@ -41,5 +41,6 @@ Route::group('', function () {
         Route::get('list', 'app\superadmin\controller\company\GetCompanyListController@index');
         Route::get('detail/:id', 'app\superadmin\controller\company\GetCompanyDetailForUpdateController@index');
         Route::get('profile/:id', 'app\superadmin\controller\company\GetCompanyDetailForProfileController@index');
+        Route::get('devices', 'app\superadmin\controller\company\GetCompanyDevicesForProfileController@index');
     });
 })->middleware(['app\superadmin\middleware\AdminAuth']);
