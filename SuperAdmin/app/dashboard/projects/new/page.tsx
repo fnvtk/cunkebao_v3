@@ -45,16 +45,15 @@ export default function NewProjectPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // 表单验证
     if (formData.password !== formData.confirmPassword) {
       toast.error("两次输入的密码不一致")
       return
     }
-
+    
     setIsSubmitting(true)
 
     try {
-      const response = await fetch("http://yishi.com/company/create", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -63,10 +62,10 @@ export default function NewProjectPage() {
           name: formData.name,
           account: formData.account,
           password: formData.password,
+          memo: formData.description,
           phone: formData.phone,
           username: formData.nickname,
-          description: formData.description,
-          status: formData.status
+          status: parseInt(formData.status),
         }),
       })
 

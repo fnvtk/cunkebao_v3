@@ -36,7 +36,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   useEffect(() => {
     const fetchProjectDetail = async () => {
       try {
-        const response = await fetch(`http://yishi.com/company/detail/${id}`)
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/detail/${id}`)
         const data = await response.json()
 
         if (data.code === 200) {
@@ -71,7 +71,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
     setIsSubmitting(true)
 
     try {
-      const response = await fetch(`http://yishi.com/company/update`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/update`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
