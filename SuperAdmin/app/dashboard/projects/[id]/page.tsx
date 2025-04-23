@@ -1,39 +1,63 @@
 "use client"
 
-import { useState, use } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ArrowLeft, Edit } from "lucide-react"
+import { toast } from "sonner"
+import { use } from "react"
 
-// Sample project data
-const projectData = {
-  id: "1",
-  name: "电商平台项目",
-  phone: "13800138000",
-  account: "ecommerce_admin",
-  description: "这是一个电商平台推广项目，主要针对年轻用户群体，通过微信社交渠道进行产品推广和销售转化。",
-  createdAt: "2023-05-15",
-  devices: [
-    { id: "d1", name: "iPhone 13 Pro", wechatFriends: 120 },
-    { id: "d2", name: "Huawei P40", wechatFriends: 85 },
-    { id: "d3", name: "Samsung S21", wechatFriends: 40 },
-  ],
-  subAccounts: [
-    { id: "a1", username: "sales_team1", createdAt: "2023-05-16" },
-    { id: "a2", username: "sales_team2", createdAt: "2023-05-16" },
-    { id: "a3", username: "marketing_team", createdAt: "2023-05-17" },
-    { id: "a4", username: "support_team", createdAt: "2023-05-18" },
-    { id: "a5", username: "admin_assistant", createdAt: "2023-05-20" },
-  ],
+interface ProjectProfile {
+  id: number
+  name: string
+  memo: string
+  companyId: number
+  createTime: string
+  account: string
+  phone: string | null
+  deviceCount: number
+  friendCount: number
+  userCount: number
 }
 
 export default function ProjectDetailPage({ params }: { params: { id: string } }) {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(true)
+  const [profile, setProfile] = useState<ProjectProfile | null>(null)
   const { id } = use(params)
 
-  const [activeTab, setActiveTab] = useState("overview")
+  useEffect(() => {
+    const fetchProjectProfile = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/profile/${id}`)
+        const data = await response.json()
+
+        if (data.code === 200) {
+          setProfile(data.data)
+        } else {
+          toast.error(data.msg || "获取项目信息失败")
+        }
+      } catch (error) {
+        toast.error("网络错误，请稍后重试")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchProjectProfile()
+  }, [id])
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">加载中...</div>
+  }
+
+  if (!profile) {
+    return <div className="flex items-center justify-center min-h-screen">未找到项目信息</div>
+  }
 
   return (
     <div className="space-y-6">
@@ -44,7 +68,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
-          <h1 className="text-2xl font-bold">{projectData.name}</h1>
+          <h1 className="text-2xl font-bold">{profile.name}</h1>
         </div>
         <Button asChild>
           <Link href={`/dashboard/projects/${id}/edit`}>
@@ -53,7 +77,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      <Tabs value="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">项目概览</TabsTrigger>
           <TabsTrigger value="devices">关联设备</TabsTrigger>
@@ -69,23 +93,23 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
               <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">项目名称</dt>
-                  <dd className="text-sm">{projectData.name}</dd>
+                  <dd className="text-sm">{profile.name}</dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">手机号</dt>
-                  <dd className="text-sm">{projectData.phone}</dd>
+                  <dd className="text-sm">{profile.phone || "未设置"}</dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">账号</dt>
-                  <dd className="text-sm">{projectData.account}</dd>
+                  <dd className="text-sm">{profile.account}</dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">创建时间</dt>
-                  <dd className="text-sm">{projectData.createdAt}</dd>
+                  <dd className="text-sm">{profile.createTime}</dd>
                 </div>
                 <div className="sm:col-span-2">
                   <dt className="text-sm font-medium text-muted-foreground">项目介绍</dt>
-                  <dd className="text-sm">{projectData.description}</dd>
+                  <dd className="text-sm">{profile.memo}</dd>
                 </div>
               </dl>
             </CardContent>
@@ -97,7 +121,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 <CardTitle className="text-sm font-medium">关联设备数</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{projectData.devices.length}</div>
+                <div className="text-2xl font-bold">{profile.deviceCount}</div>
               </CardContent>
             </Card>
             <Card>
@@ -105,7 +129,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 <CardTitle className="text-sm font-medium">子账号数</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{projectData.subAccounts.length}</div>
+                <div className="text-2xl font-bold">{profile.userCount}</div>
               </CardContent>
             </Card>
             <Card>
@@ -113,9 +137,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 <CardTitle className="text-sm font-medium">微信好友总数</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {projectData.devices.reduce((sum, device) => sum + device.wechatFriends, 0)}
-                </div>
+                <div className="text-2xl font-bold">{profile.friendCount}</div>
               </CardContent>
             </Card>
           </div>
@@ -136,12 +158,14 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {projectData.devices.map((device) => (
+                  {/* Assuming devices are fetched from the profile */}
+                  {/* Replace with actual devices data */}
+                  {/* {profile.devices.map((device) => (
                     <TableRow key={device.id}>
                       <TableCell className="font-medium">{device.name}</TableCell>
                       <TableCell className="text-right">{device.wechatFriends}</TableCell>
                     </TableRow>
-                  ))}
+                  ))} */}
                 </TableBody>
               </Table>
             </CardContent>
@@ -163,12 +187,14 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {projectData.subAccounts.map((account) => (
+                  {/* Assuming subAccounts are fetched from the profile */}
+                  {/* Replace with actual subAccounts data */}
+                  {/* {profile.subAccounts.map((account) => (
                     <TableRow key={account.id}>
                       <TableCell className="font-medium">{account.username}</TableCell>
                       <TableCell className="text-right">{account.createdAt}</TableCell>
                     </TableRow>
-                  ))}
+                  ))} */}
                 </TableBody>
               </Table>
             </CardContent>

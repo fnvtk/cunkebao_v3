@@ -17,36 +17,34 @@ interface Device {
   memo: string
 }
 
-export default function EditProjectPage({ params }: { params: { id: string } }) {
-  const { id } = use(params)
+interface Project {
+  id: number
+  name: string
+  memo: string
+  companyId: number
+  createTime: string
+  account: string
+  phone: string | null
+  deviceCount: number
+  friendCount: number
+  userCount: number
+}
 
+export default function EditProjectPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [projectName, setProjectName] = useState("")
-  const [account, setAccount] = useState("")
-  const [description, setDescription] = useState("")
-  const [devices, setDevices] = useState<Device[]>([])
-  const [phone, setPhone] = useState("")
-  const [nickname, setNickname] = useState("")
-  const [status, setStatus] = useState("1")
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
+  const [project, setProject] = useState<Project | null>(null)
+  const { id } = use(params)
 
   useEffect(() => {
-    const fetchProjectDetail = async () => {
+    const fetchProject = async () => {
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/detail/${id}`)
         const data = await response.json()
 
         if (data.code === 200) {
-          setProjectName(data.data.name || "")
-          setAccount(data.data.account || "")
-          setDescription(data.data.memo || "")
-          setDevices(data.data.devices || [])
-          setPhone(data.data.phone || "")
-          setNickname(data.data.username || "")
-          setStatus(data.data.status.toString())
+          setProject(data.data)
         } else {
           toast.error(data.msg || "获取项目信息失败")
         }
@@ -57,7 +55,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
       }
     }
 
-    fetchProjectDetail()
+    fetchProject()
   }, [id])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,11 +75,11 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          id: id,
-          name: projectName,
-          account,
-          memo: description,
-          phone,
+          id: parseInt(id),
+          name: project?.name,
+          account: project?.account,
+          memo: project?.memo,
+          phone: project?.phone,
           username: nickname,
           status: parseInt(status),
           ...(password && { password })
@@ -134,8 +132,8 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
               <Label htmlFor="projectName">项目名称</Label>
               <Input
                 id="projectName"
-                value={projectName}
-                onChange={(e) => setProjectName(e.target.value)}
+                value={project?.name || ""}
+                onChange={(e) => setProject({ ...project, name: e.target.value })}
                 placeholder="请输入项目名称"
                 required
               />
@@ -146,8 +144,8 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                 <Label htmlFor="account">登录账号</Label>
                 <Input
                   id="account"
-                  value={account}
-                  onChange={(e) => setAccount(e.target.value)}
+                  value={project?.account || ""}
+                  onChange={(e) => setProject({ ...project, account: e.target.value })}
                   placeholder="请输入登录的账号"
                   required
                 />
@@ -157,8 +155,8 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                 <Label htmlFor="nickname">昵称</Label>
                 <Input
                   id="nickname"
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
+                  value={project?.username || ""}
+                  onChange={(e) => setProject({ ...project, username: e.target.value })}
                   placeholder="用于账号登录后显示的用户名，可以填真实姓名"
                   required
                 />
@@ -169,8 +167,8 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                 <Input
                   id="phone"
                   type="number"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  value={project?.phone || ""}
+                  onChange={(e) => setProject({ ...project, phone: e.target.value as string })}
                   placeholder="手机号可用于登录"
                   required
                 />
@@ -180,8 +178,8 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                 <Label htmlFor="status">状态</Label>
                 <select
                   id="status"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
+                  value={project?.status.toString() || "1"}
+                  onChange={(e) => setProject({ ...project, status: parseInt(e.target.value) })}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <option value="1">启用</option>
@@ -215,7 +213,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
             <div className="space-y-2">
               <Label>关联设备</Label>
               <div className="space-y-3">
-                {devices.length > 0 && devices.map((device) => (
+                {project?.devices.length > 0 && project.devices.map((device) => (
                   <div key={device.id} className="flex items-center gap-2">
                     <Input
                       value={device.memo}
@@ -233,8 +231,8 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
               <Label htmlFor="description">项目介绍</Label>
               <Textarea
                 id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                value={project?.memo || ""}
+                onChange={(e) => setProject({ ...project, memo: e.target.value })}
                 placeholder="请输入项目介绍（选填）"
                 rows={4}
               />
