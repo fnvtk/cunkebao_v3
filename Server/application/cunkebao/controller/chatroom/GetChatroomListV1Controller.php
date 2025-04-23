@@ -82,11 +82,11 @@ class GetChatroomListV1Controller extends BaseController
         try {
             $where = [];
             $where[] = ['m.groupId', '=', $groupId];
-            $where[] = ['m.deleteTime', '=', 0];
+            $where[] = ['m.deleteTime', '<=', 0];
             
             // 如果有搜索关键词
             if (!empty($keyword)) {
-                $where[] = ['m.nickname|m.identifier', 'like', '%'.$keyword.'%'];
+                $where[] = ['wa.nickname|m.identifier', 'like', '%'.$keyword.'%'];
             }
             
             $data = Db::name('wechat_group_member')
