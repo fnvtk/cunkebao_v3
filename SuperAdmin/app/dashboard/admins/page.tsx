@@ -21,46 +21,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-// 保留原始示例数据，作为加载失败时的备用数据
-const adminsData = [
-  {
-    id: "1",
-    account: "admin_zhang",
-    username: "张管理",
-    role: "超级管理员",
-    permissions: ["项目管理", "客户池", "管理员权限"],
-    createdAt: "2023-05-01",
-    lastLogin: "2023-06-28 09:15",
-  },
-  {
-    id: "2",
-    account: "admin_li",
-    username: "李管理",
-    role: "项目管理员",
-    permissions: ["项目管理", "客户池"],
-    createdAt: "2023-05-10",
-    lastLogin: "2023-06-27 14:30",
-  },
-  {
-    id: "3",
-    account: "admin_wang",
-    username: "王管理",
-    role: "客户管理员",
-    permissions: ["客户池"],
-    createdAt: "2023-05-15",
-    lastLogin: "2023-06-28 11:45",
-  },
-  {
-    id: "4",
-    account: "admin_zhao",
-    username: "赵管理",
-    role: "项目管理员",
-    permissions: ["项目管理"],
-    createdAt: "2023-05-20",
-    lastLogin: "2023-06-26 16:20",
-  },
-]
-
 export default function AdminsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [isLoading, setIsLoading] = useState(true)
@@ -95,14 +55,8 @@ export default function AdminsPage() {
           description: response.msg || "请稍后重试",
           variant: "destructive",
         })
-        // 加载失败时显示示例数据
-        setAdministrators(adminsData.map(admin => ({
-          ...admin,
-          id: Number(admin.id),
-          name: admin.username,
-          status: 1
-        })))
-        setTotalCount(adminsData.length)
+        setAdministrators([])
+        setTotalCount(0)
       }
     } catch (error) {
       console.error("获取管理员列表出错:", error)
@@ -111,14 +65,8 @@ export default function AdminsPage() {
         description: "请检查网络连接后重试",
         variant: "destructive",
       })
-      // 加载失败时显示示例数据
-      setAdministrators(adminsData.map(admin => ({
-        ...admin,
-        id: Number(admin.id),
-        name: admin.username,
-        status: 1
-      })))
-      setTotalCount(adminsData.length)
+      setAdministrators([])
+      setTotalCount(0)
     } finally {
       setIsLoading(false)
     }

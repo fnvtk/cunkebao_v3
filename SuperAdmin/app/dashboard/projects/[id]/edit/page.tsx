@@ -28,6 +28,9 @@ interface Project {
   deviceCount: number
   friendCount: number
   userCount: number
+  username: string
+  status: number
+  devices?: Device[]
 }
 
 export default function EditProjectPage({ params }: { params: { id: string } }) {
@@ -37,7 +40,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   const [project, setProject] = useState<Project | null>(null)
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const { id } = use(params)
+  const id = params.id
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -82,8 +85,8 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
           account: project?.account,
           memo: project?.memo,
           phone: project?.phone,
-          username: nickname,
-          status: parseInt(status),
+          username: project?.username,
+          status: project?.status,
           ...(password && { password })
         }),
       })
@@ -215,7 +218,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
             <div className="space-y-2">
               <Label>关联设备</Label>
               <div className="space-y-3">
-                {project?.devices.length > 0 && project.devices.map((device) => (
+                {project && project.devices && project.devices.length > 0 && project.devices.map((device) => (
                   <div key={device.id} className="flex items-center gap-2">
                     <Input
                       value={device.memo}
