@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -32,16 +33,38 @@ interface Project {
 }
 
 export default function ProjectsPage() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
   const [searchTerm, setSearchTerm] = useState("")
   const [projects, setProjects] = useState<Project[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [currentPage, setCurrentPage] = useState(1)
+  const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get("page") || "1"))
   const [totalPages, setTotalPages] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
+  const [pageSize, setPageSize] = useState(parseInt(searchParams.get("pageSize") || "10"))
   const [totalItems, setTotalItems] = useState(0)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingProjectId, setDeletingProjectId] = useState<number | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // 从URL更新状态
+  useEffect(() => {
+    const page = parseInt(searchParams.get("page") || "1")
+    const size = parseInt(searchParams.get("pageSize") || "10")
+    setCurrentPage(page)
+    setPageSize(size)
+  }, [searchParams])
+
+  // 更新URL查询参数
+  const updateUrlParams = (page: number, size: number) => {
+    const params = new URLSearchParams()
+    params.set("page", page.toString())
+    params.set("pageSize", size.toString())
+    if (searchTerm) {
+      params.set("search", searchTerm)
+    }
+    router.replace(`${pathname}?${params.toString()}`)
+  }
 
   // 获取项目列表
   useEffect(() => {
@@ -72,12 +95,21 @@ export default function ProjectsPage() {
     }
 
     fetchProjects()
-  }, [currentPage, pageSize])
+    // 更新URL参数
+    updateUrlParams(currentPage, pageSize)
+  }, [currentPage, pageSize, pathname])
 
   // 处理页面大小变化
   const handlePageSizeChange = (newSize: number) => {
     setPageSize(newSize)
     setCurrentPage(1)
+    updateUrlParams(1, newSize)
+  }
+
+  // 处理页面变化
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage)
+    updateUrlParams(newPage, pageSize)
   }
 
   const handleDeleteClick = (projectId: number) => {
@@ -237,7 +269,7 @@ export default function ProjectsPage() {
         totalPages={totalPages}
         pageSize={pageSize}
         totalItems={totalItems}
-        onPageChange={setCurrentPage}
+        onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
       />
 

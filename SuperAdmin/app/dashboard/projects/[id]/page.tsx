@@ -11,6 +11,7 @@ import { ArrowLeft, Edit } from "lucide-react"
 import { toast } from "sonner"
 import { use } from "react"
 import Image from "next/image"
+import { Badge } from "@/components/ui/badge"
 
 interface ProjectProfile {
   id: number
@@ -112,15 +113,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
       if (activeTab === "accounts") {
         setIsSubUsersLoading(true)
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/subusers`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              companyId: parseInt(id)
-            })
-          })
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/subusers?companyId=${id}`)
           const data = await response.json()
 
           if (data.code === 200) {
@@ -243,32 +236,53 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
               ) : devices.length === 0 ? (
                 <div className="flex items-center justify-center py-8 text-muted-foreground">暂无数据</div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>设备名称</TableHead>
-                      <TableHead>设备型号</TableHead>
-                      <TableHead>品牌</TableHead>
-                      <TableHead>IMEI</TableHead>
-                      <TableHead>设备状态</TableHead>
-                      <TableHead>微信状态</TableHead>
-                      <TableHead className="text-right">微信好友数量</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {devices.map((device) => (
-                      <TableRow key={device.id}>
-                        <TableCell className="font-medium">{device.memo}</TableCell>
-                        <TableCell>{device.model}</TableCell>
-                        <TableCell>{device.brand}</TableCell>
-                        <TableCell>{device.imei}</TableCell>
-                        <TableCell>{device.alive === 1 ? "在线" : "离线"}</TableCell>
-                        <TableCell>{device.wAlive === 1 ? "在线" : device.wAlive === 0 ? "离线" : "未登录微信"}</TableCell>
-                        <TableCell className="text-right">{device.friendCount || 0}</TableCell>
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>设备名称</TableHead>
+                        <TableHead>设备型号</TableHead>
+                        <TableHead>品牌</TableHead>
+                        <TableHead>IMEI</TableHead>
+                        <TableHead>设备状态</TableHead>
+                        <TableHead>微信状态</TableHead>
+                        <TableHead className="text-right">微信好友数量</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {devices.map((device) => (
+                        <TableRow key={device.id}>
+                          <TableCell className="font-medium">{device.memo}</TableCell>
+                          <TableCell>{device.model}</TableCell>
+                          <TableCell>{device.brand}</TableCell>
+                          <TableCell>{device.imei}</TableCell>
+                          <TableCell>
+                            <Badge variant={device.alive === 1 ? "success" : "destructive"}>
+                              {device.alive === 1 ? "在线" : "离线"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={
+                                device.wAlive === 1 
+                                  ? "success" 
+                                  : device.wAlive === 0 
+                                    ? "destructive" 
+                                    : "secondary"
+                              }
+                            >
+                              {device.wAlive === 1 ? "已登录" : device.wAlive === 0 ? "已登出" : "未登录微信"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">{device.friendCount || 0}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <div className="mt-4 text-sm text-muted-foreground">
+                    共 {devices.length} 条数据
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -286,42 +300,51 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
               ) : subUsers.length === 0 ? (
                 <div className="flex items-center justify-center py-8 text-muted-foreground">暂无数据</div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>头像</TableHead>
-                      <TableHead>账号ID</TableHead>
-                      <TableHead>登录账号</TableHead>
-                      <TableHead>昵称</TableHead>
-                      <TableHead>手机号</TableHead>
-                      <TableHead>状态</TableHead>
-                      <TableHead>账号类型</TableHead>
-                      <TableHead className="text-right">创建时间</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {subUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <Image
-                            src={user.avatar}
-                            alt={user.username}
-                            width={32}
-                            height={32}
-                            className="rounded-full"
-                          />
-                        </TableCell>
-                        <TableCell>{user.id}</TableCell>
-                        <TableCell>{user.account}</TableCell>
-                        <TableCell>{user.username}</TableCell>
-                        <TableCell>{user.phone}</TableCell>
-                        <TableCell>{user.status === 1 ? "登录" : "禁用"}</TableCell>
-                        <TableCell>{user.typeId === 1 ? "操盘手" : "门店顾问"}</TableCell>
-                        <TableCell className="text-right">{user.createTime}</TableCell>
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>头像</TableHead>
+                        <TableHead>账号ID</TableHead>
+                        <TableHead>登录账号</TableHead>
+                        <TableHead>昵称</TableHead>
+                        <TableHead>手机号</TableHead>
+                        <TableHead>状态</TableHead>
+                        <TableHead>账号类型</TableHead>
+                        <TableHead className="text-right">创建时间</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {subUsers.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell>
+                            <Image
+                              src={user.avatar}
+                              alt={user.username}
+                              width={32}
+                              height={32}
+                              className="rounded-full"
+                            />
+                          </TableCell>
+                          <TableCell>{user.id}</TableCell>
+                          <TableCell>{user.account}</TableCell>
+                          <TableCell>{user.username}</TableCell>
+                          <TableCell>{user.phone}</TableCell>
+                          <TableCell>
+                            <Badge variant={user.status === 1 ? "success" : "destructive"}>
+                              {user.status === 1 ? "启用" : "禁用"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{user.typeId === 1 ? "操盘手" : "门店顾问"}</TableCell>
+                          <TableCell className="text-right">{user.createTime}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <div className="mt-4 text-sm text-muted-foreground">
+                    共 {subUsers.length} 条数据
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
