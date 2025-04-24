@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Plus, Trash } from "lucide-react"
+import { ArrowLeft, Plus, Trash, X } from "lucide-react"
 import Link from "next/link"
 import { toast, Toaster } from "sonner"
+import Image from "next/image"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 
 // 为React.use添加类型声明
 declare module 'react' {
@@ -36,6 +38,7 @@ interface Project {
   userCount: number
   username: string
   status: number
+  s2_accountId?: number
   devices?: Device[]
 }
 
@@ -46,6 +49,9 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   const [project, setProject] = useState<Project | null>(null)
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [qrCodeData, setQrCodeData] = useState("")
+  const [isAddingDevice, setIsAddingDevice] = useState(false)
   const { id } = React.use(params)
 
   useEffect(() => {
@@ -112,8 +118,42 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
     }
   }
 
-  const handleAddDevice = () => {
-    router.push(`/dashboard/projects/${id}/devices/new`)
+  const handleAddDevice = async () => {
+    if (!project?.s2_accountId) {
+      toast.error("无法添加设备，未找到账号ID")
+      return
+    }
+
+    setIsAddingDevice(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/api/device/add`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          accountId: project.s2_accountId
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.code === 200 && data.data?.qrCode) {
+        setQrCodeData(data.data.qrCode)
+        setIsModalOpen(true)
+      } else {
+        toast.error(data.msg || "获取设备二维码失败")
+      }
+    } catch (error) {
+      toast.error("网络错误，请稍后重试")
+    } finally {
+      setIsAddingDevice(false)
+    }
+  }
+
+  const closeModal = () => {
+    setIsModalOpen(false)
+    setQrCodeData("")
   }
 
   if (isLoading) {
@@ -232,8 +272,18 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                     />
                   </div>
                 ))}
-                <Button type="button" variant="outline" onClick={handleAddDevice} className="flex items-center gap-1">
-                  <Plus className="h-4 w-4" /> 添加设备
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={handleAddDevice} 
+                  className="flex items-center gap-1"
+                  disabled={isAddingDevice}
+                >
+                  {isAddingDevice ? "添加中..." : (
+                    <>
+                      <Plus className="h-4 w-4" /> 添加设备
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
@@ -254,11 +304,43 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
               <Link href="/dashboard/projects">取消</Link>
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "保存中..." : "保存修改"}
+              {isSubmitting ? "提交中..." : "保存修改"}
             </Button>
           </CardFooter>
         </Card>
       </form>
+
+      {/* 使用Dialog组件替代自定义模态框 */}
+      <Dialog open={isModalOpen} onOpenChange={(open) => !open && closeModal()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>添加设备</DialogTitle>
+            <DialogDescription>
+              请使用新设备进行扫码添加
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center p-6">
+            <div className="border p-4 rounded-lg">
+              {qrCodeData ? (
+                <img 
+                  src={qrCodeData} 
+                  alt="设备二维码" 
+                  className="w-64 h-64 object-contain" 
+                />
+              ) : (
+                <div className="w-64 h-64 flex items-center justify-center bg-muted">
+                  <p className="text-muted-foreground">二维码加载中...</p>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="sm:justify-center">
+            <Button type="button" onClick={closeModal}>
+              关闭
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
