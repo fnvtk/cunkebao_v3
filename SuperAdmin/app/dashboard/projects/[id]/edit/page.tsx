@@ -1,7 +1,7 @@
 "use client"
 
-import type React from "react"
-import { useState, useEffect, use } from "react"
+import * as React from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,6 +11,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ArrowLeft, Plus, Trash } from "lucide-react"
 import Link from "next/link"
 import { toast, Toaster } from "sonner"
+
+// 为React.use添加类型声明
+declare module 'react' {
+  function use<T>(promise: Promise<T>): T;
+  function use<T>(value: T): T;
+}
 
 interface Device {
   id: number
@@ -40,7 +46,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   const [project, setProject] = useState<Project | null>(null)
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const id = params.id
+  const { id } = React.use(params)
 
   useEffect(() => {
     const fetchProject = async () => {

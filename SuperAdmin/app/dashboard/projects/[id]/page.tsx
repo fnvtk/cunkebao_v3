@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -51,7 +52,14 @@ interface SubUser {
   typeId: number
 }
 
-export default function ProjectDetailPage({ params }: { params: { id: string } }) {
+interface ProjectDetailPageProps {
+  params: {
+    id: string
+  }
+}
+
+export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
+  const { id } = use(params)
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [isDevicesLoading, setIsDevicesLoading] = useState(false)
@@ -60,7 +68,6 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
   const [devices, setDevices] = useState<Device[]>([])
   const [subUsers, setSubUsers] = useState<SubUser[]>([])
   const [activeTab, setActiveTab] = useState("overview")
-  const { id } = use(params)
 
   useEffect(() => {
     const fetchProjectProfile = async () => {
