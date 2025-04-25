@@ -35,7 +35,7 @@ Route::group('', function () {
 
     // 公司路由
     Route::group('company', function () {
-        Route::post('create', 'app\superadmin\controller\company\CreateCompanyController@index');
+        Route::post('add', 'app\superadmin\controller\company\CreateCompanyController@index');
         Route::post('update', 'app\superadmin\controller\company\UpdateCompanyController@index');
         Route::post('delete', 'app\superadmin\controller\company\DeleteCompanyController@index');
         Route::get('list', 'app\superadmin\controller\company\GetCompanyListController@index');

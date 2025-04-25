@@ -23,6 +23,12 @@ declare module 'react' {
 interface Device {
   id: number
   memo: string
+  imei: string
+  phone: string
+  model: string
+  brand: string
+  alive: number
+  createTime: number
 }
 
 interface Project {
@@ -264,14 +270,40 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
             <div className="space-y-2">
               <Label>关联设备</Label>
               <div className="space-y-3">
-                {project && project.devices && project.devices.length > 0 && project.devices.map((device) => (
-                  <div key={device.id} className="flex items-center gap-2">
-                    <Input
-                      value={device.memo}
-                      readOnly
-                    />
+                {project && project.devices && project.devices.length > 0 && (
+                  <div className="border rounded-md">
+                    <table className="w-full table-fixed">
+                      <thead className="bg-muted" style={{ fontFamily: "'Microsoft YaHei', sans-serif" }}>
+                        <tr>
+                          <th className="text-left p-2 w-[12%]">设备名称</th>
+                          <th className="text-left p-2 w-[22%]">IMEI</th>
+                          <th className="text-left p-2 w-[15%]">手机号</th>
+                          <th className="text-left p-2 w-[12%]">型号</th>
+                          <th className="text-left p-2 w-[10%]">品牌</th>
+                          <th className="text-left p-2 w-[8%]">状态</th>
+                          <th className="text-left p-2 w-[13%]">添加时间</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-sm" style={{ fontFamily: "'Microsoft YaHei', sans-serif" }}>
+                        {project.devices.map((device) => (
+                          <tr key={device.id} className="border-t">
+                            <td className="p-2 truncate" title={device.memo}>{device.memo}</td>
+                            <td className="p-2" title={device.imei || '-'}>{device.imei || '-'}</td>
+                            <td className="p-2 truncate" title={device.phone || '-'}>{device.phone || '-'}</td>
+                            <td className="p-2 truncate" title={device.model || '-'}>{device.model || '-'}</td>
+                            <td className="p-2 truncate" title={device.brand || '-'}>{device.brand || '-'}</td>
+                            <td className="p-2">
+                              <span className={`inline-block px-2 py-1 text-xs rounded-full ${device.alive === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                {device.alive === 1 ? '在线' : '离线'}
+                              </span>
+                            </td>
+                            <td className="p-2 truncate" title={device.createTime || '-'}>{device.createTime || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                ))}
+                )}
                 <Button 
                   type="button" 
                   variant="outline" 

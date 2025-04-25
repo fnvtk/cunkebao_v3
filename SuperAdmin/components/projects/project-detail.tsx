@@ -329,7 +329,13 @@ export default function ProjectDetail({ projectId, onEdit }: ProjectDetailProps)
                               {user.status === 1 ? "启用" : "禁用"}
                             </Badge>
                           </TableCell>
-                          <TableCell>{user.typeId === 1 ? "操盘手" : "门店顾问"}</TableCell>
+                          <TableCell>
+                            {user.typeId === -1 
+                              ? "系统账号" 
+                              : user.typeId === 1 
+                                ? "操盘手" 
+                                : "门店顾问"}
+                          </TableCell>
                           <TableCell className="text-right">{user.createTime}</TableCell>
                         </TableRow>
                       ))}

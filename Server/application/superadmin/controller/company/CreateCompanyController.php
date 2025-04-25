@@ -18,12 +18,38 @@ use think\Validate;
 class CreateCompanyController extends BaseController
 {
     /**
+     * S2 创建用户。
+     *
+     * @param array $params
+     * @return mixed|null
+     * @throws \Exception
+     */
+    protected function s2CreateUser(array $params): ?array
+    {
+        $params = ArrHelper::getValue('account=userName,password,username=realName,username=nickname,companyId=departmentId', $params);
+
+        // 创建账号
+        $response = CurlHandle::getInstant()
+            ->setBaseUrl(Env::get('rpc.API_BASE_URL'))
+            ->setMethod('post')
+            ->send('/v1/api/account/create', $params);
+
+        $result = json_decode($response, true);
+
+        if ($result['code'] != 200) {
+            throw new \Exception($result['msg'], 210 . $result['code']);
+        }
+
+        return $result['data'] ?: null;
+    }
+
+    /**
      * S2 创建部门并返回id
      *
      * @param array $params
      * @return array
      */
-    protected function s2CreateDepartment(array $params): ?array
+    protected function s2CreateDepartmentAndUser(array $params): ?array
     {
         $params = ArrHelper::getValue('name=departmentName,memo=departmentMemo,account=accountName,password=accountPassword,username=accountRealName,username=accountNickname,accountMemo', $params);
 
@@ -88,7 +114,7 @@ class CreateCompanyController extends BaseController
      */
     protected function creatS2About(array $params): array
     {
-        $department = $this->s2CreateDepartment($params);
+        $department = $this->s2CreateDepartmentAndUser($params);
 
         if (!$department || !isset($department['id']) || !isset($department['departmentId'])) {
             throw new \Exception('S2返参异常', 210402);
@@ -118,6 +144,26 @@ class CreateCompanyController extends BaseController
     }
 
     /**
+     * 创建功能账号，不可登录，也非管理员，用户也不可见.
+     *
+     * @param array $params
+     * @return void
+     * @throws \Exception
+     */
+    protected function createFuncUsers(array $params): void
+    {
+        $seedCols = [
+            ['account' => $params['account'] . '_offline', 'username' => '处理离线专用', 'status' => 0, 'isAdmin' => 0, 'typeId' => -1],
+            ['account' => $params['account'] . '_delete' , 'username' => '处理删除专用', 'status' => 0, 'isAdmin' => 0, 'typeId' => -1],
+        ];
+
+        foreach ($seedCols as $seeds) {
+            $this->s2CreateUser (array_merge($params, ArrHelper::getValue('account,username', $seeds)));
+            $this->ckbCreateUser(array_merge($params, $seeds));
+        }
+    }
+
+    /**
      * 存客宝创建账号
      *
      * @param array $params
@@ -126,19 +172,14 @@ class CreateCompanyController extends BaseController
      */
     protected function ckbCreateUser(array $params): void
     {
-        $params = ArrHelper::getValue(
-            'username,account,password,companyId,s2_accountId,status,phone',
-            $params
-        );
+        $params = ArrHelper::getValue('username,account,password,companyId,s2_accountId,status,phone,isAdmin,typeId', $params);
 
-        $result = UsersModel::create(array_merge($params, [
+        $params = array_merge($params, [
             'passwordLocal' => localEncrypt($params['password']),
-            'passwordMd5' => md5($params['password']),
-            'isAdmin' => 1,  // 主要账号默认1
-            'typeId' => 1,   // 类型：运营后台/操盘手传1、 门店传2
-        ]));
+            'passwordMd5'   => md5($params['password']),
+        ]);
 
-        if (!$result) {
+        if (!UsersModel::create($params)) {
             throw new \Exception('创建用户记录失败', 402);
         }
     }
@@ -154,7 +195,10 @@ class CreateCompanyController extends BaseController
         $this->ckbCreateCompany($params);
 
         // 2. 存客宝创建操盘手总账号
-        $this->ckbCreateUser($params);
+        $this->ckbCreateUser(array_merge($params, [
+            'isAdmin' => 1,  // 主要账号默认1
+            'typeId' => 1,   // 类型：运营后台/操盘手传1、 门店传2
+        ]));
     }
 
     /**
@@ -199,8 +243,12 @@ class CreateCompanyController extends BaseController
             $params = $this->dataValidate($params)->creatS2About($params);
 
             Db::startTrans();
+
             $this->checkCompanyNameOrAccountOrPhoneExists(ArrHelper::getValue('name,account,phone', $params));
             $this->createCkbAbout($params);
+
+            // 创建功能账号，不可登录，也非管理员，用户也不可见
+            $this->createFuncUsers($params);
 
             Db::commit();
             return ResponseHelper::success();
