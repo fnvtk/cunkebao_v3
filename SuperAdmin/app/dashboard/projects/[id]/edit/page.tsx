@@ -275,20 +275,20 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                     <table className="w-full table-fixed">
                       <thead className="bg-muted" style={{ fontFamily: "'Microsoft YaHei', sans-serif" }}>
                         <tr>
-                          <th className="text-left p-2 w-[14%]">设备名称</th>
-                          <th className="text-left p-2 w-[14%]">IMEI</th>
-                          <th className="text-left p-2 w-[14%]">手机号</th>
-                          <th className="text-left p-2 w-[14%]">型号</th>
-                          <th className="text-left p-2 w-[14%]">品牌</th>
-                          <th className="text-left p-2 w-[14%]">状态</th>
-                          <th className="text-left p-2 w-[14%]">添加时间</th>
+                          <th className="text-left p-2 w-[12%]">设备名称</th>
+                          <th className="text-left p-2 w-[22%]">IMEI</th>
+                          <th className="text-left p-2 w-[15%]">手机号</th>
+                          <th className="text-left p-2 w-[12%]">型号</th>
+                          <th className="text-left p-2 w-[10%]">品牌</th>
+                          <th className="text-left p-2 w-[8%]">状态</th>
+                          <th className="text-left p-2 w-[13%]">添加时间</th>
                         </tr>
                       </thead>
                       <tbody className="text-sm" style={{ fontFamily: "'Microsoft YaHei', sans-serif" }}>
                         {project.devices.map((device) => (
                           <tr key={device.id} className="border-t">
                             <td className="p-2 truncate" title={device.memo}>{device.memo}</td>
-                            <td className="p-2 truncate" title={device.imei || '-'}>{device.imei || '-'}</td>
+                            <td className="p-2" title={device.imei || '-'}>{device.imei || '-'}</td>
                             <td className="p-2 truncate" title={device.phone || '-'}>{device.phone || '-'}</td>
                             <td className="p-2 truncate" title={device.model || '-'}>{device.model || '-'}</td>
                             <td className="p-2 truncate" title={device.brand || '-'}>{device.brand || '-'}</td>

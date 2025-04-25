@@ -158,7 +158,7 @@ class CreateCompanyController extends BaseController
         ];
 
         foreach ($seedCols as $seeds) {
-            $this->s2CreateUser(array_merge($params, ArrHelper::getValue('account,username', $seeds)));
+            $this->s2CreateUser (array_merge($params, ArrHelper::getValue('account,username', $seeds)));
             $this->ckbCreateUser(array_merge($params, $seeds));
         }
     }
@@ -172,7 +172,7 @@ class CreateCompanyController extends BaseController
      */
     protected function ckbCreateUser(array $params): void
     {
-        $params = ArrHelper::getValue('username,account,password,companyId,s2_accountId,status,phone', $params);
+        $params = ArrHelper::getValue('username,account,password,companyId,s2_accountId,status,phone,isAdmin,typeId', $params);
 
         $params = array_merge($params, [
             'passwordLocal' => localEncrypt($params['password']),
