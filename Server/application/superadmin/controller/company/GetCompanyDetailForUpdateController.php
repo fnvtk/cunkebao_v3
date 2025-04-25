@@ -22,7 +22,7 @@ class GetCompanyDetailForUpdateController extends BaseController
     {
         return DeviceModel::alias('d')
             ->field([
-                'd.id', 'd.memo',
+                'd.id', 'd.memo', 'd.model', 'd.brand', 'd.phone', 'd.imei', 'd.createTime', 'd.alive',
             ])
             ->where('companyId', $companyId)
             ->select()
