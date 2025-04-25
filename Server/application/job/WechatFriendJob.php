@@ -87,8 +87,8 @@ class WechatFriendJob
                     
                     // 更新缓存中的页码和最后一个好友ID，设置1天过期
                     $nextPageIndex = $pageIndex + 1;
-                    Cache::set($pageIndexCacheKey, $nextPageIndex, 86400);
-                    Cache::set($preFriendIdCacheKey, $lastFriendId, 86400);
+                    Cache::set($pageIndexCacheKey, $nextPageIndex, 600);
+                    Cache::set($preFriendIdCacheKey, $lastFriendId, 600);
                     
                     Log::info("更新缓存，下一页页码：{$nextPageIndex}，最后好友ID：{$lastFriendId}，缓存键: {$pageIndexCacheKey}, {$preFriendIdCacheKey}");
                     
@@ -98,8 +98,8 @@ class WechatFriendJob
                     Log::info("已添加下一页任务到队列: 页码 {$nextPageIndex}");
                 } else {
                     // 没有下一页，重置缓存并释放队列锁
-                    Cache::set($pageIndexCacheKey, 0, 86400);
-                    Cache::set($preFriendIdCacheKey, '', 86400);
+                    Cache::set($pageIndexCacheKey, 0, 600);
+                    Cache::set($preFriendIdCacheKey, '', 600);
                     Cache::rm($queueLockKey);
                     Log::info("所有微信好友列表页面处理完毕，重置页码为0，释放队列锁: {$queueLockKey}");
                 }

@@ -107,7 +107,7 @@ class GroupFriendsJob
             // 判断是否有下一页
             if ($processedCount < $totalCount) {
                 // 更新缓存中的页码，设置一天过期
-                Cache::set('groupFriendsPage', $pageIndex + 1, 86400);
+                Cache::set('groupFriendsPage', $pageIndex + 1, 600);
                 //Log::info('更新缓存，下一页页码：' . ($pageIndex + 1) . '，缓存时间：1天');
                 
                 // 有下一页，将下一页任务添加到队列
@@ -116,7 +116,7 @@ class GroupFriendsJob
                 Log::info('添加下一页任务到队列，页码：' . $nextPageIndex);
             } else {
                 // 没有下一页，重置缓存，设置一天过期
-                Cache::set('groupFriendsPage', 0, 86400);
+                Cache::set('groupFriendsPage', 0, 600);
                 Log::info('获取完成，重置缓存，缓存时间：1天');
             }
             

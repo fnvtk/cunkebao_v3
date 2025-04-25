@@ -6,7 +6,7 @@ use app\command\WechatChatroomCommand;
 use think\facade\Log;
 use think\facade\Cache;
 use think\Queue;
-use app\common\BusinessLogic;
+use app\api\controller\WechatChatroomController;
 
 class WechatChatroomJob
 {
@@ -49,14 +49,14 @@ class WechatChatroomJob
             }
             
             // 调用业务逻辑获取微信聊天室列表
-            $logic = new BusinessLogic();
-            $result = $logic->wechatChatroomList($pageIndex, $pageSize, $isDel);
-            
-            if ($result['code'] == 1) {
-                $dataCount = count($result['data']['list']);
-                $totalCount = $result['data']['total'];
-                
-                Log::info("微信聊天室列表获取成功，当前页:{$pageIndex}，获取数量:{$dataCount}，总数量:{$totalCount}");
+            $logic = new WechatChatroomController();
+            $result = $logic->getlist(['pageIndex' => $pageIndex, 'pageSize' => $pageSize],true, $isDel);
+            $response = json_decode($result, true);
+            $data = $response['data'];
+             // 判断是否有下一页
+             if (!empty($data) && count($data['results']) > 0 && empty($response['isUpdate'])) {
+                $dataCount = count($data['results']);
+                $totalCount = $data['total'];
                 
                 // 计算是否还有下一页
                 $hasNextPage = ($pageIndex + 1) * $pageSize < $totalCount;
@@ -64,7 +64,7 @@ class WechatChatroomJob
                 if ($hasNextPage) {
                     // 缓存页码信息，设置有效期1天
                     $nextPageIndex = $pageIndex + 1;
-                    Cache::set($cacheKey, $nextPageIndex, 86400);
+                    Cache::set($cacheKey, $nextPageIndex, 600);
                     Log::info("更新缓存页码: {$nextPageIndex}, 缓存键: {$cacheKey}");
                     
                     // 添加下一页任务到队列
@@ -73,13 +73,13 @@ class WechatChatroomJob
                     Log::info("已添加下一页任务到队列: 页码 {$nextPageIndex}");
                 } else {
                     // 处理完所有页面，重置页码并释放队列锁
-                    Cache::set($cacheKey, 0, 86400);
+                    Cache::set($cacheKey, 0, 600);
                     Cache::rm($queueLockKey);
                     Log::info("所有微信聊天室列表页面处理完毕，重置页码为0，释放队列锁: {$queueLockKey}");
                 }
             } else {
                 // API调用出错，记录错误并释放队列锁
-                Log::error("微信聊天室列表获取失败: " . $result['msg']);
+                Log::error("微信聊天室列表获取失败: " . $response['msg']);
                 Cache::rm($queueLockKey);
                 Log::info("由于错误释放队列锁: {$queueLockKey}");
             }

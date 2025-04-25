@@ -78,7 +78,7 @@ class DeviceListJob
                 if ($hasNextPage) {
                     // 缓存页码信息，设置有效期1天
                     $nextPageIndex = $pageIndex + 1;
-                    Cache::set($cacheKey, $nextPageIndex, 86400);
+                    Cache::set($cacheKey, $nextPageIndex, 600);
                     Log::info("更新缓存页码: {$nextPageIndex}, 缓存键: {$cacheKey}");
                     
                     // 添加下一页任务到队列
@@ -87,7 +87,7 @@ class DeviceListJob
                     Log::info("已添加下一页任务到队列: 页码 {$nextPageIndex}");
                 } else {
                     // 处理完所有页面，重置页码并释放队列锁
-                    Cache::set($cacheKey, 0, 86400);
+                    Cache::set($cacheKey, 0, 600);
                     Cache::rm($queueLockKey);
                     Log::info("所有设备列表页面处理完毕，重置页码为0，释放队列锁: {$queueLockKey}");
                 }
