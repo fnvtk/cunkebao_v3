@@ -29,6 +29,9 @@ class WechatFriendController extends BaseController
         }
 
         try {
+            // 初始化isUpdate标志为false
+            $isUpdate = false;
+            
             // 根据isDel设置对应的isDeleted值
             $isDeleted = null; // 默认值
             if ($isDel === '0' || $isDel === 0) {
@@ -67,13 +70,17 @@ class WechatFriendController extends BaseController
             
             // 保存数据到数据库
             if (is_array($response)) {
+                $isUpdate = false;
                 foreach ($response as $item) {
-                    $this->saveFriend($item);
+                    $updated = $this->saveFriend($item);
+                    if($updated){
+                        $isUpdate = true;
+                    }
                 }
             }
             
             if ($isJob) {
-                return json_encode(['code' => 200, 'msg' => 'success', 'data' => $response]);
+                return json_encode(['code' => 200, 'msg' => 'success', 'data' => $response, 'isUpdate' => $isUpdate]);
             } else {
                 return successJson($response);
             }
@@ -90,6 +97,7 @@ class WechatFriendController extends BaseController
     /**
      * 保存微信好友数据到数据库
      * @param array $item 微信好友数据
+     * @return bool 是否创建或更新了记录
      */
     private function saveFriend($item)
     {
@@ -137,9 +145,11 @@ class WechatFriendController extends BaseController
         $friend = WechatFriendModel::where('id', $item['id'])->find();
 
         if ($friend) {
-            $friend->save($data);
+            $result = $friend->save($data);
+            return false;
         } else {
             WechatFriendModel::create($data);
+            return true;
         }
     }
 } 

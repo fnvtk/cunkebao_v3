@@ -81,7 +81,7 @@ class DeviceListCommand extends Command
      * @param string $cacheKey 缓存键名
      * @param string $queueLockKey 队列锁键名
      */
-    protected function addToQueue($pageIndex, $pageSize, $isDel = '', $jobId = '', $cacheKey = '', $queueLockKey = '')
+    public function addToQueue($pageIndex, $pageSize, $isDel = '', $jobId = '', $cacheKey = '', $queueLockKey = '')
     {
         $data = [
             'pageIndex' => $pageIndex,

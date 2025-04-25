@@ -88,7 +88,7 @@ class DeviceListJob
                 } else {
                     // 处理完所有页面，重置页码并释放队列锁
                     Cache::set($cacheKey, 0, 86400);
-                    Cache::delete($queueLockKey);
+                    Cache::rm($queueLockKey);
                     Log::info("所有设备列表页面处理完毕，重置页码为0，释放队列锁: {$queueLockKey}");
                 }
                 
@@ -101,7 +101,7 @@ class DeviceListJob
                 
                 if ($job->attempts() > 3) {
                     // 超过重试次数，删除任务并释放队列锁
-                    Cache::delete($queueLockKey);
+                    Cache::rm($queueLockKey);
                     Log::info("由于错误释放队列锁: {$queueLockKey}");
                     $job->delete();
                 } else {
@@ -117,7 +117,7 @@ class DeviceListJob
             Log::error('设备列表任务处理异常: ' . $e->getMessage());
             
             if (!empty($queueLockKey)) {
-                Cache::delete($queueLockKey);
+                Cache::rm($queueLockKey);
                 Log::info("由于异常释放队列锁: {$queueLockKey}");
             }
             

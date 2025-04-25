@@ -81,7 +81,7 @@ class WechatFriendJob
                 $data = $response['data'];
                 
                 // 判断是否有下一页
-                if (!empty($data) && count($data) > 0) {
+                if (!empty($data) && count($data) > 0 && empty($response['isUpdate'])) {
                     // 获取最后一条记录的ID
                     $lastFriendId = $data[count($data)-1]['id'];
                     
@@ -100,7 +100,7 @@ class WechatFriendJob
                     // 没有下一页，重置缓存并释放队列锁
                     Cache::set($pageIndexCacheKey, 0, 86400);
                     Cache::set($preFriendIdCacheKey, '', 86400);
-                    Cache::delete($queueLockKey);
+                    Cache::rm($queueLockKey);
                     Log::info("所有微信好友列表页面处理完毕，重置页码为0，释放队列锁: {$queueLockKey}");
                 }
                 
@@ -114,7 +114,7 @@ class WechatFriendJob
                 
                 if ($job->attempts() > 3) {
                     // 超过重试次数，删除任务并释放队列锁
-                    Cache::delete($queueLockKey);
+                    Cache::rm($queueLockKey);
                     Log::info("由于错误释放队列锁: {$queueLockKey}");
                     $job->delete();
                 } else {
@@ -130,7 +130,7 @@ class WechatFriendJob
             Log::error('微信好友列表任务异常：' . $e->getMessage());
             
             if (!empty($queueLockKey)) {
-                Cache::delete($queueLockKey);
+                Cache::rm($queueLockKey);
                 Log::info("由于异常释放队列锁: {$queueLockKey}");
             }
             
