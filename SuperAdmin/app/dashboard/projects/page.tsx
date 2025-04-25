@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Link from "next/link"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { PaginationControls } from "@/components/ui/pagination-controls"
+import { useTabContext } from "@/app/dashboard/layout"
 
 interface Project {
   id: number
@@ -32,16 +33,40 @@ interface Project {
 }
 
 export default function ProjectsPage() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  const { addTab } = useTabContext()
+  
   const [searchTerm, setSearchTerm] = useState("")
   const [projects, setProjects] = useState<Project[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [currentPage, setCurrentPage] = useState(1)
+  const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get("page") || "1"))
   const [totalPages, setTotalPages] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
+  const [pageSize, setPageSize] = useState(parseInt(searchParams.get("pageSize") || "10"))
   const [totalItems, setTotalItems] = useState(0)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingProjectId, setDeletingProjectId] = useState<number | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // 从URL更新状态
+  useEffect(() => {
+    const page = parseInt(searchParams.get("page") || "1")
+    const size = parseInt(searchParams.get("pageSize") || "10")
+    setCurrentPage(page)
+    setPageSize(size)
+  }, [searchParams])
+
+  // 更新URL查询参数
+  const updateUrlParams = (page: number, size: number) => {
+    const params = new URLSearchParams()
+    params.set("page", page.toString())
+    params.set("pageSize", size.toString())
+    if (searchTerm) {
+      params.set("search", searchTerm)
+    }
+    router.replace(`${pathname}?${params.toString()}`)
+  }
 
   // 获取项目列表
   useEffect(() => {
@@ -72,12 +97,21 @@ export default function ProjectsPage() {
     }
 
     fetchProjects()
-  }, [currentPage, pageSize])
+    // 更新URL参数
+    updateUrlParams(currentPage, pageSize)
+  }, [currentPage, pageSize, pathname])
 
   // 处理页面大小变化
   const handlePageSizeChange = (newSize: number) => {
     setPageSize(newSize)
     setCurrentPage(1)
+    updateUrlParams(1, newSize)
+  }
+
+  // 处理页面变化
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage)
+    updateUrlParams(newPage, pageSize)
   }
 
   const handleDeleteClick = (projectId: number) => {
@@ -104,6 +138,7 @@ export default function ProjectsPage() {
 
       if (data.code === 200) {
         toast.success("删除成功")
+        
         // Fetch projects again after delete
         const fetchProjects = async () => {
           setIsLoading(true)
@@ -136,14 +171,39 @@ export default function ProjectsPage() {
     }
   }
 
+  // 打开项目详情
+  const handleViewProject = (project: Project) => {
+    addTab({
+      label: `项目 #${project.id} - 详情`,
+      path: `/dashboard/projects/${project.id}`,
+      closable: true
+    });
+  }
+
+  // 打开编辑项目
+  const handleEditProject = (project: Project) => {
+    addTab({
+      label: `项目 #${project.id} - 编辑`,
+      path: `/dashboard/projects/${project.id}/edit`,
+      closable: true
+    });
+  }
+
+  // 打开新建项目
+  const handleNewProject = () => {
+    addTab({
+      label: "新建项目",
+      path: "/dashboard/projects/new",
+      closable: true
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between">
         <h1 className="text-2xl font-bold">项目列表</h1>
-        <Button asChild>
-          <Link href="/dashboard/projects/new">
-            <Plus className="mr-2 h-4 w-4" /> 新建项目
-          </Link>
+        <Button onClick={handleNewProject}>
+          <Plus className="mr-2 h-4 w-4" /> 新建项目
         </Button>
       </div>
 
@@ -175,7 +235,7 @@ export default function ProjectsPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   加载中...
                 </TableCell>
               </TableRow>
@@ -200,15 +260,11 @@ export default function ProjectsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link href={`/dashboard/projects/${project.id}`}>
-                            <Eye className="mr-2 h-4 w-4" /> 查看详情
-                          </Link>
+                        <DropdownMenuItem onClick={() => handleViewProject(project)}>
+                          <Eye className="mr-2 h-4 w-4" /> 查看详情
                         </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/dashboard/projects/${project.id}/edit`}>
-                            <Edit className="mr-2 h-4 w-4" /> 编辑项目
-                          </Link>
+                        <DropdownMenuItem onClick={() => handleEditProject(project)}>
+                          <Edit className="mr-2 h-4 w-4" /> 编辑项目
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           className="text-red-600"
@@ -223,7 +279,7 @@ export default function ProjectsPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   未找到项目
                 </TableCell>
               </TableRow>
@@ -237,7 +293,7 @@ export default function ProjectsPage() {
         totalPages={totalPages}
         pageSize={pageSize}
         totalItems={totalItems}
-        onPageChange={setCurrentPage}
+        onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
       />
 

@@ -1,8 +1,6 @@
 "use client"
 
-import React from "react"
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ArrowLeft, Edit } from "lucide-react"
 import { toast } from "sonner"
-import { use } from "react"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 
@@ -52,15 +49,12 @@ interface SubUser {
   typeId: number
 }
 
-interface ProjectDetailPageProps {
-  params: {
-    id: string
-  }
+interface ProjectDetailProps {
+  projectId: string
+  onEdit?: (projectId: string) => void
 }
 
-export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
-  const { id } = use(params)
-  const router = useRouter()
+export default function ProjectDetail({ projectId, onEdit }: ProjectDetailProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [isDevicesLoading, setIsDevicesLoading] = useState(false)
   const [isSubUsersLoading, setIsSubUsersLoading] = useState(false)
@@ -73,7 +67,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
     const fetchProjectProfile = async () => {
       setIsLoading(true)
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/profile/${id}`)
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/profile/${projectId}`)
         const data = await response.json()
 
         if (data.code === 200) {
@@ -89,14 +83,14 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
     }
 
     fetchProjectProfile()
-  }, [id])
+  }, [projectId])
 
   useEffect(() => {
     const fetchDevices = async () => {
       if (activeTab === "devices") {
         setIsDevicesLoading(true)
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/devices?companyId=${id}`)
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/devices?companyId=${projectId}`)
           const data = await response.json()
 
           if (data.code === 200) {
@@ -113,14 +107,14 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
     }
 
     fetchDevices()
-  }, [activeTab, id])
+  }, [activeTab, projectId])
 
   useEffect(() => {
     const fetchSubUsers = async () => {
       if (activeTab === "accounts") {
         setIsSubUsersLoading(true)
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/subusers?companyId=${id}`)
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/subusers?companyId=${projectId}`)
           const data = await response.json()
 
           if (data.code === 200) {
@@ -137,32 +131,25 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
     }
 
     fetchSubUsers()
-  }, [activeTab, id])
+  }, [activeTab, projectId])
 
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">加载中...</div>
+    return <div className="flex items-center justify-center min-h-64">加载中...</div>
   }
 
   if (!profile) {
-    return <div className="flex items-center justify-center min-h-screen">未找到项目信息</div>
+    return <div className="flex items-center justify-center min-h-64">未找到项目信息</div>
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" asChild>
-            <Link href="/dashboard/projects">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <h1 className="text-2xl font-bold">{profile.name}</h1>
-        </div>
-        <Button asChild>
-          <Link href={`/dashboard/projects/${id}/edit`}>
+        <h1 className="text-2xl font-bold">{profile.name}</h1>
+        {onEdit && (
+          <Button onClick={() => onEdit(projectId)}>
             <Edit className="mr-2 h-4 w-4" /> 编辑项目
-          </Link>
-        </Button>
+          </Button>
+        )}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -359,5 +346,4 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
       </Tabs>
     </div>
   )
-}
-
+} 
