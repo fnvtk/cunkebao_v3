@@ -57,13 +57,17 @@ class WechatChatroomController extends BaseController
             
             // 保存数据到数据库
             if (!empty($response['results'])) {
+                $isUpdate = false;
                 foreach ($response['results'] as $item) {
-                    $this->saveChatroom($item);
+                    $updated = $this->saveChatroom($item);
+                    if($updated && $isDel == 0){
+                        $isUpdate = true;
+                    }
                 }
             }
 
             if($isJob){
-                return json_encode(['code'=>200,'msg'=>'success','data'=>$response]);
+                return json_encode(['code'=>200,'msg'=>'success','data'=>$response,'isUpdate'=>$isUpdate]);
             }else{
                 return successJson($response);
             }
@@ -111,8 +115,10 @@ class WechatChatroomController extends BaseController
 
         if ($chatroom) {
             $chatroom->save($data);
+            return true;
         } else {
             WechatChatroomModel::create($data);
+            return false;
         }
 
         // // 同时保存群成员数据

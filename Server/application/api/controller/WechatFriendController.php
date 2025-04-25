@@ -34,9 +34,9 @@ class WechatFriendController extends BaseController
             
             // 根据isDel设置对应的isDeleted值
             $isDeleted = null; // 默认值
-            if ($isDel === '0' || $isDel === 0) {
+            if ($isDel == '0' || $isDel == 0) {
                 $isDeleted = false;
-            } elseif ($isDel === '1' || $isDel === 1) {
+            } elseif ($isDel == '1' || $isDel == 1) {
                 $isDeleted = true;
             }
             
@@ -73,7 +73,7 @@ class WechatFriendController extends BaseController
                 $isUpdate = false;
                 foreach ($response as $item) {
                     $updated = $this->saveFriend($item);
-                    if($updated){
+                    if($updated && $isDel == 0){
                         $isUpdate = true;
                     }
                 }
@@ -146,10 +146,10 @@ class WechatFriendController extends BaseController
 
         if ($friend) {
             $result = $friend->save($data);
-            return false;
+            return true;
         } else {
             WechatFriendModel::create($data);
-            return true;
+            return false;
         }
     }
 } 
