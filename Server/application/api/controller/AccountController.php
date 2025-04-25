@@ -108,10 +108,7 @@ class AccountController extends BaseController
             if (empty($password)) {
                 return errorJson('密码不能为空');
             }
-            $passwordValidation = validateString($password, 'password');
-            if (!$passwordValidation['status']) {
-                return errorJson($passwordValidation['message']);
-            }
+
             if (empty($realName)) {
                 return errorJson('真实姓名不能为空');
             }
