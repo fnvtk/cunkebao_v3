@@ -20,7 +20,7 @@ class DeviceController extends BaseController
      * @param bool $isJob 是否为定时任务调用
      * @return \think\response\Json
      */
-    public function getlist($pageIndex = '',$pageSize = '',$isJob = false,$isDel = 0)
+    public function getlist($data = [],$isJob = false,$isDel = 0)
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
@@ -43,7 +43,7 @@ class DeviceController extends BaseController
             
             // 构建请求参数
             $params = [
-                'accountId' => $this->request->param('accountId', ''),
+                'accountId' => !empty($data['accountId']) ? $data['accountId'] : $this->request->param('accountId', ''),
                 'keyword' => $this->request->param('keyword', ''),
                 'imei' => $this->request->param('imei', ''),
                 'groupId' => $this->request->param('groupId', ''),
@@ -60,8 +60,8 @@ class DeviceController extends BaseController
                 'alive' => $this->request->param('alive', ''),
                 'hasWechat' => $this->request->param('hasWechat', ''),
                 'departmentId' => $this->request->param('departmentId', ''),
-                'pageIndex' => !empty($pageIndex) ? $pageIndex : $this->request->param('pageIndex', 0),
-                'pageSize' => !empty($pageSize) ? $pageSize : $this->request->param('pageSize', 20)
+                'pageIndex' => !empty($data['pageIndex']) ? $data['pageIndex'] : $this->request->param('pageIndex', 0),
+                'pageSize' => !empty($data['pageSize']) ? $data['pageSize'] : $this->request->param('pageSize', 20)
             ];
 
             // 设置请求头
@@ -144,7 +144,7 @@ class DeviceController extends BaseController
      * 创建设备分组
      * @return \think\response\Json
      */
-    public function createGroup()
+    public function createGroup($data = [])
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
@@ -154,8 +154,8 @@ class DeviceController extends BaseController
 
         try {
             // 获取参数
-            $groupName = $this->request->param('groupName', '');
-            $groupMemo = $this->request->param('groupMemo', '');
+            $groupName = !empty($data['groupName']) ? $data['groupName'] : $this->request->param('groupName', '');
+            $groupMemo = !empty($data['groupMemo']) ? $data['groupMemo'] : $this->request->param('groupMemo', '');
 
             if (empty($groupName)) {
                 return errorJson('分组名称不能为空');
@@ -185,7 +185,7 @@ class DeviceController extends BaseController
      * 更新设备分组
      * @return \think\response\Json
      */
-    public function updateDeviceGroup()
+    public function updateDeviceGroup($data = [])
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
@@ -195,8 +195,8 @@ class DeviceController extends BaseController
 
         try {
             // 获取参数
-            $id = $this->request->param('id', '');
-            $groupId = $this->request->param('groupId', '');
+            $id = !empty($data['id']) ? $data['id'] : $this->request->param('id', '');
+            $groupId = !empty($data['groupId']) ? $data['groupId'] : $this->request->param('groupId', '');
 
             if (empty($id)) {
                 return errorJson('设备ID不能为空');
@@ -225,7 +225,7 @@ class DeviceController extends BaseController
      * 更新设备分组
      * @return \think\response\Json
      */
-    public function updateaccount()
+    public function updateaccount($data = [])
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
@@ -235,8 +235,8 @@ class DeviceController extends BaseController
 
         try {
             // 获取参数
-            $id = $this->request->param('id', '');
-            $accountId = $this->request->param('accountId', '');
+            $id = !empty($data['id']) ? $data['id'] : $this->request->param('id', '');
+            $accountId = !empty($data['accountId']) ? $data['accountId'] : $this->request->param('accountId', '');
 
             if (empty($id)) {
                 return errorJson('设备ID不能为空');
