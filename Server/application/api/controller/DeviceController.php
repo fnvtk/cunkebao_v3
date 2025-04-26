@@ -371,9 +371,9 @@ class DeviceController extends BaseController
             }
 
             $isGroupName = DeviceGroupModel::where('groupName', $groupName)->find();
-            // if(!empty($isGroupName)){
-            //     return errorJson('分组名称已存在');
-            // }
+            if(!empty($isGroupName)){
+                return errorJson('分组名称已存在');
+            }
 
             // 设置请求头
             $headerData = ['client:system'];
@@ -395,7 +395,7 @@ class DeviceController extends BaseController
                 $group->save();
                 return successJson([],'操作成功');
             }else{
-                return errorJson([],$result);
+                return errorJson($result);
             }
         } catch (\Exception $e) {
             return errorJson('更新设备分组失败：' . $e->getMessage());
