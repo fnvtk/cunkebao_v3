@@ -1,14 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Plus, Trash, X } from "lucide-react"
+import { ArrowLeft, Plus, Trash, X, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
 import { toast, Toaster } from "sonner"
 import Image from "next/image"
@@ -58,6 +58,13 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [qrCodeData, setQrCodeData] = useState("")
   const [isAddingDevice, setIsAddingDevice] = useState(false)
+  const [isPolling, setIsPolling] = useState(false)
+  const [pollingStatus, setPollingStatus] = useState<"waiting" | "polling" | "success" | "error">("waiting")
+  const [addedDevice, setAddedDevice] = useState<Device | null>(null)
+  const [isQrCodeBroken, setIsQrCodeBroken] = useState(false)
+  const pollingTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const pollingCountRef = useRef(0)
+  const MAX_POLLING_COUNT = 120; // 2分钟 * 60秒 = 120次
   const { id } = React.use(params)
 
   useEffect(() => {
@@ -131,6 +138,13 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
     }
 
     setIsAddingDevice(true)
+    // 重置轮询状态
+    setPollingStatus("waiting")
+    setIsPolling(false)
+    setAddedDevice(null)
+    setIsQrCodeBroken(false)
+    pollingCountRef.current = 0;
+    
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/api/device/add`, {
         method: "POST",
@@ -147,6 +161,11 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
       if (data.code === 200 && data.data?.qrCode) {
         setQrCodeData(data.data.qrCode)
         setIsModalOpen(true)
+        
+        // 五秒后开始轮询
+        setTimeout(() => {
+          startPolling();
+        }, 5000);
       } else {
         toast.error(data.msg || "获取设备二维码失败")
       }
@@ -156,11 +175,115 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
       setIsAddingDevice(false)
     }
   }
+  
+  const startPolling = () => {
+    setIsPolling(true);
+    setPollingStatus("polling");
+    
+    // 清除可能存在的旧定时器
+    if (pollingTimerRef.current) {
+      clearInterval(pollingTimerRef.current);
+    }
+    
+    // 设置轮询定时器
+    pollingTimerRef.current = setInterval(() => {
+      pollAddResult();
+      pollingCountRef.current += 1;
+      
+      // 如果达到最大轮询次数，停止轮询
+      if (pollingCountRef.current >= MAX_POLLING_COUNT) {
+        stopPolling();
+      }
+    }, 1000);
+  }
+  
+  const pollAddResult = async () => {
+    if (!project?.s2_accountId) {
+      console.error("未找到账号ID，无法轮询");
+      return;
+    }
+    
+    try {
+      const accountId = project.s2_accountId;
+      // 通过URL参数传递accountId
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/devices/add-results?accountId=${accountId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (data.code === 200) {
+        // 检查是否最后一次轮询且设备未添加
+        if (pollingCountRef.current >= MAX_POLLING_COUNT && !data.added) {
+          setPollingStatus("error");
+          setIsQrCodeBroken(true);
+          stopPolling();
+          return;
+        }
+
+        // 检查设备是否已添加成功
+        if (data.added) {
+          setPollingStatus("success");
+          setAddedDevice(data.device);
+          stopPolling();
+          
+          // 刷新设备列表
+          refreshProjectData();
+          toast.success("设备添加成功");
+        }
+      } else {
+        // 请求失败但继续轮询
+        console.error("轮询请求失败:", data.msg);
+      }
+    } catch (error) {
+      console.error("轮询请求出错:", error);
+    }
+  }
+  
+  // 刷新项目数据的方法
+  const refreshProjectData = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/detail/${id}`)
+      const data = await response.json()
+
+      if (data.code === 200) {
+        setProject(data.data)
+      } else {
+        toast.error(data.msg || "刷新项目信息失败")
+      }
+    } catch (error) {
+      toast.error("网络错误，请稍后重试")
+    }
+  }
+  
+  const stopPolling = () => {
+    if (pollingTimerRef.current) {
+      clearInterval(pollingTimerRef.current);
+      pollingTimerRef.current = null;
+    }
+    setIsPolling(false);
+  }
 
   const closeModal = () => {
+    stopPolling();
     setIsModalOpen(false)
     setQrCodeData("")
+    setPollingStatus("waiting");
+    setAddedDevice(null);
+    setIsQrCodeBroken(false);
   }
+  
+  // 组件卸载时清除定时器
+  useEffect(() => {
+    return () => {
+      if (pollingTimerRef.current) {
+        clearInterval(pollingTimerRef.current);
+      }
+    };
+  }, []);
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">加载中...</div>
@@ -351,18 +474,61 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
               请使用新设备进行扫码添加
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-center p-6">
-            <div className="border p-4 rounded-lg">
+          <div className="flex flex-col items-center justify-center p-6">
+            <div className="border p-4 rounded-lg mb-4">
               {qrCodeData ? (
-                <img 
-                  src={qrCodeData} 
-                  alt="设备二维码" 
-                  className="w-64 h-64 object-contain" 
-                />
+                <div className="relative">
+                  <img 
+                    src={qrCodeData} 
+                    alt="设备二维码" 
+                    className={`w-64 h-64 object-contain ${isQrCodeBroken ? 'opacity-30' : ''}`}
+                  />
+                  {isQrCodeBroken && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="bg-red-100 p-3 rounded-md border border-red-300">
+                        <div className="flex flex-col items-center gap-2 text-red-700">
+                          <X className="h-8 w-8" />
+                          <p className="font-medium text-center">二维码已失效</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="w-64 h-64 flex items-center justify-center bg-muted">
                   <p className="text-muted-foreground">二维码加载中...</p>
                 </div>
+              )}
+            </div>
+            
+            {/* 轮询状态显示 */}
+            <div className="w-full mt-2">
+              {pollingStatus === "waiting" && (
+                <p className="text-sm text-center text-muted-foreground">请扫描二维码添加设备，5秒后将开始检测添加结果...</p>
+              )}
+              
+              {pollingStatus === "polling" && (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  <p className="text-sm text-primary">正在检测添加结果...</p>
+                </div>
+              )}
+              
+              {pollingStatus === "success" && addedDevice && (
+                <div className="bg-green-50 p-3 rounded-md border border-green-200 mt-2">
+                  <div className="flex items-center gap-2 text-green-700 mb-1">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <p className="font-medium">设备添加成功。关闭后可继续</p>
+                  </div>
+                  <div className="text-sm text-green-700">
+                    <p>设备名称: {addedDevice.memo}</p>
+                    <p>IMEI: {addedDevice.imei || '-'}</p>
+                  </div>
+                </div>
+              )}
+              
+              {pollingStatus === "error" && (
+                <p className="text-sm text-center text-red-500">未检测到设备添加，请关闭后重试</p>
               )}
             </div>
           </div>

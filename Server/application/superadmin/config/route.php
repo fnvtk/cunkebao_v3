@@ -33,6 +33,11 @@ Route::group('', function () {
         Route::get('detail', 'app\superadmin\controller\traffic\GetPoolDetailController@index');
     });
 
+    // 设备管理吗
+    Route::group('devices', function () {
+        Route::get('add-results', 'app\superadmin\controller\devices\GetAddResultedDevicesController@index');
+    });
+
     // 公司路由
     Route::group('company', function () {
         Route::post('add', 'app\superadmin\controller\company\CreateCompanyController@index');
