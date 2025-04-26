@@ -25,6 +25,7 @@ Route::group('v1', function () {
             Route::post('updateaccount', 'app\\api\\controller\\DeviceController@updateaccount'); // 更新设备账号 √
             Route::post('createGroup', 'app\\api\\controller\\DeviceController@createGroup'); // 创建设备分组 √
             Route::get('groupList', 'app\\api\\controller\\DeviceController@getGroupList'); // 获取设备分组列表 √
+            Route::post('updateDeviceToGroup', 'app\\api\\controller\\DeviceController@updateDeviceToGroup'); // 更新设备的分组 √
         });
 
         // FriendTask控制器路由

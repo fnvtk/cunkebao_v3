@@ -141,88 +141,7 @@ class DeviceController extends BaseController
     }
 
     /**
-     * 创建设备分组
-     * @return \think\response\Json
-     */
-    public function createGroup($data = [])
-    {
-        // 获取授权token
-        $authorization = trim($this->request->header('authorization', $this->authorization));
-        if (empty($authorization)) {
-            return errorJson('缺少授权信息');
-        }
-
-        try {
-            // 获取参数
-            $groupName = !empty($data['groupName']) ? $data['groupName'] : $this->request->param('groupName', '');
-            $groupMemo = !empty($data['groupMemo']) ? $data['groupMemo'] : $this->request->param('groupMemo', '');
-
-            if (empty($groupName)) {
-                return errorJson('分组名称不能为空');
-            }
-
-            // 构建请求参数
-            $params = [
-                'groupName' => $groupName,
-                'groupMemo' => $groupMemo
-            ];
-
-            // 设置请求头
-            $headerData = ['client:system'];
-            $header = setHeader($headerData, $authorization, 'plain');
-
-            // 发送请求
-            $result = requestCurl($this->baseUrl . 'api/DeviceGroup/new', $params, 'POST', $header);
-            $response = handleApiResponse($result);
-            
-            return successJson($response);
-        } catch (\Exception $e) {
-            return errorJson('创建设备分组失败：' . $e->getMessage());
-        }
-    }
-
-    /**
-     * 更新设备分组
-     * @return \think\response\Json
-     */
-    public function updateDeviceGroup($data = [])
-    {
-        // 获取授权token
-        $authorization = trim($this->request->header('authorization', $this->authorization));
-        if (empty($authorization)) {
-            return errorJson('缺少授权信息');
-        }
-
-        try {
-            // 获取参数
-            $id = !empty($data['id']) ? $data['id'] : $this->request->param('id', '');
-            $groupId = !empty($data['groupId']) ? $data['groupId'] : $this->request->param('groupId', '');
-
-            if (empty($id)) {
-                return errorJson('设备ID不能为空');
-            }
-
-            if (empty($groupId)) {
-                return errorJson('分组ID不能为空');
-            }
-
-            // 设置请求头
-            $headerData = ['client:system'];
-            $header = setHeader($headerData, $authorization, 'plain');
-
-            // 发送请求
-            $result = requestCurl($this->baseUrl . 'api/device/updateDeviceGroup?id=' . $id . '&groupId=' . $groupId, [], 'PUT', $header);
-            $response = handleApiResponse($result);
-            
-            return successJson($response);
-        } catch (\Exception $e) {
-            return errorJson('更新设备分组失败：' . $e->getMessage());
-        }
-    }
-
-
-    /**
-     * 更新设备分组
+     * 更新设备账号
      * @return \think\response\Json
      */
     public function updateaccount($data = [])
@@ -254,26 +173,23 @@ class DeviceController extends BaseController
             $result = requestCurl($this->baseUrl . 'api/device/updateaccount?accountId=' . $accountId . '&deviceId=' . $id, [], 'PUT', $header);
             $response = handleApiResponse($result);
             
-
             if(empty($response)){
                 return successJson([],'操作成功');
             }else{
                 return errorJson([],$response);
             }
-
-            
         } catch (\Exception $e) {
-            return errorJson('更新设备分组失败：' . $e->getMessage());
+            return errorJson('更新设备账号失败：' . $e->getMessage());
         }
     }
 
-
-
     /**
-     * 获取设备分组列表
+     * 更新设备所属分组
+     * @param int $id 设备ID
+     * @param int $groupId 分组ID
      * @return \think\response\Json
      */
-    public function getGroupList()
+    public function updateDeviceToGroup($data = [])
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
@@ -282,26 +198,207 @@ class DeviceController extends BaseController
         }
 
         try {
+            // 获取参数
+            $id = !empty($data['id']) ? $data['id'] : $this->request->param('id', '');
+            $groupId = !empty($data['groupId']) ? $data['groupId'] : $this->request->param('groupId', '');
+
+            if (empty($id)) {
+                return errorJson('设备ID不能为空');
+            }
+
+            if (empty($groupId)) {
+                return errorJson('分组ID不能为空');
+            }
+
+            // 验证设备是否存在
+            $device = DeviceModel::where('id', $id)->find();
+            if (empty($device)) {
+                return errorJson('设备不存在');
+            }
+
+            // 验证分组是否存在
+            $group = DeviceGroupModel::where('id', $groupId)->find();
+            if (empty($group)) {
+                return errorJson('分组不存在');
+            }
+
             // 设置请求头
             $headerData = ['client:system'];
             $header = setHeader($headerData, $authorization, 'plain');
 
-            // 发送请求
-            $result = requestCurl($this->baseUrl . 'api/DeviceGroup/list', [], 'GET', $header);
+            // 发送请求到微信接口
+            $result = requestCurl($this->baseUrl . 'api/device/updateDeviceGroup?id=' . $id . '&groupId=' . $groupId, [], 'PUT', $header);
             $response = handleApiResponse($result);
-
-        
             
+            if (empty($response)) {
+                // 更新成功，更新本地数据库
+                $device->groupId = $groupId;
+                $device->groupName = $group->groupName;
+                $device->save();
+                
+                return successJson([], '设备分组更新成功');
+            } else {
+                return errorJson([], $response);
+            }
+        } catch (\Exception $e) {
+            return errorJson('更新设备分组失败：' . $e->getMessage());
+        }
+    }
+
+    /************************ 设备分组相关接口 ************************/
+
+    /**
+     * 获取设备分组列表
+     * @return \think\response\Json
+     */
+    public function getGroupList($data = [],$isInner = false)
+    {
+        // 获取授权token
+        $authorization = trim($this->request->header('authorization', $this->authorization));
+        if (empty($authorization)) {
+            if($isInner){
+                return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
+            }else{
+                return errorJson('缺少授权信息');
+            }
+        }
+
+        try {
+            // 设置请求头
+            $headerData = ['client:system'];
+            $header = setHeader($headerData, $authorization, 'json');
+
+            // 发送请求
+            $result = requestCurl($this->baseUrl . 'api/DeviceGroup/list', [], 'GET', $header,'json');
+            $response = handleApiResponse($result);
             // 保存数据到数据库
             if (!empty($response)) {
                 foreach ($response as $item) {
                     $this->saveDeviceGroup($item);
                 }
             }
-            
-            return successJson($response);
+            if($isInner){   
+                return json_encode(['code'=>200,'msg'=>'success','data'=>$response]);
+            }else{
+                return successJson($response);
+            }
         } catch (\Exception $e) {
-            return errorJson('获取设备分组列表失败：' . $e->getMessage());
+            if($isInner){
+                return json_encode(['code'=>500,'msg'=>'获取设备分组列表失败：' . $e->getMessage()]);
+            }else{
+                return errorJson('获取设备分组列表失败：' . $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * 创建设备分组
+     * @return \think\response\Json
+     */
+    public function createGroup($data = [])
+    {
+        // 获取授权token
+        $authorization = trim($this->request->header('authorization', $this->authorization));
+        if (empty($authorization)) {
+            return errorJson('缺少授权信息');
+        }
+
+        try {
+            // 获取参数
+            $groupName = !empty($data['groupName']) ? $data['groupName'] : $this->request->param('groupName', '');
+            $groupMemo = !empty($data['groupMemo']) ? $data['groupMemo'] : $this->request->param('groupMemo', '');
+
+            if (empty($groupName)) {
+                return errorJson('分组名称不能为空');
+            }
+
+            // 构建请求参数
+            $params = [
+                'groupName' => $groupName,
+                'groupMemo' => $groupMemo
+            ];
+
+            // 设置请求头
+            $headerData = ['client:system'];
+            $header = setHeader($headerData, $authorization, 'json');
+
+            // 发送请求
+            $result = requestCurl($this->baseUrl . 'api/DeviceGroup/new', $params, 'POST', $header,'json');
+            if(empty($result)){
+                $res = $this->getGroupList([],true);
+                $res = json_decode($res,true);
+                if(!empty($res['data'])){
+                    $data = $res['data'][0];
+                }
+                return successJson($data,'操作成功');
+            }else{
+                return errorJson([],$response);
+            }
+        } catch (\Exception $e) {
+            return errorJson('创建设备分组失败：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 更新设备分组
+     * @return \think\response\Json
+     */
+    public function updateDeviceGroup($data = [])
+    {
+        // 获取授权token
+        $authorization = trim($this->request->header('authorization', $this->authorization));
+        if (empty($authorization)) {
+            return errorJson('缺少授权信息');
+        }
+
+        try {
+            // 获取参数
+            $id = !empty($data['id']) ? $data['id'] : $this->request->param('id', '');
+            $groupName = !empty($data['groupName']) ? $data['groupName'] : $this->request->param('groupName', '');
+            $groupMemo = !empty($data['groupMemo']) ? $data['groupMemo'] : $this->request->param('groupMemo', '');
+        
+            if (empty($id)) {
+                return errorJson('分组ID不能为空');
+            }
+
+            if (empty($groupName)) {
+                return errorJson('分组名称不能为空');
+            }
+
+            $group = DeviceGroupModel::where('id', $id)->find();
+            if(empty($group)){
+                return errorJson('分组不存在');
+            }
+
+            $isGroupName = DeviceGroupModel::where('groupName', $groupName)->find();
+            // if(!empty($isGroupName)){
+            //     return errorJson('分组名称已存在');
+            // }
+
+            // 设置请求头
+            $headerData = ['client:system'];
+            $header = setHeader($headerData, $authorization, 'json');
+
+            // 从数据库获取对象后，创建一个正确格式的数组用于API请求
+            $requestData = [
+                'id' => $group->id,
+                'tenantId' => $group->tenantId,  
+                'groupName' => $groupName,
+                'groupMemo' => $groupMemo
+            ];
+
+            // 发送请求
+            $result = requestCurl($this->baseUrl . 'api/DeviceGroup/update', $requestData, 'PUT', $header, 'json');
+            if(empty($result)){
+                $group->groupName = $groupName;
+                $group->groupMemo = $groupMemo;
+                $group->save();
+                return successJson([],'操作成功');
+            }else{
+                return errorJson([],$result);
+            }
+        } catch (\Exception $e) {
+            return errorJson('更新设备分组失败：' . $e->getMessage());
         }
     }
 
