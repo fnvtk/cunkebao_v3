@@ -224,6 +224,7 @@ export default function ProjectsPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>ID</TableHead>
               <TableHead>项目名称</TableHead>
               <TableHead>状态</TableHead>
               <TableHead>用户数量</TableHead>
@@ -235,13 +236,14 @@ export default function ProjectsPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   加载中...
                 </TableCell>
               </TableRow>
             ) : projects.length > 0 ? (
               projects.map((project) => (
                 <TableRow key={project.id}>
+                  <TableCell className="text-left">{project.id}</TableCell>
                   <TableCell className="font-medium">{project.name}</TableCell>
                   <TableCell>
                     <Badge variant={project.status === 1 ? "default" : "secondary"}>
@@ -279,7 +281,7 @@ export default function ProjectsPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   未找到项目
                 </TableCell>
               </TableRow>
