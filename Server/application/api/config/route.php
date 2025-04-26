@@ -86,5 +86,10 @@ Route::group('v1', function () {
             Route::get('getFriendsList', 'app\\api\\controller\\MessageController@getFriendsList'); // 获取微信好友列表 √
             Route::get('getChatroomList', 'app\\api\\controller\\MessageController@getChatroomList'); // 同步群聊消息 √
         });
+
+        // AllotRule控制器路由
+        Route::group('allot-rule', function () {
+            Route::get('list', 'app\\api\\controller\\AllotRuleController@getAllRules'); // 获取所有分配规则 √
+        });
     });
 });

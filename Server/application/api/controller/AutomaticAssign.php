@@ -19,7 +19,7 @@ class AutomaticAssign extends BaseController
      * 自动分配微信好友
      * @return \think\response\Json
      */
-    public function autoAllotWechatFriend($toAccountId = '', $wechatAccountKeyword = '', $isDeleted = false)
+    public function autoAllotWechatFriend($data = [])
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
@@ -29,9 +29,9 @@ class AutomaticAssign extends BaseController
 
         try {
             // 获取请求参数
-            $toAccountId = !empty($toAccountId) ? $toAccountId : input('toAccountId', '');
-            $wechatAccountKeyword = !empty($wechatAccountKeyword) ? $wechatAccountKeyword : input('wechatAccountKeyword', '');
-            $isDeleted = !empty($isDeleted) ? $isDeleted : input('isDeleted', false);
+            $toAccountId = !empty($data['toAccountId']) ? $data['toAccountId'] : input('toAccountId', '');
+            $wechatAccountKeyword = !empty($data['wechatAccountKeyword']) ? $data['wechatAccountKeyword'] : input('wechatAccountKeyword', '');
+            $isDeleted = !empty($data['isDeleted']) ? $data['isDeleted'] : input('isDeleted', false);
             
             if (empty($toAccountId)) {
                 return errorJson('目标账号ID不能为空');
@@ -91,7 +91,7 @@ class AutomaticAssign extends BaseController
      * @param bool $isDeleted 是否已删除
      * @return \think\response\Json
      */
-    public function autoAllotWechatChatroom($toAccountId = '', $wechatAccountKeyword = '', $isDeleted = false)
+    public function autoAllotWechatChatroom($data = [])
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
@@ -101,9 +101,9 @@ class AutomaticAssign extends BaseController
 
         try {
             // 获取请求参数
-            $toAccountId = !empty($toAccountId) ? $toAccountId : input('toAccountId', '');
-            $wechatAccountKeyword = !empty($wechatAccountKeyword) ? $wechatAccountKeyword : input('wechatAccountKeyword', '');
-            $isDeleted = !empty($isDeleted) ? $isDeleted : input('isDeleted', false);
+            $toAccountId = !empty($data['toAccountId']) ? $data['toAccountId'] : input('toAccountId', '');
+            $wechatAccountKeyword = !empty($data['wechatAccountKeyword']) ? $data['wechatAccountKeyword'] : input('wechatAccountKeyword', '');
+            $isDeleted = !empty($data['isDeleted']) ? $data['isDeleted'] : input('isDeleted', false);
             
             if (empty($toAccountId)) {
                 return errorJson('目标账号ID不能为空');

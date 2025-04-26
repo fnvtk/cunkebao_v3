@@ -17,15 +17,15 @@ class DeviceController extends BaseController
      * 获取设备列表
      * @param string $pageIndex 页码
      * @param string $pageSize 每页数量
-     * @param bool $isJob 是否为定时任务调用
+     * @param bool $isInner 是否为内部调用
      * @return \think\response\Json
      */
-    public function getlist($data = [],$isJob = false,$isDel = 0)
+    public function getlist($data = [],$isInner = false,$isDel = 0)
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
-            if($isJob){
+            if($isInner){
                 return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
             }else{
                 return errorJson('缺少授权信息');
@@ -79,13 +79,13 @@ class DeviceController extends BaseController
                 }
             }
             
-            if($isJob){
+            if($isInner){
                 return json_encode(['code'=>200,'msg'=>'success','data'=>$response]);
             }else{
                 return successJson($response);
             }
         } catch (\Exception $e) {
-            if($isJob){
+            if($isInner){
                 return json_encode(['code'=>500,'msg'=>'获取设备列表失败：' . $e->getMessage()]);
             }else{
                 return errorJson('获取设备列表失败：' . $e->getMessage());
@@ -98,14 +98,18 @@ class DeviceController extends BaseController
      * @param int $accountId 账号ID
      * @return \think\response\Json
      */
-    public function addDevice($accountId = 0)
+    public function addDevice($accountId = 0,$isInner = false)
     {
         if (empty($accountId)) {
             $accountId = $this->request->param('accountId', '');
         }
         
         if (empty($accountId)) {
-            return errorJson('账号ID不能为空');
+            if($isInner){
+                return json_encode(['code'=>500,'msg'=>'账号ID不能为空']);
+            }else{
+                return errorJson('账号ID不能为空');
+            }
         }
 
         try {
@@ -114,7 +118,11 @@ class DeviceController extends BaseController
             $deviceSocketHost = Env::get('api.deviceSocketHost', '');
             
             if (empty($tenantGuid) || empty($deviceSocketHost)) {
-                return errorJson('环境配置不完整，请检查api.guid和api.deviceSocketHost配置');
+                if($isInner){
+                    return json_encode(['code'=>500,'msg'=>'环境配置不完整，请检查api.guid和api.deviceSocketHost配置']);
+                }else{
+                    return errorJson('环境配置不完整，请检查api.guid和api.deviceSocketHost配置');
+                }
             }
             
             // 构建设备配置数据
@@ -136,7 +144,11 @@ class DeviceController extends BaseController
                 'config' => $data
             ]);
         } catch (\Exception $e) {
-            return errorJson('生成设备二维码失败：' . $e->getMessage());
+            if($isInner){
+                return json_encode(['code'=>500,'msg'=>'生成设备二维码失败：' . $e->getMessage()]);
+            }else{
+                return errorJson('生成设备二维码失败：' . $e->getMessage());
+            }
         }
     }
 
@@ -144,12 +156,16 @@ class DeviceController extends BaseController
      * 更新设备账号
      * @return \think\response\Json
      */
-    public function updateaccount($data = [])
+    public function updateaccount($data = [],$isInner = false)
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
-            return errorJson('缺少授权信息');
+            if($isInner){
+                return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
+            }else{
+                return errorJson('缺少授权信息');
+            }
         }
 
         try {
@@ -158,11 +174,19 @@ class DeviceController extends BaseController
             $accountId = !empty($data['accountId']) ? $data['accountId'] : $this->request->param('accountId', '');
 
             if (empty($id)) {
-                return errorJson('设备ID不能为空');
+                if($isInner){
+                    return json_encode(['code'=>500,'msg'=>'设备ID不能为空']);
+                }else{
+                    return errorJson('设备ID不能为空');
+                }
             }
 
             if (empty($accountId)) {
-                return errorJson('账号id不能为空');
+                if($isInner){
+                    return json_encode(['code'=>500,'msg'=>'账号id不能为空']);
+                }else{
+                    return errorJson('账号id不能为空');
+                }
             }
 
             // 设置请求头
@@ -179,7 +203,11 @@ class DeviceController extends BaseController
                 return errorJson([],$response);
             }
         } catch (\Exception $e) {
-            return errorJson('更新设备账号失败：' . $e->getMessage());
+            if($isInner){
+                return json_encode(['code'=>500,'msg'=>'更新设备账号失败：' . $e->getMessage()]);
+            }else{
+                return errorJson('更新设备账号失败：' . $e->getMessage());
+            }
         }
     }
 
@@ -295,12 +323,16 @@ class DeviceController extends BaseController
      * 创建设备分组
      * @return \think\response\Json
      */
-    public function createGroup($data = [])
+    public function createGroup($data = [],$isInner = false)
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
-            return errorJson('缺少授权信息');
+            if($isInner){
+                return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
+            }else{
+                return errorJson('缺少授权信息');
+            }
         }
 
         try {
@@ -309,7 +341,11 @@ class DeviceController extends BaseController
             $groupMemo = !empty($data['groupMemo']) ? $data['groupMemo'] : $this->request->param('groupMemo', '');
 
             if (empty($groupName)) {
-                return errorJson('分组名称不能为空');
+                if($isInner){
+                    return json_encode(['code'=>500,'msg'=>'分组名称不能为空']);
+                }else{
+                    return errorJson('分组名称不能为空');
+                }
             }
 
             // 构建请求参数
@@ -330,12 +366,24 @@ class DeviceController extends BaseController
                 if(!empty($res['data'])){
                     $data = $res['data'][0];
                 }
-                return successJson($data,'操作成功');
+                if($isInner){
+                    return json_encode(['code'=>200,'msg'=>'success','data'=>$data]);
+                }else{
+                    return successJson($data,'操作成功');
+                }
             }else{
-                return errorJson([],$response);
+                if($isInner){
+                    return json_encode(['code'=>500,'msg'=> $result]);
+                }else{
+                    return errorJson($result);
+                }
             }
         } catch (\Exception $e) {
-            return errorJson('创建设备分组失败：' . $e->getMessage());
+            if($isInner){
+                return json_encode(['code'=>500,'msg'=>'创建设备分组失败：' . $e->getMessage()]);
+            }else{
+                return errorJson('创建设备分组失败：' . $e->getMessage());
+            }
         }
     }
 
@@ -343,12 +391,16 @@ class DeviceController extends BaseController
      * 更新设备分组
      * @return \think\response\Json
      */
-    public function updateDeviceGroup($data = [])
+    public function updateDeviceGroup($data = [],$isInner = false)
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
-            return errorJson('缺少授权信息');
+            if($isInner){
+                return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
+            }else{
+                return errorJson('缺少授权信息');
+            }
         }
 
         try {
@@ -358,21 +410,37 @@ class DeviceController extends BaseController
             $groupMemo = !empty($data['groupMemo']) ? $data['groupMemo'] : $this->request->param('groupMemo', '');
         
             if (empty($id)) {
-                return errorJson('分组ID不能为空');
+                if($isInner){
+                    return json_encode(['code'=>500,'msg'=>'分组ID不能为空']);
+                }else{
+                    return errorJson('分组ID不能为空');
+                }
             }
 
             if (empty($groupName)) {
-                return errorJson('分组名称不能为空');
+                if($isInner){
+                    return json_encode(['code'=>500,'msg'=>'分组名称不能为空']);
+                }else{
+                    return errorJson('分组名称不能为空');
+                }
             }
 
             $group = DeviceGroupModel::where('id', $id)->find();
             if(empty($group)){
-                return errorJson('分组不存在');
+                if($isInner){
+                    return json_encode(['code'=>500,'msg'=>'分组不存在']);
+                }else{
+                    return errorJson('分组不存在');
+                }
             }
 
             $isGroupName = DeviceGroupModel::where('groupName', $groupName)->find();
             if(!empty($isGroupName)){
-                return errorJson('分组名称已存在');
+                if($isInner){
+                    return json_encode(['code'=>500,'msg'=>'分组名称已存在']);
+                }else{
+                    return errorJson('分组名称已存在');
+                }
             }
 
             // 设置请求头
@@ -393,12 +461,24 @@ class DeviceController extends BaseController
                 $group->groupName = $groupName;
                 $group->groupMemo = $groupMemo;
                 $group->save();
-                return successJson([],'操作成功');
+                if($isInner){
+                    return json_encode(['code'=>200,'msg'=>'success','data'=>$group]);
+                }else{
+                    return successJson($group,'操作成功');
+                }
             }else{
-                return errorJson($result);
+                if($isInner){
+                    return json_encode(['code'=>500,'msg'=> $result]);
+                }else{
+                    return errorJson($result);
+                }
             }
         } catch (\Exception $e) {
-            return errorJson('更新设备分组失败：' . $e->getMessage());
+            if($isInner){
+                return json_encode(['code'=>500,'msg'=>'更新设备分组失败：' . $e->getMessage()]);
+            }else{
+                return errorJson('更新设备分组失败：' . $e->getMessage());
+            }
         }
     }
 
