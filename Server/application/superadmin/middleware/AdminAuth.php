@@ -1,6 +1,8 @@
 <?php
 namespace app\superadmin\middleware;
 
+use app\common\model\Administrator;
+
 /**
  * 超级管理员后台登录认证中间件
  */
@@ -14,6 +16,11 @@ class AdminAuth
      */
     public function handle($request, \Closure $next)
     {
+        // 对OPTIONS请求直接放行，由跨域中间件处理
+        if ($request->method(true) == 'OPTIONS') {
+            return $next($request);
+        }
+        
         // 获取Cookie中的管理员信息
         $adminId = cookie('admin_id');
         $adminToken = cookie('admin_token');
@@ -28,7 +35,7 @@ class AdminAuth
         }
         
         // 获取管理员信息
-        $admin = \app\common\model\Administrator::where([
+        $admin = Administrator::where([
             ['id', '=', $adminId],
             ['status', '=', 1]
         ])->find();
@@ -62,7 +69,8 @@ class AdminAuth
     
     /**
      * 创建登录令牌
-     * @param \app\common\model\Administrator $admin
+     *
+     * @param Administrator $admin
      * @return string
      */
     private function createToken($admin)

@@ -26,22 +26,13 @@ class Auth extends Controller
     
     /**
      * 初始化
-     * 设置跨域相关响应头
      */
     public function initialize()
     {
         parent::initialize();
         
-        // 允许跨域访问
-        header('Access-Control-Allow-Origin: ' . $this->allowOrigin);
-        header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization');
-        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+        // 由全局中间件处理跨域，此处不再处理
         
-        // 预检请求直接返回200
-        if (Request::method(true) == 'OPTIONS') {
-            exit();
-        }
-
         // 初始化认证服务
         $this->authService = new AuthService();
     }

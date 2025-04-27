@@ -43,7 +43,7 @@ export async function apiRequest<T = any>(
   const options: RequestInit = {
     method,
     headers,
-    credentials: 'include', // 包含跨域请求的Cookie
+    credentials: 'same-origin', // 改为same-origin，避免跨域请求发送Cookie
   };
   
   // 添加请求体（针对POST、PUT请求）

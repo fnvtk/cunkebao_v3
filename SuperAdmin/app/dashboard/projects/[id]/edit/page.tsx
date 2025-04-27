@@ -71,6 +71,22 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
     const fetchProject = async () => {
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/detail/${id}`)
+        
+        // 检查响应状态
+        if (!response.ok) {
+          toast.error(`获取失败: ${response.status} ${response.statusText}`);
+          setIsLoading(false);
+          return;
+        }
+        
+        // 检查内容类型是否为JSON
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          toast.error("服务器返回了非JSON格式的数据");
+          setIsLoading(false);
+          return;
+        }
+        
         const data = await response.json()
 
         if (data.code === 200) {
@@ -115,6 +131,21 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
           ...(password && { password })
         }),
       })
+      
+      // 检查响应状态
+      if (!response.ok) {
+        toast.error(`更新失败: ${response.status} ${response.statusText}`);
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // 检查内容类型是否为JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        toast.error("服务器返回了非JSON格式的数据");
+        setIsSubmitting(false);
+        return;
+      }
 
       const data = await response.json()
 
@@ -155,6 +186,19 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
           accountId: project.s2_accountId
         }),
       })
+      
+      // 检查响应状态
+      if (!response.ok) {
+        toast.error(`请求失败: ${response.status} ${response.statusText}`);
+        return;
+      }
+      
+      // 检查内容类型是否为JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        toast.error("服务器返回了非JSON格式的数据");
+        return;
+      }
 
       const data = await response.json()
 
@@ -213,6 +257,19 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
         }
       });
       
+      // 检查响应状态和内容类型
+      if (!response.ok) {
+        console.error("轮询请求失败:", response.status, response.statusText);
+        return;
+      }
+      
+      // 检查内容类型是否为JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        console.error("轮询请求返回的不是JSON格式:", contentType);
+        return;
+      }
+      
       const data = await response.json();
       
       if (data.code === 200) {
@@ -240,6 +297,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
       }
     } catch (error) {
       console.error("轮询请求出错:", error);
+      // 不要因为单次错误停止轮询
     }
   }
   
@@ -247,6 +305,20 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   const refreshProjectData = async () => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/detail/${id}`)
+      
+      // 检查响应状态
+      if (!response.ok) {
+        toast.error(`刷新失败: ${response.status} ${response.statusText}`);
+        return;
+      }
+      
+      // 检查内容类型是否为JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        toast.error("服务器返回了非JSON格式的数据");
+        return;
+      }
+      
       const data = await response.json()
 
       if (data.code === 200) {
