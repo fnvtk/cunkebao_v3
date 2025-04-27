@@ -63,17 +63,11 @@ class Api extends Controller
 
     /**
      * 跨域检测
+     * @deprecated 已由全局中间件 AllowCrossDomain 处理，此方法保留用于兼容
      */
     protected function _checkCors()
     {
-        // 允许跨域
-        header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-        header('Access-Control-Allow-Headers: Authorization, Content-Type, If-Match, If-Modified-Since, If-None-Match, If-Unmodified-Since, X-Requested-With, X-Token, X-Api-Token');
-        header('Access-Control-Max-Age: 1728000');
-        header('Access-Control-Allow-Credentials: true');
-
-        // 对OPTIONS请求直接返回
+        // 由全局中间件处理跨域，此处不再处理
         if ($this->requestType === 'OPTIONS') {
             Response::create()->send();
             exit;

@@ -17,5 +17,17 @@ return [
     'default_namespace' => 'app\\common\\middleware\\',
     
     // 优先级设置，此数组中的中间件会按照数组中的顺序优先执行
-    'priority' => [],
+    'priority' => [
+        'app\\common\\middleware\\AllowCrossDomain'
+    ],
+    
+    // 全局中间件
+    'alias' => [
+        'cors' => 'app\\common\\middleware\\AllowCrossDomain'
+    ],
+    
+    // 应用中间件
+    'app' => [
+        'cors'
+    ],
 ];
