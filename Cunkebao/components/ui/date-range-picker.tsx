@@ -49,7 +49,6 @@ export function DateRangePicker({ className, value, onChange }: DateRangePickerP
             onSelect={onChange}
             numberOfMonths={2}
             locale={zhCN}
-            disabled={(date) => date < new Date()}
             showOutsideDays={false}
           />
         </PopoverContent>
