@@ -18,7 +18,7 @@ class WebSocketController extends BaseController
     public function __construct()
     {
         parent::__construct();
-        $this->authorized = $this->request->header('authorization', $this->authorization);
+        $this->authorized = $this->request->header('authorization', '');
         $this->accountId = $this->request->param('accountId', '');
         if (empty($this->authorized) || empty($this->accountId)) {
             $data['authorized'] = $this->authorized;

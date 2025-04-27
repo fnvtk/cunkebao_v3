@@ -90,6 +90,10 @@ Route::group('v1', function () {
         // AllotRule控制器路由
         Route::group('allot-rule', function () {
             Route::get('list', 'app\\api\\controller\\AllotRuleController@getAllRules'); // 获取所有分配规则 √
+            Route::post('create', 'app\\api\\controller\\AllotRuleController@createRule');// 创建分配规则 √
+            Route::post('edit', 'app\\api\\controller\\AllotRuleController@updateRule');// 编辑分配规则 √
+            Route::delete('del', 'app\\api\\controller\\AllotRuleController@deleteRule');// 删除分配规则 √
+            Route::get('autoCreate', 'app\\api\\controller\\AllotRuleController@autoCreateAllotRules');// 自动创建分配规则 √
         });
     });
 });

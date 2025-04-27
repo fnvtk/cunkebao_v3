@@ -21,6 +21,8 @@ return [
     'department:list' => 'app\command\DepartmentListCommand', // 部门列表 √
     'content:sync' => 'app\command\SyncContentCommand', // 同步内容库 √
     'groupFriends:list' => 'app\command\GroupFriendsCommand', // 微信群好友列表
-    'allotFriends:run' => 'app\command\AllotFriendCommand', // 自动分配微信好友
-    'allotChatroom:run' => 'app\command\AllotChatroomCommand', // 自动分配微信群聊
+    // 'allotFriends:run' => 'app\command\AllotFriendCommand', // 自动分配微信好友
+    // 'allotChatroom:run' => 'app\command\AllotChatroomCommand', // 自动分配微信群聊
+    'allotrule:list' => 'app\command\AllotRuleListCommand', // 分配规则列表 √
+    'allotrule:autocreate' => 'app\command\AutoCreateAllotRulesCommand', // 自动创建分配规则 √
 ];
