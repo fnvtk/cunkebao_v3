@@ -64,6 +64,7 @@ Route::group('v1/', function () {
         Route::post('update', 'app\\cunkebao\\controller\\ContentLibraryController@update'); // 更新内容库
         Route::delete('delete', 'app\\cunkebao\\controller\\ContentLibraryController@delete'); // 删除内容库
         Route::get('detail', 'app\\cunkebao\\controller\\ContentLibraryController@detail'); // 获取内容库详情
+        Route::get('collectMoments', 'app\\cunkebao\\controller\\ContentLibraryController@collectMoments'); // 采集朋友圈
     });
 
     // 好友相关
