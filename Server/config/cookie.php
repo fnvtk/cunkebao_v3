@@ -27,4 +27,6 @@ return [
     'httponly'  => '',
     // 是否使用 setcookie
     'setcookie' => true,
+    // 跨站需要
+    'samesite' => 'None',
 ];

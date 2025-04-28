@@ -13,6 +13,7 @@ import Link from "next/link"
 import { toast, Toaster } from "sonner"
 import Image from "next/image"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { apiRequest } from "@/lib/api-utils"
 
 // 为React.use添加类型声明
 declare module 'react' {
@@ -69,30 +70,14 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
 
   useEffect(() => {
     const fetchProject = async () => {
+      setIsLoading(true)
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/detail/${id}`)
+        const result = await apiRequest(`/company/detail/${id}`)
         
-        // 检查响应状态
-        if (!response.ok) {
-          toast.error(`获取失败: ${response.status} ${response.statusText}`);
-          setIsLoading(false);
-          return;
-        }
-        
-        // 检查内容类型是否为JSON
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          toast.error("服务器返回了非JSON格式的数据");
-          setIsLoading(false);
-          return;
-        }
-        
-        const data = await response.json()
-
-        if (data.code === 200) {
-          setProject(data.data)
+        if (result.code === 200) {
+          setProject(result.data)
         } else {
-          toast.error(data.msg || "获取项目信息失败")
+          toast.error(result.msg || "获取项目信息失败")
         }
       } catch (error) {
         toast.error("网络错误，请稍后重试")
@@ -106,54 +91,25 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (password && password !== confirmPassword) {
-      toast.error("两次输入的密码不一致")
-      return
-    }
-    
     setIsSubmitting(true)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/update`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: parseInt(id),
-          name: project?.name,
-          account: project?.account,
-          memo: project?.memo,
-          phone: project?.phone,
-          username: project?.username,
-          status: project?.status,
-          ...(password && { password })
-        }),
+      const result = await apiRequest('/company/update', 'POST', {
+        id: id,
+        name: project?.name,
+        account: project?.account,
+        password: password,
+        memo: project?.memo,
+        phone: project?.phone,
+        username: project?.username,
+        status: project?.status.toString(),
       })
-      
-      // 检查响应状态
-      if (!response.ok) {
-        toast.error(`更新失败: ${response.status} ${response.statusText}`);
-        setIsSubmitting(false);
-        return;
-      }
-      
-      // 检查内容类型是否为JSON
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        toast.error("服务器返回了非JSON格式的数据");
-        setIsSubmitting(false);
-        return;
-      }
 
-      const data = await response.json()
-
-      if (data.code === 200) {
-        toast.success("更新成功")
+      if (result.code === 200) {
+        toast.success("项目更新成功")
         router.push("/dashboard/projects")
       } else {
-        toast.error(data.msg)
+        toast.error(result.msg || "更新失败")
       }
     } catch (error) {
       toast.error("网络错误，请稍后重试")
@@ -177,33 +133,12 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
     pollingCountRef.current = 0;
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/api/device/add`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          accountId: project.s2_accountId
-        }),
+      const result = await apiRequest('/v1/api/device/add', 'POST', {
+        accountId: project.s2_accountId
       })
-      
-      // 检查响应状态
-      if (!response.ok) {
-        toast.error(`请求失败: ${response.status} ${response.statusText}`);
-        return;
-      }
-      
-      // 检查内容类型是否为JSON
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        toast.error("服务器返回了非JSON格式的数据");
-        return;
-      }
 
-      const data = await response.json()
-
-      if (data.code === 200 && data.data?.qrCode) {
-        setQrCodeData(data.data.qrCode)
+      if (result.code === 200 && result.data?.qrCode) {
+        setQrCodeData(result.data.qrCode)
         setIsModalOpen(true)
         
         // 五秒后开始轮询
@@ -211,7 +146,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
           startPolling();
         }, 5000);
       } else {
-        toast.error(data.msg || "获取设备二维码失败")
+        toast.error(result.msg || "获取设备二维码失败")
       }
     } catch (error) {
       toast.error("网络错误，请稍后重试")
@@ -248,33 +183,11 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
     }
     
     try {
-      const accountId = project.s2_accountId;
-      // 通过URL参数传递accountId
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/devices/add-results?accountId=${accountId}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json"
-        }
-      });
+      const result = await apiRequest(`/devices/add-results?accountId=${project.s2_accountId}`)
       
-      // 检查响应状态和内容类型
-      if (!response.ok) {
-        console.error("轮询请求失败:", response.status, response.statusText);
-        return;
-      }
-      
-      // 检查内容类型是否为JSON
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        console.error("轮询请求返回的不是JSON格式:", contentType);
-        return;
-      }
-      
-      const data = await response.json();
-      
-      if (data.code === 200) {
+      if (result.code === 200) {
         // 检查是否最后一次轮询且设备未添加
-        if (pollingCountRef.current >= MAX_POLLING_COUNT && !data.added) {
+        if (pollingCountRef.current >= MAX_POLLING_COUNT && !result.data.added) {
           setPollingStatus("error");
           setIsQrCodeBroken(true);
           stopPolling();
@@ -282,9 +195,9 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
         }
 
         // 检查设备是否已添加成功
-        if (data.added) {
+        if (result.data.added) {
           setPollingStatus("success");
-          setAddedDevice(data.device);
+          setAddedDevice(result.data.device);
           stopPolling();
           
           // 刷新设备列表
@@ -293,7 +206,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
         }
       } else {
         // 请求失败但继续轮询
-        console.error("轮询请求失败:", data.msg);
+        console.error("轮询请求失败:", result.msg);
       }
     } catch (error) {
       console.error("轮询请求出错:", error);
@@ -304,27 +217,12 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   // 刷新项目数据的方法
   const refreshProjectData = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/detail/${id}`)
+      const result = await apiRequest(`/company/detail/${id}`)
       
-      // 检查响应状态
-      if (!response.ok) {
-        toast.error(`刷新失败: ${response.status} ${response.statusText}`);
-        return;
-      }
-      
-      // 检查内容类型是否为JSON
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        toast.error("服务器返回了非JSON格式的数据");
-        return;
-      }
-      
-      const data = await response.json()
-
-      if (data.code === 200) {
-        setProject(data.data)
+      if (result.code === 200) {
+        setProject(result.data)
       } else {
-        toast.error(data.msg || "刷新项目信息失败")
+        toast.error(result.msg || "刷新项目信息失败")
       }
     } catch (error) {
       toast.error("网络错误，请稍后重试")

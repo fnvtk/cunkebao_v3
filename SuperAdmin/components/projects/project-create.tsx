@@ -24,6 +24,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { toast } from "sonner"
+import { apiRequest } from '@/lib/api-utils'
 
 const formSchema = z.object({
   name: z.string().min(2, "项目名称至少需要2个字符"),
@@ -63,35 +64,39 @@ export default function ProjectCreate({ onSuccess }: ProjectCreateProps) {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/create`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: values.name,
-          account: values.account,
-          password: values.password,
-          phone: values.phone || null,
-          realname: values.realname || null,
-          nickname: values.nickname || null,
-          memo: values.memo || null,
-        }),
+      // 从localStorage获取token和admin_id
+      const token = localStorage.getItem('admin_token')
+      const adminId = localStorage.getItem('admin_id')
+      
+      // 设置cookie
+      if (token && adminId) {
+        const domain = new URL(process.env.NEXT_PUBLIC_API_BASE_URL || '').hostname
+        document.cookie = `admin_token=${token}; path=/; domain=${domain}`
+        document.cookie = `admin_id=${adminId}; path=/; domain=${domain}`
+      }
+
+      const result = await apiRequest('/company/create', 'POST', {
+        name: values.name,
+        account: values.account,
+        password: values.password,
+        phone: values.phone || null,
+        realname: values.realname || null,
+        nickname: values.nickname || null,
+        memo: values.memo || null,
       })
 
-      const data = await response.json()
-
-      if (data.code === 200) {
+      if (result.code === 200) {
         toast.success("项目创建成功")
         form.reset()
         if (onSuccess) {
           onSuccess()
         }
       } else {
-        toast.error(data.msg || "创建项目失败")
+        toast.error(result.msg || "创建项目失败")
       }
     } catch (error) {
-      toast.error("网络错误，请稍后重试")
+      console.error("创建项目失败:", error)
+      toast.error("网络错误，请稍后再试")
     } finally {
       setIsLoading(false)
     }
