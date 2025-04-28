@@ -13,6 +13,7 @@ import { toast } from "sonner"
 import { use } from "react"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
+import { apiRequest } from '@/lib/api-utils'
 
 interface ProjectProfile {
   id: number
@@ -69,75 +70,68 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const [subUsers, setSubUsers] = useState<SubUser[]>([])
   const [activeTab, setActiveTab] = useState("overview")
 
-  useEffect(() => {
-    const fetchProjectProfile = async () => {
+  const fetchProject = async () => {
+    try {
       setIsLoading(true)
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/profile/${id}`)
-        const data = await response.json()
-
-        if (data.code === 200) {
-          setProfile(data.data)
-        } else {
-          toast.error(data.msg || "获取项目信息失败")
-        }
-      } catch (error) {
-        toast.error("网络错误，请稍后重试")
-      } finally {
-        setIsLoading(false)
+      const result = await apiRequest(`/company/profile/${id}`)
+      if (result.code === 200 && result.data) {
+        setProfile(result.data)
+      } else {
+        toast.error(result.msg || "获取项目信息失败")
       }
+    } catch (error) {
+      console.error("获取项目信息失败:", error)
+      toast.error("网络错误，请稍后再试")
+    } finally {
+      setIsLoading(false)
     }
+  }
 
-    fetchProjectProfile()
+  useEffect(() => {
+    fetchProject()
   }, [id])
 
-  useEffect(() => {
-    const fetchDevices = async () => {
-      if (activeTab === "devices") {
-        setIsDevicesLoading(true)
-        try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/devices?companyId=${id}`)
-          const data = await response.json()
-
-          if (data.code === 200) {
-            setDevices(data.data)
-          } else {
-            toast.error(data.msg || "获取设备列表失败")
-          }
-        } catch (error) {
-          toast.error("网络错误，请稍后重试")
-        } finally {
-          setIsDevicesLoading(false)
-        }
+  const fetchDevices = async () => {
+    try {
+      setIsDevicesLoading(true)
+      const result = await apiRequest(`/company/devices?companyId=${id}`)
+      if (result.code === 200 && result.data) {
+        setDevices(result.data)
+      } else {
+        toast.error(result.msg || "获取设备列表失败")
       }
+    } catch (error) {
+      console.error("获取设备列表失败:", error)
+      toast.error("网络错误，请稍后再试")
+    } finally {
+      setIsDevicesLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchDevices()
   }, [activeTab, id])
 
   useEffect(() => {
     const fetchSubUsers = async () => {
-      if (activeTab === "accounts") {
-        setIsSubUsersLoading(true)
-        try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/subusers?companyId=${id}`)
-          const data = await response.json()
-
-          if (data.code === 200) {
-            setSubUsers(data.data)
-          } else {
-            toast.error(data.msg || "获取子账号列表失败")
-          }
-        } catch (error) {
-          toast.error("网络错误，请稍后重试")
-        } finally {
-          setIsSubUsersLoading(false)
+      setIsSubUsersLoading(true)
+      try {
+        const result = await apiRequest(`/company/subusers?companyId=${id}`)
+        
+        if (result.code === 200) {
+          setSubUsers(result.data)
+        } else {
+          toast.error(result.msg || "获取子账号列表失败")
         }
+      } catch (error) {
+        toast.error("网络错误，请稍后重试")
+      } finally {
+        setIsSubUsersLoading(false)
       }
     }
 
     fetchSubUsers()
-  }, [activeTab, id])
+  }, [id])
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">加载中...</div>

@@ -19,6 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { PaginationControls } from "@/components/ui/pagination-controls"
 import { useTabContext } from "@/app/dashboard/layout"
+import { apiRequest } from "@/lib/api-utils"
 
 interface Project {
   id: number
@@ -73,15 +74,14 @@ export default function ProjectsPage() {
     const fetchProjects = async () => {
       setIsLoading(true)
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/list?page=${currentPage}&limit=${pageSize}`)
-        const data = await response.json()
+        const result = await apiRequest(`/company/list?page=${currentPage}&limit=${pageSize}`)
         
-        if (data.code === 200) {
-          setProjects(data.data.list)
-          setTotalItems(data.data.total)
-          setTotalPages(Math.ceil(data.data.total / pageSize))
+        if (result.code === 200) {
+          setProjects(result.data.list)
+          setTotalItems(result.data.total)
+          setTotalPages(Math.ceil(result.data.total / pageSize))
         } else {
-          toast.error(data.msg || "获取项目列表失败")
+          toast.error(result.msg || "获取项目列表失败")
           setProjects([])
           setTotalItems(0)
           setTotalPages(0)
@@ -124,33 +124,24 @@ export default function ProjectsPage() {
 
     setIsDeleting(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/delete`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: deletingProjectId
-        }),
+      const result = await apiRequest('/company/delete', 'POST', {
+        id: deletingProjectId
       })
 
-      const data = await response.json()
-
-      if (data.code === 200) {
+      if (result.code === 200) {
         toast.success("删除成功")
         
         // Fetch projects again after delete
         const fetchProjects = async () => {
           setIsLoading(true)
           try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/list?page=${currentPage}&limit=${pageSize}`)
-            const data = await response.json()
-            if (data.code === 200) {
-              setProjects(data.data.list)
-              setTotalItems(data.data.total)
-              setTotalPages(Math.ceil(data.data.total / pageSize))
-              if (currentPage > Math.ceil(data.data.total / pageSize) && Math.ceil(data.data.total / pageSize) > 0) {
-                setCurrentPage(Math.ceil(data.data.total / pageSize));
+            const result = await apiRequest(`/company/list?page=${currentPage}&limit=${pageSize}`)
+            if (result.code === 200) {
+              setProjects(result.data.list)
+              setTotalItems(result.data.total)
+              setTotalPages(Math.ceil(result.data.total / pageSize))
+              if (currentPage > Math.ceil(result.data.total / pageSize) && Math.ceil(result.data.total / pageSize) > 0) {
+                setCurrentPage(Math.ceil(result.data.total / pageSize));
               }
             } else {
               setProjects([]); setTotalItems(0); setTotalPages(0);
@@ -160,7 +151,7 @@ export default function ProjectsPage() {
         }
         fetchProjects();
       } else {
-        toast.error(data.msg || "删除失败")
+        toast.error(result.msg || "删除失败")
       }
     } catch (error) {
       toast.error("网络错误，请稍后重试")

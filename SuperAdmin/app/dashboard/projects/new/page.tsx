@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { toast, Toaster } from "sonner"
+import { apiRequest } from "@/lib/api-utils"
 
 export default function NewProjectPage() {
   const router = useRouter()
@@ -53,29 +54,21 @@ export default function NewProjectPage() {
     setIsSubmitting(true)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/add`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          account: formData.account,
-          password: formData.password,
-          memo: formData.description,
-          phone: formData.phone,
-          username: formData.nickname,
-          status: parseInt(formData.status),
-        }),
+      const result = await apiRequest('/company/add', 'POST', {
+        name: formData.name,
+        account: formData.account,
+        password: formData.password,
+        memo: formData.description,
+        phone: formData.phone,
+        username: formData.nickname,
+        status: parseInt(formData.status),
       })
 
-      const data = await response.json()
-
-      if (data.code === 200) {
-        toast.success("创建成功")
+      if (result.code === 200) {
+        toast.success("项目创建成功")
         router.push("/dashboard/projects")
       } else {
-        toast.error(data.msg)
+        toast.error(result.msg || "创建失败")
       }
     } catch (error) {
       toast.error("网络错误，请稍后重试")

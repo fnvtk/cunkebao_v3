@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import useAuthCheck from "@/hooks/useAuthCheck"
 import { getAdminInfo, getGreeting } from "@/lib/utils"
 import ClientOnly from "@/components/ClientOnly"
+import { apiRequest } from '@/lib/api-utils'
 
 interface DashboardStats {
   companyCount: number
@@ -28,16 +29,14 @@ export default function DashboardPage() {
   useAuthCheck()
 
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true)
+    const fetchDashboardData = async () => {
       try {
-        // 获取统计信息
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/dashboard/base`)
-        const data = await response.json()
-        if (data.code === 200) {
-          setStats(data.data)
+        setIsLoading(true)
+        const result = await apiRequest('/dashboard/base')
+        if (result.code === 200 && result.data) {
+          setStats(result.data)
         } else {
-          toast.error(data.msg || "获取统计信息失败")
+          toast.error(result.msg || "获取仪表盘数据失败")
         }
         
         // 获取用户信息
@@ -49,13 +48,14 @@ export default function DashboardPage() {
         }
 
       } catch (error) {
-        toast.error("网络错误，请稍后重试")
+        console.error("获取仪表盘数据失败:", error)
+        toast.error("网络错误，请稍后再试")
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchData()
+    fetchDashboardData()
   }, [])
 
   // 单独处理问候语，避免依赖问题

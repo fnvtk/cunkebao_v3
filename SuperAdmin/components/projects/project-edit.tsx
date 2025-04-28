@@ -24,6 +24,8 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { toast } from "sonner"
+import { apiRequest } from '@/lib/api-utils'
+import { useRouter } from "next/navigation"
 
 const formSchema = z.object({
   name: z.string().min(2, "项目名称至少需要2个字符"),
@@ -50,6 +52,8 @@ interface ProjectData {
 export default function ProjectEdit({ projectId, onSuccess }: ProjectEditProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isFetching, setIsFetching] = useState(true)
+  const [project, setProject] = useState<ProjectData | null>(null)
+  const router = useRouter()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -66,74 +70,54 @@ export default function ProjectEdit({ projectId, onSuccess }: ProjectEditProps) 
   // 获取项目数据
   useEffect(() => {
     const fetchProject = async () => {
-      setIsFetching(true)
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/profile/${projectId}`)
-        const data = await response.json()
-        
-        if (data.code === 200) {
-          const project = data.data
+        setIsLoading(true)
+        const result = await apiRequest(`/company/profile/${projectId}`)
+        if (result.code === 200 && result.data) {
+          setProject(result.data)
           form.reset({
-            name: project.name || "",
-            account: project.account || "",
+            name: result.data.name || "",
+            account: result.data.account || "",
             password: "",
             confirmPassword: "",
-            phone: project.phone || "",
-            memo: project.memo || "",
+            phone: result.data.phone || "",
+            memo: result.data.memo || "",
           })
         } else {
-          toast.error(data.msg || "获取项目信息失败")
+          toast.error(result.msg || "获取项目信息失败")
         }
       } catch (error) {
-        toast.error("网络错误，请稍后重试")
+        console.error("获取项目信息失败:", error)
+        toast.error("网络错误，请稍后再试")
       } finally {
-        setIsFetching(false)
+        setIsLoading(false)
       }
     }
 
     fetchProject()
   }, [projectId, form])
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    // 检查密码是否匹配
-    if (values.password && values.password !== values.confirmPassword) {
-      toast.error("两次输入的密码不一致")
-      return
-    }
-
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
     setIsLoading(true)
+
     try {
-      // 准备请求数据，根据需要添加或移除字段
-      const updateData: Record<string, any> = {
-        id: parseInt(projectId),
-        name: values.name,
-        account: values.account,
-        memo: values.memo,
-        phone: values.phone,
-      }
-
-      // 如果提供了密码，则包含密码字段
-      if (values.password) {
-        updateData.password = values.password
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/company/update`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updateData),
+      const result = await apiRequest('/company/update', 'POST', {
+        id: projectId,
+        name: project?.name,
+        account: project?.account,
+        memo: project?.memo,
+        phone: project?.phone,
+        username: project?.username,
+        status: project?.status,
+        ...(form.getValues('password') && { password: form.getValues('password') })
       })
 
-      const data = await response.json()
-
-      if (data.code === 200) {
-        toast.success("项目更新成功")
-        if (onSuccess) {
-          onSuccess()
-        }
+      if (result.code === 200) {
+        toast.success("更新成功")
+        router.push("/dashboard/projects")
       } else {
-        toast.error(data.msg || "更新项目失败")
+        toast.error(result.msg)
       }
     } catch (error) {
       toast.error("网络错误，请稍后重试")
@@ -154,7 +138,7 @@ export default function ProjectEdit({ projectId, onSuccess }: ProjectEditProps) 
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form id="edit-project-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form id="edit-project-form" onSubmit={handleSubmit} className="space-y-8">
             <FormField
               control={form.control}
               name="name"

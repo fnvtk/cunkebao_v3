@@ -12,9 +12,9 @@
 use think\facade\Route;
 
  // 允许跨域
- header('Access-Control-Allow-Origin: *');
+ header('Access-Control-Allow-Origin: '  . (isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*'));
  header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS, PATCH');
- header('Access-Control-Allow-Headers: Authorization, Content-Type, If-Match, If-Modified-Since, If-None-Match, If-Unmodified-Since, X-Requested-With, X-Token, X-Api-Token');
+ header('Access-Control-Allow-Headers: Cookie, Authorization, Content-Type, If-Match, If-Modified-Since, If-None-Match, If-Unmodified-Since, X-Requested-With, X-Token, X-Api-Token');
  header('Access-Control-Max-Age: 1728000');
  header('Access-Control-Allow-Credentials: true');
 
