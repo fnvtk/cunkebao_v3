@@ -26,7 +26,8 @@ class MessageController extends BaseController
         }
 
         $fromTime = $this->request->param('fromTime', date('Y-m-d 00:00:00', strtotime('-1 days')));
-        $toTime = $this->request->param('toTime', date('Y-m-d 00:00:00'));
+        $toTime = $this->request->param('toTime', date('Y-m-d 23:59:59'));
+
 
         try {
             // 构建请求参数
@@ -191,8 +192,9 @@ class MessageController extends BaseController
         }
 
         $fromTime = $this->request->param('fromTime', date('Y-m-d 00:00:00', strtotime('-1 days')));
-        $toTime = $this->request->param('toTime', date('Y-m-d 00:00:00'));
+        $toTime = $this->request->param('toTime', date('Y-m-d 23:59:59'));
 
+    
         try {
             // 构建请求参数
             $params = [

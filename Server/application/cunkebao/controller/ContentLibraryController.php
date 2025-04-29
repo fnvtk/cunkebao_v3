@@ -471,7 +471,6 @@ class ContentLibraryController extends Controller
      */
     public function collectMoments()
     {
-        
         // 查询条件：未删除且已开启的内容库
         $where = [
             ['isDel', '=', 0],      // 未删除
@@ -483,7 +482,6 @@ class ContentLibraryController extends Controller
             ->field('id,name,sourceType,sourceFriends,sourceGroups,keywordInclude,keywordExclude,aiEnabled,aiPrompt,timeEnabled,timeStart,timeEnd,status,userId,companyId,createTime,updateTime,groupMembers')
             ->order('id', 'desc')
             ->select()->toArray();
-
 
         if (empty($libraries)) {
             return json(['code' => 200, 'msg' => '没有可用的内容库配置']);
@@ -503,7 +501,6 @@ class ContentLibraryController extends Controller
                 $library['keywordExclude'] = json_decode($library['keywordExclude'] ?: '[]', true);
                 $library['groupMembers'] = json_decode($library['groupMembers'] ?: '[]', true);
                 
-           
                 // 根据数据来源类型执行不同的采集逻辑
                 $collectResult = [];
                 switch ($library['sourceType']) {

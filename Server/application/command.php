@@ -25,4 +25,5 @@ return [
     // 'allotChatroom:run' => 'app\command\AllotChatroomCommand', // 自动分配微信群聊
     'allotrule:list' => 'app\command\AllotRuleListCommand', // 分配规则列表 √
     'allotrule:autocreate' => 'app\command\AutoCreateAllotRulesCommand', // 自动创建分配规则 √
+    'content:collect' => 'app\command\ContentCollectCommand', // 内容采集任务 √
 ];
