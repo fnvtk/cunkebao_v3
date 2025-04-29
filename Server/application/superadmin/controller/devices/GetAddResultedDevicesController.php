@@ -45,12 +45,10 @@ class GetAddResultedDevicesController extends Controller
     protected function migrateData(int $accountId): void
     {
         $companyId = $this->getCompanyIdByAccountId($accountId);
-        $deviceIds = $this->getAllDevicesIdWithInCompany($companyId);
+        $deviceIds = $this->getAllDevicesIdWithInCompany($companyId) ?: [0];
 
-        if ($deviceIds) {
-            // 从 s2_device 导入数据。
-            $this->getNewDeviceFromS2_device($deviceIds, $companyId);
-        }
+        // 从 s2_device 导入数据。
+        $this->getNewDeviceFromS2_device($deviceIds, $companyId);
     }
 
     /**
@@ -93,14 +91,12 @@ class GetAddResultedDevicesController extends Controller
         );
 
         $result = json_decode($result, true);
-        $result = $result['data']['results'][0];
+        $result = $result['data']['results'][0] ?? false;
 
-        return true;
-
-        return (
+        return $result ? (
             // 125是前端延迟5秒 + 轮询120次 1次/s
-            time() - strtotime($result['lastUpdateTime']) <= 125
-        );
+            time() - strtotime($result['lastUpdateTime']) <= 65
+        ) : false;
     }
 
     /**

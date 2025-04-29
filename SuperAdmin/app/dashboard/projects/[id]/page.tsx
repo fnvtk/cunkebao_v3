@@ -76,6 +76,11 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const [wechatStatusFilter, setWechatStatusFilter] = useState<'all' | 'loggedIn' | 'loggedOut' | 'notLogged'>('all')
   const [userStatusFilter, setUserStatusFilter] = useState<'all' | 'enabled' | 'disabled'>('all')
   const [userTypeFilter, setUserTypeFilter] = useState<'all' | 'system' | 'operator' | 'consultant'>('all')
+  const [pollingCount, setPollingCount] = useState(0)
+  const [isPolling, setIsPolling] = useState(false)
+  const [qrCode, setQrCode] = useState("")
+  const [showQrCode, setShowQrCode] = useState(false)
+  const maxPollingCount = 60 // 修改为60次
 
   const fetchProject = async () => {
     try {
@@ -199,6 +204,36 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
       if (prev === 'desc') return 'asc'
       return null
     })
+  }
+
+  const startPolling = () => {
+    setPollingCount(0)
+    setIsPolling(true)
+    const timer = setInterval(async () => {
+      if (pollingCount >= maxPollingCount) {
+        clearInterval(timer)
+        setIsPolling(false)
+        toast.error("轮询超时，请重试")
+        return
+      }
+
+      try {
+        const result = await apiRequest(`/company/device/query?accountId=${profile?.s2_accountId}`)
+        if (result.code === 200 && result.data) {
+          clearInterval(timer)
+          setIsPolling(false)
+          setShowQrCode(false)
+          toast.success("设备添加成功")
+          fetchDevices() // 刷新设备列表
+        }
+      } catch (error) {
+        console.error("轮询失败:", error)
+      }
+
+      setPollingCount(prev => prev + 1)
+    }, 1000)
+
+    return timer
   }
 
   if (isLoading) {
