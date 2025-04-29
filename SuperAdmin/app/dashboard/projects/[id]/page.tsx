@@ -74,6 +74,8 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null)
   const [deviceStatusFilter, setDeviceStatusFilter] = useState<'all' | 'online' | 'offline'>('all')
   const [wechatStatusFilter, setWechatStatusFilter] = useState<'all' | 'loggedIn' | 'loggedOut' | 'notLogged'>('all')
+  const [userStatusFilter, setUserStatusFilter] = useState<'all' | 'enabled' | 'disabled'>('all')
+  const [userTypeFilter, setUserTypeFilter] = useState<'all' | 'system' | 'operator' | 'consultant'>('all')
 
   const fetchProject = async () => {
     try {
@@ -148,26 +150,48 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
     fetchDevices()
   }, [activeTab, id, sortOrder, deviceStatusFilter, wechatStatusFilter])
 
-  useEffect(() => {
-    const fetchSubUsers = async () => {
-      setIsSubUsersLoading(true)
-      try {
-        const result = await apiRequest(`/company/subusers?companyId=${id}`)
-        
-        if (result.code === 200) {
-          setSubUsers(result.data)
-        } else {
-          toast.error(result.msg || "获取子账号列表失败")
-        }
-      } catch (error) {
-        toast.error("网络错误，请稍后重试")
-      } finally {
-        setIsSubUsersLoading(false)
-      }
-    }
+  const fetchSubUsers = async () => {
+    if (activeTab !== "accounts") return
 
+    setIsSubUsersLoading(true)
+    try {
+      const result = await apiRequest(`/company/subusers?companyId=${id}`)
+      
+      if (result.code === 200) {
+        let filteredUsers = result.data
+        
+        // 应用状态筛选
+        if (userStatusFilter !== 'all') {
+          filteredUsers = filteredUsers.filter(user => 
+            userStatusFilter === 'enabled' ? user.status === 1 : user.status !== 1
+          )
+        }
+        
+        // 应用账号类型筛选
+        if (userTypeFilter !== 'all') {
+          filteredUsers = filteredUsers.filter(user => {
+            if (userTypeFilter === 'system') return user.typeId === -1
+            if (userTypeFilter === 'operator') return user.typeId === 1
+            return user.typeId === 2
+          })
+        }
+        
+        setSubUsers(filteredUsers)
+      } else {
+        toast.error(result.msg || "获取子账号列表失败")
+        setSubUsers([])
+      }
+    } catch (error) {
+      toast.error("网络错误，请稍后重试")
+      setSubUsers([])
+    } finally {
+      setIsSubUsersLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchSubUsers()
-  }, [id])
+  }, [activeTab, id, userStatusFilter, userTypeFilter])
 
   const handleSort = () => {
     setSortOrder(prev => {
@@ -378,71 +402,104 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
         </TabsContent>
 
         <TabsContent value="accounts">
-          <Card>
-            <CardHeader>
-              <CardTitle>子账号列表</CardTitle>
-              <CardDescription>项目下的所有子账号</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isSubUsersLoading ? (
-                <div className="flex items-center justify-center py-8">加载中...</div>
-              ) : subUsers.length === 0 ? (
-                <div className="flex items-center justify-center py-8 text-muted-foreground">暂无数据</div>
-              ) : (
-                <>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>头像</TableHead>
-                        <TableHead>账号ID</TableHead>
-                        <TableHead>登录账号</TableHead>
-                        <TableHead>昵称</TableHead>
-                        <TableHead>手机号</TableHead>
-                        <TableHead>状态</TableHead>
-                        <TableHead>账号类型</TableHead>
-                        <TableHead className="text-right">创建时间</TableHead>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold">子账号列表</h2>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">状态：</span>
+                  <Select
+                    value={userStatusFilter}
+                    onValueChange={(value: 'all' | 'enabled' | 'disabled') => setUserStatusFilter(value)}
+                  >
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="选择状态" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">全部</SelectItem>
+                      <SelectItem value="enabled">启用</SelectItem>
+                      <SelectItem value="disabled">禁用</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">账号类型：</span>
+                  <Select
+                    value={userTypeFilter}
+                    onValueChange={(value: 'all' | 'system' | 'operator' | 'consultant') => setUserTypeFilter(value)}
+                  >
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="选择类型" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">全部</SelectItem>
+                      <SelectItem value="system">系统账号</SelectItem>
+                      <SelectItem value="operator">操盘手</SelectItem>
+                      <SelectItem value="consultant">门店顾问</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+            {isSubUsersLoading ? (
+              <div className="flex justify-center items-center h-32">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : subUsers.length > 0 ? (
+              <div className="border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>头像</TableHead>
+                      <TableHead>账号ID</TableHead>
+                      <TableHead>登录账号</TableHead>
+                      <TableHead>昵称</TableHead>
+                      <TableHead>手机号</TableHead>
+                      <TableHead>状态</TableHead>
+                      <TableHead>账号类型</TableHead>
+                      <TableHead className="text-right">创建时间</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {subUsers.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <Image
+                            src={user.avatar}
+                            alt={user.username}
+                            width={32}
+                            height={32}
+                            className="rounded-full"
+                          />
+                        </TableCell>
+                        <TableCell>{user.id}</TableCell>
+                        <TableCell>{user.account}</TableCell>
+                        <TableCell>{user.username}</TableCell>
+                        <TableCell>{user.phone}</TableCell>
+                        <TableCell>
+                          <Badge variant={user.status === 1 ? "success" : "destructive"}>
+                            {user.status === 1 ? "启用" : "禁用"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {user.typeId === -1 
+                            ? "系统账号" 
+                            : user.typeId === 1 
+                              ? "操盘手" 
+                              : "门店顾问"}
+                        </TableCell>
+                        <TableCell className="text-right">{user.createTime}</TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {subUsers.map((user) => (
-                        <TableRow key={user.id}>
-                          <TableCell>
-                            <Image
-                              src={user.avatar}
-                              alt={user.username}
-                              width={32}
-                              height={32}
-                              className="rounded-full"
-                            />
-                          </TableCell>
-                          <TableCell>{user.id}</TableCell>
-                          <TableCell>{user.account}</TableCell>
-                          <TableCell>{user.username}</TableCell>
-                          <TableCell>{user.phone}</TableCell>
-                          <TableCell>
-                            <Badge variant={user.status === 1 ? "success" : "destructive"}>
-                              {user.status === 1 ? "启用" : "禁用"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {user.typeId === -1 
-                              ? "系统账号" 
-                              : user.typeId === 1 
-                                ? "操盘手" 
-                                : "门店顾问"}
-                          </TableCell>
-                          <TableCell className="text-right">{user.createTime}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  <div className="mt-4 text-sm text-muted-foreground">
-                    共 {subUsers.length} 条数据
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                暂无子账号数据
+              </div>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </div>
