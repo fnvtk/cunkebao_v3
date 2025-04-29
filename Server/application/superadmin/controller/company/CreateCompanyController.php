@@ -2,6 +2,7 @@
 
 namespace app\superadmin\controller\company;
 
+use app\api\controller\DeviceController;
 use app\common\model\Company as CompanyModel;
 use app\common\model\User as UsersModel;
 use app\superadmin\controller\BaseController;
@@ -106,6 +107,23 @@ class CreateCompanyController extends BaseController
     }
 
     /**
+     * 设备创建分组
+     *
+     * @param array $params
+     * @return void
+     * @throws \Exception
+     */
+    protected function s2CreateDeviceGroup(array $params): void
+    {
+        $respon = (new DeviceController())->createGroup($params, true);
+        $respon = json_decode($respon, true);
+
+        if ($respon['code'] != 200) {
+            throw new \Exception('设备分组添加错误', 210 . $respon['code']);
+        }
+    }
+
+    /**
      * S2 部分
      *
      * @param array $params
@@ -119,6 +137,9 @@ class CreateCompanyController extends BaseController
         if (!$department || !isset($department['id']) || !isset($department['departmentId'])) {
             throw new \Exception('S2返参异常', 210402);
         }
+
+        // 设备创建分组
+        $this->s2CreateDeviceGroup(['groupName' => $params['name']]);
 
         return array_merge($params, [
             'companyId'    => $department['departmentId'],
