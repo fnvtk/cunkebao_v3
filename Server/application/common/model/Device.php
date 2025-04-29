@@ -20,4 +20,5 @@ class Device extends Model
     protected $createTime = 'createTime';
     protected $updateTime = 'updateTime';
     protected $deleteTime = 'deleteTime';
+    protected $defaultSoftDelete = 0;
 } 

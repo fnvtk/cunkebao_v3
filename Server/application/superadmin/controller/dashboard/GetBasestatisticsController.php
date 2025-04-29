@@ -4,6 +4,7 @@ namespace app\superadmin\controller\dashboard;
 
 use app\common\model\Administrator as AdministratorModel;
 use app\common\model\Company as CompanyModel;
+use app\common\model\Device as DeviceModel;
 use library\ResponseHelper;
 use think\Controller;
 
@@ -33,13 +34,13 @@ class GetBasestatisticsController extends Controller
     }
 
     /**
-     * 客户总数
+     * 设备总数
      *
      * @return int
      */
-    protected function getCustomerCount(): int
+    protected function getDeviceCount(): int
     {
-        return $this->getCompanyCount();
+        return DeviceModel::count('*');
     }
 
     /**
@@ -53,7 +54,7 @@ class GetBasestatisticsController extends Controller
             [
                 'companyCount' => $this->getCompanyCount(),
                 'adminCount'    => $this->getAdminCount(),
-                'customerCount' => $this->getCustomerCount(),
+                'customerCount' => $this->getDeviceCount(),
             ]
         );
     }

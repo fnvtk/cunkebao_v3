@@ -71,7 +71,7 @@ class GetCompanyDevicesForProfileController extends Controller
             ->select()
             ->toArray();
 
-        return ArrHelper::join($relations, $friendCounts, 'wechatId');
+        return ArrHelper::leftJoin($relations, $friendCounts, 'wechatId');
     }
 
     /**

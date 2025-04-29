@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, Edit } from "lucide-react"
+import { ArrowLeft, Edit, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react"
 import { toast } from "sonner"
 import { use } from "react"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { apiRequest } from '@/lib/api-utils'
+import { Loader2 } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface ProjectProfile {
   id: number
@@ -69,6 +71,11 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const [devices, setDevices] = useState<Device[]>([])
   const [subUsers, setSubUsers] = useState<SubUser[]>([])
   const [activeTab, setActiveTab] = useState("overview")
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null)
+  const [deviceStatusFilter, setDeviceStatusFilter] = useState<'all' | 'online' | 'offline'>('all')
+  const [wechatStatusFilter, setWechatStatusFilter] = useState<'all' | 'loggedIn' | 'loggedOut' | 'notLogged'>('all')
+  const [userStatusFilter, setUserStatusFilter] = useState<'all' | 'enabled' | 'disabled'>('all')
+  const [userTypeFilter, setUserTypeFilter] = useState<'all' | 'system' | 'operator' | 'consultant'>('all')
 
   const fetchProject = async () => {
     try {
@@ -92,17 +99,48 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   }, [id])
 
   const fetchDevices = async () => {
+    if (activeTab !== "devices") return
+
+    setIsDevicesLoading(true)
     try {
-      setIsDevicesLoading(true)
       const result = await apiRequest(`/company/devices?companyId=${id}`)
-      if (result.code === 200 && result.data) {
-        setDevices(result.data)
+      
+      if (result.code === 200) {
+        let filteredDevices = result.data
+        
+        // 应用设备状态筛选
+        if (deviceStatusFilter !== 'all') {
+          filteredDevices = filteredDevices.filter(device => 
+            deviceStatusFilter === 'online' ? device.alive === 1 : device.alive !== 1
+          )
+        }
+        
+        // 应用微信状态筛选
+        if (wechatStatusFilter !== 'all') {
+          filteredDevices = filteredDevices.filter(device => {
+            if (wechatStatusFilter === 'loggedIn') return device.wAlive === 1
+            if (wechatStatusFilter === 'loggedOut') return device.wAlive === 0
+            return device.wAlive === -1
+          })
+        }
+        
+        // 应用排序
+        if (sortOrder) {
+          filteredDevices = [...filteredDevices].sort((a, b) => {
+            const aCount = a.friendCount || 0
+            const bCount = b.friendCount || 0
+            return sortOrder === 'asc' ? aCount - bCount : bCount - aCount
+          })
+        }
+        
+        setDevices(filteredDevices)
       } else {
         toast.error(result.msg || "获取设备列表失败")
+        setDevices([])
       }
     } catch (error) {
-      console.error("获取设备列表失败:", error)
-      toast.error("网络错误，请稍后再试")
+      toast.error("网络错误，请稍后重试")
+      setDevices([])
     } finally {
       setIsDevicesLoading(false)
     }
@@ -110,28 +148,58 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
 
   useEffect(() => {
     fetchDevices()
-  }, [activeTab, id])
+  }, [activeTab, id, sortOrder, deviceStatusFilter, wechatStatusFilter])
+
+  const fetchSubUsers = async () => {
+    if (activeTab !== "accounts") return
+
+    setIsSubUsersLoading(true)
+    try {
+      const result = await apiRequest(`/company/subusers?companyId=${id}`)
+      
+      if (result.code === 200) {
+        let filteredUsers = result.data
+        
+        // 应用状态筛选
+        if (userStatusFilter !== 'all') {
+          filteredUsers = filteredUsers.filter(user => 
+            userStatusFilter === 'enabled' ? user.status === 1 : user.status !== 1
+          )
+        }
+        
+        // 应用账号类型筛选
+        if (userTypeFilter !== 'all') {
+          filteredUsers = filteredUsers.filter(user => {
+            if (userTypeFilter === 'system') return user.typeId === -1
+            if (userTypeFilter === 'operator') return user.typeId === 1
+            return user.typeId === 2
+          })
+        }
+        
+        setSubUsers(filteredUsers)
+      } else {
+        toast.error(result.msg || "获取子账号列表失败")
+        setSubUsers([])
+      }
+    } catch (error) {
+      toast.error("网络错误，请稍后重试")
+      setSubUsers([])
+    } finally {
+      setIsSubUsersLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchSubUsers = async () => {
-      setIsSubUsersLoading(true)
-      try {
-        const result = await apiRequest(`/company/subusers?companyId=${id}`)
-        
-        if (result.code === 200) {
-          setSubUsers(result.data)
-        } else {
-          toast.error(result.msg || "获取子账号列表失败")
-        }
-      } catch (error) {
-        toast.error("网络错误，请稍后重试")
-      } finally {
-        setIsSubUsersLoading(false)
-      }
-    }
-
     fetchSubUsers()
-  }, [id])
+  }, [activeTab, id, userStatusFilter, userTypeFilter])
+
+  const handleSort = () => {
+    setSortOrder(prev => {
+      if (prev === null) return 'desc'
+      if (prev === 'desc') return 'asc'
+      return null
+    })
+  }
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">加载中...</div>
@@ -226,135 +294,212 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
         </TabsContent>
 
         <TabsContent value="devices">
-          <Card>
-            <CardHeader>
-              <CardTitle>关联设备列表</CardTitle>
-              <CardDescription>项目关联的所有设备及其微信好友数量</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isDevicesLoading ? (
-                <div className="flex items-center justify-center py-8">加载中...</div>
-              ) : devices.length === 0 ? (
-                <div className="flex items-center justify-center py-8 text-muted-foreground">暂无数据</div>
-              ) : (
-                <>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>设备名称</TableHead>
-                        <TableHead>设备型号</TableHead>
-                        <TableHead>品牌</TableHead>
-                        <TableHead>IMEI</TableHead>
-                        <TableHead>设备状态</TableHead>
-                        <TableHead>微信状态</TableHead>
-                        <TableHead className="text-right">微信好友数量</TableHead>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold">设备列表</h2>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">设备状态：</span>
+                  <Select
+                    value={deviceStatusFilter}
+                    onValueChange={(value: 'all' | 'online' | 'offline') => setDeviceStatusFilter(value)}
+                  >
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="选择状态" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">全部</SelectItem>
+                      <SelectItem value="online">在线</SelectItem>
+                      <SelectItem value="offline">离线</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">微信状态：</span>
+                  <Select
+                    value={wechatStatusFilter}
+                    onValueChange={(value: 'all' | 'loggedIn' | 'loggedOut' | 'notLogged') => setWechatStatusFilter(value)}
+                  >
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="选择状态" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">全部</SelectItem>
+                      <SelectItem value="loggedIn">已登录</SelectItem>
+                      <SelectItem value="loggedOut">已登出</SelectItem>
+                      <SelectItem value="notLogged">未登录</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSort}
+                  className="flex items-center gap-2"
+                >
+                  <span>微信好友数量</span>
+                  {sortOrder === 'asc' && <ArrowUp className="h-4 w-4" />}
+                  {sortOrder === 'desc' && <ArrowDown className="h-4 w-4" />}
+                  {sortOrder === null && <ArrowUpDown className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            {isDevicesLoading ? (
+              <div className="flex justify-center items-center h-32">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : devices.length > 0 ? (
+              <div className="border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>设备名称</TableHead>
+                      <TableHead>型号</TableHead>
+                      <TableHead>品牌</TableHead>
+                      <TableHead>IMEI</TableHead>
+                      <TableHead>设备状态</TableHead>
+                      <TableHead>微信状态</TableHead>
+                      <TableHead>微信好友数量</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {devices.map((device) => (
+                      <TableRow key={device.id}>
+                        <TableCell>{device.memo}</TableCell>
+                        <TableCell>{device.model}</TableCell>
+                        <TableCell>{device.brand}</TableCell>
+                        <TableCell>{device.imei}</TableCell>
+                        <TableCell>
+                          <Badge variant={device.alive === 1 ? "success" : "destructive"}>
+                            {device.alive === 1 ? "在线" : "离线"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={
+                              device.wAlive === 1 
+                                ? "success" 
+                                : device.wAlive === 0 
+                                  ? "destructive" 
+                                  : "secondary"
+                            }
+                          >
+                            {device.wAlive === 1 ? "已登录" : device.wAlive === 0 ? "已登出" : "未登录微信"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{device.friendCount || 0}</TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {devices.map((device) => (
-                        <TableRow key={device.id}>
-                          <TableCell className="font-medium">{device.memo}</TableCell>
-                          <TableCell>{device.model}</TableCell>
-                          <TableCell>{device.brand}</TableCell>
-                          <TableCell>{device.imei}</TableCell>
-                          <TableCell>
-                            <Badge variant={device.alive === 1 ? "success" : "destructive"}>
-                              {device.alive === 1 ? "在线" : "离线"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant={
-                                device.wAlive === 1 
-                                  ? "success" 
-                                  : device.wAlive === 0 
-                                    ? "destructive" 
-                                    : "secondary"
-                              }
-                            >
-                              {device.wAlive === 1 ? "已登录" : device.wAlive === 0 ? "已登出" : "未登录微信"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">{device.friendCount || 0}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  <div className="mt-4 text-sm text-muted-foreground">
-                    共 {devices.length} 条数据
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                暂无设备数据
+              </div>
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="accounts">
-          <Card>
-            <CardHeader>
-              <CardTitle>子账号列表</CardTitle>
-              <CardDescription>项目下的所有子账号</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isSubUsersLoading ? (
-                <div className="flex items-center justify-center py-8">加载中...</div>
-              ) : subUsers.length === 0 ? (
-                <div className="flex items-center justify-center py-8 text-muted-foreground">暂无数据</div>
-              ) : (
-                <>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>头像</TableHead>
-                        <TableHead>账号ID</TableHead>
-                        <TableHead>登录账号</TableHead>
-                        <TableHead>昵称</TableHead>
-                        <TableHead>手机号</TableHead>
-                        <TableHead>状态</TableHead>
-                        <TableHead>账号类型</TableHead>
-                        <TableHead className="text-right">创建时间</TableHead>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold">子账号列表</h2>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">状态：</span>
+                  <Select
+                    value={userStatusFilter}
+                    onValueChange={(value: 'all' | 'enabled' | 'disabled') => setUserStatusFilter(value)}
+                  >
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="选择状态" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">全部</SelectItem>
+                      <SelectItem value="enabled">启用</SelectItem>
+                      <SelectItem value="disabled">禁用</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">账号类型：</span>
+                  <Select
+                    value={userTypeFilter}
+                    onValueChange={(value: 'all' | 'system' | 'operator' | 'consultant') => setUserTypeFilter(value)}
+                  >
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="选择类型" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">全部</SelectItem>
+                      <SelectItem value="system">系统账号</SelectItem>
+                      <SelectItem value="operator">操盘手</SelectItem>
+                      <SelectItem value="consultant">门店顾问</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+            {isSubUsersLoading ? (
+              <div className="flex justify-center items-center h-32">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : subUsers.length > 0 ? (
+              <div className="border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>头像</TableHead>
+                      <TableHead>账号ID</TableHead>
+                      <TableHead>登录账号</TableHead>
+                      <TableHead>昵称</TableHead>
+                      <TableHead>手机号</TableHead>
+                      <TableHead>状态</TableHead>
+                      <TableHead>账号类型</TableHead>
+                      <TableHead className="text-right">创建时间</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {subUsers.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <Image
+                            src={user.avatar}
+                            alt={user.username}
+                            width={32}
+                            height={32}
+                            className="rounded-full"
+                          />
+                        </TableCell>
+                        <TableCell>{user.id}</TableCell>
+                        <TableCell>{user.account}</TableCell>
+                        <TableCell>{user.username}</TableCell>
+                        <TableCell>{user.phone}</TableCell>
+                        <TableCell>
+                          <Badge variant={user.status === 1 ? "success" : "destructive"}>
+                            {user.status === 1 ? "启用" : "禁用"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {user.typeId === -1 
+                            ? "系统账号" 
+                            : user.typeId === 1 
+                              ? "操盘手" 
+                              : "门店顾问"}
+                        </TableCell>
+                        <TableCell className="text-right">{user.createTime}</TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {subUsers.map((user) => (
-                        <TableRow key={user.id}>
-                          <TableCell>
-                            <Image
-                              src={user.avatar}
-                              alt={user.username}
-                              width={32}
-                              height={32}
-                              className="rounded-full"
-                            />
-                          </TableCell>
-                          <TableCell>{user.id}</TableCell>
-                          <TableCell>{user.account}</TableCell>
-                          <TableCell>{user.username}</TableCell>
-                          <TableCell>{user.phone}</TableCell>
-                          <TableCell>
-                            <Badge variant={user.status === 1 ? "success" : "destructive"}>
-                              {user.status === 1 ? "启用" : "禁用"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {user.typeId === -1 
-                              ? "系统账号" 
-                              : user.typeId === 1 
-                                ? "操盘手" 
-                                : "门店顾问"}
-                          </TableCell>
-                          <TableCell className="text-right">{user.createTime}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  <div className="mt-4 text-sm text-muted-foreground">
-                    共 {subUsers.length} 条数据
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                暂无子账号数据
+              </div>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </div>

@@ -22,6 +22,67 @@ class AuthService
     protected $smsService;
 
     /**
+     * 获取用户信息
+     * @param string $account 账号（手机号）
+     * @param string $password 密码（可能是加密后的）
+     * @param int $typeId 身份信息
+     * @return array|null
+     */
+    protected function getUser($account, $password, $typeId)
+    {
+        // 查询用户
+        $user = User::where('account', $account)
+            ->where('typeId', $typeId)
+            ->where('status', 1)
+            ->find();
+
+        if (!$user) {
+            // 记录日志
+            \think\facade\Log::info('用户不存在或已禁用', ['account' => $account]);
+            return null;
+        }
+
+        // 记录密码验证信息
+        \think\facade\Log::info('密码验证', [
+            'account' => $account,
+            'input_password' => $password,
+            'stored_hash' => $user->passwordMd5,
+        ]);
+
+        // 验证密码
+        $isValid = ($user->passwordMd5 == md5($password));
+
+        \think\facade\Log::info('密码验证结果', [
+            'account' => $account,
+            'is_valid' => $isValid,
+        ]);
+
+        if (!$isValid) {
+            return null;
+        }
+
+        // 更新登录信息
+        $user->lastLoginIp = request()->ip();
+        $user->lastLoginTime = time();
+        $user->save();
+
+        // 用手机号当做默认用户名（如果没有设置用户名）
+        $username = $user->username ?: $user->account;
+
+        return [
+            'id' => $user->id,
+            'username' => $username,
+            'account' => $user->account,
+            'avatar' => $user->avatar,
+            'isAdmin' => $user->isAdmin,
+            'companyId' => $user->companyId,
+            'typeId' => $user->typeId,
+            'lastLoginIp' => $user->lastLoginIp,
+            'lastLoginTime' => $user->lastLoginTime
+        ];
+    }
+
+    /**
      * 构造函数
      */
     public function __construct()
@@ -40,7 +101,7 @@ class AuthService
     public function login($account, $password, $typeId, $ip)
     {
         // 获取用户信息
-        $user = User::getUser($account, $password, $typeId);
+        $user = $this->getUser($account, $password, $typeId);
 
         if (empty($user)) {
             // 记录登录失败

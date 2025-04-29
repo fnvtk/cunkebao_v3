@@ -16,5 +16,5 @@ class WechatAccount extends Model
     protected $autoWriteTimestamp = true;
     protected $createTime = 'createTime';
     protected $updateTime = 'updateTime';
-
+    protected $defaultSoftDelete = 0;
 } 
