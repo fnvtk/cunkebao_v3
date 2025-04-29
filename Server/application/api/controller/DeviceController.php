@@ -361,11 +361,14 @@ class DeviceController extends BaseController
             // 发送请求
             $result = requestCurl($this->baseUrl . 'api/DeviceGroup/new', $params, 'POST', $header,'json');
             if(empty($result)){
-                $res = $this->getGroupList([],true);
-                $res = json_decode($res,true);
-                if(!empty($res['data'])){
-                    $data = $res['data'][0];
-                }
+                // $res = $this->getGroupList([],true);
+                // $res = json_decode($res,true);
+                // if(!empty($res['data'])){
+                //     $data = $res['data'][0];
+                // }
+
+                $data = [];
+            
                 if($isInner){
                     return json_encode(['code'=>200,'msg'=>'success','data'=>$data]);
                 }else{
