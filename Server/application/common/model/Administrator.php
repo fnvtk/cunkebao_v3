@@ -20,6 +20,7 @@ class Administrator extends Model
     protected $createTime = 'createTime';
     protected $updateTime = 'updateTime';
     protected $deleteTime = 'deleteTime';
+    protected $defaultSoftDelete = 0;
 
     // 隐藏字段
     protected $hidden = [

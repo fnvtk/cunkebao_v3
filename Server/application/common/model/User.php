@@ -18,6 +18,7 @@ class User extends Model
     protected $autoWriteTimestamp = true;
     protected $createTime = 'createTime';
     protected $updateTime = 'updateTime';
+    protected $defaultSoftDelete = 0;
 
     /**
      * 主键
@@ -145,20 +146,5 @@ class User extends Model
             'lastLoginIp' => $user->lastLoginIp,
             'lastLoginTime' => $user->lastLoginTime
         ];
-    }
-    
-    /**
-     * 验证用户密码
-     * @param string $password 密码
-     * @param bool $isEncrypted 是否已加密
-     * @return bool
-     */
-    public function verifyPassword($password, $isEncrypted = false)
-    {
-        if ($isEncrypted) {
-            return hash_equals($this->passwordMd5, $password);
-        } else {
-            return $this->passwordMd5 === md5($password);
-        }
     }
 } 
