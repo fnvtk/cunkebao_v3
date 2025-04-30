@@ -13,12 +13,12 @@ class MessageController extends BaseController
      * 获取微信好友列表
      * @return \think\response\Json
      */
-    public function getFriendsList($pageIndex = '',$pageSize = '',$isJob = false)
+    public function getFriendsList($pageIndex = '',$pageSize = '',$isInner = false)
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
-            if($isJob){
+            if($isInner){
                 return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
             }else{
                 return errorJson('缺少授权信息');
@@ -102,13 +102,13 @@ class MessageController extends BaseController
                 }
                 unset($friend);
             }
-            if($isJob){
+            if($isInner){
                 return json_encode(['code'=>200,'msg'=>'获取好友列表成功','data'=>$response]);
             }else{
                 return successJson($response);
             }
         } catch (\Exception $e) {
-            if($isJob){
+            if($isInner){
                 return json_encode(['code'=>500,'msg'=>'获取好友列表失败：' . $e->getMessage()]);
             }else{
                 return errorJson('获取好友列表失败：' . $e->getMessage());
@@ -179,12 +179,12 @@ class MessageController extends BaseController
      * 获取微信群聊列表
      * @return \think\response\Json
      */
-    public function getChatroomList($pageIndex = '',$pageSize = '',$isJob = false)
+    public function getChatroomList($pageIndex = '',$pageSize = '',$isInner = false)
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
-            if($isJob){
+            if($isInner){
                 return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
             }else{
                 return errorJson('缺少授权信息');
@@ -267,13 +267,13 @@ class MessageController extends BaseController
                 }
                 unset($chatroom);
             }
-            if($isJob){
+            if($isInner){
                 return json_encode(['code'=>200,'msg'=>'获取群聊列表成功','data'=>$response]);
             }else{
                 return successJson($response);
             }
         } catch (\Exception $e) {
-            if($isJob){
+            if($isInner){
                 return json_encode(['code'=>500,'msg'=>'获取群聊列表失败：' . $e->getMessage()]);
             }else{
                 return errorJson('获取群聊列表失败：' . $e->getMessage());

@@ -20,16 +20,16 @@ class AccountController extends BaseController
      * 获取公司账号列表
      * @param string $pageIndex 页码
      * @param string $pageSize 每页数量
-     * @param bool $isJob 是否为定时任务调用
+     * @param bool $isInner 是否为定时任务调用
      * @return \think\response\Json
      */
-    public function getlist($pageIndex = '', $pageSize = '', $isJob = false)
+    public function getlist($pageIndex = '', $pageSize = '', $isInner = false)
     {
 
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
-            if ($isJob) {
+            if ($isInner) {
                 return json_encode(['code' => 500, 'msg' => '缺少授权信息']);
             } else {
                 return errorJson('缺少授权信息');
@@ -61,14 +61,14 @@ class AccountController extends BaseController
                 }
             }
 
-            if ($isJob) {
+            if ($isInner) {
                 return json_encode(['code' => 200, 'msg' => '获取公司账号列表成功', 'data' => $response]);
             } else {
 
                 return successJson($response);
             }
         } catch (\Exception $e) {
-            if ($isJob) {
+            if ($isInner) {
                 return json_encode(['code' => 500, 'msg' => '获取公司账号列表失败：' . $e->getMessage()]);
             } else {
                 return errorJson('获取公司账号列表失败：' . $e->getMessage());
@@ -296,12 +296,12 @@ class AccountController extends BaseController
      * 获取部门列表
      * @return \think\response\Json
      */
-    public function getDepartmentList($isJob = false)
+    public function getDepartmentList($isInner = false)
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
-            if ($isJob) {
+            if ($isInner) {
                 return json_encode(['code' => 500, 'msg' => '缺少授权信息']);
             } else {
                 return errorJson('缺少授权信息');
@@ -326,13 +326,13 @@ class AccountController extends BaseController
                 $this->processDepartments($response);
             }
 
-            if ($isJob) {
+            if ($isInner) {
                 return json_encode(['code' => 200, 'msg' => '获取部门列表成功', 'data' => $response]);
             } else {
                 return successJson($response, '获取部门列表成功');
             }
         } catch (\Exception $e) {
-            if ($isJob) {
+            if ($isInner) {
                 return json_encode(['code' => 500, 'msg' => '获取部门列表失败：' . $e->getMessage()]);
             } else {
                 return errorJson('获取部门列表失败：' . $e->getMessage());

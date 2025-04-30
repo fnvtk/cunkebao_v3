@@ -13,12 +13,12 @@ class WechatChatroomController extends BaseController
      * 获取微信群聊列表
      * @return \think\response\Json
      */
-    public function getlist($pageIndex = '',$pageSize = '',$isJob = false, $isDel = '')
+    public function getlist($pageIndex = '',$pageSize = '',$isInner = false, $isDel = '')
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
-        if($isJob){
+        if($isInner){
             return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
         }else{
             return errorJson('缺少授权信息');
@@ -66,7 +66,7 @@ class WechatChatroomController extends BaseController
                 }
             }
 
-            if($isJob){
+            if($isInner){
                 return json_encode(['code'=>200,'msg'=>'success','data'=>$response,'isUpdate'=>$isUpdate]);
             }else{
                 return successJson($response);
@@ -134,7 +134,7 @@ class WechatChatroomController extends BaseController
      * @param string $wechatChatroomId 微信群ID
      * @return \think\response\Json
      */
-    public function listChatroomMember($wechatChatroomId = '',$chatroomId = '',$isJob = false)
+    public function listChatroomMember($wechatChatroomId = '',$chatroomId = '',$isInner = false)
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
@@ -143,7 +143,7 @@ class WechatChatroomController extends BaseController
 
         
         if (empty($authorization)) {
-            if($isJob){
+            if($isInner){
                 return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
             }else{
                 return errorJson('缺少授权信息');
@@ -151,7 +151,7 @@ class WechatChatroomController extends BaseController
         }
 
         if (empty($wechatChatroomId)) {
-            if($isJob){
+            if($isInner){
                 return json_encode(['code'=>500,'msg'=>'群ID不能为空']);
             }else{
                 return errorJson('群ID不能为空');
@@ -179,13 +179,13 @@ class WechatChatroomController extends BaseController
                 }
             }
             
-            if($isJob){
+            if($isInner){
                 return json_encode(['code'=>200,'msg'=>'success','data'=>$response]);
             }else{
                 return successJson($response);
             }
         } catch (\Exception $e) {
-            if($isJob){
+            if($isInner){
                 return json_encode(['code'=>500,'msg'=>'获取群成员列表失败：' . $e->getMessage()]);
             }else{
                 return errorJson('获取群成员列表失败：' . $e->getMessage());

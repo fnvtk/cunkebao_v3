@@ -13,15 +13,15 @@ class FriendTaskController extends BaseController
      * 获取添加好友记录列表
      * @param int $pageIndex 页码
      * @param int $pageSize 每页数量
-     * @param bool $isJob 是否为定时任务调用
+     * @param bool $isInner 是否为定时任务调用
      * @return \think\response\Json
      */
-    public function getlist($pageIndex, $pageSize, $isJob = false)
+    public function getlist($pageIndex, $pageSize, $isInner = false)
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
-            if($isJob){
+            if($isInner){
                 return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
             }else{
                 return errorJson('缺少授权信息');
@@ -52,13 +52,13 @@ class FriendTaskController extends BaseController
                     $this->saveFriendTask($item);
                 }
             }
-            if($isJob){
+            if($isInner){
                 return json_encode(['code'=>200,'msg'=>'获取添加好友记录列表成功','data'=>$response]);
             }else{
                 return successJson($response);
             }
         } catch (\Exception $e) {
-            if($isJob){
+            if($isInner){
                 return json_encode(['code'=>500,'msg'=>'获取添加好友记录列表失败：' . $e->getMessage()]);
             }else{
                 return errorJson('获取添加好友记录列表失败：' . $e->getMessage());

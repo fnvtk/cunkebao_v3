@@ -11,6 +11,7 @@
 
 // 应用公共文件
 use app\common\service\AuthService;
+use think\facade\Cache;
 
 if (!function_exists('requestCurl')) {
     /**
@@ -376,7 +377,8 @@ if (!function_exists('handleApiResponse')) {
 
         // 不是JSON格式，直接返回原始数据
         if($response == '无效路径或登录状态失效'){
-            \think\facade\Cache::rm('system_refresh_token');
+            Cache::rm('system_refresh_token');
+            Cache::rm('system_authorization_token');
             AuthService::getSystemAuthorization();
         }
         

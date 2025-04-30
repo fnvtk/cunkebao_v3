@@ -13,15 +13,15 @@ class WechatFriendController extends BaseController
      * @param string $pageIndex 页码
      * @param string $pageSize 每页大小
      * @param string $preFriendId 上一个好友ID
-     * @param bool $isJob 是否为任务调用
+     * @param bool $isInner 是否为任务调用
      * @return \think\response\Json
      */
-    public function getlist($pageIndex = '', $pageSize = '', $preFriendId = '', $isJob = false,$isDel = '')
+    public function getlist($pageIndex = '', $pageSize = '', $preFriendId = '', $isInner = false,$isDel = '')
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
         if (empty($authorization)) {
-            if ($isJob) {
+            if ($isInner) {
                 return json_encode(['code' => 500, 'msg' => '缺少授权信息']);
             } else {
                 return errorJson('缺少授权信息');
@@ -79,14 +79,14 @@ class WechatFriendController extends BaseController
                 }
             }
             
-            if ($isJob) {
+            if ($isInner) {
                 return json_encode(['code' => 200, 'msg' => 'success', 'data' => $response, 'isUpdate' => $isUpdate]);
             } else {
                 return successJson($response);
             }
             
         } catch (\Exception $e) {
-            if ($isJob) {
+            if ($isInner) {
                 return json_encode(['code' => 500, 'msg' => '获取微信好友列表失败：' . $e->getMessage()]);
             } else {
                 return errorJson('获取微信好友列表失败：' . $e->getMessage());
