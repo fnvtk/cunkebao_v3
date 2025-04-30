@@ -45,31 +45,32 @@ class GetAddResultedDevicesController extends Controller
     protected function migrateData(int $accountId): void
     {
         $companyId = $this->getCompanyIdByAccountId($accountId);
-        $ids = $this->getAllDevicesIdWithInCompany($companyId);
+        $deviceIds = $this->getAllDevicesIdWithInCompany($companyId) ?: [0];
 
         // 从 s2_device 导入数据。
-        $this->getNewDeviceFromS2_device($ids);
+        $this->getNewDeviceFromS2_device($deviceIds, $companyId);
     }
 
     /**
      * 从 s2_device 导入数据。
      *
      * @param array $ids
-     * @return array
+     * @param int $companyId
+     * @return void
      */
-    protected function getNewDeviceFromS2_device(array $ids): array
+    protected function getNewDeviceFromS2_device(array $ids, int $companyId): void
     {
+        $ids = implode(',', $ids);
+
         $sql = "insert into ck_device(`id`, `imei`, `model`, phone, operatingSystem,memo,alive,brand,rooted,xPosed,softwareVersion,extra,createTime,updateTime,deleteTime,companyId)  
                 select 
                     d.id,d.imei,d.model,d.phone,d.operatingSystem,d.memo,d.alive,d.brand,d.rooted,d.xPosed,d.softwareVersion,d.extra,d.createTime,d.lastUpdateTime,d.deleteTime,a.departmentId companyId
                 from s2_device d 
                     join s2_company_account a on d.currentAccountId = a.id
-                where isDeleted = 0 and deletedAndStop = 0 and d.id not in (:ids)
+                where isDeleted = 0 and deletedAndStop = 0 and d.id not in ({$ids}) and a.departmentId = {$companyId}
                 ";
 
-        dd($sql);
-
-        Db::query($sql, ['ids' => implode(',', $ids)]);
+        Db::query($sql);
     }
 
     /**
@@ -90,12 +91,12 @@ class GetAddResultedDevicesController extends Controller
         );
 
         $result = json_decode($result, true);
-        $result = $result['data']['results'][0];
+        $result = $result['data']['results'][0] ?? false;
 
-        return (
+        return $result ? (
             // 125是前端延迟5秒 + 轮询120次 1次/s
-            time() - strtotime($result['lastUpdateTime']) <= 125
-        );
+            time() - strtotime($result['lastUpdateTime']) <= 65
+        ) : false;
     }
 
     /**
