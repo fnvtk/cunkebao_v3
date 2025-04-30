@@ -98,17 +98,14 @@ export default function LoginPage() {
         const response = await loginApi.login(form.phone, form.password)
 
         if (response.code === 200 && response.data) {
-          // 获取用户信息和token
-          const { token, token_expired, member } = response.data
+          // 保存登录信息
+          localStorage.setItem('token', response.data.token)
+          localStorage.setItem('token_expired', response.data.token_expired)
+          localStorage.setItem('s2_accountId', response.data.member.s2_accountId)
           
-          // 保存token和用户信息
-          login(token, {
-            id: member.id,
-            username: member.username || member.account || '',
-            account: member.account,
-            avatar: member.avatar
-          })
-
+          // 保存用户信息
+          localStorage.setItem('userInfo', JSON.stringify(response.data.member))
+          
           // 显示成功提示
           toast({
             title: "登录成功",

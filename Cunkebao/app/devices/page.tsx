@@ -171,8 +171,6 @@ export default function DevicesPage() {
       setIsLoadingQRCode(true)
       setQrCodeImage("") // 清空当前二维码
       
-      console.log("正在请求二维码...");
-      
       // 发起请求获取二维码 - 直接使用fetch避免api工具添加基础URL
       const response = await fetch('http://yi.54word.com/v1/api/device/add', {
         method: 'POST',
@@ -182,8 +180,6 @@ export default function DevicesPage() {
         },
         body: JSON.stringify({})
       })
-      
-      console.log("二维码请求响应状态:", response.status);
       
       // 保存原始响应文本以便调试
       const responseText = await response.text();
@@ -499,6 +495,43 @@ export default function DevicesPage() {
     router.push(`/devices/${deviceId}`);
   }
 
+  // 处理添加设备
+  const handleAddDevice = async () => {
+    try {
+      const s2_accountId = localStorage.getItem('s2_accountId');
+      if (!s2_accountId) {
+        toast.error('未获取到用户信息，请重新登录');
+        return;
+      }
+
+      const response = await fetch('/api/devices', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          imei: deviceImei,
+          memo: deviceName,
+          s2_accountId: s2_accountId,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.code === 200) {
+        toast.success('添加设备成功');
+        setIsAddDeviceOpen(false);
+        // 刷新设备列表
+        loadDevices(1, true);
+      } else {
+        toast.error(data.msg || '添加设备失败');
+      }
+    } catch (error) {
+      console.error('添加设备失败:', error);
+      toast.error('添加设备失败，请稍后重试');
+    }
+  };
+
   return (
     <div className="flex-1 bg-gray-50 min-h-screen">
       <header className="sticky top-0 z-10 bg-white border-b">
@@ -748,15 +781,10 @@ export default function DevicesPage() {
                 取消
               </Button>
                   <Button 
-                    onClick={handleAddDeviceByImei} 
-                    disabled={isSubmittingImei || !deviceImei.trim()}
+                    onClick={handleAddDevice} 
+                    disabled={!deviceImei.trim() || !deviceName.trim()}
                   >
-                    {isSubmittingImei ? (
-                      <>
-                        <div className="w-4 h-4 mr-2 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
-                        提交中...
-                      </>
-                    ) : "添加"}
+                    添加
                   </Button>
             </div>
           </div>
