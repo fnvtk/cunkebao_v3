@@ -171,26 +171,37 @@ export default function DevicesPage() {
       setIsLoadingQRCode(true)
       setQrCodeImage("") // 清空当前二维码
       
+      // 获取保存的accountId
+      const accountId = localStorage.getItem('s2_accountId')
+      if (!accountId) {
+        toast({
+          title: "获取二维码失败",
+          description: "未获取到用户信息，请重新登录",
+          variant: "destructive",
+        })
+        return
+      }
+      
       // 发起请求获取二维码 - 直接使用fetch避免api工具添加基础URL
-      const response = await fetch('http://yi.54word.com/v1/api/device/add', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/api/device/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify({})
+        body: JSON.stringify({
+          accountId: accountId
+        })
       })
       
       // 保存原始响应文本以便调试
       const responseText = await response.text();
-      console.log("原始响应内容:", responseText);
       
       // 尝试将响应解析为JSON
       let result;
       try {
         result = JSON.parse(responseText);
       } catch (e) {
-        console.error("响应不是有效的JSON:", e);
         toast({
           title: "获取二维码失败",
           description: "服务器返回的数据格式无效",
@@ -199,25 +210,19 @@ export default function DevicesPage() {
         return;
       }
       
-      console.log("二维码响应数据:", result);
-      
       if (result && result.code === 200) {
         // 尝试多种可能的返回数据结构
         let qrcodeData = null;
         
         if (result.data?.qrCode) {
           qrcodeData = result.data.qrCode;
-          console.log("找到二维码数据在 result.data.qrCode");
         } else if (result.data?.qrcode) {
           qrcodeData = result.data.qrcode;
-          console.log("找到二维码数据在 result.data.qrcode");
         } else if (result.data?.image) {
           qrcodeData = result.data.image;
-          console.log("找到二维码数据在 result.data.image");
         } else if (result.data?.url) {
           // 如果返回的是URL而不是base64
           qrcodeData = result.data.url;
-          console.log("找到二维码URL在 result.data.url");
           setQrCodeImage(qrcodeData);
           
           toast({
@@ -229,9 +234,7 @@ export default function DevicesPage() {
         } else if (typeof result.data === 'string') {
           // 如果data直接是字符串
           qrcodeData = result.data;
-          console.log("二维码数据直接在 result.data 字符串中");
         } else {
-          console.error("无法找到二维码数据:", result);
           toast({
             title: "获取二维码失败",
             description: "返回数据格式不正确",
@@ -242,7 +245,6 @@ export default function DevicesPage() {
         
         // 检查数据是否为空
         if (!qrcodeData) {
-          console.error("二维码数据为空");
           toast({
             title: "获取二维码失败",
             description: "服务器返回的二维码数据为空",
@@ -251,16 +253,12 @@ export default function DevicesPage() {
           return;
         }
         
-        console.log("处理前的二维码数据:", qrcodeData);
-        
         // 检查是否已经是完整的data URL
         if (qrcodeData.startsWith('data:image')) {
-          console.log("数据已包含data:image前缀");
           setQrCodeImage(qrcodeData);
         } 
         // 检查是否是URL
         else if (qrcodeData.startsWith('http')) {
-          console.log("数据是HTTP URL");
           setQrCodeImage(qrcodeData);
         }
         // 尝试作为base64处理
@@ -268,7 +266,6 @@ export default function DevicesPage() {
           try {
             // 确保base64字符串没有空格等干扰字符
             const cleanedBase64 = qrcodeData.trim();
-            console.log("处理后的base64数据:", cleanedBase64.substring(0, 30) + "...");
             
             // 直接以图片src格式设置
             setQrCodeImage(`data:image/png;base64,${cleanedBase64}`);
@@ -276,10 +273,9 @@ export default function DevicesPage() {
             // 预加载图片，确认是否有效
             const img = new Image();
             img.onload = () => {
-              console.log("二维码图片加载成功");
+              // 图片加载成功
             };
             img.onerror = (e) => {
-              console.error("二维码图片加载失败:", e);
               toast({
                 title: "二维码加载失败",
                 description: "服务器返回的数据无法显示为图片",
@@ -288,7 +284,6 @@ export default function DevicesPage() {
             };
             img.src = `data:image/png;base64,${cleanedBase64}`;
           } catch (e) {
-            console.error("处理base64数据出错:", e);
             toast({
               title: "获取二维码失败",
               description: "图片数据处理失败",
@@ -303,7 +298,6 @@ export default function DevicesPage() {
           description: "请使用手机扫描新的二维码添加设备",
         });
       } else {
-        console.error("获取二维码失败:", result);
         toast({
           title: "获取二维码失败",
           description: result?.msg || "请稍后重试",
@@ -311,7 +305,6 @@ export default function DevicesPage() {
         });
       }
     } catch (error) {
-      console.error("获取二维码失败", error);
       toast({
         title: "获取二维码失败",
         description: "请检查网络连接后重试",
@@ -343,7 +336,6 @@ export default function DevicesPage() {
     
     try {
       setIsSubmittingImei(true);
-      console.log("正在添加设备，IMEI:", deviceImei, "设备名称:", deviceName);
       
       // 使用api.post发送请求到/v1/devices
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/devices`, {
@@ -359,18 +351,14 @@ export default function DevicesPage() {
         })
       });
       
-      console.log("添加设备响应状态:", response.status);
-      
       // 保存原始响应文本以便调试
       const responseText = await response.text();
-      console.log("原始响应内容:", responseText);
       
       // 尝试将响应解析为JSON
       let result;
       try {
         result = JSON.parse(responseText);
       } catch (e) {
-        console.error("响应不是有效的JSON:", e);
         toast({
           title: "添加设备失败",
           description: "服务器返回的数据格式无效",
@@ -378,8 +366,6 @@ export default function DevicesPage() {
         });
         return;
       }
-      
-      console.log("添加设备响应:", result);
       
       if (result && result.code === 200) {
         toast({
@@ -395,7 +381,6 @@ export default function DevicesPage() {
         // 刷新设备列表
         loadDevices(1, true);
       } else {
-        console.error("添加设备失败:", result);
         toast({
           title: "添加设备失败",
           description: result?.msg || "请检查设备信息是否正确",
@@ -403,7 +388,6 @@ export default function DevicesPage() {
         });
       }
     } catch (error) {
-      console.error("添加设备请求失败:", error);
       toast({
         title: "请求失败",
         description: "网络错误，请稍后重试",
@@ -675,7 +659,7 @@ export default function DevicesPage() {
           </DialogHeader>
           
           <Tabs defaultValue="scan" value={activeTab} onValueChange={setActiveTab} className="mt-4">
-            <TabsList className="grid grid-cols-2 w-full">
+            {/* <TabsList className="grid grid-cols-2 w-full">
               <TabsTrigger value="scan" className="flex items-center">
                 <QrCode className="h-4 w-4 mr-2" />
                 扫码添加
@@ -684,7 +668,7 @@ export default function DevicesPage() {
                 <Smartphone className="h-4 w-4 mr-2" />
                 手动添加
               </TabsTrigger>
-            </TabsList>
+            </TabsList> */}
             
             <TabsContent value="scan" className="space-y-4 py-4">
               <div className="flex flex-col items-center justify-center p-6 space-y-4">

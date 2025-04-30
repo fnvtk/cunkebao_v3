@@ -20,18 +20,23 @@ const menuItems = [
 
 export default function ProfilePage() {
   const router = useRouter()
-  const { isAuthenticated, user, logout } = useAuth()
   const [showLogoutDialog, setShowLogoutDialog] = useState(false)
+  const [userInfo, setUserInfo] = useState<any>(null)
 
-  // 处理身份验证状态，将路由重定向逻辑移至useEffect
+  // 从localStorage获取用户信息
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/login")
+    const userInfoStr = localStorage.getItem('userInfo')
+    if (userInfoStr) {
+      setUserInfo(JSON.parse(userInfoStr))
     }
-  }, [isAuthenticated, router])
+  }, [])
 
   const handleLogout = () => {
-    logout() // 使用AuthProvider中的logout方法删除本地保存的用户信息
+    // 清除本地存储的用户信息
+    localStorage.removeItem('token')
+    localStorage.removeItem('token_expired')
+    localStorage.removeItem('s2_accountId')
+    localStorage.removeItem('userInfo')
     setShowLogoutDialog(false)
     router.push("/login")
   }
@@ -57,14 +62,14 @@ export default function ProfilePage() {
         <Card className="p-6">
           <div className="flex items-center space-x-4">
             <Avatar className="w-20 h-20">
-              <AvatarImage src={user?.avatar || ""} />
-              <AvatarFallback>{user?.username ? user.username.slice(0, 2) : "用户"}</AvatarFallback>
+              <AvatarImage src={userInfo?.avatar || ""} />
+              <AvatarFallback>{userInfo?.username ? userInfo.username.slice(0, 2) : "用户"}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <h2 className="text-xl font-semibold text-blue-600">{user?.username || "用户"}</h2>
+              <h2 className="text-xl font-semibold text-blue-600">{userInfo?.username || "用户"}</h2>
               <p className="text-gray-500">
                 账号: <ClientOnly fallback="加载中...">
-                  {user?.account || Math.floor(10000000 + Math.random() * 90000000).toString()}
+                  {userInfo?.account || Math.floor(10000000 + Math.random() * 90000000).toString()}
                 </ClientOnly>
               </p>
               <div className="mt-2">

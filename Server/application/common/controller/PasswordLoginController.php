@@ -6,7 +6,6 @@ use app\common\model\User as UserModel;
 use app\common\util\JwtUtil;
 use Exception;
 use library\ResponseHelper;
-use think\response\Json;
 use think\Validate;
 
 /**
@@ -24,12 +23,16 @@ class PasswordLoginController extends BaseController
      */
     protected function getUserProfileWithAccountAndType(string $account, int $typeId): UserModel
     {
-        $user = UserModel::where(function ($query) use ($account) {
-            $query->where('phone', $account)->whereOr('account', $account);
-        })
-            ->where(function ($query) use ($typeId) {
-                $query->where('status', 1)->where('typeId', $typeId);
-            })->find();
+        $user = UserModel::where(
+            function ($query) use ($account) {
+                $query->where('phone', $account)->whereOr('account', $account);
+            }
+        )
+            ->where(
+                function ($query) use ($typeId) {
+                    $query->where('status', 1)->where('typeId', $typeId);
+                }
+            )->find();
 
         return $user;
     }
@@ -54,7 +57,10 @@ class PasswordLoginController extends BaseController
             throw new \Exception('账号或密码错误', 403);
         }
 
-        return $user->toArray();
+        return array_merge($user->toArray(), [
+            'lastLoginIp' => $this->request->ip(),
+            'lastLoginTime' => time()
+        ]);
     }
 
     /**
@@ -100,8 +106,8 @@ class PasswordLoginController extends BaseController
         $member = $this->getUser($account, $password, $typeId);
 
         // 生成JWT令牌
-        $token = JwtUtil::createToken($member, 7200);
-        $token_expired = time() + 7200;
+        $token = JwtUtil::createToken($member, 86400);
+        $token_expired = time() + 86400;
 
         return compact('member', 'token', 'token_expired');
     }
@@ -109,7 +115,7 @@ class PasswordLoginController extends BaseController
     /**
      * 用户登录
      *
-     * @return Json
+     * @return \think\response\Json
      */
     public function index()
     {
