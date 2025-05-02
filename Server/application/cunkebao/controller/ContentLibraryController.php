@@ -114,7 +114,7 @@ class ContentLibraryController extends Controller
             $where[] = ['name', 'like', '%' . $keyword . '%'];
         }
 
-        // 添加名称模糊搜索
+   // 添加名称模糊搜索
         if (!empty($sourceType)) {
             $where[] = ['sourceType', '=', $sourceType];
         }
@@ -222,49 +222,49 @@ class ContentLibraryController extends Controller
         $library['keywordExclude'] = json_decode($library['keywordExclude'] ?: '[]', true);
         $library['groupMembers'] = json_decode($library['groupMembers'] ?: '[]', true);
 
-        // 将时间戳转换为日期格式（精确到日）
-        if (!empty($library['timeStart'])) {
-            $library['timeStart'] = date('Y-m-d', $library['timeStart']);
-        }
-        if (!empty($library['timeEnd'])) {
-            $library['timeEnd'] = date('Y-m-d', $library['timeEnd']);
-        }
+    // 将时间戳转换为日期格式（精确到日）
+    if (!empty($library['timeStart'])) {
+        $library['timeStart'] = date('Y-m-d', $library['timeStart']);
+    }
+    if (!empty($library['timeEnd'])) {
+        $library['timeEnd'] = date('Y-m-d', $library['timeEnd']);
+    }
 
-        // 获取好友详细信息
-        if (!empty($library['sourceFriends'])) {
-            $friendIds = $library['sourceFriends'];
-            $friendsInfo = [];
-            
-            if (!empty($friendIds)) {
-               // 查询好友信息，使用wechat_friend表
-                $friendsInfo = Db::name('wechat_friend')->alias('wf')
-                ->field('wf.id,wf.wechatId, wa.nickname, wa.avatar')
-                ->join('wechat_account wa', 'wf.wechatId = wa.wechatId')
-                ->whereIn('wf.id', $friendIds)
+    // 获取好友详细信息
+    if (!empty($library['sourceFriends'])) {
+        $friendIds = $library['sourceFriends'];
+        $friendsInfo = [];
+        
+        if (!empty($friendIds)) {
+           // 查询好友信息，使用wechat_friend表
+            $friendsInfo = Db::name('wechat_friend')->alias('wf')
+            ->field('wf.id,wf.wechatId, wa.nickname, wa.avatar')
+            ->join('wechat_account wa', 'wf.wechatId = wa.wechatId')
+            ->whereIn('wf.id', $friendIds)
+            ->select();
+        }
+        
+        // 将好友信息添加到返回数据中
+        $library['selectedFriends'] = $friendsInfo;
+    }
+
+    // 获取群组详细信息
+    if (!empty($library['sourceGroups'])) {
+        $groupIds = $library['sourceGroups'];
+        $groupsInfo = [];
+        
+        if (!empty($groupIds)) {
+            // 查询群组信息
+            $groupsInfo = Db::name('wechat_group')->alias('g')
+                ->field('g.id, g.chatroomId, g.name, g.avatar, g.ownerWechatId,wa.nickname as ownerNickname,wa.avatar as ownerAvatar,wa.alias as ownerAlias')
+                ->join('wechat_account wa', 'g.ownerWechatId = wa.wechatId')
+                ->whereIn('g.id', $groupIds)
                 ->select();
-            }
-            
-            // 将好友信息添加到返回数据中
-            $library['selectedFriends'] = $friendsInfo;
         }
-
-        // 获取群组详细信息
-        if (!empty($library['sourceGroups'])) {
-            $groupIds = $library['sourceGroups'];
-            $groupsInfo = [];
-            
-            if (!empty($groupIds)) {
-                // 查询群组信息
-                $groupsInfo = Db::name('wechat_group')->alias('g')
-                    ->field('g.id, g.chatroomId, g.name, g.avatar, g.ownerWechatId,wa.nickname as ownerNickname,wa.avatar as ownerAvatar,wa.alias as ownerAlias')
-                    ->join('wechat_account wa', 'g.ownerWechatId = wa.wechatId')
-                    ->whereIn('g.id', $groupIds)
-                    ->select();
-            }
-            
-            // 将群组信息添加到返回数据中
-            $library['selectedGroups'] = $groupsInfo;
-        }
+        
+        // 将群组信息添加到返回数据中
+        $library['selectedGroups'] = $groupsInfo;
+    }
 
         return json([
             'code' => 200, 
@@ -272,7 +272,7 @@ class ContentLibraryController extends Controller
             'data' => $library
         ]);
     }
-    
+
     /**
      * 更新内容库
      * @return \think\response\Json
@@ -375,7 +375,7 @@ class ContentLibraryController extends Controller
     /************************************
      * 内容项目管理相关功能
      ************************************/
-    
+
     /**
      * 添加内容项目
      * @return \think\response\Json

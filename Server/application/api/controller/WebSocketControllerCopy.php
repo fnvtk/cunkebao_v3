@@ -6,22 +6,15 @@ namespace app\api\controller;
 
 use think\cache\driver\Redis;
 use think\Db;
-use think\facade\Log;
+use think\Log;
 use WebSocket\Client;
 use think\facade\Env;
-use app\api\model\WechatFriendModel as WechatFriend; 
-use app\api\model\WechatMomentsModel as WechatMoments;
 
-
-
-class WebSocketController extends BaseController
+class WebSocketControllerCopy extends BaseController
 {
     protected $authorized;
     protected $accountId;
     protected $client;
-    protected $isConnected = false;
-    protected $lastHeartbeatTime = 0;
-    protected $heartbeatInterval = 30; // 心跳间隔，单位秒
 
     /************************************
      * 初始化相关功能
@@ -34,16 +27,9 @@ class WebSocketController extends BaseController
     public function __construct($userData = [])
     {
         parent::__construct();
-        $this->initConnection($userData);
-    }
 
-    /**
-     * 初始化WebSocket连接
-     * @param array $userData 用户数据
-     */
-    protected function initConnection($userData = [])
-    {
         if(!empty($userData) && count($userData)){
+
             if (empty($userData['userName']) || empty($userData['password'])) {
                 return json_encode(['code'=>400,'msg'=>'参数缺失']);
             }
@@ -52,42 +38,38 @@ class WebSocketController extends BaseController
                 'username' => $userData['userName'],
                 'password' => $userData['password']
             ];
-            
+
             // 调用登录接口获取token
+            // 设置请求头
             $headerData = ['client:kefu-client'];
             $header = setHeader($headerData, '', 'plain');
-            $result = requestCurl('https://kf.quwanzhi.com:9991/token', $params, 'POST', $header);
+            $result = requestCurl('https://kf.quwanzhi.com:9991/token', $params, 'POST',$header);
             $result_array = handleApiResponse($result);
 
             if (isset($result_array['access_token']) && !empty($result_array['access_token'])) {
-                $this->authorized = $result_array['access_token'];
+                $authorization = $result_array['access_token'];
+                $this->authorized = $authorization;
                 $this->accountId = $userData['accountId'];
+               
             } else {
                 return json_encode(['code'=>400,'msg'=>'获取系统授权信息失败']);
             }
-        } else {
+        }else{
             $this->authorized = $this->request->header('authorization', '');
             $this->accountId = $this->request->param('accountId', '');
         }
 
+
         if (empty($this->authorized) || empty($this->accountId)) {
+            $data['authorized'] = $this->authorized;
+            $data['accountId'] = $this->accountId;
             return json_encode(['code'=>400,'msg'=>'缺失关键参数']);
         }
 
-        $this->connect();
-        }
-
-    /**
-     * 建立WebSocket连接
-     */
-    protected function connect()
-    {
-        try {
         //证书
         $context = stream_context_create();
         stream_context_set_option($context, 'ssl', 'verify_peer', false);
         stream_context_set_option($context, 'ssl', 'verify_peer_name', false);
-            
         //开启WS链接
         $result = [
             "accessToken" => $this->authorized,
@@ -96,6 +78,7 @@ class WebSocketController extends BaseController
             "cmdType" => "CmdSignIn",
             "seq" => 1,
         ];
+
 
         $content = json_encode($result);
         $this->client = new Client("wss://kf.quwanzhi.com:9993",
@@ -109,97 +92,7 @@ class WebSocketController extends BaseController
                 'timeout' => 86400,
             ]
         );
-            
         $this->client->send($content);
-            $this->isConnected = true;
-            $this->lastHeartbeatTime = time();
-            
-            // 启动心跳检测
-            //$this->startHeartbeat();
-            
-        } catch (\Exception $e) {
-            Log::error("WebSocket连接失败：" . $e->getMessage());
-            $this->isConnected = false;
-        }
-    }
-
-    /**
-     * 启动心跳检测
-     */
-    protected function startHeartbeat()
-    {
-        // 使用定时器发送心跳
-        \Swoole\Timer::tick($this->heartbeatInterval * 1000, function() {
-            if ($this->isConnected) {
-                $this->sendHeartbeat();
-            }
-        });
-    }
-
-    /**
-     * 发送心跳包
-     */
-    protected function sendHeartbeat()
-    {
-        try {
-            $heartbeat = [
-                "cmdType" => "CmdHeartbeat",
-                "seq" => time()
-            ];
-            
-            $this->client->send(json_encode($heartbeat));
-            $this->lastHeartbeatTime = time();
-            
-        } catch (\Exception $e) {
-            Log::error("发送心跳包失败：" . $e->getMessage());
-            $this->reconnect();
-        }
-    }
-
-    /**
-     * 重连机制
-     */
-    protected function reconnect()
-    {
-        try {
-            if ($this->client) {
-                $this->client->close();
-            }
-            $this->isConnected = false;
-            $this->connect();
-        } catch (\Exception $e) {
-            Log::error("WebSocket重连失败：" . $e->getMessage());
-        }
-    }
-
-    /**
-     * 检查连接状态
-     */
-    protected function checkConnection()
-    {
-        if (!$this->isConnected || (time() - $this->lastHeartbeatTime) > $this->heartbeatInterval * 2) {
-            $this->reconnect();
-        }
-    }
-
-    /**
-     * 发送消息
-     * @param array $data 消息数据
-     * @return array
-     */
-    protected function sendMessage($data)
-    {
-        $this->checkConnection();
-        
-        try {
-            $this->client->send(json_encode($data));
-            $response = $this->client->receive();
-            return json_decode($response, true);
-        } catch (\Exception $e) {
-            Log::error("发送消息失败：" . $e->getMessage());
-            $this->reconnect();
-            return ['code' => 500, 'msg' => '发送消息失败'];
-        }
     }
 
     /************************************
@@ -213,89 +106,53 @@ class WebSocketController extends BaseController
      */
     public function getMoments($data = [])
     {
+        
         $count = !empty($data['count']) ? $data['count'] : 10;
         $wechatAccountId = !empty($data['wechatAccountId']) ? $data['wechatAccountId'] : '';
-        $wechatFriendId = !empty($data['wechatFriendId']) ? $data['wechatFriendId'] : 0;
-        $prevSnsId = !empty($data['prevSnsId']) ? $data['prevSnsId'] : 0;
-        $maxPages = 20; // 最大页数限制为20
-        $currentPage = 1; // 当前页码
-        $allMoments = []; // 存储所有朋友圈数据
+        $wechatFriendId = !empty($data['id']) ? $data['id'] : '';
      
         //过滤消息
         if (empty($wechatAccountId)) {
             return json_encode(['code'=>400,'msg'=>'指定账号不能为空']);
         }
-
-        try {
-            do {
-                $params = [
-                    "cmdType" => "CmdFetchMoment",
-                    "count" => $count,
-                    "createTimeSec" => time(),
-                    "isTimeline" => false,
-                    "prevSnsId" => $prevSnsId,
-                    "wechatAccountId" => $wechatAccountId,
-                    "wechatFriendId" => $wechatFriendId,
-                    "seq" => time(),
-                ];
-
-                Log::info('获取朋友圈信：' . json_encode($params, 256));
-                $message = $this->sendMessage($params);
-                Log::info('获取朋友圈信成功：' . json_encode($message, 256));
-
-                // 检查返回结果
-                if (!isset($message['result']) || empty($message['result']) || !is_array($message['result'])) {
-                    break;
-                }
-
-
-
-                // 合并朋友圈数据
-                $allMoments = array_merge($allMoments, $message['result']);
-
-                // 存储当前页的朋友圈数据到数据库
-                $this->saveMomentsToDatabase($message['result'], $wechatAccountId, $wechatFriendId);
-
-                // 获取最后一条数据的snsId，用于下次查询
-                $lastMoment = end($message['result']);
-                if (!$lastMoment || !isset($lastMoment['snsId'])) {
-                    break;
-                }
-
-                $prevSnsId = $lastMoment['snsId'];
-                $currentPage++;
-
-                // 如果已经达到最大页数，退出循环
-                if ($currentPage > $maxPages) {
-                    Log::info('已达到最大页数限制(' . $maxPages . '页),结束本次任务');
-                    break;
-                }
-
-                // 如果返回的数据少于请求的数量，说明没有更多数据了
-                if (count($message['result']) < $count) {
-                    break;
-                }
-
-            } while (true);
-
-            // 构建返回数据
-            $result = [
-                'code' => 200,
-                'msg' => '获取朋友圈信息成功',
-                'data' => [
-                    'list' => $allMoments,
-                    'total' => count($allMoments),
-                    'nextPrevSnsId' => $prevSnsId
-                ]
-            ];
-
-            return json_encode($result);
-        } catch (\Exception $e) {
-            return json_encode(['code'=>500,'msg'=>$e->getMessage()]);
+        if (empty($wechatFriendId)) {
+            return json_encode(['code'=>400,'msg'=>'指定好友不能为空']);
         }
+        $msg = '获取朋友圈信息成功';
+        $message = [];
+        try {
+            $params = [
+                "cmdType" => "CmdFetchMoment",
+                "count" => $count,
+                "createTimeSec" => time(),
+                "isTimeline" => false,
+                "prevSnsId" => 0,
+                "wechatAccountId" => $wechatAccountId,
+                "wechatFriendId" => $wechatFriendId,
+                "seq" => time(),
+            ];
+            $params = json_encode($params);
+            //Log::write('WS获取朋友圈信息参数：' . json_encode($params, 256));
+            $this->client->send($params);
+            $message = $this->client->receive();
+            //Log::write('WS获取朋友圈信息成功，结果：' . $message);
+            $message = json_decode($message, 1);
+
+            // 存储朋友圈数据到数据库
+            if (isset($message['result']) && !empty($message['result'])) {
+                $this->saveMomentsToDatabase($message['result'], $wechatAccountId, $wechatFriendId);
+            }
+            
+            //关闭WS链接
+            $this->client->close();
+        } catch (\Exception $e) {
+            $msg = $e->getMessage();
+        }
+
+        return json_encode(['code'=>200,'msg'=>$msg,'data'=>$message]);
     }
 
-   /**
+    /**
      * 朋友圈点赞
      * @return \think\response\Json
      */
@@ -307,36 +164,43 @@ class WebSocketController extends BaseController
             if (empty($data)) {
                 return json_encode(['code'=>400,'msg'=>'参数缺失']);
             }
+            $dataArray = $data;
+            if (!is_array($dataArray)) {
+                return json_encode(['code'=>400,'msg'=>'数据格式错误']);
+            }
 
             //过滤消息
-            if (empty($data['snsId'])) {
+            if (empty($dataArray['snsId'])) {
                 return json_encode(['code'=>400,'msg'=>'snsId不能为空']);
             }
-            if (empty($data['wechatAccountId'])) {
+            if (empty($dataArray['wechatAccountId'])) {
                 return json_encode(['code'=>400,'msg'=>'微信id不能为空']);
             }
             
-            try {
+            
             $result = [
                 "cmdType" => "CmdMomentInteract",
                 "momentInteractType" => 1,
                 "seq" => time(),
-                    "snsId" => $data['snsId'],
-                    "wechatAccountId" => $data['wechatAccountId'],
+                "snsId" => $dataArray['snsId'],
+                "wechatAccountId" => $dataArray['wechatAccountId'],
                 "wechatFriendId" => 0,
             ];
 
-                $message = $this->sendMessage($result);
-                return json_encode(['code'=>200,'msg'=>'点赞成功','data'=>$message]);
-            } catch (\Exception $e) {
-                return json_encode(['code'=>500,'msg'=>$e->getMessage()]);
-            }
+            $result = json_encode($result);
+            $this->client->send($result);
+            $message = $this->client->receive();
+            $message = json_decode($message, 1);
+            //关闭WS链接
+            $this->client->close();
+            //Log::write('WS个人消息发送');
+            return json_encode(['code'=>200,'msg'=>'点赞成功','data'=>$message]);
         } else {
             return json_encode(['code'=>400,'msg'=>'非法请求']);
         }
     }
 
-      /**
+    /**
      * 朋友圈取消点赞
      * @return \think\response\Json
      */
@@ -348,32 +212,39 @@ class WebSocketController extends BaseController
             if (empty($data)) {
                 return json_encode(['code'=>400,'msg'=>'参数缺失']);
             }
+            $dataArray = $data;
+            if (!is_array($dataArray)) {
+                return json_encode(['code'=>400,'msg'=>'数据格式错误']);
+            }
 
             //过滤消息
-            if (empty($data['snsId'])) {
+            if (empty($dataArray['snsId'])) {
                 return json_encode(['code'=>400,'msg'=>'snsId不能为空']);
             }
-            if (empty($data['wechatAccountId'])) {
+            if (empty($dataArray['wechatAccountId'])) {
                 return json_encode(['code'=>400,'msg'=>'微信id不能为空']);
             }
             
-            try {
+            
             $result = [
                 "CommentId2" => '',
                 "CommentTime" => 0,
                 "cmdType" => "CmdMomentCancelInteract",
                 "optType" => 1,
                 "seq" => time(),
-                    "snsId" => $data['snsId'],
-                    "wechatAccountId" => $data['wechatAccountId'],
+                "snsId" => $dataArray['snsId'],
+                "wechatAccountId" => $dataArray['wechatAccountId'],
                 "wechatFriendId" => 0,
             ];
 
-                $message = $this->sendMessage($result);
-                return json_encode(['code'=>200,'msg'=>'取消点赞成功','data'=>$message]);
-            } catch (\Exception $e) {
-                return json_encode(['code'=>500,'msg'=>$e->getMessage()]);
-            }
+            $result = json_encode($result);
+            $this->client->send($result);
+            $message = $this->client->receive();
+            $message = json_decode($message, 1);
+            //关闭WS链接
+            $this->client->close();
+            //Log::write('WS个人消息发送');
+            return json_encode(['code'=>200,'msg'=>'取消点赞成功','data'=>$message]);
         } else {
             return json_encode(['code'=>400,'msg'=>'非法请求']);
         }
@@ -419,10 +290,10 @@ class WebSocketController extends BaseController
                 ];
                 $params = json_encode($params);
                 $this->client->send($params);
-            $message = $this->client->receive();
+                $message = $this->client->receive();
                 //Log::write('WS获取朋友圈图片/视频链接成功，结果：' . json_encode($message, 256));
-            //关闭WS链接
-            $this->client->close();
+                //关闭WS链接
+                $this->client->close();
             } catch (\Exception $e) {
                 $msg = $e->getMessage();
             }
@@ -445,7 +316,6 @@ class WebSocketController extends BaseController
         if (empty($momentList) || !is_array($momentList)) {
             return false;
         }
-
         
         try {
             foreach ($momentList as $moment) {
@@ -453,7 +323,8 @@ class WebSocketController extends BaseController
                 $momentEntity = $moment['momentEntity'] ?? [];
                 
                 // 检查朋友圈数据是否已存在
-                $momentId = WechatMoments::where('snsId', $moment['snsId'])
+                $momentId = Db::table('s2_wechat_moments')
+                    ->where('snsId', $moment['snsId'])
                     ->where('wechatAccountId', $wechatAccountId)
                     ->value('id');
                     
@@ -473,7 +344,7 @@ class WebSocketController extends BaseController
                     'update_time' => time()
                 ];
                     
-                if (!empty($momentId)) {
+                if ($momentId) {
                     // 如果已存在，则更新数据
                     Db::table('s2_wechat_moments')->where('id', $momentId)->update($dataToSave);
                 } else {
@@ -482,9 +353,9 @@ class WebSocketController extends BaseController
                     }
                     // 如果不存在，则插入新数据
                     $dataToSave['wechatAccountId'] = $wechatAccountId;
-                    $dataToSave['wechatFriendId'] = $wechatFriendId ?? 0;
+                    $dataToSave['wechatFriendId'] = $wechatFriendId;
                     $dataToSave['create_time'] = time();
-                    $res = WechatMoments::create($dataToSave);
+                    Db::table('s2_wechat_moments')->insert($dataToSave);
                 }
             }
             

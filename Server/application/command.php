@@ -26,4 +26,5 @@ return [
     'allotrule:list' => 'app\command\AllotRuleListCommand', // 分配规则列表 √
     'allotrule:autocreate' => 'app\command\AutoCreateAllotRulesCommand', // 自动创建分配规则 √
     'content:collect' => 'app\command\ContentCollectCommand', // 内容采集任务 √
+    'moments:collect' => 'app\command\WechatMomentsCommand', // 朋友圈采集任务
 ];
