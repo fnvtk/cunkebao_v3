@@ -32,7 +32,7 @@ class BaseController extends Controller
      * @return mixed
      * @throws \Exception
      */
-    protected function getUserInfo(string $column = '')
+    protected function getUserInfo(?string $column = null)
     {
         $user = $this->request->userInfo;
 

@@ -15,6 +15,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
 import { TrafficPoolSelector } from "@/app/components/traffic-pool-selector"
+import { toast } from "@/components/ui/use-toast"
 
 // 模拟数据
 const planDetails = {
@@ -123,11 +124,39 @@ export default function EditTrafficDistributionPage({ params }: { params: { id: 
     }
   }
 
-  const handleSubmit = () => {
-    // 这里处理表单提交逻辑
-    console.log("提交表单数据:", formData)
-    router.push(`/workspace/traffic-distribution/${params.id}`)
-  }
+  const handleSubmit = async (formData: any) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/api/traffic-distribution/${params.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(formData)
+      });
+      
+      const data = await response.json();
+      if (data.code === 200) {
+        toast({
+          title: "保存成功",
+          description: "流量分配计划已更新",
+        });
+        router.push('/workspace/traffic-distribution');
+      } else {
+        toast({
+          title: "保存失败",
+          description: data.msg || "请稍后重试",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "保存失败",
+        description: "网络错误，请稍后重试",
+        variant: "destructive",
+      });
+    }
+  };
 
   const isStep1Valid = formData.name && formData.source
   const isStep2Valid = formData.targetGroups.length > 0 || formData.targetDevices.length > 0
@@ -463,7 +492,7 @@ export default function EditTrafficDistributionPage({ params }: { params: { id: 
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   上一步
                 </Button>
-                <Button onClick={handleSubmit} disabled={!isStep3Valid}>
+                <Button onClick={() => handleSubmit(formData)} disabled={!isStep3Valid}>
                   保存修改
                 </Button>
               </div>

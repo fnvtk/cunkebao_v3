@@ -9,6 +9,7 @@ import { BasicSettings } from "../components/basic-settings"
 import { GroupSelector } from "../components/group-selector"
 import { ContentSelector } from "../components/content-selector"
 import type { WechatGroup, ContentLibrary } from "@/types/group-sync"
+import { toast } from "@/components/ui/use-toast"
 
 const steps = [
   { id: 1, title: "步骤 1", subtitle: "基础设置" },
@@ -46,11 +47,39 @@ export default function NewGroupSyncPage() {
     setFormData((prev) => ({ ...prev, contentLibraries }))
   }
 
-  const handleSave = () => {
-    // 这里可以添加保存逻辑，例如API调用
-    console.log("保存表单数据:", formData)
-    router.push("/workspace/group-sync")
-  }
+  const handleSubmit = async (formData: any) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/api/group-sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(formData)
+      });
+      
+      const data = await response.json();
+      if (data.code === 200) {
+        toast({
+          title: "创建成功",
+          description: "群同步计划已创建",
+        });
+        router.push('/workspace/group-sync');
+      } else {
+        toast({
+          title: "创建失败",
+          description: data.msg || "请稍后重试",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "创建失败",
+        description: "网络错误，请稍后重试",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleCancel = () => {
     router.push("/workspace/group-sync")
@@ -81,7 +110,7 @@ export default function NewGroupSyncPage() {
               isEnabled: formData.isEnabled,
             }}
             onNext={handleBasicSettingsNext}
-            onSave={handleSave}
+            onSave={handleSubmit}
             onCancel={handleCancel}
           />
         )}
@@ -92,7 +121,7 @@ export default function NewGroupSyncPage() {
             onGroupsChange={handleGroupsChange}
             onPrevious={() => setCurrentStep(1)}
             onNext={() => setCurrentStep(3)}
-            onSave={handleSave}
+            onSave={handleSubmit}
             onCancel={handleCancel}
           />
         )}
@@ -103,7 +132,7 @@ export default function NewGroupSyncPage() {
             onLibrariesChange={handleLibrariesChange}
             onPrevious={() => setCurrentStep(2)}
             onNext={() => setCurrentStep(4)}
-            onSave={handleSave}
+            onSave={handleSubmit}
             onCancel={handleCancel}
           />
         )}
@@ -118,7 +147,7 @@ export default function NewGroupSyncPage() {
               <Button type="button" variant="outline" onClick={() => setCurrentStep(3)}>
                 上一步
               </Button>
-              <Button type="button" onClick={handleSave}>
+              <Button type="button" onClick={handleSubmit}>
                 完成
               </Button>
               <Button type="button" variant="outline" onClick={handleCancel}>

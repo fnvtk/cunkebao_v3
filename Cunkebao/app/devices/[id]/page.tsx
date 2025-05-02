@@ -134,13 +134,9 @@ export default function DeviceDetailPage() {
           } else if (serverData.taskConfig) {
             try {
               // 解析taskConfig字段
-              let taskConfig = serverData.taskConfig
-              if (typeof taskConfig === 'string') {
-                taskConfig = JSON.parse(taskConfig)
-              }
+              const taskConfig = JSON.parse(serverData.taskConfig || '{}');
               
               if (taskConfig) {
-                console.log('解析的taskConfig:', taskConfig);
                 formattedDevice.features = {
                   autoAddFriend: Boolean(taskConfig.autoAddFriend),
                   autoReply: Boolean(taskConfig.autoReply),
