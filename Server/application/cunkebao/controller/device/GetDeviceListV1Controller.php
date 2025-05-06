@@ -1,4 +1,5 @@
 <?php
+
 namespace app\cunkebao\controller\device;
 
 use app\common\model\Device as DeviceModel;
@@ -70,7 +71,7 @@ class GetDeviceListV1Controller extends BaseController
     protected function getDeviceList(array $where, int $page = 1, int $limit = 10): \think\Paginator
     {
         $query = DeviceModel::alias('d')
-            ->field(['d.id', 'd.imei', 'd.memo', 'l.wechatId', 'd.alive','wa.nickname','wa.alias', '0 totalFriend'])
+            ->field(['d.id', 'd.imei', 'd.memo', 'l.wechatId', 'd.alive', 'wa.nickname', 'wa.alias', '0 totalFriend'])
             ->leftJoin('device_wechat_login l', 'd.id = l.deviceId')
             ->leftJoin('wechat_account wa', 'l.wechatId = wa.wechatId')
             ->order('d.id desc');

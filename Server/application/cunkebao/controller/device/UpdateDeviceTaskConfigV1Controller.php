@@ -1,13 +1,13 @@
 <?php
+
 namespace app\cunkebao\controller\device;
 
+use app\common\model\Device as DeviceModel;
+use app\common\model\DeviceHandleLog as DeviceHandleLogModel;
 use app\common\model\DeviceTaskconf;
 use app\common\model\DeviceUser as DeviceUserModel;
 use app\cunkebao\controller\BaseController;
-use app\common\model\Device as DeviceModel;
-use app\common\model\DeviceHandleLog as DeviceHandleLogModel;
 use think\Db;
-use think\facade\Request;
 
 /**
  * 设备管理控制器
@@ -69,10 +69,10 @@ class UpdateDeviceTaskConfigV1Controller extends BaseController
         $data = $this->request->post();
         $content = null;
 
-        if (isset($data['autoAddFriend']))/**/$content = $data['autoAddFriend'] ? '开启自动添加好友' : '关闭自动添加好友';
-        if (isset($data['autoReply']))/*    */$content = $data['autoReply'] ? '开启自动回复' : '关闭自动回复';
-        if (isset($data['momentsSync']))/*  */$content = $data['momentsSync'] ? '开启朋友圈同步' : '关闭朋友圈同步';
-        if (isset($data['aiChat']))/*       */$content = $data['aiChat'] ? '开启AI会话' : '关闭AI会话';
+        if (isset($data['autoAddFriend']))/**/ $content = $data['autoAddFriend'] ? '开启自动添加好友' : '关闭自动添加好友';
+        if (isset($data['autoReply']))/*    */ $content = $data['autoReply'] ? '开启自动回复' : '关闭自动回复';
+        if (isset($data['momentsSync']))/*  */ $content = $data['momentsSync'] ? '开启朋友圈同步' : '关闭朋友圈同步';
+        if (isset($data['aiChat']))/*       */ $content = $data['aiChat'] ? '开启AI会话' : '关闭AI会话';
 
         if (empty($content)) {
             throw new \Exception('参数错误', '400');

@@ -5,14 +5,14 @@ namespace app\cunkebao\controller\device;
 use app\api\controller\DeviceController as ApiDeviceController;
 use app\common\model\Device as DeviceModel;
 use app\common\model\User as UserModel;
+use app\cunkebao\controller\BaseController;
 use library\ResponseHelper;
-use think\Controller;
 use think\Db;
 
 /**
  * 设备控制器
  */
-class GetAddResultedDevicesController extends Controller
+class GetAddResultedDevicesController extends BaseController
 {
     /**
      * 通过账号id 获取项目id。

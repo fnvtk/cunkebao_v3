@@ -1,4 +1,5 @@
 <?php
+
 namespace app\cunkebao\controller\device;
 
 use app\common\model\Device as DeviceModel;
@@ -43,7 +44,7 @@ class PostAddDeviceV1Controller extends BaseController
     {
         $curl = CurlHandle::getInstant();
 
-     //   $curl->setMethod()
+        //   $curl->setMethod()
     }
 
     /**
