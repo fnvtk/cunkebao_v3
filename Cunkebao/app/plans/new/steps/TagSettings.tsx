@@ -35,7 +35,7 @@ export function TagSettings({ formData, onChange, onNext, onPrev }: TagSettingsP
   // 当标签更新时，更新formData
   useEffect(() => {
     onChange({ ...formData, tags })
-  }, [tags, onChange, formData])
+  }, [tags, onChange])
 
   // 检查是否有标签
   useEffect(() => {
@@ -145,7 +145,7 @@ export function TagSettings({ formData, onChange, onNext, onPrev }: TagSettingsP
           )}
 
           {hasWarnings && (
-            <Alert variant="warning" className="mt-4 bg-amber-50 border-amber-200">
+            <Alert variant="destructive" className="mt-4 bg-amber-50 border-amber-200">
               <AlertCircle className="h-4 w-4 text-amber-500" />
               <AlertDescription>建议添加至少一个标签，以便更好地管理客户。</AlertDescription>
             </Alert>
