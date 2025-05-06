@@ -47,6 +47,20 @@ export default function DevicesPage() {
   const [isLoadingQRCode, setIsLoadingQRCode] = useState(false)
   const [isSubmittingImei, setIsSubmittingImei] = useState(false)
   const [activeTab, setActiveTab] = useState("scan")
+  const [pollingStatus, setPollingStatus] = useState<{
+    isPolling: boolean;
+    message: string;
+    messageType: 'default' | 'success' | 'error';
+    showAnimation: boolean;
+  }>({
+    isPolling: false,
+    message: '',
+    messageType: 'default',
+    showAnimation: false
+  });
+
+  // 添加轮询定时器引用
+  const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const devicesPerPage = 20 // 每页显示20条记录
 
@@ -315,12 +329,127 @@ export default function DevicesPage() {
     }
   }
 
-  // 打开添加设备模态框时获取二维码
+  // 清理轮询函数
+  const cleanupPolling = useCallback(() => {
+    if (pollingTimerRef.current) {
+      clearTimeout(pollingTimerRef.current);
+      pollingTimerRef.current = null;
+    }
+    setPollingStatus({
+      isPolling: false,
+      message: '',
+      messageType: 'default',
+      showAnimation: false
+    });
+  }, []);
+
+  // 轮询检测设备添加状态
+  const startPolling = useCallback(() => {
+    let pollCount = 0;
+    const maxPolls = 60;
+    const pollInterval = 1000; // 1秒
+    const initialDelay = 5000; // 5秒后开始轮询
+
+    // 初始提示
+    setPollingStatus({
+      isPolling: false,
+      message: '请扫描二维码添加设备，5秒后将开始检测添加结果',
+      messageType: 'default',
+      showAnimation: false
+    });
+
+    const poll = async () => {
+      try {
+        const accountId = localStorage.getItem('s2_accountId');
+        if (!accountId) {
+          setPollingStatus({
+            isPolling: false,
+            message: '未获取到用户信息，请重新登录',
+            messageType: 'error',
+            showAnimation: false
+          });
+          return;
+        }
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/devices/add-results?accountId=${accountId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+
+        const data = await response.json();
+        
+        if (data.code === 200 && data.data) {
+          if (data.data.added) {
+            setPollingStatus({
+              isPolling: false,
+              message: '设备添加成功。关闭后可继续',
+              messageType: 'success',
+              showAnimation: false
+            });
+            setQrCodeImage('/broken-qr.png'); // 显示损坏的二维码
+            cleanupPolling();
+            return;
+          }
+        }
+
+        pollCount++;
+        if (pollCount >= maxPolls) {
+          setPollingStatus({
+            isPolling: false,
+            message: '未检测到设备添加，请关闭后重试',
+            messageType: 'error',
+            showAnimation: false
+          });
+          cleanupPolling();
+          return;
+        }
+
+        pollingTimerRef.current = setTimeout(poll, pollInterval);
+      } catch (error) {
+        setPollingStatus({
+          isPolling: false,
+          message: '检测过程中发生错误，请重试',
+          messageType: 'error',
+          showAnimation: false
+        });
+        cleanupPolling();
+      }
+    };
+
+    // 5秒后开始轮询
+    pollingTimerRef.current = setTimeout(() => {
+      setPollingStatus({
+        isPolling: true,
+        message: '正在检测添加结果',
+        messageType: 'default',
+        showAnimation: true
+      });
+      poll();
+    }, initialDelay);
+  }, [cleanupPolling]);
+
+  // 修改打开添加设备模态框的处理函数
   const handleOpenAddDeviceModal = () => {
-    setIsAddDeviceOpen(true)
-    setDeviceImei("")
-    setDeviceName("")
-    fetchDeviceQRCode()
+    setIsAddDeviceOpen(true);
+    setDeviceImei("");
+    setDeviceName("");
+    setQrCodeImage("");
+    setPollingStatus({
+      isPolling: false,
+      message: '',
+      messageType: 'default',
+      showAnimation: false
+    });
+    fetchDeviceQRCode();
+    startPolling();
+  }
+
+  // 修改关闭模态框的处理函数
+  const handleCloseAddDeviceModal = () => {
+    cleanupPolling();
+    setIsAddDeviceOpen(false);
   }
 
   // 通过IMEI添加设备
@@ -484,7 +613,10 @@ export default function DevicesPage() {
     try {
       const s2_accountId = localStorage.getItem('s2_accountId');
       if (!s2_accountId) {
-        toast.error('未获取到用户信息，请重新登录');
+        toast({
+          title: '未获取到用户信息，请重新登录',
+          variant: 'destructive',
+        });
         return;
       }
 
@@ -503,16 +635,25 @@ export default function DevicesPage() {
 
       const data = await response.json();
       if (data.code === 200) {
-        toast.success('添加设备成功');
+        toast({
+          title: '添加设备成功',
+          variant: 'default',
+        });
         setIsAddDeviceOpen(false);
         // 刷新设备列表
         loadDevices(1, true);
       } else {
-        toast.error(data.msg || '添加设备失败');
+        toast({
+          title: data.msg || '添加设备失败',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('添加设备失败:', error);
-      toast.error('添加设备失败，请稍后重试');
+      toast({
+        title: '添加设备失败，请稍后重试',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -651,8 +792,12 @@ export default function DevicesPage() {
         </Card>
       </div>
 
-      {/* 添加设备对话框 */}
-      <Dialog open={isAddDeviceOpen} onOpenChange={setIsAddDeviceOpen}>
+      {/* 修改添加设备对话框 */}
+      <Dialog open={isAddDeviceOpen} onOpenChange={(open) => {
+        if (!open) {
+          handleCloseAddDeviceModal();
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>添加设备</DialogTitle>
@@ -671,7 +816,24 @@ export default function DevicesPage() {
             </TabsList> */}
             
             <TabsContent value="scan" className="space-y-4 py-4">
-              <div className="flex flex-col items-center justify-center p-6 space-y-4">
+              <div className="flex flex-col items-center justify-center p-6 space-y-4 relative">
+                {/* 悬浮提示区域，上移50% */}
+                <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 z-10">
+                  <div className="flex flex-col items-center w-full py-2">
+                    {pollingStatus.isPolling || pollingStatus.showAnimation ? (
+                      <>
+                        <span className="text-sm text-gray-800">正在检测添加结果</span>
+                        <div className="flex space-x-1 mt-1">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-sm text-gray-800">5秒后将开始检测添加结果</span>
+                    )}
+                  </div>
+                </div>
                 <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200 w-full max-w-[280px] min-h-[280px] flex flex-col items-center justify-center">
                   {isLoadingQRCode ? (
                     <div className="flex flex-col items-center justify-center space-y-3">
@@ -719,7 +881,7 @@ export default function DevicesPage() {
                   type="button"
                   onClick={fetchDeviceQRCode}
                   disabled={isLoadingQRCode}
-                  className="w-48"
+                  className="w-48 mt-8"
                 >
                   {isLoadingQRCode ? (
                     <>
@@ -776,6 +938,28 @@ export default function DevicesPage() {
           </Tabs>
         </DialogContent>
       </Dialog>
+
+      {/* 在二维码显示区域下方添加状态提示 */}
+      <div className="mt-4 text-center">
+        {pollingStatus.message && (
+          <div className="flex flex-col items-center space-y-2">
+            <p className={`text-sm ${
+              pollingStatus.messageType === 'success' ? 'text-green-600' :
+              pollingStatus.messageType === 'error' ? 'text-red-600' :
+              'text-gray-600'
+            }`}>
+              {pollingStatus.message}
+            </p>
+            {pollingStatus.showAnimation && (
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
