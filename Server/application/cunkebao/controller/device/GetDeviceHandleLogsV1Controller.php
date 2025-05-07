@@ -5,6 +5,7 @@ namespace app\cunkebao\controller\device;
 use app\common\model\DeviceHandleLog;
 use app\common\model\DeviceUser as DeviceUserModel;
 use app\cunkebao\controller\BaseController;
+use library\ResponseHelper;
 
 /**
  * 设备管理控制器
@@ -69,19 +70,14 @@ class GetDeviceHandleLogsV1Controller extends BaseController
 
             $logs = $this->getHandleLogs($deviceId);
 
-            return json([
-                'code' => 200,
-                'msg' => '获取成功',
-                'data' => [
+            return ResponseHelper::success(
+                [
                     'total' => $logs->total(),
-                    'list' => $logs->items()
+                    'list'  => $logs->items()
                 ]
-            ]);
+            );
         } catch (\Exception $e) {
-            return json([
-                'code' => $e->getCode(),
-                'msg' => $e->getMessage()
-            ]);
+            return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
     }
 } 

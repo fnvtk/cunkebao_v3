@@ -7,6 +7,7 @@ use app\common\model\DeviceWechatLogin as DeviceWechatLoginModel;
 use app\common\model\WechatAccount as WechatAccountModel;
 use app\common\model\WechatFriend;
 use app\cunkebao\controller\BaseController;
+use library\ResponseHelper;
 
 /**
  * 设备管理控制器
@@ -154,20 +155,15 @@ class GetRelatedAccountsV1Controller extends BaseController
             // 获取设备关联的微信账号
             $wechatAccounts = $this->getDeviceRelatedAccounts($deviceId);
 
-            return json([
-                'code' => 200,
-                'msg' => '获取成功',
-                'data' => [
+            return ResponseHelper::success(
+                [
                     'deviceId' => $deviceId,
                     'accounts' => $wechatAccounts,
                     'total' => count($wechatAccounts)
                 ]
-            ]);
+            );
         } catch (\Exception $e) {
-            return json([
-                'code' => $e->getCode(),
-                'msg' => $e->getMessage()
-            ]);
+            return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
     }
 } 

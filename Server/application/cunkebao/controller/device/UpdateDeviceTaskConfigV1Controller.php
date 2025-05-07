@@ -7,6 +7,7 @@ use app\common\model\DeviceHandleLog as DeviceHandleLogModel;
 use app\common\model\DeviceTaskconf;
 use app\common\model\DeviceUser as DeviceUserModel;
 use app\cunkebao\controller\BaseController;
+use library\ResponseHelper;
 use think\Db;
 
 /**
@@ -130,17 +131,10 @@ class UpdateDeviceTaskConfigV1Controller extends BaseController
 
             Db::commit();
 
-            return json([
-                'code' => 200,
-                'msg' => '更新任务配置成功'
-            ]);
+            return ResponseHelper::success();
         } catch (\Exception $e) {
             Db::rollback();
-
-            return json([
-                'code' => $e->getCode(),
-                'msg' => $e->getMessage()
-            ]);
+            return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
     }
 } 

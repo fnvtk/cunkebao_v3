@@ -6,6 +6,7 @@ use app\common\model\Device as DeviceModel;
 use app\common\model\DeviceUser as DeviceUserModel;
 use app\common\model\WechatFriend;
 use app\cunkebao\controller\BaseController;
+use library\ResponseHelper;
 
 /**
  * 设备管理控制器
@@ -126,19 +127,14 @@ class GetDeviceListV1Controller extends BaseController
                 $result = $this->getDeviceList($where);
             }
 
-            return json([
-                'code' => 200,
-                'msg' => '获取成功',
-                'data' => [
+            return ResponseHelper::success(
+                [
                     'list' => $this->countFriend($result),
                     'total' => $result->total(),
                 ]
-            ]);
+            );
         } catch (\Exception $e) {
-            return json([
-                'code' => $e->getCode(),
-                'msg' => $e->getMessage()
-            ]);
+            return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
     }
 } 

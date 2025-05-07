@@ -8,6 +8,7 @@ use app\common\model\DeviceUser as DeviceUserModel;
 use app\common\model\DeviceWechatLogin;
 use app\common\model\WechatFriend;
 use app\cunkebao\controller\BaseController;
+use library\ResponseHelper;
 
 /**
  * 设备管理控制器
@@ -152,25 +153,17 @@ class GetDeviceDetailV1Controller extends BaseController
     public function index()
     {
         try {
-            // 获取设备ID
             $id = $this->request->param('id/d');
 
             if ($this->getUserInfo('isAdmin') != 1) {
                 $this->checkUserDevicePermission($id);
             }
 
-            $info = $this->getDeviceInfo($id);
+            $resultSet = $this->getDeviceInfo($id);
 
-            return json([
-                'code' => 200,
-                'msg' => '获取成功',
-                'data' => $info
-            ]);
+            return ResponseHelper::success($resultSet);
         } catch (\Exception $e) {
-            return json([
-                'code' => $e->getMessage(),
-                'msg' => $e->getMessage()
-            ]);
+            return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
     }
 } 

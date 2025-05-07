@@ -141,7 +141,6 @@ class AddAdministratorController extends BaseController
             }
 
             Db::commit();
-
             return ResponseHelper::success();
         } catch (\Exception $e) {
             Db::rollback();
