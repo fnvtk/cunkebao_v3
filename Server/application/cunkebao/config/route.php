@@ -81,4 +81,14 @@ Route::group('v1/', function () {
         
     });
 
+    // 计划任务相关路由
+    Route::group('plan', function () {
+        // 添加计划任务
+        Route::post('add', 'app\cunkebao\controller\Plan@index');
+        // 获取计划任务列表
+        Route::get('list', 'app\cunkebao\controller\Plan@getList');
+    });
+
 })->middleware(['jwt']);
+
+return [];

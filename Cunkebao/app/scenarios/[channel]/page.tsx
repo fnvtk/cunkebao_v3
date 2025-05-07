@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ChevronLeft, Copy, Link, HelpCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
@@ -35,6 +35,7 @@ const getChannelName = (channel: string) => {
   return channelMap[channel] || channel
 }
 
+// 恢复Task接口定义
 interface Task {
   id: string
   name: string
@@ -48,6 +49,21 @@ interface Task {
   executionTime: string
   nextExecutionTime: string
   trend: { date: string; customers: number }[]
+}
+
+interface PlanItem {
+  id: number;
+  name: string;
+  status: number;
+  statusText: string;
+  createTime: number;
+  createTimeFormat: string;
+  deviceCount: number;
+  customerCount: number;
+  addedCount: number;
+  passRate: number;
+  lastExecutionTime: string;
+  nextExecutionTime: string;
 }
 
 interface DeviceStats {
@@ -76,6 +92,23 @@ export default function ChannelPage({ params }: { params: { channel: string } })
   const router = useRouter()
   const channel = params.channel
   const channelName = getChannelName(params.channel)
+  
+  // 从URL query参数获取场景ID
+  const [sceneId, setSceneId] = useState<number | null>(null);
+  
+  // 获取URL中的查询参数
+  useEffect(() => {
+    // 从URL获取id参数
+    const urlParams = new URLSearchParams(window.location.search);
+    const idParam = urlParams.get('id');
+    
+    if (idParam && !isNaN(Number(idParam))) {
+      setSceneId(Number(idParam));
+    } else {
+      // 如果没有传递有效的ID，使用函数获取默认ID
+      setSceneId(getSceneIdFromChannel(channel));
+    }
+  }, [channel]);
 
   const initialTasks = [
     {
@@ -114,7 +147,9 @@ export default function ChannelPage({ params }: { params: { channel: string } })
     },
   ]
 
-  const [tasks, setTasks] = useState<Task[]>(initialTasks)
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const [deviceStats, setDeviceStats] = useState<DeviceStats>({
     active: 5,
@@ -144,7 +179,7 @@ export default function ChannelPage({ params }: { params: { channel: string } })
       toast({
         title: "计划已复制",
         description: `已成功复制"${taskToCopy.name}"`,
-        variant: "success",
+        variant: "default",
       })
     }
   }
@@ -156,7 +191,7 @@ export default function ChannelPage({ params }: { params: { channel: string } })
       toast({
         title: "计划已删除",
         description: `已成功删除"${taskToDelete.name}"`,
-        variant: "success",
+        variant: "default",
       })
     }
   }
@@ -167,7 +202,7 @@ export default function ChannelPage({ params }: { params: { channel: string } })
     toast({
       title: newStatus === "running" ? "计划已启动" : "计划已暂停",
       description: `已${newStatus === "running" ? "启动" : "暂停"}获客计划`,
-      variant: "success",
+      variant: "default",
     })
   }
 
@@ -192,9 +227,94 @@ export default function ChannelPage({ params }: { params: { channel: string } })
     toast({
       title: "已复制",
       description: withParams ? "接口地址（含示例参数）已复制到剪贴板" : "接口地址已复制到剪贴板",
-      variant: "success",
+      variant: "default",
     })
   }
+
+  // 修改API数据处理部分
+  useEffect(() => {
+    const fetchPlanList = async () => {
+      try {
+        setLoading(true);
+        // 如果sceneId还未确定，则等待
+        if (sceneId === null) return;
+        
+        // 调用API获取计划列表
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/plan/list?id=${sceneId}`, 
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+
+        const data = await response.json();
+        
+        if (data.code === 1 && data.data && data.data.list) {
+          // 将API返回的数据转换为前端展示格式
+          const transformedTasks = data.data.list.map((item: PlanItem) => {
+            // 确保返回的对象完全符合Task类型
+            const status: "running" | "paused" | "completed" = 
+              item.status === 1 ? "running" : "paused";
+            
+            return {
+              id: item.id.toString(),
+              name: item.name,
+              status: status,
+              stats: {
+                devices: item.deviceCount,
+                acquired: item.customerCount,
+                added: item.addedCount,
+              },
+              lastUpdated: item.createTimeFormat,
+              executionTime: item.lastExecutionTime || "--",
+              nextExecutionTime: item.nextExecutionTime || "--",
+              trend: Array.from({ length: 7 }, (_, i) => ({
+                date: `2月${String(i + 1)}日`,
+                customers: Math.floor(Math.random() * 20) + 10, // 模拟数据
+              })),
+            };
+          });
+          
+          // 使用类型断言解决类型冲突
+          setTasks(transformedTasks as Task[]);
+          setError(null);
+        } else {
+          setError(data.msg || "获取计划列表失败");
+          // 如果API返回错误，使用初始数据
+          setTasks(initialTasks);
+        }
+      } catch (err) {
+        console.error("获取计划列表失败:", err);
+        setError("网络错误，无法获取计划列表");
+        // 出错时使用初始数据
+        setTasks(initialTasks);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchPlanList();
+  }, [channel, initialTasks, sceneId]);
+
+  // 辅助函数：根据渠道获取场景ID
+  const getSceneIdFromChannel = (channel: string): number => {
+    const channelMap: Record<string, number> = {
+      'douyin': 1,
+      'xiaohongshu': 2,
+      'weixinqun': 3,
+      'gongzhonghao': 4,
+      'kuaishou': 5,
+      'weibo': 6,
+      'haibao': 7,
+      'phone': 8,
+      'api': 9
+    };
+    return channelMap[channel] || 6;
+  };
 
   return (
     <div className="flex-1 bg-gradient-to-b from-blue-50 to-white min-h-screen">
@@ -210,7 +330,21 @@ export default function ChannelPage({ params }: { params: { channel: string } })
       </header>
 
       <div className="p-4 max-w-7xl mx-auto">
-        {tasks.length > 0 ? (
+        {loading ? (
+          // 添加加载状态
+          <div className="text-center py-12 bg-white rounded-lg shadow-sm">
+            <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <div className="text-gray-500">加载计划中...</div>
+          </div>
+        ) : error ? (
+          // 添加错误提示
+          <div className="text-center py-12 bg-white rounded-lg shadow-sm">
+            <div className="text-red-500 mb-4">{error}</div>
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              重新加载
+            </Button>
+          </div>
+        ) : tasks.length > 0 ? (
           tasks.map((task) => (
             <div key={task.id} className="mb-6">
               <ScenarioAcquisitionCard
@@ -254,7 +388,7 @@ export default function ChannelPage({ params }: { params: { channel: string } })
                     toast({
                       title: "已复制",
                       description: "API密钥已复制到剪贴板",
-                      variant: "success",
+                      variant: "default",
                     })
                   }}
                 >

@@ -154,6 +154,7 @@ export default function Home() {
       color: "bg-orange-100 text-orange-600",
       value: 167,
       growth: 10,
+      sceneId: 7,
     },
   ]
 
@@ -209,7 +210,11 @@ export default function Home() {
             {scenarioFeatures
               .sort((a, b) => b.value - a.value)
               .map((scenario) => (
-                <Link href={`/scenarios/${scenario.id}`} key={scenario.id} className="block flex-1">
+                <div 
+                  key={scenario.id} 
+                  className="block flex-1 cursor-pointer" 
+                  onClick={() => router.push(`/scenarios/${scenario.id}?id=${scenario.sceneId || getSceneIdFromType(scenario.id)}`)}
+                >
                   <div className="flex flex-col items-center text-center space-y-2">
                     <div className={`w-12 h-12 rounded-full ${scenario.color} flex items-center justify-center`}>
                       <img src={scenario.icon || "/placeholder.svg"} alt={scenario.name} className="w-6 h-6" />
@@ -219,7 +224,7 @@ export default function Home() {
                       {scenario.name}
                     </div>
                   </div>
-                </Link>
+                </div>
               ))}
           </div>
         </Card>
@@ -234,5 +239,20 @@ export default function Home() {
       </div>
     </div>
   )
+}
+
+function getSceneIdFromType(type: string): number {
+  const typeToIdMap: Record<string, number> = {
+    'douyin': 1,
+    'xiaohongshu': 2,
+    'weixinqun': 3,
+    'gongzhonghao': 4,
+    'kuaishou': 5,
+    'weibo': 6,
+    'haibao': 7,
+    'phone': 8,
+    'api': 9
+  };
+  return typeToIdMap[type] || 1;
 }
 
