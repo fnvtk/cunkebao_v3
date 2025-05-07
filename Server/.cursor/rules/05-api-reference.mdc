@@ -1,0 +1,85 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# API 参考
+
+村客宝系统提供RESTful风格的API，主要通过`application/api`模块实现。
+
+## API路由结构
+
+系统API遵循RESTful设计，主要路由前缀为`/v1`，详细路由定义见[application/api/config/route.php](mdc:application/api/config/route.php)
+
+## 主要API控制器
+
+- [DeviceController.php](mdc:application/api/controller/DeviceController.php) - 设备管理API
+- [WechatController.php](mdc:application/api/controller/WechatController.php) - 微信账号API
+- [WechatFriendController.php](mdc:application/api/controller/WechatFriendController.php) - 微信好友API
+- [WechatChatroomController.php](mdc:application/api/controller/WechatChatroomController.php) - 微信群API
+- [MessageController.php](mdc:application/api/controller/MessageController.php) - 消息API
+- [MomentsController.php](mdc:application/api/controller/MomentsController.php) - 朋友圈API
+- [UserController.php](mdc:application/api/controller/UserController.php) - 用户API
+
+## 常用API端点
+
+### 设备管理
+
+- `GET /v1/devices` - 获取设备列表
+- `GET /v1/devices/{id}` - 获取设备详情
+- `POST /v1/devices` - 添加设备
+- `PUT /v1/devices/{id}` - 更新设备信息
+- `DELETE /v1/devices/{id}` - 删除设备
+
+### 微信账号管理
+
+- `GET /v1/wechats` - 获取微信账号列表
+- `GET /v1/wechats/{id}` - 获取微信账号详情
+- `PUT /v1/wechats/{id}` - 更新微信账号信息
+- `DELETE /v1/wechats/{id}` - 删除微信账号
+
+### 微信好友管理
+
+- `GET /v1/wechats/{id}/friends` - 获取好友列表
+- `POST /v1/wechats/{id}/friends` - 添加好友
+- `PUT /v1/wechats/{id}/friends/{friendId}` - 更新好友信息
+
+### 工作台功能
+
+- `POST /v1/workbench/auto-like` - 自动点赞
+- `POST /v1/workbench/sync-moments` - 同步朋友圈
+- `POST /v1/workbench/send-message` - 发送消息
+
+## API鉴权
+
+API使用Token认证机制，每个请求需要在Header中包含授权信息：
+
+```
+Authorization: Bearer {token}
+```
+
+获取Token的方法：
+- `POST /v1/auth/login` - 登录获取Token
+- `POST /v1/auth/refresh` - 刷新Token
+
+## 响应格式
+
+API统一返回JSON格式数据，基本结构：
+
+```json
+{
+  "code": 200,          // 状态码
+  "message": "success", // 消息
+  "data": {},           // 数据(可选)
+  "time": 1628160000    // 时间戳
+}
+```
+
+## WebSocket通信
+
+实时通信通过WebSocket实现，在[WebSocketController.php](mdc:application/api/controller/WebSocketController.php)中定义：
+
+- 连接地址：`ws://{host}/ws`
+- 支持设备状态实时推送
+- 支持消息实时通知
+- 支持任务执行状态更新

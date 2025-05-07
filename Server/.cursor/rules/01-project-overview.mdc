@@ -1,0 +1,31 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Project Overview
+
+存客宝微信管理系统是基于ThinkPHP 5.1和PHP 7.4的微信账号管理和营销自动化平台。
+
+## 主要功能
+
+- **设备管理**: 设备添加、删除、状态监控和任务配置
+- **微信账号管理**: 微信账号列表、微信好友管理和好友转移功能
+- **内容库**: 内容创建与管理、朋友圈内容采集和内容分类管理
+- **工作台功能**: 自动点赞、朋友圈同步、群消息推送和自动建群
+- **流量管理**: 流量标签、流量池管理和订单导入
+
+## 核心文件
+
+- 入口文件: [public/index.php](mdc:public/index.php)
+- 应用配置: [config/app.php](mdc:config/app.php)
+- 数据库配置: [config/database.php](mdc:config/database.php)
+- 路由配置: [route/route.php](mdc:route/route.php)
+- 公共函数: [application/common.php](mdc:application/common.php)
+
+## 环境要求
+
+- PHP >= 7.0 (推荐 PHP 7.4)
+- MySQL 5.6+
+- Composer
+- ThinkPHP 5.1所需的PHP扩展

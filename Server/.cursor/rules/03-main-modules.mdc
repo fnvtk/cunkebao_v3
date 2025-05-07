@@ -1,0 +1,66 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 主要模块
+
+村客宝系统由多个功能模块组成，各模块负责不同的业务功能：
+
+## API模块
+
+[application/api/](mdc:application/api) 提供RESTful API服务，主要包括：
+
+- [DeviceController.php](mdc:application/api/controller/DeviceController.php) - 设备相关API
+- [WechatController.php](mdc:application/api/controller/WechatController.php) - 微信账号相关API
+- [WechatFriendController.php](mdc:application/api/controller/WechatFriendController.php) - 微信好友相关API
+- [WechatChatroomController.php](mdc:application/api/controller/WechatChatroomController.php) - 微信群相关API
+- [MessageController.php](mdc:application/api/controller/MessageController.php) - 消息相关API
+- [MomentsController.php](mdc:application/api/controller/MomentsController.php) - 朋友圈相关API
+- [WebSocketController.php](mdc:application/api/controller/WebSocketController.php) - WebSocket通信API
+
+## 村客宝主模块
+
+[application/cunkebao/](mdc:application/cunkebao) 是系统的核心模块，包含主要业务逻辑：
+
+- [Device.php](mdc:application/cunkebao/controller/Device.php) - 设备管理控制器
+- [DeviceWechat.php](mdc:application/cunkebao/controller/DeviceWechat.php) - 设备微信管理
+- [ContentLibraryController.php](mdc:application/cunkebao/controller/ContentLibraryController.php) - 内容库管理
+- [WorkbenchController.php](mdc:application/cunkebao/controller/WorkbenchController.php) - 工作台功能
+- [TrafficPool.php](mdc:application/cunkebao/controller/TrafficPool.php) - 流量池管理
+- [TrafficTag.php](mdc:application/cunkebao/controller/TrafficTag.php) - 流量标签管理
+
+## 公共模块
+
+[application/common/](mdc:application/common) 包含系统共享的功能和工具：
+
+- [service/](mdc:application/common/service) - 公共服务
+- [model/](mdc:application/common/model) - 核心数据模型
+- [util/](mdc:application/common/util) - 工具类
+- [socket/](mdc:application/common/socket) - WebSocket通信
+- [middleware/](mdc:application/common/middleware) - 中间件
+
+## 命令行模块
+
+[application/command/](mdc:application/command) 包含系统的命令行工具：
+
+- 定时任务
+- 队列处理
+- 数据迁移
+- 系统维护
+
+## 存储模块
+
+[application/store/](mdc:application/store) 提供资源存储相关的功能：
+
+- 图片存储
+- 文件上传
+- 资源管理
+
+## 超级管理员模块
+
+[application/superadmin/](mdc:application/superadmin) 提供系统管理功能：
+
+- 用户管理
+- 权限管理
+- 系统配置

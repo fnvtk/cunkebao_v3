@@ -1,0 +1,71 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 开发工作流程
+
+本项目基于ThinkPHP 5.1框架开发，遵循MVC设计模式。开发时请参考以下工作流程和规范：
+
+## 框架特性
+
+ThinkPHP 5.1使用以下特性：
+- 命名空间和自动加载
+- 依赖注入和容器
+- 门面（Facade）模式
+- 中间件机制
+- 路由定义
+
+## 开发流程
+
+1. **理解需求** - 明确功能需求和业务逻辑
+2. **设计数据库** - 设计相关数据表和字段
+3. **创建模型** - 在对应模块的`model`目录下创建数据模型
+4. **编写服务层** - 在`service`目录下实现业务逻辑
+5. **创建控制器** - 在`controller`目录下创建控制器处理请求
+6. **定义路由** - 在模块的`config/route.php`中定义路由规则
+7. **编写前端代码** - 实现页面交互和UI
+
+## 关键文件和位置
+
+- **模型定义**: `application/模块名/model/`
+- **控制器**: `application/模块名/controller/`
+- **服务层**: `application/模块名/service/`
+- **路由配置**: `application/模块名/config/route.php`
+- **公共函数**: `application/common.php`
+- **配置文件**: `config/` 和 `application/模块名/config/`
+
+## 命名规范
+
+- **类名**: 使用Pascal命名法（如`DeviceController`）
+- **方法名**: 使用camel命名法（如`getUserInfo`）
+- **变量名**: 使用camel命名法（如`$deviceInfo`）
+- **常量**: 使用大写下划线（如`APP_DEBUG`）
+- **配置参数**: 使用小写下划线（如`app_debug`）
+
+## 使用命令行
+
+ThinkPHP提供了命令行工具，可用于执行各种任务：
+
+```bash
+# 查看可用命令
+php think
+
+# 启动内置服务器
+php think run
+
+# 清除缓存
+php think clear
+
+# 执行数据库迁移
+php think migrate:run
+```
+
+## 扩展包依赖
+
+项目使用Composer管理依赖，主要依赖见[composer.json](mdc:composer.json)：
+
+- topthink/framework: 5.1.*
+- phpoffice/phpexcel
+- guzzlehttp/guzzle
+- 等其他扩展包
