@@ -34,7 +34,7 @@ class GetDeviceDetailV1Controller extends BaseController
         $hasPermission = DeviceUserModel::where($where)->count() > 0;
 
         if (!$hasPermission) {
-            throw new \Exception('您没有权限查看该设备', '403');
+            throw new \Exception('您没有权限查看该设备', 403);
         }
     }
 
@@ -67,8 +67,8 @@ class GetDeviceDetailV1Controller extends BaseController
     protected function getTaskConfig(int $deviceId): array
     {
         $where = [
-            'deviceId'   => $deviceId,
-            'companyId'  => $this->getUserInfo('companyId'),
+            'deviceId'  => $deviceId,
+            'companyId' => $this->getUserInfo('companyId'),
         ];
 
         $conf = DeviceTaskconfModel::alias('c')
@@ -78,9 +78,12 @@ class GetDeviceDetailV1Controller extends BaseController
             ->where($where)
             ->find();
 
-        return $conf
-            ? $conf->toArray()
-            : ArrHelper::getValue([], 'autoAddFriend,autoReply,contentSync,aiChat', 0);
+        if (!is_null($conf)) {
+            return $conf->toArray();
+        }
+
+        // 未配置时赋予默认关闭的状态
+        return ArrHelper::getValue('autoAddFriend,autoReply,contentSync,aiChat', [], 0);
     }
 
     /**
@@ -131,7 +134,7 @@ class GetDeviceDetailV1Controller extends BaseController
             ->find($id);
 
         if (empty($device)) {
-            throw new \Exception('设备不存在', '404');
+            throw new \Exception('设备不存在', 404);
         }
 
         $device['battery'] = $this->parseExtraForBattery($device['extra']);
