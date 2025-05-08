@@ -19,5 +19,6 @@ class DeviceTaskconf extends Model
     protected $autoWriteTimestamp = true;
     protected $createTime = 'createTime';
     protected $updateTime = 'updateTime';
+    protected $deleteTime = 'deleteTime';
     protected $defaultSoftDelete = 0;
 } 
