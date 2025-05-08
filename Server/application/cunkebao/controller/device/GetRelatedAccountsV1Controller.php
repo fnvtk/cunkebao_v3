@@ -70,7 +70,7 @@ class GetRelatedAccountsV1Controller extends BaseController
     }
 
     /**
-     * 通过微信id获取微信最后活跃时间
+     * TODO 通过微信id获取微信最后活跃时间
      *
      * @param int $time
      * @return string
@@ -81,7 +81,7 @@ class GetRelatedAccountsV1Controller extends BaseController
     }
 
     /**
-     * 加友状态
+     * TODO 加友状态
      *
      * @param string $wechatId
      * @return string
@@ -92,7 +92,7 @@ class GetRelatedAccountsV1Controller extends BaseController
     }
 
     /**
-     * 账号状态
+     * TODO 账号状态
      *
      * @param string $wechatId
      * @return string

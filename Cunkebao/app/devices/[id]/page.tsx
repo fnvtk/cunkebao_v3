@@ -180,80 +180,18 @@ export default function DeviceDetailPage() {
             fetchRelatedAccounts()
           }
         } else {
-          // 如果API返回错误，则使用备用模拟数据
-          toast.error("获取设备信息失败，显示备用数据")
-          fallbackToMockDevice()
+          // 如果API返回错误，显示错误提示
+          toast.error("获取设备信息失败: " + ((response as any)?.msg || "未知错误"))
+          setLoading(false)
         }
       } catch (error) {
         console.error("获取设备信息失败:", error)
-        toast.error("获取设备信息出错，显示备用数据")
-        fallbackToMockDevice()
+        toast.error("获取设备信息出错，请稍后重试")
+        setLoading(false)
       } finally {
+        // 确保loading状态被关闭
         setLoading(false)
       }
-    }
-    
-    const fallbackToMockDevice = () => {
-      const mockDevice: Device = {
-        id: params.id as string,
-        imei: "sd123123",
-        name: "设备 1",
-        status: "online",
-        battery: 85,
-        lastActive: "2024-02-09 15:30:45",
-        historicalIds: ["vx412321", "vfbadasd"],
-        wechatAccounts: [
-          {
-            id: "1",
-            avatar: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-q2rVrFbfDdAbSnT3ZTNE7gfn3QCbvr.png",
-            nickname: "老张",
-            wechatId: "wxid_abc123",
-            gender: 1,
-            status: 1,
-            statusText: "可加友",
-            wechatAlive: 1,
-            wechatAliveText: "正常",
-            addFriendStatus: 1,
-            totalFriend: 523,
-            lastActive: "2024-02-09 15:20:33",
-          },
-          {
-            id: "2",
-            avatar: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-q2rVrFbfDdAbSnT3ZTNE7gfn3QCbvr.png",
-            nickname: "老李",
-            wechatId: "wxid_xyz789",
-            gender: 1,
-            status: 0,
-            statusText: "已停用",
-            wechatAlive: 0,
-            wechatAliveText: "异常",
-            addFriendStatus: 0,
-            totalFriend: 245,
-            lastActive: "2024-02-09 14:15:22",
-          },
-        ],
-        features: {
-          autoAddFriend: true,
-          autoReply: true,
-          momentsSync: false,
-          aiChat: true,
-        },
-        history: [
-          {
-            time: "2024-02-09 15:30:45",
-            action: "开启自动加好友",
-            operator: "系统",
-          },
-          {
-            time: "2024-02-09 14:20:33",
-            action: "添加微信号",
-            operator: "管理员",
-          },
-        ],
-        totalFriend: 768,
-        thirtyDayMsgCount: 5678
-      }
-      setDevice(mockDevice)
     }
     
     fetchDevice()
@@ -569,8 +507,35 @@ export default function DeviceDetailPage() {
     return nameMap[feature] || feature
   }
 
-  if (loading || !device) {
-    return <div>加载中...</div>
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full justify-center items-center bg-gray-50">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
+          <div className="text-gray-500">正在加载设备详情...</div>
+        </div>
+      </div>
+    )
+  }
+  
+  if (!device) {
+    return (
+      <div className="flex h-screen w-full justify-center items-center bg-gray-50">
+        <div className="flex flex-col items-center space-y-4 p-6 bg-white rounded-lg shadow-sm max-w-md">
+          <div className="w-12 h-12 flex items-center justify-center rounded-full bg-red-100">
+            <Smartphone className="h-6 w-6 text-red-500" />
+          </div>
+          <div className="text-xl font-medium text-center">设备不存在或已被删除</div>
+          <div className="text-sm text-gray-500 text-center">
+            无法加载ID为 "{params.id}" 的设备信息，请检查设备是否存在。
+          </div>
+          <Button onClick={() => router.back()}>
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            返回上一页
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
