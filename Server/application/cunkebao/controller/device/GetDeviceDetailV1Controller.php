@@ -73,7 +73,7 @@ class GetDeviceDetailV1Controller extends BaseController
 
         $conf = DeviceTaskconfModel::alias('c')
             ->field([
-                'c.autoAddFriend', 'c.autoReply', 'c.contentSync', 'c.aiChat'
+                'c.autoAddFriend', 'c.autoReply', 'c.momentsSync', 'c.aiChat'
             ])
             ->where($where)
             ->find();
@@ -83,7 +83,7 @@ class GetDeviceDetailV1Controller extends BaseController
         }
 
         // 未配置时赋予默认关闭的状态
-        return ArrHelper::getValue('autoAddFriend,autoReply,contentSync,aiChat', [], 0);
+        return ArrHelper::getValue('autoAddFriend,autoReply,momentsSync,aiChat', [], 0);
     }
 
     /**

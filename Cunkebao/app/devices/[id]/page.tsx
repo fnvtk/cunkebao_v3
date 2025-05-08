@@ -370,7 +370,7 @@ export default function DeviceDetailPage() {
         }
         
         // 直接使用fetch，而不是通过API工具
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/task-config`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/devices/task-config`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

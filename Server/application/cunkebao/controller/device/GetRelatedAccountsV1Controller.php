@@ -32,7 +32,7 @@ class GetRelatedAccountsV1Controller extends BaseController
         $hasPermission = DeviceUserModel::where($where)->count() > 0;
 
         if (!$hasPermission) {
-            throw new \Exception('您没有权限查看该设备', '403');
+            throw new \Exception('您没有权限查看该设备', 403);
         }
     }
 
