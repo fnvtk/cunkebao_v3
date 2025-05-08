@@ -361,22 +361,117 @@ export default function DeviceDetailPage() {
         features: updatedFeatures
       } : null)
       
-      // 调用API更新服务器配置
-      const response = await updateDeviceTaskConfig(configUpdate)
-      
-      if (response && response.code === 200) {
-        toast.success(`${getFeatureName(feature)}${checked ? '已启用' : '已禁用'}`)
-      } else {
-        // 如果请求失败，回滚UI变更
+      // 使用更安全的API调用方式，避免自动重定向
+      try {
+        // 获取token
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('未找到授权信息');
+        }
+        
+        // 直接使用fetch，而不是通过API工具
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/task-config`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(configUpdate)
+        });
+        
+        // 检查是否是401错误（未授权），这是唯一应该处理token的情况
+        if (response.status === 401) {
+          // 此处我们不立即跳转，而是给出错误提示
+          toast.error('认证已过期，请重新登录后再尝试操作');
+          console.error('API请求返回401未授权错误');
+          // 可以选择是否重定向到登录页面
+          // window.location.href = '/login';
+          throw new Error('认证已过期');
+        }
+        
+        // 检查响应是否正常
+        if (!response.ok) {
+          // 所有非401的HTTP错误
+          console.warn(`API返回HTTP错误: ${response.status} ${response.statusText}`);
+          
+          // 尝试解析错误详情
+          try {
+            const errorResult = await response.json();
+            // 显示详细错误信息，但保持本地token
+            const errorMsg = errorResult?.msg || `服务器错误 (${response.status})`;
+            toast.error(`更新失败: ${errorMsg}`);
+            
+            // 回滚UI更改
+            setDevice(prev => prev ? {
+              ...prev,
+              features: { ...prev.features, [feature]: !checked }
+            } : null);
+          } catch (parseError) {
+            // 无法解析响应，可能是网络问题
+            console.error('无法解析错误响应:', parseError);
+            toast.error(`更新失败: 服务器无响应 (${response.status})`);
+            
+            // 回滚UI更改
+            setDevice(prev => prev ? {
+              ...prev,
+              features: { ...prev.features, [feature]: !checked }
+            } : null);
+          }
+          
+          return; // 提前返回，避免继续处理
+        }
+
+        // 响应正常，尝试解析
+        try {
+          const result = await response.json();
+          
+          // 检查API响应码
+          if (result && result.code === 200) {
+            toast.success(`${getFeatureName(feature)}${checked ? '已启用' : '已禁用'}`);
+          } else if (result && result.code === 401) {
+            // API明确返回401，提示用户但不自动登出
+            toast.error('认证已过期，请重新登录后再尝试操作');
+            console.error('API请求返回401未授权状态码');
+            
+            // 回滚UI更改
+            setDevice(prev => prev ? {
+              ...prev,
+              features: { ...prev.features, [feature]: !checked }
+            } : null);
+          } else {
+            // 其他API错误
+            const errorMsg = result?.msg || '未知错误';
+            console.warn(`API返回业务错误: ${result?.code} - ${errorMsg}`);
+            toast.error(`更新失败: ${errorMsg}`);
+            
+            // 回滚UI更改
+            setDevice(prev => prev ? {
+              ...prev,
+              features: { ...prev.features, [feature]: !checked }
+            } : null);
+          }
+        } catch (parseError) {
+          // 无法解析响应JSON
+          console.error('无法解析API响应:', parseError);
+          toast.error('更新失败: 无法解析服务器响应');
+          
+          // 回滚UI更改
+          setDevice(prev => prev ? {
+            ...prev,
+            features: { ...prev.features, [feature]: !checked }
+          } : null);
+        }
+      } catch (fetchError) {
+        console.error('请求错误:', fetchError)
+        
+        // 回滚UI更改
         setDevice(prev => prev ? {
           ...prev,
           features: { ...prev.features, [feature]: !checked }
         } : null)
         
-        // 处理错误信息，使用类型断言解决字段不一致问题
-        const anyResponse = response as any;
-        const errorMsg = anyResponse ? (anyResponse.message || anyResponse.msg || '未知错误') : '未知错误';
-        toast.error(`更新失败: ${errorMsg}`)
+        // 显示友好的错误提示
+        toast.error('网络请求失败，请稍后重试')
       }
     } catch (error) {
       console.error(`更新${getFeatureName(feature)}失败:`, error)
