@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -83,6 +83,10 @@ export default function DeviceDetailPage() {
   const [accountsLoading, setAccountsLoading] = useState(false)
   const [logsLoading, setLogsLoading] = useState(false)
   const [handleLogs, setHandleLogs] = useState<HandleLog[]>([])
+  const [logPage, setLogPage] = useState(1)
+  const [hasMoreLogs, setHasMoreLogs] = useState(true)
+  const logsPerPage = 10
+  const logsEndRef = useRef<HTMLDivElement>(null)
   const [savingFeatures, setSavingFeatures] = useState({
     autoAddFriend: false,
     autoReply: false,
@@ -297,11 +301,24 @@ export default function DeviceDetailPage() {
     
     try {
       setLogsLoading(true)
-      const response = await fetchDeviceHandleLogs(params.id as string)
+      const response = await fetchDeviceHandleLogs(
+        params.id as string, 
+        logPage, 
+        logsPerPage
+      )
       
       if (response && response.code === 200 && response.data) {
         const logs = response.data.list || []
-        setHandleLogs(logs)
+        
+        // 如果是第一页，替换数据；否则追加数据
+        if (logPage === 1) {
+          setHandleLogs(logs)
+        } else {
+          setHandleLogs(prev => [...prev, ...logs])
+        }
+        
+        // 判断是否还有更多数据
+        setHasMoreLogs(logs.length === logsPerPage)
         
         if (logs.length > 0) {
           console.log('获取到操作记录:', logs.length)
@@ -318,6 +335,58 @@ export default function DeviceDetailPage() {
       setLogsLoading(false)
     }
   }
+
+  // 加载更多日志
+  const loadMoreLogs = () => {
+    if (logsLoading || !hasMoreLogs) return
+    
+    setLogPage(prevPage => prevPage + 1)
+  }
+  
+  // 监听滚动加载更多
+  useEffect(() => {
+    if (activeTab !== "history") return
+    
+    const observerOptions = {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0.1
+    }
+    
+    const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+      const [entry] = entries
+      if (entry.isIntersecting && hasMoreLogs && !logsLoading) {
+        loadMoreLogs()
+      }
+    }
+    
+    const observer = new IntersectionObserver(handleIntersect, observerOptions)
+    
+    if (logsEndRef.current) {
+      observer.observe(logsEndRef.current)
+    }
+    
+    return () => {
+      if (logsEndRef.current) {
+        observer.unobserve(logsEndRef.current)
+      }
+    }
+  }, [activeTab, hasMoreLogs, logsLoading])
+  
+  // 当切换到日志标签时重置页码
+  useEffect(() => {
+    if (activeTab === "history") {
+      setLogPage(1)
+      setHasMoreLogs(true)
+    }
+  }, [activeTab])
+  
+  // 观察logPage变化加载数据
+  useEffect(() => {
+    if (activeTab === "history") {
+      fetchHandleLogs()
+    }
+  }, [logPage, activeTab])
 
   // 处理标签页切换
   const handleTabChange = (value: string) => {
@@ -726,7 +795,10 @@ export default function DeviceDetailPage() {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={fetchHandleLogs}
+                    onClick={() => {
+                      setLogPage(1)
+                      setHasMoreLogs(true)
+                    }}
                     disabled={logsLoading}
                   >
                     {logsLoading ? (
@@ -743,7 +815,7 @@ export default function DeviceDetailPage() {
                   </Button>
                 </div>
                 
-                <ScrollArea className="h-[calc(100vh-300px)]">
+                <ScrollArea className="h-[calc(min(80vh, 500px))]">
                   {logsLoading && handleLogs.length === 0 ? (
                     <div className="flex justify-center items-center py-8">
                       <div className="w-6 h-6 rounded-full border-2 border-blue-500 border-t-transparent animate-spin mr-2"></div>
@@ -764,6 +836,30 @@ export default function DeviceDetailPage() {
                           </div>
                         </div>
                       ))}
+                      
+                      {/* 加载更多区域 - 用于懒加载触发点 */}
+                      <div 
+                        ref={logsEndRef} 
+                        className="py-2 flex justify-center items-center"
+                      >
+                        {logsLoading && hasMoreLogs ? (
+                          <div className="flex items-center space-x-2">
+                            <div className="w-4 h-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
+                            <span className="text-sm text-gray-500">加载更多...</span>
+                          </div>
+                        ) : hasMoreLogs ? (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={loadMoreLogs}
+                            className="text-sm text-blue-500 hover:text-blue-600"
+                          >
+                            加载更多
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-gray-400">- 已加载全部记录 -</span>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-500">
@@ -772,7 +868,10 @@ export default function DeviceDetailPage() {
                         variant="outline" 
                         size="sm" 
                         className="mt-2"
-                        onClick={fetchHandleLogs}
+                        onClick={() => {
+                          setLogPage(1)
+                          setHasMoreLogs(true)
+                        }}
                       >
                         <RefreshCw className="h-4 w-4 mr-1" />
                         刷新
