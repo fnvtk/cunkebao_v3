@@ -506,7 +506,7 @@ export default function DeviceDetailPage() {
 
   return (
     <div className="flex-1 bg-gray-50 min-h-screen">
-      <div className="max-w-[390px] mx-auto bg-white">
+      <div className="w-full mx-auto bg-white">
         <header className="sticky top-0 z-10 bg-white border-b">
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center space-x-3">
