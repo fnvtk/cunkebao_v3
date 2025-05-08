@@ -124,7 +124,7 @@ export default function DevicesPage() {
       setIsLoading(false)
     }
   // 移除isLoading依赖，只保留真正需要的依赖
-  }, [searchQuery, devicesPerPage])
+  }, [searchQuery]) // devicesPerPage是常量，不需要加入依赖
 
   // 加载下一页数据的函数，使用ref来追踪页码，避免依赖循环
   const loadNextPage = useCallback(() => {
@@ -140,8 +140,21 @@ export default function DevicesPage() {
   // 只依赖必要的状态
   }, [hasMore, isLoading, loadDevices]);
 
+  // 追踪组件是否已挂载
+  const isMounted = useRef(true);
+  
+  // 组件卸载时更新挂载状态
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   // 初始加载和搜索时刷新列表
   useEffect(() => {
+    // 组件未挂载，不执行操作
+    if (!isMounted.current) return;
+    
     // 重置页码
     setCurrentPage(1)
     pageRef.current = 1
@@ -154,13 +167,11 @@ export default function DevicesPage() {
     // 如果没有更多数据或者正在加载，不创建observer
     if (!hasMore || isLoading) return;
     
-    let isMounted = true; // 追踪组件是否已挂载
-
     // 创建观察器观察加载点
     const observer = new IntersectionObserver(
       entries => {
         // 如果交叉了，且有更多数据，且当前不在加载状态，且组件仍然挂载
-        if (entries[0].isIntersecting && hasMore && !isLoading && isMounted) {
+        if (entries[0].isIntersecting && hasMore && !isLoading && isMounted.current) {
           loadNextPage();
         }
       },
@@ -174,7 +185,6 @@ export default function DevicesPage() {
 
     // 清理观察器
     return () => {
-      isMounted = false;
       observer.disconnect();
     }
   }, [hasMore, isLoading, loadNextPage])

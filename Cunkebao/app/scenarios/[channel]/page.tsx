@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { ChevronLeft, Copy, Link, HelpCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
@@ -95,18 +95,35 @@ export default function ChannelPage({ params }: { params: { channel: string } })
   
   // 从URL query参数获取场景ID
   const [sceneId, setSceneId] = useState<number | null>(null);
+  // 使用ref追踪sceneId值，避免重复请求
+  const sceneIdRef = useRef<number | null>(null);
+  // 追踪组件是否已挂载
+  const isMounted = useRef(true);
+  
+  // 组件卸载时更新挂载状态
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
   
   // 获取URL中的查询参数
   useEffect(() => {
+    // 组件未挂载，不执行操作
+    if (!isMounted.current) return;
+    
     // 从URL获取id参数
     const urlParams = new URLSearchParams(window.location.search);
     const idParam = urlParams.get('id');
     
     if (idParam && !isNaN(Number(idParam))) {
       setSceneId(Number(idParam));
+      sceneIdRef.current = Number(idParam);
     } else {
       // 如果没有传递有效的ID，使用函数获取默认ID
-      setSceneId(getSceneIdFromChannel(channel));
+      const defaultId = getSceneIdFromChannel(channel);
+      setSceneId(defaultId);
+      sceneIdRef.current = defaultId;
     }
   }, [channel]);
 
@@ -114,7 +131,7 @@ export default function ChannelPage({ params }: { params: { channel: string } })
     {
       id: "1",
       name: `${channelName}直播获客计划`,
-      status: "running",
+      status: "running" as const,
       stats: {
         devices: 5,
         acquired: 31,
@@ -131,7 +148,7 @@ export default function ChannelPage({ params }: { params: { channel: string } })
     {
       id: "2",
       name: `${channelName}评论区获客计划`,
-      status: "paused",
+      status: "paused" as const,
       stats: {
         devices: 3,
         acquired: 15,
@@ -145,7 +162,7 @@ export default function ChannelPage({ params }: { params: { channel: string } })
         customers: Math.floor(Math.random() * 20) + 20,
       })),
     },
-  ]
+  ] as Task[];
 
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
@@ -233,6 +250,14 @@ export default function ChannelPage({ params }: { params: { channel: string } })
 
   // 修改API数据处理部分
   useEffect(() => {
+    // 组件未挂载，不执行操作
+    if (!isMounted.current) return;
+    
+    // 防止重复请求：如果sceneId没有变化且已经加载过数据，则不重新请求
+    if (sceneId === sceneIdRef.current && tasks.length > 0 && !loading) {
+      return;
+    }
+    
     const fetchPlanList = async () => {
       try {
         setLoading(true);
@@ -298,7 +323,7 @@ export default function ChannelPage({ params }: { params: { channel: string } })
     };
     
     fetchPlanList();
-  }, [channel, initialTasks, sceneId]);
+  }, [sceneId]); // 只依赖sceneId变化触发请求
 
   // 辅助函数：根据渠道获取场景ID
   const getSceneIdFromChannel = (channel: string): number => {

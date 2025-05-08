@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import type React from "react"
 import { TrendingUp, Users, ChevronLeft, Bot, Sparkles, Plus, Phone } from "lucide-react"
 import { Card } from "@/components/ui/card"
@@ -97,8 +97,25 @@ export default function ScenariosPage() {
   const [channels, setChannels] = useState<Channel[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // 使用ref跟踪组件挂载状态
+  const isMounted = useRef(true);
+  // 使用ref跟踪是否已经加载过数据
+  const hasLoadedRef = useRef(false);
+
+  // 组件卸载时更新挂载状态
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   useEffect(() => {
+    // 组件未挂载，不执行操作
+    if (!isMounted.current) return;
+    
+    // 如果已经加载过数据，不再重复请求
+    if (hasLoadedRef.current && channels.length > 0) return;
+
     const loadScenes = async () => {
       try {
         setLoading(true)
@@ -116,15 +133,26 @@ export default function ScenariosPage() {
             }
           })
           
-          setChannels(transformedScenes)
+          // 只有在组件仍然挂载的情况下才更新状态
+          if (isMounted.current) {
+            setChannels(transformedScenes)
+            // 标记已加载过数据
+            hasLoadedRef.current = true;
+          }
         } else {
-          setError(response.msg || "获取场景列表失败")
+          if (isMounted.current) {
+            setError(response.msg || "获取场景列表失败")
+          }
         }
       } catch (err) {
         console.error("Failed to fetch scenes:", err)
-        setError("获取场景列表失败")
+        if (isMounted.current) {
+          setError("获取场景列表失败")
+        }
       } finally {
-        setLoading(false)
+        if (isMounted.current) {
+          setLoading(false)
+        }
       }
     }
     
