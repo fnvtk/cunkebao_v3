@@ -2,21 +2,23 @@
 
 namespace library;
 
+use think\response\Json as JsonResponse;
+
 class ResponseHelper
 {
     /**
      * 成功响应
      *
-     * @param mixed $data 响应数据
-     * @param string $msg 响应消息
-     * @param int $code 响应代码
-     * @return \think\response\Json
+     * @param mixed $data
+     * @param string $msg
+     * @param int $code
+     * @return JsonResponse
      */
-    public static function success($data = null, $msg = '操作成功', $code = 200)
+    public static function success($data = null, string $msg = 'success', int $code = 200): JsonResponse
     {
         return json([
             'code' => $code,
-            'msg' => $msg,
+            'msg'  => $msg,
             'data' => $data
         ]);
     }
@@ -24,16 +26,16 @@ class ResponseHelper
     /**
      * 错误响应
      *
-     * @param string $msg 错误消息
-     * @param int $code 错误代码
-     * @param mixed $data 错误数据
-     * @return \think\response\Json
+     * @param string $msg
+     * @param int $code
+     * @param mixed $data
+     * @return JsonResponse
      */
-    public static function error($msg = '操作失败', $code = 400, $data = [])
+    public static function error(string $msg = 'fail', int $code = 400, $data = []): JsonResponse
     {
         return json([
             'code' => $code,
-            'msg' => $msg,
+            'msg'  => $msg,
             'data' => $data
         ]);
     }
@@ -42,21 +44,21 @@ class ResponseHelper
      * 未授权响应
      *
      * @param string $msg 错误消息
-     * @return \think\response\Json
+     * @return JsonResponse
      */
-    public static function unauthorized($msg = '未授权访问')
+    public static function unauthorized(string $msg = 'unauthorized access'): JsonResponse
     {
-        return self::error($msg, 401);
+        return static::error($msg, 401);
     }
 
     /**
      * 禁止访问响应
      *
      * @param string $msg 错误消息
-     * @return \think\response\Json
+     * @return JsonResponse
      */
-    public static function forbidden($msg = '禁止访问')
+    public static function forbidden(string $msg = 'access denied'): JsonResponse
     {
-        return self::error($msg, 403);
+        return static::error($msg, 403);
     }
 } 

@@ -72,12 +72,12 @@ class GetRelatedAccountsV1Controller extends BaseController
     /**
      * 通过微信id获取微信最后活跃时间
      *
-     * @param int $wechatId
+     * @param int $time
      * @return string
      */
-    protected function getWechatLastActiveTime($wechatId): string
+    protected function getWechatLastActiveTime(int $time): string
     {
-        return date('Y-m-d H:i:s', $wechatId ?: time());
+        return date('Y-m-d H:i:s', $time ?: time());
     }
 
     /**

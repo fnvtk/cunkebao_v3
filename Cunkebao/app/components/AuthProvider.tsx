@@ -77,7 +77,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         
         if (storedToken) {
           // 首先尝试从localStorage获取用户信息
-          const userDataStr = safeLocalStorage.getItem("user")
+          const userDataStr = safeLocalStorage.getItem("userInfo")
           if (userDataStr) {
             try {
               // 如果能解析用户数据，先设置登录状态
