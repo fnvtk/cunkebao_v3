@@ -57,9 +57,9 @@ class GetCompanyListController extends BaseController
     protected function getCompanyList(array $where): \think\Paginator
     {
         $query = CompanyModel::alias('c')
-            ->field(
-                'id, name, status, companyId, memo, createTime'
-            );
+            ->field([
+                'c.id', 'c.name', 'c.status', 'c.companyId', 'c.memo', 'c.createTime'
+            ]);
 
         foreach ($where as $key => $value) {
             if (is_numeric($key) && is_array($value) && isset($value[0]) && $value[0] === 'exp') {
@@ -118,7 +118,7 @@ class GetCompanyListController extends BaseController
 
         return ResponseHelper::success(
             [
-                'list' => $this->makeReturnedResult($result),
+                'list'  => $this->makeReturnedResult($result),
                 'total' => $result->total(),
             ]
         );

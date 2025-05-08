@@ -9,6 +9,14 @@ class User extends Model
 {
     use SoftDelete;
 
+    const ADMIN_STP = 1;
+    const ADMIN_OTP = 0;
+    const NOT_USER = -1;
+    const MASTER_USER = 1;    // 操盘手
+    const CUSTOMER_USER = 2;  // 门店接待
+    const STATUS_STOP = 0;    // 禁用状态
+    const STATUS_ACTIVE = 1;  // 活动状态
+
     /**
      * 数据表名
      * @var string

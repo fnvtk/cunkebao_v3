@@ -9,6 +9,9 @@ use think\Model;
  */
 class Menu extends Model
 {
+    const STATUS_ACTIVE = 1;
+    const TOP_LEVEL = 0;
+
     // 设置数据表名
     protected $name = 'menus';
 }

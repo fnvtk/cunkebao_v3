@@ -19,8 +19,8 @@ class GetTopLevelForPermissionController extends BaseController
     protected function getTopLevelMenus(): array
     {
         $where = [
-            'parentId' => 0,
-            'status' => 1
+            'parentId' => MenuModel::TOP_LEVEL,
+            'status'   => MenuModel::STATUS_NORMAL
         ];
 
         return MenuModel::where($where)->field('id, title')->order('sort', 'asc')->select()->toArray();

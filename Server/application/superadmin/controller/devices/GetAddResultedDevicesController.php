@@ -85,7 +85,7 @@ class GetAddResultedDevicesController extends Controller
             [
                 'accountId' => $accountId,
                 'pageIndex' => 0,
-                'pageSize' => 1
+                'pageSize'  => 1
             ],
             true
         );

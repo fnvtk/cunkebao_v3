@@ -40,9 +40,9 @@ class GetAdministratorListController extends Controller
     protected function getAdministratorList(array $where): \think\Paginator
     {
         $query = AdministratorModel::alias('a')
-            ->field(
-                'id, account, username, status, authId, createTime createdAt, lastLoginTime, lastLoginIp'
-            );
+            ->field([
+                'a.id', 'a.account', 'a.username', 'a.status', 'a.authId', 'a.createTime createdAt', 'a.lastLoginTime', 'a.lastLoginIp'
+            ]);
 
         foreach ($where as $key => $value) {
             if (is_numeric($key) && is_array($value) && isset($value[0]) && $value[0] === 'exp') {
@@ -139,13 +139,13 @@ class GetAdministratorListController extends Controller
 
         foreach ($list->items() as $item) {
             $section = [
-                'id' => $item->id,
-                'account' => $item->account,
-                'username' => $item->username,
-                'status' => $item->status,
-                'createdAt' => date('Y-m-d H:i:s', $item->createdAt),
-                'lastLogin' => !empty($item->lastLoginTime) ? date('Y-m-d H:i:s', $item->lastLoginTime) : '从未登录',
-                'role' => $this->getRoleName($item->authId),
+                'id'          => $item->id,
+                'account'     => $item->account,
+                'username'    => $item->username,
+                'status'      => $item->status,
+                'createdAt'   => date('Y-m-d H:i:s', $item->createdAt),
+                'lastLogin'   => !empty($item->lastLoginTime) ? date('Y-m-d H:i:s', $item->lastLoginTime) : '从未登录',
+                'role'        => $this->getRoleName($item->authId),
                 'permissions' => $this->getPermissions($item->id),
             ];
 
@@ -167,7 +167,7 @@ class GetAdministratorListController extends Controller
 
         return ResponseHelper::success(
             [
-                'list' => $this->makeReturnedResult($result),
+                'list'  => $this->makeReturnedResult($result),
                 'total' => $result->total(),
             ]
         );

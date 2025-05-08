@@ -6,6 +6,7 @@ use app\common\model\Device as DeviceModel;
 use app\common\model\DeviceHandleLog as DeviceHandleLogModel;
 use app\common\model\DeviceTaskconf;
 use app\common\model\DeviceUser as DeviceUserModel;
+use app\common\model\User as UserModel;
 use app\cunkebao\controller\BaseController;
 use library\ResponseHelper;
 use think\Db;
@@ -25,9 +26,8 @@ class UpdateDeviceTaskConfigV1Controller extends BaseController
     protected function checkDeviceExists(int $deviceId)
     {
         $where = [
-            'deviceId' => $deviceId,
-            'companyId' => $this->getUserInfo('companyId'),
-            'deleteTime' => 0
+            'deviceId'   => $deviceId,
+            'companyId'  => $this->getUserInfo('companyId'),
         ];
 
         $device = DeviceModel::find($where);
@@ -46,8 +46,8 @@ class UpdateDeviceTaskConfigV1Controller extends BaseController
     protected function checkUserDevicePermission(int $deviceId): void
     {
         $where = [
-            'deviceId' => $deviceId,
-            'userId' => $this->getUserInfo('id'),
+            'deviceId'  => $deviceId,
+            'userId'    => $this->getUserInfo('id'),
             'companyId' => $this->getUserInfo('companyId')
         ];
 
@@ -81,9 +81,9 @@ class UpdateDeviceTaskConfigV1Controller extends BaseController
 
         DeviceHandleLogModel::addLog(
             [
-                'deviceId' => $deviceId,
-                'content' => $content,
-                'userId' => $this->getUserInfo('id'),
+                'deviceId'  => $deviceId,
+                'content'   => $content,
+                'userId'    => $this->getUserInfo('id'),
                 'companyId' => $this->getUserInfo('companyId'),
             ]
         );
@@ -119,7 +119,7 @@ class UpdateDeviceTaskConfigV1Controller extends BaseController
 
         $this->checkDeviceExists($id);
 
-        if ($this->getUserInfo('isAdmin') != 1) {
+        if ($this->getUserInfo('isAdmin') != UserModel::ADMIN_STP) {
             $this->checkUserDevicePermission($id);
         }
 

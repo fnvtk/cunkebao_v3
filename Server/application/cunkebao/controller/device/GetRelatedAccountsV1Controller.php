@@ -4,6 +4,7 @@ namespace app\cunkebao\controller\device;
 
 use app\common\model\DeviceUser as DeviceUserModel;
 use app\common\model\DeviceWechatLogin as DeviceWechatLoginModel;
+use app\common\model\User as UserModel;
 use app\common\model\WechatAccount as WechatAccountModel;
 use app\common\model\WechatFriend;
 use app\cunkebao\controller\BaseController;
@@ -23,8 +24,8 @@ class GetRelatedAccountsV1Controller extends BaseController
     protected function checkUserDevicePermission(int $deviceId): void
     {
         $where = [
-            'deviceId' => $deviceId,
-            'userId' => $this->getUserInfo('id'),
+            'deviceId'  => $deviceId,
+            'userId'    => $this->getUserInfo('id'),
             'companyId' => $this->getUserInfo('companyId')
         ];
 
@@ -44,7 +45,7 @@ class GetRelatedAccountsV1Controller extends BaseController
     protected function getDeviceWechatIds(int $deviceId): array
     {
         $where = [
-            'deviceId' => $deviceId,
+            'deviceId'  => $deviceId,
             'companyId' => $this->getUserInfo('companyId')
         ];
 
@@ -148,7 +149,7 @@ class GetRelatedAccountsV1Controller extends BaseController
         try {
             $deviceId = $this->request->param('id/d');
 
-            if ($this->getUserInfo('isAdmin') != 1) {
+            if ($this->getUserInfo('isAdmin') != UserModel::ADMIN_STP) {
                 $this->checkUserDevicePermission($deviceId);
             }
 
@@ -159,7 +160,7 @@ class GetRelatedAccountsV1Controller extends BaseController
                 [
                     'deviceId' => $deviceId,
                     'accounts' => $wechatAccounts,
-                    'total' => count($wechatAccounts)
+                    'total'    => count($wechatAccounts)
                 ]
             );
         } catch (\Exception $e) {

@@ -6,8 +6,10 @@ use app\common\model\Device as DeviceModel;
 use app\common\model\DeviceTaskconf as DeviceTaskconfModel;
 use app\common\model\DeviceUser as DeviceUserModel;
 use app\common\model\DeviceWechatLogin;
+use app\common\model\User as UserModel;
 use app\common\model\WechatFriend;
 use app\cunkebao\controller\BaseController;
+use Eison\Utils\Helper\ArrHelper;
 use library\ResponseHelper;
 
 /**
@@ -24,8 +26,8 @@ class GetDeviceDetailV1Controller extends BaseController
     protected function checkUserDevicePermission(int $deviceId): void
     {
         $where = [
-            'deviceId' => $deviceId,
-            'userId' => $this->getUserInfo('id'),
+            'deviceId'  => $deviceId,
+            'userId'    => $this->getUserInfo('id'),
             'companyId' => $this->getUserInfo('companyId')
         ];
 
@@ -65,19 +67,20 @@ class GetDeviceDetailV1Controller extends BaseController
     protected function getTaskConfig(int $deviceId): array
     {
         $where = [
-            'deviceId' => $deviceId,
-            'companyId' => $this->getUserInfo('companyId'),
-            'deleteTime' => 0
+            'deviceId'   => $deviceId,
+            'companyId'  => $this->getUserInfo('companyId'),
         ];
 
-        $conf = DeviceTaskconfModel::where($where)->field('autoAddFriend,autoReply,contentSync,aiChat')->find();
+        $conf = DeviceTaskconfModel::alias('c')
+            ->field([
+                'c.autoAddFriend', 'c.autoReply', 'c.contentSync', 'c.aiChat'
+            ])
+            ->where($where)
+            ->find();
 
-        return $conf ? $conf->toArray() : [
-            'autoAddFriend' => 0,
-            'autoReply' => 0,
-            'contentSync' => 0,
-            'aiChat' => 0
-        ];
+        return $conf
+            ? $conf->toArray()
+            : ArrHelper::getValue([], 'autoAddFriend,autoReply,contentSync,aiChat', 0);
     }
 
     /**
@@ -90,7 +93,7 @@ class GetDeviceDetailV1Controller extends BaseController
     protected function getTotalFriend(int $deviceId): int
     {
         $where = [
-            'deviceId' => $deviceId,
+            'deviceId'  => $deviceId,
             'companyId' => $this->getUserInfo('companyId'),
         ];
 
@@ -125,7 +128,6 @@ class GetDeviceDetailV1Controller extends BaseController
             ->field([
                 'd.id', 'd.imei', 'd.memo', 'd.alive', 'd.updateTime as lastUpdateTime', 'd.extra'
             ])
-            ->where('d.deleteTime', 0)
             ->find($id);
 
         if (empty($device)) {
@@ -155,7 +157,7 @@ class GetDeviceDetailV1Controller extends BaseController
         try {
             $id = $this->request->param('id/d');
 
-            if ($this->getUserInfo('isAdmin') != 1) {
+            if ($this->getUserInfo('isAdmin') != UserModel::ADMIN_STP) {
                 $this->checkUserDevicePermission($id);
             }
 

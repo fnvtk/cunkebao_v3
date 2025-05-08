@@ -48,16 +48,16 @@ class UpdateAdministratorController extends BaseController
     protected function dataValidate(array $params): self
     {
         $validate = Validate::make([
-            'id' => 'require|regex:/^[1-9]\d*$/',
-            'account' => 'require|regex:^[a-zA-Z0-9]+$|/\S+/',
-            'username' => 'require|/\S+/',
-            'password' => '/\S+/',
+            'id'            => 'require|regex:/^[1-9]\d*$/',
+            'account'       => 'require|regex:^[a-zA-Z0-9]+$|/\S+/',
+            'username'      => 'require|/\S+/',
+            'password'      => '/\S+/',
             'permissionIds' => 'array',
         ], [
-            'id.require' => '缺少必要参数',
-            'account.require' => '账号不能为空',
-            'account.regex' => '账号只能用数字或者字母或者数字字母组合',
-            'username.require' => '用户名不能为空',
+            'id.require'          => '缺少必要参数',
+            'account.require'     => '账号不能为空',
+            'account.regex'       => '账号只能用数字或者字母或者数字字母组合',
+            'username.require'    => '用户名不能为空',
             'permissionIds.array' => '请至少分配一种权限',
         ]);
 
@@ -79,11 +79,11 @@ class UpdateAdministratorController extends BaseController
     {
         $currentAdminId = $this->getAdminInfo('id');
 
-        if ($currentAdminId != 1 && $currentAdminId != $adminId) {
+        if ($currentAdminId != AdministratorModel::MASTER_ID && $currentAdminId != $adminId) {
             throw new \Exception('您没有权限修改其他管理员', 403);
         }
 
-        if ($params['id'] != 1 && empty($params['permissionIds'])) {
+        if ($params['id'] != AdministratorModel::MASTER_ID && empty($params['permissionIds'])) {
             throw new \Exception('请至少分配一种权限', 403);
         }
 
@@ -111,7 +111,7 @@ class UpdateAdministratorController extends BaseController
             ]);
         } else {
             return AdministratorPermissionsModel::create([
-                'adminId' => $adminId,
+                'adminId'     => $adminId,
                 'permissions' => json_encode($permissionData),
             ]);
         }
@@ -137,7 +137,7 @@ class UpdateAdministratorController extends BaseController
             $this->udpateAdministrator($params);
 
             // 如果当前是超级管理员(ID为1)，并且修改的不是自己，则更新权限
-            if ($this->getAdminInfo('id') == 1
+            if ($this->getAdminInfo('id') == AdministratorModel::MASTER_ID
                 && $this->getAdminInfo('id') != $adminId
                 && !empty($params['permissionIds'])
             ) {

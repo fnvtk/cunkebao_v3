@@ -52,7 +52,7 @@ class GetBasestatisticsController extends Controller
     {
         return ResponseHelper::success(
             [
-                'companyCount' => $this->getCompanyCount(),
+                'companyCount'  => $this->getCompanyCount(),
                 'adminCount'    => $this->getAdminCount(),
                 'customerCount' => $this->getDeviceCount(),
             ]

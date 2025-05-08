@@ -21,10 +21,16 @@ class GetCompanySubusersForProfileController extends Controller
     {
         $where = [
             'companyId' => $this->request->param('companyId/d', 0),
-            'isAdmin' => 0
+            'isAdmin'   => UserModel::ADMIN_OTP
         ];
 
-        return UserModel::field('id,account,phone,username,avatar,status,createTime,typeId')->where($where)->select()->toArray();
+        return UserModel::alias('u')
+            ->field([
+                'u.id', 'u.account', 'u.phone', 'u.username', 'u.avatar', 'u.status', 'u.createTime', 'u.typeId'
+            ])
+            ->where($where)
+            ->select()
+            ->toArray();
     }
 
     /**
