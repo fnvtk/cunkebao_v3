@@ -97,6 +97,7 @@ class DeleteDeviceV1Controller extends BaseController
      */
     protected function deleteS2About(): self
     {
+        return $this;
     }
 
     /**

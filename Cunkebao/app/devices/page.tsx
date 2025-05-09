@@ -5,17 +5,18 @@ import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ChevronLeft, Plus, Filter, Search, RefreshCw, QrCode, Smartphone, Loader2, AlertTriangle } from "lucide-react"
+import { ChevronLeft, Plus, Filter, Search, RefreshCw, QrCode, Smartphone, Loader2, AlertTriangle, Trash2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/components/ui/use-toast"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { fetchDeviceList, deleteDevice } from "@/api/devices"
 import { ServerDevice } from "@/types/device"
 import { api } from "@/lib/api"
 import { ImeiDisplay } from "@/components/ImeiDisplay"
+import type { ApiResponse } from "@/lib/api"
 
 // 设备接口更新为与服务端接口对应的类型
 interface Device extends ServerDevice {
@@ -33,14 +34,12 @@ export default function DevicesPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
-  const [selectedDevices, setSelectedDevices] = useState<number[]>([])
+  const [selectedDeviceId, setSelectedDeviceId] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
   const observerTarget = useRef<HTMLDivElement>(null)
-  // 使用ref来追踪当前页码，避免依赖effect循环
   const pageRef = useRef(1)
-  // 添加设备相关状态
   const [deviceImei, setDeviceImei] = useState("")
   const [deviceName, setDeviceName] = useState("")
   const [qrCodeImage, setQrCodeImage] = useState("")
@@ -59,14 +58,14 @@ export default function DevicesPage() {
     showAnimation: false
   });
 
-  // 添加轮询定时器引用
   const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const devicesPerPage = 20 // 每页显示20条记录
+  const devicesPerPage = 20
 
-  // 获取设备列表
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [deviceToDelete, setDeviceToDelete] = useState<number | null>(null)
+
   const loadDevices = useCallback(async (page: number, refresh: boolean = false) => {
-    // 检查是否已经在加载中，避免重复请求
     if (isLoading) return;
     
     try {
@@ -74,20 +73,17 @@ export default function DevicesPage() {
       const response = await fetchDeviceList(page, devicesPerPage, searchQuery)
       
       if (response.code === 200 && response.data) {
-        // 转换数据格式，确保status类型正确
         const serverDevices = response.data.list.map(device => ({
           ...device,
           status: device.alive === 1 ? "online" as const : "offline" as const
         }))
         
-        // 更新设备列表
         if (refresh) {
           setDevices(serverDevices)
         } else {
           setDevices(prev => [...prev, ...serverDevices])
         }
         
-        // 更新统计信息
         const total = response.data.total
         const online = response.data.list.filter(d => d.alive === 1).length
         setStats({
@@ -95,16 +91,13 @@ export default function DevicesPage() {
           onlineDevices: online
         })
         
-        // 更新分页信息
         setTotalCount(response.data.total)
         
-        // 更新hasMore状态，确保有更多数据且返回的数据数量等于每页数量
         const hasMoreData = serverDevices.length > 0 && 
                             serverDevices.length === devicesPerPage && 
                             (page * devicesPerPage) < response.data.total;
         setHasMore(hasMoreData)
         
-        // 更新当前页码的ref值
         pageRef.current = page
       } else {
         toast({
@@ -123,54 +116,37 @@ export default function DevicesPage() {
     } finally {
       setIsLoading(false)
     }
-  // 移除isLoading依赖，只保留真正需要的依赖
-  }, [searchQuery]) // devicesPerPage是常量，不需要加入依赖
+  }, [searchQuery])
 
-  // 加载下一页数据的函数，使用ref来追踪页码，避免依赖循环
   const loadNextPage = useCallback(() => {
-    // 如果正在加载或者没有更多数据，直接返回
     if (isLoading || !hasMore) return;
     
-    // 使用ref来获取下一页码，避免依赖currentPage
     const nextPage = pageRef.current + 1;
-    // 设置UI显示的当前页
     setCurrentPage(nextPage);
-    // 加载下一页数据
     loadDevices(nextPage, false);
-  // 只依赖必要的状态
   }, [hasMore, isLoading, loadDevices]);
 
-  // 追踪组件是否已挂载
   const isMounted = useRef(true);
   
-  // 组件卸载时更新挂载状态
   useEffect(() => {
     return () => {
       isMounted.current = false;
     };
   }, []);
 
-  // 初始加载和搜索时刷新列表
   useEffect(() => {
-    // 组件未挂载，不执行操作
     if (!isMounted.current) return;
     
-    // 重置页码
     setCurrentPage(1)
     pageRef.current = 1
-    // 加载第一页数据
     loadDevices(1, true)
   }, [searchQuery, loadDevices])
 
-  // 无限滚动加载实现
   useEffect(() => {
-    // 如果没有更多数据或者正在加载，不创建observer
     if (!hasMore || isLoading) return;
     
-    // 创建观察器观察加载点
     const observer = new IntersectionObserver(
       entries => {
-        // 如果交叉了，且有更多数据，且当前不在加载状态，且组件仍然挂载
         if (entries[0].isIntersecting && hasMore && !isLoading && isMounted.current) {
           loadNextPage();
         }
@@ -178,24 +154,20 @@ export default function DevicesPage() {
       { threshold: 0.5 }
     )
 
-    // 只在客户端时观察节点
     if (typeof window !== 'undefined' && observerTarget.current) {
       observer.observe(observerTarget.current)
     }
 
-    // 清理观察器
     return () => {
       observer.disconnect();
     }
   }, [hasMore, isLoading, loadNextPage])
 
-  // 获取设备二维码
   const fetchDeviceQRCode = async () => {
     try {
       setIsLoadingQRCode(true)
-      setQrCodeImage("") // 清空当前二维码
+      setQrCodeImage("")
       
-      // 获取保存的accountId
       const accountId = localStorage.getItem('s2_accountId')
       if (!accountId) {
         toast({
@@ -206,7 +178,6 @@ export default function DevicesPage() {
         return
       }
       
-      // 发起请求获取二维码 - 直接使用fetch避免api工具添加基础URL
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/api/device/add`, {
         method: 'POST',
         headers: {
@@ -218,10 +189,8 @@ export default function DevicesPage() {
         })
       })
       
-      // 保存原始响应文本以便调试
       const responseText = await response.text();
       
-      // 尝试将响应解析为JSON
       let result;
       try {
         result = JSON.parse(responseText);
@@ -235,7 +204,6 @@ export default function DevicesPage() {
       }
       
       if (result && result.code === 200) {
-        // 尝试多种可能的返回数据结构
         let qrcodeData = null;
         
         if (result.data?.qrCode) {
@@ -245,7 +213,6 @@ export default function DevicesPage() {
         } else if (result.data?.image) {
           qrcodeData = result.data.image;
         } else if (result.data?.url) {
-          // 如果返回的是URL而不是base64
           qrcodeData = result.data.url;
           setQrCodeImage(qrcodeData);
           
@@ -254,9 +221,8 @@ export default function DevicesPage() {
             description: "请使用手机扫描新的二维码添加设备",
           });
           
-          return; // 直接返回，不进行base64处理
+          return;
         } else if (typeof result.data === 'string') {
-          // 如果data直接是字符串
           qrcodeData = result.data;
         } else {
           toast({
@@ -267,7 +233,6 @@ export default function DevicesPage() {
           return;
         }
         
-        // 检查数据是否为空
         if (!qrcodeData) {
           toast({
             title: "获取二维码失败",
@@ -277,24 +242,18 @@ export default function DevicesPage() {
           return;
         }
         
-        // 检查是否已经是完整的data URL
         if (qrcodeData.startsWith('data:image')) {
           setQrCodeImage(qrcodeData);
         } 
-        // 检查是否是URL
         else if (qrcodeData.startsWith('http')) {
           setQrCodeImage(qrcodeData);
         }
-        // 尝试作为base64处理
         else {
           try {
-            // 确保base64字符串没有空格等干扰字符
             const cleanedBase64 = qrcodeData.trim();
             
-            // 直接以图片src格式设置
             setQrCodeImage(`data:image/png;base64,${cleanedBase64}`);
             
-            // 预加载图片，确认是否有效
             const img = new Image();
             img.onload = () => {
               // 图片加载成功
@@ -339,7 +298,6 @@ export default function DevicesPage() {
     }
   }
 
-  // 清理轮询函数
   const cleanupPolling = useCallback(() => {
     if (pollingTimerRef.current) {
       clearTimeout(pollingTimerRef.current);
@@ -353,14 +311,12 @@ export default function DevicesPage() {
     });
   }, []);
 
-  // 轮询检测设备添加状态
   const startPolling = useCallback(() => {
     let pollCount = 0;
     const maxPolls = 60;
-    const pollInterval = 1000; // 1秒
-    const initialDelay = 5000; // 5秒后开始轮询
+    const pollInterval = 1000;
+    const initialDelay = 5000;
 
-    // 初始提示
     setPollingStatus({
       isPolling: false,
       message: '请扫描二维码添加设备，5秒后将开始检测添加结果',
@@ -398,7 +354,7 @@ export default function DevicesPage() {
               messageType: 'success',
               showAnimation: false
             });
-            setQrCodeImage('/broken-qr.png'); // 显示损坏的二维码
+            setQrCodeImage('/broken-qr.png');
             cleanupPolling();
             return;
           }
@@ -428,7 +384,6 @@ export default function DevicesPage() {
       }
     };
 
-    // 5秒后开始轮询
     pollingTimerRef.current = setTimeout(() => {
       setPollingStatus({
         isPolling: true,
@@ -440,7 +395,6 @@ export default function DevicesPage() {
     }, initialDelay);
   }, [cleanupPolling]);
 
-  // 修改打开添加设备模态框的处理函数
   const handleOpenAddDeviceModal = () => {
     setIsAddDeviceOpen(true);
     setDeviceImei("");
@@ -456,13 +410,11 @@ export default function DevicesPage() {
     startPolling();
   }
 
-  // 修改关闭模态框的处理函数
   const handleCloseAddDeviceModal = () => {
     cleanupPolling();
     setIsAddDeviceOpen(false);
   }
 
-  // 通过IMEI添加设备
   const handleAddDeviceByImei = async () => {
     if (!deviceImei) {
       toast({
@@ -476,7 +428,6 @@ export default function DevicesPage() {
     try {
       setIsSubmittingImei(true);
       
-      // 使用api.post发送请求到/v1/devices
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/devices`, {
         method: 'POST',
         headers: {
@@ -490,10 +441,8 @@ export default function DevicesPage() {
         })
       });
       
-      // 保存原始响应文本以便调试
       const responseText = await response.text();
       
-      // 尝试将响应解析为JSON
       let result;
       try {
         result = JSON.parse(responseText);
@@ -512,12 +461,10 @@ export default function DevicesPage() {
           description: result.data?.msg || "设备已成功添加",
         });
         
-        // 清空输入并关闭弹窗
         setDeviceImei("");
         setDeviceName("");
         setIsAddDeviceOpen(false);
         
-        // 刷新设备列表
         loadDevices(1, true);
       } else {
         toast({
@@ -537,7 +484,6 @@ export default function DevicesPage() {
     }
   }
 
-  // 刷新设备列表
   const handleRefresh = () => {
     setCurrentPage(1)
     pageRef.current = 1
@@ -548,7 +494,6 @@ export default function DevicesPage() {
     })
   }
 
-  // 筛选设备
   const filteredDevices = devices.filter(device => {
     const matchesStatus = statusFilter === "all" || 
       (statusFilter === "online" && device.alive === 1) || 
@@ -556,57 +501,64 @@ export default function DevicesPage() {
     return matchesStatus
   })
 
-  // 处理批量删除
-  const handleBatchDelete = async () => {
-    if (selectedDevices.length === 0) {
+  const handleDeleteClick = () => {
+    if (!selectedDeviceId) {
       toast({
         title: "请选择设备",
-        description: "您需要选择至少一个设备来执行批量删除操作",
+        description: "请先选择要删除的设备",
         variant: "destructive",
       })
       return
     }
+    setDeviceToDelete(selectedDeviceId)
+    setIsDeleteDialogOpen(true)
+  }
 
-    // 这里需要实现批量删除逻辑
-    // 目前只是单个删除的循环
-    let successCount = 0
-    for (const deviceId of selectedDevices) {
-      try {
-        const response = await deleteDevice(deviceId)
-        if (response.code === 200) {
-          successCount++
-        }
-      } catch (error) {
-        console.error(`删除设备 ${deviceId} 失败`, error)
+  const handleConfirmDelete = async () => {
+    if (!deviceToDelete) return
+
+    try {
+      const response = await deleteDevice(deviceToDelete)
+      if (response.code === 200) {
+        setIsDeleteDialogOpen(false)
+        setDeviceToDelete(null)
+        setSelectedDeviceId(null)
+        toast({
+          title: "删除成功",
+          description: "设备已成功删除",
+        })
+        handleRefresh()
+      } else {
+        toast({
+          title: "删除失败",
+          description: response.message || "请稍后重试",
+          variant: "destructive",
+        })
+        setIsDeleteDialogOpen(false)
+        setDeviceToDelete(null)
       }
-    }
-
-    // 删除后刷新列表
-    if (successCount > 0) {
-    toast({
-      title: "批量删除成功",
-        description: `已删除 ${successCount} 个设备`,
-    })
-    setSelectedDevices([])
-      handleRefresh()
-    } else {
+    } catch (error) {
+      console.error(`删除设备 ${deviceToDelete} 失败`, error)
       toast({
-        title: "批量删除失败",
+        title: "删除失败",
         description: "请稍后重试",
         variant: "destructive",
       })
+      setIsDeleteDialogOpen(false)
+      setDeviceToDelete(null)
     }
   }
 
-  // 设备详情页跳转
+  const handleCancelDelete = () => {
+    setIsDeleteDialogOpen(false)
+    setDeviceToDelete(null)
+  }
+
   const handleDeviceClick = (deviceId: number, event: React.MouseEvent) => {
-    // 判断点击事件是否来自ImeiDisplay组件或其后代元素
-    // 如果点击事件已经被处理（例如ImeiDisplay中已阻止传播），则不执行跳转
     if (event.defaultPrevented) {
       return;
     }
     
-    // 如果点击的元素或其父元素有imei-display类，则不跳转
     let target = event.target as HTMLElement;
     while (target && target !== event.currentTarget) {
       if (target.classList.contains('imei-display-area')) {
@@ -618,7 +570,6 @@ export default function DevicesPage() {
     router.push(`/devices/${deviceId}`);
   }
 
-  // 处理添加设备
   const handleAddDevice = async () => {
     try {
       const s2_accountId = localStorage.getItem('s2_accountId');
@@ -650,7 +601,6 @@ export default function DevicesPage() {
           variant: 'default',
         });
         setIsAddDeviceOpen(false);
-        // 刷新设备列表
         loadDevices(1, true);
       } else {
         toast({
@@ -728,25 +678,12 @@ export default function DevicesPage() {
                     <SelectItem value="offline">离线</SelectItem>
                   </SelectContent>
                 </Select>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={selectedDevices.length === filteredDevices.length && filteredDevices.length > 0}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedDevices(filteredDevices.map((d) => d.id))
-                      } else {
-                        setSelectedDevices([])
-                      }
-                    }}
-                  />
-                  <span className="text-sm text-gray-500">全选</span>
-                </div>
               </div>
               <Button
                 variant="destructive"
                 size="sm"
-                onClick={handleBatchDelete}
-                disabled={selectedDevices.length === 0}
+                onClick={handleDeleteClick}
+                disabled={!selectedDeviceId}
               >
                 删除
               </Button>
@@ -761,12 +698,12 @@ export default function DevicesPage() {
                 >
                   <div className="flex items-center space-x-3">
                     <Checkbox
-                      checked={selectedDevices.includes(device.id)}
+                      checked={selectedDeviceId === device.id}
                       onCheckedChange={(checked) => {
                         if (checked) {
-                          setSelectedDevices([...selectedDevices, device.id])
+                          setSelectedDeviceId(device.id)
                         } else {
-                          setSelectedDevices(selectedDevices.filter((id) => id !== device.id))
+                          setSelectedDeviceId(null)
                         }
                       }}
                       onClick={(e) => e.stopPropagation()}
@@ -791,7 +728,6 @@ export default function DevicesPage() {
                 </Card>
               ))}
 
-              {/* 加载更多观察点 */}
               <div ref={observerTarget} className="h-10 flex items-center justify-center">
                 {isLoading && <div className="text-sm text-gray-500">加载中...</div>}
                 {!hasMore && devices.length > 0 && <div className="text-sm text-gray-500">没有更多设备了</div>}
@@ -802,7 +738,6 @@ export default function DevicesPage() {
         </Card>
       </div>
 
-      {/* 修改添加设备对话框 */}
       <Dialog open={isAddDeviceOpen} onOpenChange={(open) => {
         if (!open) {
           handleCloseAddDeviceModal();
@@ -814,20 +749,8 @@ export default function DevicesPage() {
           </DialogHeader>
           
           <Tabs defaultValue="scan" value={activeTab} onValueChange={setActiveTab} className="mt-4">
-            {/* <TabsList className="grid grid-cols-2 w-full">
-              <TabsTrigger value="scan" className="flex items-center">
-                <QrCode className="h-4 w-4 mr-2" />
-                扫码添加
-              </TabsTrigger>
-              <TabsTrigger value="manual" className="flex items-center">
-                <Smartphone className="h-4 w-4 mr-2" />
-                手动添加
-              </TabsTrigger>
-            </TabsList> */}
-            
             <TabsContent value="scan" className="space-y-4 py-4">
               <div className="flex flex-col items-center justify-center p-6 space-y-4 relative">
-                {/* 悬浮提示区域，上移50% */}
                 <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 z-10">
                   <div className="flex flex-col items-center w-full py-2">
                     {pollingStatus.isPolling || pollingStatus.showAnimation ? (
@@ -859,9 +782,7 @@ export default function DevicesPage() {
                           className="w-full h-full object-contain"
                           onError={(e) => {
                             console.error("二维码图片加载失败");
-                            // 隐藏图片
                             e.currentTarget.style.display = 'none';
-                            // 显示错误信息
                             const container = document.getElementById('qrcode-container');
                             if (container) {
                               const errorEl = container.querySelector('.qrcode-error');
@@ -920,7 +841,7 @@ export default function DevicesPage() {
                   <p className="text-xs text-gray-500">
                     为设备添加一个便于识别的名称
                   </p>
-            </div>
+                </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">设备IMEI</label>
                   <Input 
@@ -933,23 +854,22 @@ export default function DevicesPage() {
                   </p>
                 </div>
                 <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsAddDeviceOpen(false)}>
-                取消
-              </Button>
+                  <Button variant="outline" onClick={() => setIsAddDeviceOpen(false)}>
+                    取消
+                  </Button>
                   <Button 
                     onClick={handleAddDevice} 
                     disabled={!deviceImei.trim() || !deviceName.trim()}
                   >
                     添加
                   </Button>
-            </div>
-          </div>
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         </DialogContent>
       </Dialog>
 
-      {/* 在二维码显示区域下方添加状态提示 */}
       <div className="mt-4 text-center">
         {pollingStatus.message && (
           <div className="flex flex-col items-center space-y-2">
@@ -970,6 +890,25 @@ export default function DevicesPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认删除</DialogTitle>
+            <DialogDescription className="pt-4">
+              设备删除后，本设备配置的计划任务操作也将失效。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={handleCancelDelete}>
+              取消
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              确认删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
