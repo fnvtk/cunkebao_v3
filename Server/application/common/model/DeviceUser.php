@@ -3,6 +3,7 @@
 namespace app\common\model;
 
 use think\Model;
+use think\model\concern\SoftDelete;
 
 /**
  * 设备用户关联模型
@@ -10,6 +11,8 @@ use think\Model;
  */
 class DeviceUser extends Model
 {
+    use SoftDelete;
+
     /**
      * 数据表名
      * @var string
@@ -20,31 +23,6 @@ class DeviceUser extends Model
     protected $autoWriteTimestamp = true;
     protected $createTime = 'createTime';
     protected $updateTime = 'updateTime';
-
-    /**
-     * 关联用户模型
-     * @return \think\model\relation\BelongsTo
-     */
-    public function user()
-    {
-        return $this->belongsTo('User', 'userId', 'id');
-    }
-
-    /**
-     * 关联设备模型
-     * @return \think\model\relation\BelongsTo
-     */
-    public function device()
-    {
-        return $this->belongsTo('app\common\model\Device', 'deviceId', 'id');
-    }
-
-    /**
-     * 关联公司模型
-     * @return \think\model\relation\BelongsTo
-     */
-    public function company()
-    {
-        return $this->belongsTo('app\common\model\Company', 'companyId', 'id');
-    }
+    protected $deleteTime = 'deleteTime';
+    protected $defaultSoftDelete = 0;
 } 

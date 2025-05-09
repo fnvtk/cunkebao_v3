@@ -66,16 +66,13 @@ class GetDeviceDetailV1Controller extends BaseController
      */
     protected function getTaskConfig(int $deviceId): array
     {
-        $where = [
-            'deviceId'  => $deviceId,
-            'companyId' => $this->getUserInfo('companyId'),
-        ];
+        $companyId = $this->getUserInfo('companyId');
 
         $conf = DeviceTaskconfModel::alias('c')
             ->field([
                 'c.autoAddFriend', 'c.autoReply', 'c.momentsSync', 'c.aiChat'
             ])
-            ->where($where)
+            ->where(compact('companyId', 'deviceId'))
             ->find();
 
         if (!is_null($conf)) {
@@ -95,12 +92,9 @@ class GetDeviceDetailV1Controller extends BaseController
      */
     protected function getTotalFriend(int $deviceId): int
     {
-        $where = [
-            'deviceId'  => $deviceId,
-            'companyId' => $this->getUserInfo('companyId'),
-        ];
+        $companyId = $this->getUserInfo('companyId');
 
-        $ownerWechatId = DeviceWechatLogin::where($where)->order('createTime desc')->value('wechatId');
+        $ownerWechatId = DeviceWechatLogin::where(compact('companyId', 'deviceId'))->order('createTime desc')->value('wechatId');
 
         if ($ownerWechatId) {
             return WechatFriend::where(['ownerWechatId' => $ownerWechatId])->count();
@@ -110,7 +104,7 @@ class GetDeviceDetailV1Controller extends BaseController
     }
 
     /**
-     * 获取设备绑定微信你的消息总数
+     * TODO 获取设备绑定微信的消息总数
      *
      * @return int
      */
