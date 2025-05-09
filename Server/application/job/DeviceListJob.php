@@ -62,7 +62,7 @@ class DeviceListJob
             ]);
             
             // 调用设备列表获取方法，传入isDel参数
-            $result = $deviceController->getlist($pageIndex, $pageSize, true, $isDel);
+            $result = $deviceController->getlist(['pageIndex' => $pageIndex, 'pageSize' => $pageSize], true, $isDel);
             $response = json_decode($result, true);
             
             if ($response['code'] == 200) {

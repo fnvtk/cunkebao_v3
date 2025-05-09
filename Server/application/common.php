@@ -379,7 +379,7 @@ if (!function_exists('handleApiResponse')) {
         if($response == '无效路径或登录状态失效'){
             Cache::rm('system_refresh_token');
             Cache::rm('system_authorization_token');
-            AuthService::getSystemAuthorization();
+            //AuthService::getSystemAuthorization();
         }
         
         return $decoded;
