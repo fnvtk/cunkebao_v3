@@ -23,7 +23,11 @@ class GetCompanyDevicesForProfileController extends Controller
     {
         $companyId = $this->request->param('companyId/d', 0);
 
-        $devices = DeviceModel::where(compact('companyId'))->field('id,memo,imei,phone,model,brand,alive,id deviceId')
+        $devices = DeviceModel::alias('d')
+            ->field([
+                'd.id', 'd.memo', 'd.imei', 'd.phone', 'd.model', 'd.brand', 'd.alive', 'd.id deviceId'
+            ])
+            ->where(compact('companyId'))
             ->select()
             ->toArray();
 
@@ -47,7 +51,10 @@ class GetCompanyDevicesForProfileController extends Controller
         // 获取最新登录记录id
         $latestIds = array_column($latestLogs, 'lastedId');
 
-        return DeviceWechatLoginModel::field('deviceId,wechatId,alive wAlive')
+        return DeviceWechatLoginModel::alias('d')
+            ->field([
+                'd.deviceId', 'd.wechatId', 'd.alive wAlive'
+            ])
             ->whereIn('id', $latestIds)
             ->select()
             ->toArray();
@@ -65,7 +72,10 @@ class GetCompanyDevicesForProfileController extends Controller
         $relations = $this->getDeviceWechatRelationsByDeviceIds($deviceIds);
 
         // 统计微信好友数量
-        $friendCounts = WechatFriendModel::alias('f')->field('ownerWechatId wechatId,count(*) friendCount')
+        $friendCounts = WechatFriendModel::alias('f')
+            ->field([
+                'f.ownerWechatId wechatId', 'count(*) friendCount'
+            ])
             ->whereIn('ownerWechatId', array_column($relations, 'wechatId'))
             ->group('ownerWechatId')
             ->select()

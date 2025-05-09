@@ -7,6 +7,7 @@ use app\superadmin\controller\administrator\DeleteAdministratorController;
 use library\ResponseHelper;
 use think\Controller;
 use think\Validate;
+use think\facade\Cookie;
 
 class AuthLoginController extends Controller
 {
@@ -30,7 +31,7 @@ class AuthLoginController extends Controller
     protected function dataValidate(array $params): self
     {
         $validate = Validate::make([
-            'account' => 'require|/\S+/',
+            'account'  => 'require|/\S+/',
             'password' => 'require|/\S+/',
         ]);
 
@@ -96,11 +97,11 @@ class AuthLoginController extends Controller
     {
         // 获取当前环境
         $env = app()->env->get('APP_ENV', 'production');
-        
+
         // 获取请求的域名
         $origin = $this->request->header('origin');
         $domain = '';
-        
+
         if ($origin) {
             // 解析域名
             $parsedUrl = parse_url($origin);
@@ -112,7 +113,7 @@ class AuthLoginController extends Controller
                     // 生产环境使用顶级域名
                     $parts = explode('.', $parsedUrl['host']);
                     if (count($parts) > 1) {
-                        $domain = '.' . $parts[count($parts)-2] . '.' . $parts[count($parts)-1];
+                        $domain = '.' . $parts[count($parts) - 2] . '.' . $parts[count($parts) - 1];
                     }
                 }
             }
@@ -120,11 +121,11 @@ class AuthLoginController extends Controller
 
         // 设置cookie选项
         $options = [
-            'expire' => 86400,
-            'path' => '/',
+            'expire'   => 86400,
+            'path'     => '/',
             'httponly' => true,
-            'samesite' => 'None', // 允许跨域
-            'secure' => true      // 仅 HTTPS 下有效
+            'samesite' => 'None',   // 允许跨域
+            'secure'   => true      // 仅 HTTPS 下有效
         ];
 
         // 如果有域名，添加到选项
@@ -133,8 +134,8 @@ class AuthLoginController extends Controller
         }
 
         // 设置cookies
-        \think\facade\Cookie::set('admin_id', $admin->id, $options);
-        \think\facade\Cookie::set('admin_token', $this->createToken($admin), $options);
+        Cookie::set('admin_id', $admin->id, $options);
+        Cookie::set('admin_token', $this->createToken($admin), $options);
     }
 
     /**
@@ -152,10 +153,10 @@ class AuthLoginController extends Controller
 
             return ResponseHelper::success(
                 [
-                    'id' => $admin->id,
-                    'name' => $admin->username,
+                    'id'      => $admin->id,
+                    'name'    => $admin->username,
                     'account' => $admin->account,
-                    'token' => cookie('admin_token')
+                    'token'   => Cookie::get('admin_token')
                 ]
             );
         } catch (\Exception $e) {

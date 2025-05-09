@@ -1,10 +1,13 @@
 <?php
+
 namespace app\cunkebao\controller\device;
 
 use app\common\model\Device as DeviceModel;
 use app\common\model\DeviceUser as DeviceUserModel;
+use app\common\model\User as UserModel;
 use app\common\model\WechatFriend;
 use app\cunkebao\controller\BaseController;
+use library\ResponseHelper;
 
 /**
  * 设备管理控制器
@@ -32,7 +35,6 @@ class GetDeviceListV1Controller extends BaseController
         }
 
         $where['d.companyId'] = $this->getUserInfo('companyId');
-        $where['d.deleteTime'] = 0;
 
         return array_merge($params, $where);
     }
@@ -70,7 +72,11 @@ class GetDeviceListV1Controller extends BaseController
     protected function getDeviceList(array $where, int $page = 1, int $limit = 10): \think\Paginator
     {
         $query = DeviceModel::alias('d')
-            ->field(['d.id', 'd.imei', 'd.memo', 'l.wechatId', 'd.alive','wa.nickname','wa.alias', '0 totalFriend'])
+            ->field([
+                'd.id', 'd.imei', 'd.memo', 'd.alive',
+                'l.wechatId',
+                'wa.nickname', 'wa.alias', '0 totalFriend'
+            ])
             ->leftJoin('device_wechat_login l', 'd.id = l.deviceId')
             ->leftJoin('wechat_account wa', 'l.wechatId = wa.wechatId')
             ->order('d.id desc');
@@ -117,7 +123,7 @@ class GetDeviceListV1Controller extends BaseController
     public function index()
     {
         try {
-            if ($this->getUserInfo('isAdmin') == 1) {
+            if ($this->getUserInfo('isAdmin') == UserModel::ADMIN_STP) {
                 $where = $this->makeWhere();
                 $result = $this->getDeviceList($where);
             } else {
@@ -125,19 +131,14 @@ class GetDeviceListV1Controller extends BaseController
                 $result = $this->getDeviceList($where);
             }
 
-            return json([
-                'code' => 200,
-                'msg' => '获取成功',
-                'data' => [
-                    'list' => $this->countFriend($result),
+            return ResponseHelper::success(
+                [
+                    'list'  => $this->countFriend($result),
                     'total' => $result->total(),
                 ]
-            ]);
+            );
         } catch (\Exception $e) {
-            return json([
-                'code' => $e->getCode(),
-                'msg' => $e->getMessage()
-            ]);
+            return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
     }
 } 

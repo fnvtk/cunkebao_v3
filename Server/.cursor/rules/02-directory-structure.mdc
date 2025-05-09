@@ -1,0 +1,50 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 目录结构
+
+整个项目遵循ThinkPHP 5.1的目录结构规范，主要包含以下目录：
+
+## 核心目录
+
+- **application/** - 应用目录，包含所有模块和业务逻辑
+  - [api/](mdc:application/api) - API模块，提供RESTful API接口
+  - [command/](mdc:application/command) - 命令行脚本
+  - [common/](mdc:application/common) - 公共模块，包含共享功能
+  - [cunkebao/](mdc:application/cunkebao) - 村客宝主模块
+  - [store/](mdc:application/store) - 商店模块
+  - [superadmin/](mdc:application/superadmin) - 超级管理员模块
+  - [cozeai/](mdc:application/cozeai) - 智能AI模块
+  - [job/](mdc:application/job) - 后台任务模块
+
+- **config/** - 配置目录
+  - [app.php](mdc:config/app.php) - 应用配置
+  - [database.php](mdc:config/database.php) - 数据库配置
+  - [queue.php](mdc:config/queue.php) - 队列配置
+  - [worker.php](mdc:config/worker.php) - Worker配置
+
+- **extend/** - 扩展目录，存放第三方扩展类库
+
+- **public/** - 公共资源目录，Web访问入口
+  - [index.php](mdc:public/index.php) - 入口文件
+
+- **route/** - 路由目录
+  - [route.php](mdc:route/route.php) - 路由配置
+
+- **runtime/** - 运行时目录，存放日志和缓存文件
+
+- **thinkphp/** - ThinkPHP框架核心目录
+
+- **vendor/** - Composer依赖目录
+
+## 模块结构
+
+每个模块通常包含以下目录结构：
+
+- **controller/** - 控制器
+- **model/** - 数据模型
+- **service/** - 服务层
+- **validate/** - 验证器
+- **config/** - 模块配置，包括独立的路由配置

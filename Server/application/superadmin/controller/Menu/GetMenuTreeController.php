@@ -2,6 +2,7 @@
 
 namespace app\superadmin\controller\Menu;
 
+use app\common\model\Administrator as AdministratorModel;
 use app\common\model\Menu as MenuModel;
 use app\common\model\AdministratorPermissions as AdministratorPermissionsModel;
 use app\superadmin\controller\BaseController;
@@ -69,7 +70,7 @@ class GetMenuTreeController extends BaseController
     protected function getMenuTree(): array
     {
         // 获取所有菜单
-        $allMenus = MenuModel::where('status', 1)->order('sort', 'asc')->select()->toArray();
+        $allMenus = MenuModel::where('status', MenuModel::STATUS_ACTIVE)->order('sort', 'asc')->select()->toArray();
 
         // 组织成树状结构
         return $allMenus ? $this->buildMenuTree($allMenus) : [];
@@ -84,8 +85,8 @@ class GetMenuTreeController extends BaseController
     protected function getTopMenusInPermissionIds(array $permissionIds): array
     {
         $where = [
-            'parentId' => 0,
-            'status' => 1,
+            'parentId' => MenuModel::TOP_LEVEL,
+            'status'   => MenuModel::STATUS_ACTIVE,
         ];
 
         return MenuModel::where($where)->whereIn('id', $permissionIds)->order('sort', 'asc')->select()->toArray();
@@ -99,7 +100,7 @@ class GetMenuTreeController extends BaseController
      */
     protected function getAllChildrenInPermissionIds(array $topMenuIds): array
     {
-        return MenuModel::where('status', 1)->whereIn('parentId', $topMenuIds)->order('sort', 'asc')->select()->toArray();
+        return MenuModel::where('status', MenuModel::STATUS_ACTIVE)->whereIn('parentId', $topMenuIds)->order('sort', 'asc')->select()->toArray();
     }
 
     /**
@@ -165,7 +166,7 @@ class GetMenuTreeController extends BaseController
      */
     public function index()
     {
-        if ($this->getAdminInfo('id') == 1) {
+        if ($this->getAdminInfo('id') == AdministratorModel::MASTER_ID) {
             $menuTree = $this->getMenuTree();
         } else {
             $menuTree = $this->getMenuTreeByPermissions(

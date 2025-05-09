@@ -3,6 +3,7 @@
 namespace app\cunkebao\controller\device;
 
 use app\cunkebao\controller\BaseController;
+use library\ResponseHelper;
 
 /**
  * 设备管理控制器
@@ -17,16 +18,9 @@ class RefreshDeviceDetailV1Controller extends BaseController
     {
         try {
             // TODO: 实现实际刷新设备状态的功能
-
-            return json([
-                'code' => 200,
-                'msg' => '刷新成功',
-            ]);
+            return ResponseHelper::success();
         } catch (\Exception $e) {
-            return json([
-                'code' => $e->getCode(),
-                'msg' => $e->getMessage()
-            ]);
+            return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
     }
 } 

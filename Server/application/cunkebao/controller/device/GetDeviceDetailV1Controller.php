@@ -6,8 +6,11 @@ use app\common\model\Device as DeviceModel;
 use app\common\model\DeviceTaskconf as DeviceTaskconfModel;
 use app\common\model\DeviceUser as DeviceUserModel;
 use app\common\model\DeviceWechatLogin;
+use app\common\model\User as UserModel;
 use app\common\model\WechatFriend;
 use app\cunkebao\controller\BaseController;
+use Eison\Utils\Helper\ArrHelper;
+use library\ResponseHelper;
 
 /**
  * 设备管理控制器
@@ -23,15 +26,15 @@ class GetDeviceDetailV1Controller extends BaseController
     protected function checkUserDevicePermission(int $deviceId): void
     {
         $where = [
-            'deviceId' => $deviceId,
-            'userId' => $this->getUserInfo('id'),
+            'deviceId'  => $deviceId,
+            'userId'    => $this->getUserInfo('id'),
             'companyId' => $this->getUserInfo('companyId')
         ];
 
         $hasPermission = DeviceUserModel::where($where)->count() > 0;
 
         if (!$hasPermission) {
-            throw new \Exception('您没有权限查看该设备', '403');
+            throw new \Exception('您没有权限查看该设备', 403);
         }
     }
 
@@ -64,19 +67,23 @@ class GetDeviceDetailV1Controller extends BaseController
     protected function getTaskConfig(int $deviceId): array
     {
         $where = [
-            'deviceId' => $deviceId,
+            'deviceId'  => $deviceId,
             'companyId' => $this->getUserInfo('companyId'),
-            'deleteTime' => 0
         ];
 
-        $conf = DeviceTaskconfModel::where($where)->field('autoAddFriend,autoReply,contentSync,aiChat')->find();
+        $conf = DeviceTaskconfModel::alias('c')
+            ->field([
+                'c.autoAddFriend', 'c.autoReply', 'c.momentsSync', 'c.aiChat'
+            ])
+            ->where($where)
+            ->find();
 
-        return $conf ? $conf->toArray() : [
-            'autoAddFriend' => 0,
-            'autoReply' => 0,
-            'contentSync' => 0,
-            'aiChat' => 0
-        ];
+        if (!is_null($conf)) {
+            return $conf->toArray();
+        }
+
+        // 未配置时赋予默认关闭的状态
+        return ArrHelper::getValue('autoAddFriend,autoReply,momentsSync,aiChat', [], 0);
     }
 
     /**
@@ -89,7 +96,7 @@ class GetDeviceDetailV1Controller extends BaseController
     protected function getTotalFriend(int $deviceId): int
     {
         $where = [
-            'deviceId' => $deviceId,
+            'deviceId'  => $deviceId,
             'companyId' => $this->getUserInfo('companyId'),
         ];
 
@@ -124,11 +131,10 @@ class GetDeviceDetailV1Controller extends BaseController
             ->field([
                 'd.id', 'd.imei', 'd.memo', 'd.alive', 'd.updateTime as lastUpdateTime', 'd.extra'
             ])
-            ->where('d.deleteTime', 0)
             ->find($id);
 
         if (empty($device)) {
-            throw new \Exception('设备不存在', '404');
+            throw new \Exception('设备不存在', 404);
         }
 
         $device['battery'] = $this->parseExtraForBattery($device['extra']);
@@ -152,25 +158,17 @@ class GetDeviceDetailV1Controller extends BaseController
     public function index()
     {
         try {
-            // 获取设备ID
             $id = $this->request->param('id/d');
 
-            if ($this->getUserInfo('isAdmin') != 1) {
+            if ($this->getUserInfo('isAdmin') != UserModel::ADMIN_STP) {
                 $this->checkUserDevicePermission($id);
             }
 
-            $info = $this->getDeviceInfo($id);
+            $resultSet = $this->getDeviceInfo($id);
 
-            return json([
-                'code' => 200,
-                'msg' => '获取成功',
-                'data' => $info
-            ]);
+            return ResponseHelper::success($resultSet);
         } catch (\Exception $e) {
-            return json([
-                'code' => $e->getMessage(),
-                'msg' => $e->getMessage()
-            ]);
+            return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
     }
 } 

@@ -45,8 +45,8 @@ export const fetchDeviceHandleLogs = async (id: string | number, page: number = 
 
 // 更新设备任务配置
 export const updateDeviceTaskConfig = async (
-  id: string | number, 
   config: {
+    deviceId: string | number;
     autoAddFriend?: boolean;
     autoReply?: boolean;
     momentsSync?: boolean;
@@ -54,7 +54,6 @@ export const updateDeviceTaskConfig = async (
   }
 ): Promise<ApiResponse<any>> => {
   return api.post<ApiResponse<any>>(`/v1/devices/task-config`, {
-    id,
     ...config
   });
 };

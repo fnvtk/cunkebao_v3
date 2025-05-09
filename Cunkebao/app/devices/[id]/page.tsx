@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -83,6 +83,10 @@ export default function DeviceDetailPage() {
   const [accountsLoading, setAccountsLoading] = useState(false)
   const [logsLoading, setLogsLoading] = useState(false)
   const [handleLogs, setHandleLogs] = useState<HandleLog[]>([])
+  const [logPage, setLogPage] = useState(1)
+  const [hasMoreLogs, setHasMoreLogs] = useState(true)
+  const logsPerPage = 10
+  const logsEndRef = useRef<HTMLDivElement>(null)
   const [savingFeatures, setSavingFeatures] = useState({
     autoAddFriend: false,
     autoReply: false,
@@ -176,80 +180,18 @@ export default function DeviceDetailPage() {
             fetchRelatedAccounts()
           }
         } else {
-          // 如果API返回错误，则使用备用模拟数据
-          toast.error("获取设备信息失败，显示备用数据")
-          fallbackToMockDevice()
+          // 如果API返回错误，显示错误提示
+          toast.error("获取设备信息失败: " + ((response as any)?.msg || "未知错误"))
+          setLoading(false)
         }
       } catch (error) {
         console.error("获取设备信息失败:", error)
-        toast.error("获取设备信息出错，显示备用数据")
-        fallbackToMockDevice()
+        toast.error("获取设备信息出错，请稍后重试")
+        setLoading(false)
       } finally {
+        // 确保loading状态被关闭
         setLoading(false)
       }
-    }
-    
-    const fallbackToMockDevice = () => {
-      const mockDevice: Device = {
-        id: params.id as string,
-        imei: "sd123123",
-        name: "设备 1",
-        status: "online",
-        battery: 85,
-        lastActive: "2024-02-09 15:30:45",
-        historicalIds: ["vx412321", "vfbadasd"],
-        wechatAccounts: [
-          {
-            id: "1",
-            avatar: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-q2rVrFbfDdAbSnT3ZTNE7gfn3QCbvr.png",
-            nickname: "老张",
-            wechatId: "wxid_abc123",
-            gender: 1,
-            status: 1,
-            statusText: "可加友",
-            wechatAlive: 1,
-            wechatAliveText: "正常",
-            addFriendStatus: 1,
-            totalFriend: 523,
-            lastActive: "2024-02-09 15:20:33",
-          },
-          {
-            id: "2",
-            avatar: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-q2rVrFbfDdAbSnT3ZTNE7gfn3QCbvr.png",
-            nickname: "老李",
-            wechatId: "wxid_xyz789",
-            gender: 1,
-            status: 0,
-            statusText: "已停用",
-            wechatAlive: 0,
-            wechatAliveText: "异常",
-            addFriendStatus: 0,
-            totalFriend: 245,
-            lastActive: "2024-02-09 14:15:22",
-          },
-        ],
-        features: {
-          autoAddFriend: true,
-          autoReply: true,
-          momentsSync: false,
-          aiChat: true,
-        },
-        history: [
-          {
-            time: "2024-02-09 15:30:45",
-            action: "开启自动加好友",
-            operator: "系统",
-          },
-          {
-            time: "2024-02-09 14:20:33",
-            action: "添加微信号",
-            operator: "管理员",
-          },
-        ],
-        totalFriend: 768,
-        thirtyDayMsgCount: 5678
-      }
-      setDevice(mockDevice)
     }
     
     fetchDevice()
@@ -297,11 +239,24 @@ export default function DeviceDetailPage() {
     
     try {
       setLogsLoading(true)
-      const response = await fetchDeviceHandleLogs(params.id as string)
+      const response = await fetchDeviceHandleLogs(
+        params.id as string, 
+        logPage, 
+        logsPerPage
+      )
       
       if (response && response.code === 200 && response.data) {
         const logs = response.data.list || []
-        setHandleLogs(logs)
+        
+        // 如果是第一页，替换数据；否则追加数据
+        if (logPage === 1) {
+          setHandleLogs(logs)
+        } else {
+          setHandleLogs(prev => [...prev, ...logs])
+        }
+        
+        // 判断是否还有更多数据
+        setHasMoreLogs(logs.length === logsPerPage)
         
         if (logs.length > 0) {
           console.log('获取到操作记录:', logs.length)
@@ -318,6 +273,58 @@ export default function DeviceDetailPage() {
       setLogsLoading(false)
     }
   }
+
+  // 加载更多日志
+  const loadMoreLogs = () => {
+    if (logsLoading || !hasMoreLogs) return
+    
+    setLogPage(prevPage => prevPage + 1)
+  }
+  
+  // 监听滚动加载更多
+  useEffect(() => {
+    if (activeTab !== "history") return
+    
+    const observerOptions = {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0.1
+    }
+    
+    const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+      const [entry] = entries
+      if (entry.isIntersecting && hasMoreLogs && !logsLoading) {
+        loadMoreLogs()
+      }
+    }
+    
+    const observer = new IntersectionObserver(handleIntersect, observerOptions)
+    
+    if (logsEndRef.current) {
+      observer.observe(logsEndRef.current)
+    }
+    
+    return () => {
+      if (logsEndRef.current) {
+        observer.unobserve(logsEndRef.current)
+      }
+    }
+  }, [activeTab, hasMoreLogs, logsLoading])
+  
+  // 当切换到日志标签时重置页码
+  useEffect(() => {
+    if (activeTab === "history") {
+      setLogPage(1)
+      setHasMoreLogs(true)
+    }
+  }, [activeTab])
+  
+  // 观察logPage变化加载数据
+  useEffect(() => {
+    if (activeTab === "history") {
+      fetchHandleLogs()
+    }
+  }, [logPage, activeTab])
 
   // 处理标签页切换
   const handleTabChange = (value: string) => {
@@ -361,22 +368,117 @@ export default function DeviceDetailPage() {
         features: updatedFeatures
       } : null)
       
-      // 调用API更新服务器配置
-      const response = await updateDeviceTaskConfig(configUpdate)
-      
-      if (response && response.code === 200) {
-        toast.success(`${getFeatureName(feature)}${checked ? '已启用' : '已禁用'}`)
-      } else {
-        // 如果请求失败，回滚UI变更
+      // 使用更安全的API调用方式，避免自动重定向
+      try {
+        // 获取token
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('未找到授权信息');
+        }
+        
+        // 直接使用fetch，而不是通过API工具
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/devices/task-config`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(configUpdate)
+        });
+        
+        // 检查是否是401错误（未授权），这是唯一应该处理token的情况
+        if (response.status === 401) {
+          // 此处我们不立即跳转，而是给出错误提示
+          toast.error('认证已过期，请重新登录后再尝试操作');
+          console.error('API请求返回401未授权错误');
+          // 可以选择是否重定向到登录页面
+          // window.location.href = '/login';
+          throw new Error('认证已过期');
+        }
+        
+        // 检查响应是否正常
+        if (!response.ok) {
+          // 所有非401的HTTP错误
+          console.warn(`API返回HTTP错误: ${response.status} ${response.statusText}`);
+          
+          // 尝试解析错误详情
+          try {
+            const errorResult = await response.json();
+            // 显示详细错误信息，但保持本地token
+            const errorMsg = errorResult?.msg || `服务器错误 (${response.status})`;
+            toast.error(`更新失败: ${errorMsg}`);
+            
+            // 回滚UI更改
+            setDevice(prev => prev ? {
+              ...prev,
+              features: { ...prev.features, [feature]: !checked }
+            } : null);
+          } catch (parseError) {
+            // 无法解析响应，可能是网络问题
+            console.error('无法解析错误响应:', parseError);
+            toast.error(`更新失败: 服务器无响应 (${response.status})`);
+            
+            // 回滚UI更改
+            setDevice(prev => prev ? {
+              ...prev,
+              features: { ...prev.features, [feature]: !checked }
+            } : null);
+          }
+          
+          return; // 提前返回，避免继续处理
+        }
+
+        // 响应正常，尝试解析
+        try {
+          const result = await response.json();
+          
+          // 检查API响应码
+          if (result && result.code === 200) {
+            toast.success(`${getFeatureName(feature)}${checked ? '已启用' : '已禁用'}`);
+          } else if (result && result.code === 401) {
+            // API明确返回401，提示用户但不自动登出
+            toast.error('认证已过期，请重新登录后再尝试操作');
+            console.error('API请求返回401未授权状态码');
+            
+            // 回滚UI更改
+            setDevice(prev => prev ? {
+              ...prev,
+              features: { ...prev.features, [feature]: !checked }
+            } : null);
+          } else {
+            // 其他API错误
+            const errorMsg = result?.msg || '未知错误';
+            console.warn(`API返回业务错误: ${result?.code} - ${errorMsg}`);
+            toast.error(`更新失败: ${errorMsg}`);
+            
+            // 回滚UI更改
+            setDevice(prev => prev ? {
+              ...prev,
+              features: { ...prev.features, [feature]: !checked }
+            } : null);
+          }
+        } catch (parseError) {
+          // 无法解析响应JSON
+          console.error('无法解析API响应:', parseError);
+          toast.error('更新失败: 无法解析服务器响应');
+          
+          // 回滚UI更改
+          setDevice(prev => prev ? {
+            ...prev,
+            features: { ...prev.features, [feature]: !checked }
+          } : null);
+        }
+      } catch (fetchError) {
+        console.error('请求错误:', fetchError)
+        
+        // 回滚UI更改
         setDevice(prev => prev ? {
           ...prev,
           features: { ...prev.features, [feature]: !checked }
         } : null)
         
-        // 处理错误信息，使用类型断言解决字段不一致问题
-        const anyResponse = response as any;
-        const errorMsg = anyResponse ? (anyResponse.message || anyResponse.msg || '未知错误') : '未知错误';
-        toast.error(`更新失败: ${errorMsg}`)
+        // 显示友好的错误提示
+        toast.error('网络请求失败，请稍后重试')
       }
     } catch (error) {
       console.error(`更新${getFeatureName(feature)}失败:`, error)
@@ -405,13 +507,40 @@ export default function DeviceDetailPage() {
     return nameMap[feature] || feature
   }
 
-  if (loading || !device) {
-    return <div>加载中...</div>
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full justify-center items-center bg-gray-50">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
+          <div className="text-gray-500">正在加载设备详情...</div>
+        </div>
+      </div>
+    )
+  }
+  
+  if (!device) {
+    return (
+      <div className="flex h-screen w-full justify-center items-center bg-gray-50">
+        <div className="flex flex-col items-center space-y-4 p-6 bg-white rounded-lg shadow-sm max-w-md">
+          <div className="w-12 h-12 flex items-center justify-center rounded-full bg-red-100">
+            <Smartphone className="h-6 w-6 text-red-500" />
+          </div>
+          <div className="text-xl font-medium text-center">设备不存在或已被删除</div>
+          <div className="text-sm text-gray-500 text-center">
+            无法加载ID为 "{params.id}" 的设备信息，请检查设备是否存在。
+          </div>
+          <Button onClick={() => router.back()}>
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            返回上一页
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="flex-1 bg-gray-50 min-h-screen">
-      <div className="max-w-[390px] mx-auto bg-white">
+      <div className="w-full mx-auto bg-white">
         <header className="sticky top-0 z-10 bg-white border-b">
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center space-x-3">
@@ -631,7 +760,10 @@ export default function DeviceDetailPage() {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={fetchHandleLogs}
+                    onClick={() => {
+                      setLogPage(1)
+                      setHasMoreLogs(true)
+                    }}
                     disabled={logsLoading}
                   >
                     {logsLoading ? (
@@ -648,7 +780,7 @@ export default function DeviceDetailPage() {
                   </Button>
                 </div>
                 
-                <ScrollArea className="h-[calc(100vh-300px)]">
+                <ScrollArea className="h-[calc(min(80vh, 500px))]">
                   {logsLoading && handleLogs.length === 0 ? (
                     <div className="flex justify-center items-center py-8">
                       <div className="w-6 h-6 rounded-full border-2 border-blue-500 border-t-transparent animate-spin mr-2"></div>
@@ -669,6 +801,30 @@ export default function DeviceDetailPage() {
                           </div>
                         </div>
                       ))}
+                      
+                      {/* 加载更多区域 - 用于懒加载触发点 */}
+                      <div 
+                        ref={logsEndRef} 
+                        className="py-2 flex justify-center items-center"
+                      >
+                        {logsLoading && hasMoreLogs ? (
+                          <div className="flex items-center space-x-2">
+                            <div className="w-4 h-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
+                            <span className="text-sm text-gray-500">加载更多...</span>
+                          </div>
+                        ) : hasMoreLogs ? (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={loadMoreLogs}
+                            className="text-sm text-blue-500 hover:text-blue-600"
+                          >
+                            加载更多
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-gray-400">- 已加载全部记录 -</span>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-500">
@@ -677,7 +833,10 @@ export default function DeviceDetailPage() {
                         variant="outline" 
                         size="sm" 
                         className="mt-2"
-                        onClick={fetchHandleLogs}
+                        onClick={() => {
+                          setLogPage(1)
+                          setHasMoreLogs(true)
+                        }}
                       >
                         <RefreshCw className="h-4 w-4 mr-1" />
                         刷新

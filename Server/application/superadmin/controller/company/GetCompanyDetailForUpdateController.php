@@ -4,6 +4,7 @@ namespace app\superadmin\controller\company;
 
 use app\common\model\Company as CompanyModel;
 use app\common\model\Device as DeviceModel;
+use app\common\model\User as UserModel;
 use app\superadmin\controller\BaseController;
 use library\ResponseHelper;
 
@@ -43,7 +44,7 @@ class GetCompanyDetailForUpdateController extends BaseController
                 'c.id', 'c.name', 'c.status', 'c.memo', 'c.companyId',
                 'u.account', 'u.username', 'u.phone', 'u.s2_accountId'
             ])
-            ->leftJoin('users u', 'c.companyId = u.companyId and u.isAdmin = 1')
+            ->leftJoin('users u', 'c.companyId = u.companyId and u.isAdmin = ' . UserModel::ADMIN_STP)
             ->find($id);
 
         if (!$detail) {

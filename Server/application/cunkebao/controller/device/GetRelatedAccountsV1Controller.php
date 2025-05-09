@@ -4,9 +4,11 @@ namespace app\cunkebao\controller\device;
 
 use app\common\model\DeviceUser as DeviceUserModel;
 use app\common\model\DeviceWechatLogin as DeviceWechatLoginModel;
+use app\common\model\User as UserModel;
 use app\common\model\WechatAccount as WechatAccountModel;
 use app\common\model\WechatFriend;
 use app\cunkebao\controller\BaseController;
+use library\ResponseHelper;
 
 /**
  * 设备管理控制器
@@ -22,15 +24,15 @@ class GetRelatedAccountsV1Controller extends BaseController
     protected function checkUserDevicePermission(int $deviceId): void
     {
         $where = [
-            'deviceId' => $deviceId,
-            'userId' => $this->getUserInfo('id'),
+            'deviceId'  => $deviceId,
+            'userId'    => $this->getUserInfo('id'),
             'companyId' => $this->getUserInfo('companyId')
         ];
 
         $hasPermission = DeviceUserModel::where($where)->count() > 0;
 
         if (!$hasPermission) {
-            throw new \Exception('您没有权限查看该设备', '403');
+            throw new \Exception('您没有权限查看该设备', 403);
         }
     }
 
@@ -43,7 +45,7 @@ class GetRelatedAccountsV1Controller extends BaseController
     protected function getDeviceWechatIds(int $deviceId): array
     {
         $where = [
-            'deviceId' => $deviceId,
+            'deviceId'  => $deviceId,
             'companyId' => $this->getUserInfo('companyId')
         ];
 
@@ -68,18 +70,18 @@ class GetRelatedAccountsV1Controller extends BaseController
     }
 
     /**
-     * 通过微信id获取微信最后活跃时间
+     * TODO 通过微信id获取微信最后活跃时间
      *
-     * @param int $wechatId
+     * @param int $time
      * @return string
      */
-    protected function getWechatLastActiveTime($wechatId): string
+    protected function getWechatLastActiveTime(int $time): string
     {
-        return date('Y-m-d H:i:s', $wechatId ?: time());
+        return date('Y-m-d H:i:s', $time ?: time());
     }
 
     /**
-     * 加友状态
+     * TODO 加友状态
      *
      * @param string $wechatId
      * @return string
@@ -90,7 +92,7 @@ class GetRelatedAccountsV1Controller extends BaseController
     }
 
     /**
-     * 账号状态
+     * TODO 账号状态
      *
      * @param string $wechatId
      * @return string
@@ -147,27 +149,22 @@ class GetRelatedAccountsV1Controller extends BaseController
         try {
             $deviceId = $this->request->param('id/d');
 
-            if ($this->getUserInfo('isAdmin') != 1) {
+            if ($this->getUserInfo('isAdmin') != UserModel::ADMIN_STP) {
                 $this->checkUserDevicePermission($deviceId);
             }
 
             // 获取设备关联的微信账号
             $wechatAccounts = $this->getDeviceRelatedAccounts($deviceId);
 
-            return json([
-                'code' => 200,
-                'msg' => '获取成功',
-                'data' => [
+            return ResponseHelper::success(
+                [
                     'deviceId' => $deviceId,
                     'accounts' => $wechatAccounts,
-                    'total' => count($wechatAccounts)
+                    'total'    => count($wechatAccounts)
                 ]
-            ]);
+            );
         } catch (\Exception $e) {
-            return json([
-                'code' => $e->getCode(),
-                'msg' => $e->getMessage()
-            ]);
+            return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
     }
 } 

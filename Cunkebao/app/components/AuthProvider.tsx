@@ -76,29 +76,67 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const storedToken = safeLocalStorage.getItem("token")
         
         if (storedToken) {
-          // 验证token是否有效
-          const isValid = await validateToken()
-          
-          if (isValid) {
-            // 从localStorage获取用户信息
-            const userDataStr = safeLocalStorage.getItem("user")
-            if (userDataStr) {
+          // 首先尝试从localStorage获取用户信息
+          const userDataStr = safeLocalStorage.getItem("userInfo")
+          if (userDataStr) {
+            try {
+              // 如果能解析用户数据，先设置登录状态
               const userData = JSON.parse(userDataStr) as User
               setToken(storedToken)
               setUser(userData)
               setIsAuthenticated(true)
-            } else {
-              // token有效但没有用户信息，清除token
+              
+              // 然后在后台尝试验证token，但不影响当前登录状态
+              validateToken().then(isValid => {
+                // 只有在确认token绝对无效时才登出
+                // 网络错误等情况默认保持登录状态
+                if (isValid === false) {
+                  console.warn('验证token失败，但仍允许用户保持登录状态')
+                }
+              }).catch(error => {
+                // 捕获所有验证过程中的错误，并记录日志
+                console.error('验证token过程中出错:', error)
+                // 网络错误等不会导致登出
+              })
+            } catch (parseError) {
+              // 用户数据无法解析，需要清除
+              console.error('解析用户数据失败:', parseError)
               handleLogout()
             }
           } else {
-            // token无效，清除
-            handleLogout()
+            // 有token但没有用户信息，可能是部分数据丢失
+            console.warn('找到token但没有用户信息，尝试保持登录状态')
+            
+            // 尝试验证token并获取用户信息
+            try {
+              const isValid = await validateToken()
+              if (isValid) {
+                // 如果token有效，尝试从API获取用户信息
+                // 这里简化处理，直接使用token
+                setToken(storedToken)
+                setIsAuthenticated(true)
+              } else {
+                // token确认无效，清除
+                handleLogout()
+              }
+            } catch (error) {
+              // 验证过程出错，记录日志但不登出
+              console.error('验证token过程中出错:', error)
+              // 保留token，允许用户继续使用
+              setToken(storedToken)
+              setIsAuthenticated(true)
+            }
           }
         }
       } catch (error) {
-        console.error("验证token时出错:", error)
-        handleLogout()
+        console.error("初始化认证状态时出错:", error)
+        // 非401错误不应强制登出
+        if (error instanceof Error && 
+            (error.message.includes('401') || 
+             error.message.includes('未授权') || 
+             error.message.includes('token'))) {
+          handleLogout()
+        }
       } finally {
         setIsLoading(false)
         setIsInitialized(true)

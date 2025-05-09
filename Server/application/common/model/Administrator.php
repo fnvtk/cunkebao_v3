@@ -12,6 +12,8 @@ class Administrator extends Model
 {
     use SoftDelete;
 
+    const MASTER_ID = 1;
+
     // 设置数据表名
     protected $name = 'administrators';
 

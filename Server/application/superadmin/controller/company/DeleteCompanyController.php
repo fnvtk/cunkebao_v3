@@ -26,7 +26,7 @@ class DeleteCompanyController extends BaseController
         $validate = Validate::make([
             'id' => 'require|regex:/^[1-9]\d*$/',
         ], [
-            'id.regex' => '非法请求',
+            'id.regex'   => '非法请求',
             'id.require' => '非法请求',
         ]);
 

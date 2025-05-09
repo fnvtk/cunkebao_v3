@@ -1,0 +1,96 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 数据模型
+
+系统使用ThinkPHP的ORM框架进行数据库操作，主要模型如下：
+
+## 核心模型
+
+### 设备相关
+
+- **Device模型** - 设备信息
+  - 位置：[application/common/model/Device.php](mdc:application/common/model/Device.php)
+  - 主要字段：id, name, device_id, status, online_status, created_at, updated_at
+
+- **DeviceWechat模型** - 设备上的微信账号
+  - 位置：[application/common/model/DeviceWechat.php](mdc:application/common/model/DeviceWechat.php)
+  - 主要字段：id, device_id, wechat_id, status, login_status, created_at, updated_at
+
+### 微信相关
+
+- **Wechat模型** - 微信账号信息
+  - 位置：[application/common/model/Wechat.php](mdc:application/common/model/Wechat.php)
+  - 主要字段：id, wxid, nickname, avatar, gender, country, province, city, created_at, updated_at
+
+- **WechatFriend模型** - 微信好友
+  - 位置：[application/common/model/WechatFriend.php](mdc:application/common/model/WechatFriend.php)
+  - 主要字段：id, wechat_id, wxid, nickname, remark, avatar, gender, created_at, updated_at
+
+- **WechatChatroom模型** - 微信群
+  - 位置：[application/common/model/WechatChatroom.php](mdc:application/common/model/WechatChatroom.php)
+  - 主要字段：id, chatroom_id, name, owner_wxid, member_count, created_at, updated_at
+
+### 内容相关
+
+- **ContentLibrary模型** - 内容库
+  - 位置：[application/common/model/ContentLibrary.php](mdc:application/common/model/ContentLibrary.php)
+  - 主要字段：id, title, content, type, category_id, tags, created_at, updated_at
+
+- **ContentCategory模型** - 内容分类
+  - 位置：[application/common/model/ContentCategory.php](mdc:application/common/model/ContentCategory.php)
+  - 主要字段：id, name, parent_id, sort, created_at, updated_at
+
+### 工作台相关
+
+- **Task模型** - 任务
+  - 位置：[application/common/model/Task.php](mdc:application/common/model/Task.php)
+  - 主要字段：id, name, type, status, config, created_at, updated_at
+
+- **Plan模型** - 计划
+  - 位置：[application/common/model/Plan.php](mdc:application/common/model/Plan.php)
+  - 主要字段：id, name, type, status, config, schedule, created_at, updated_at
+
+### 流量相关
+
+- **TrafficPool模型** - 流量池
+  - 位置：[application/common/model/TrafficPool.php](mdc:application/common/model/TrafficPool.php)
+  - 主要字段：id, name, description, created_at, updated_at
+
+- **TrafficTag模型** - 流量标签
+  - 位置：[application/common/model/TrafficTag.php](mdc:application/common/model/TrafficTag.php)
+  - 主要字段：id, name, color, created_at, updated_at
+
+## 模型关联
+
+系统中的模型通过ThinkPHP的关联关系进行关联：
+
+- Device模型 hasMany DeviceWechat模型
+- DeviceWechat模型 belongsTo Device模型
+- DeviceWechat模型 belongsTo Wechat模型
+- Wechat模型 hasMany WechatFriend模型
+- Wechat模型 hasMany WechatChatroom模型
+- ContentLibrary模型 belongsTo ContentCategory模型
+
+## 模型使用示例
+
+```php
+// 查询设备列表
+$devices = Device::where('status', 1)->order('id', 'desc')->paginate(10);
+
+// 关联查询设备上的微信账号
+$device = Device::with('wechats')->find($deviceId);
+
+// 创建新设备
+$device = new Device;
+$device->name = '设备名称';
+$device->device_id = 'DEVICE_123456';
+$device->status = 1;
+$device->save();
+```
+
+## 数据验证
+
+模型验证规则定义在对应的验证器类中，位于`application/模块名/validate/`目录下。

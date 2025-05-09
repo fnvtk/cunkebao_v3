@@ -46,7 +46,7 @@ class UpdateCompanyController extends BaseController
     protected function getUserDetailByCompanyId(): ?UsersModel
     {
         $where = [
-            'isAdmin' => 1,   // 必须保证 isAdmin 有且只有一个
+            'isAdmin'   => UsersModel::MASTER_USER,   // 必须保证 isAdmin 有且只有一个
             'companyId' => $this->companyId,
         ];
 
@@ -175,23 +175,23 @@ class UpdateCompanyController extends BaseController
     protected function dataValidate(array $params): self
     {
         $validate = Validate::make([
-            'id' => 'require',
-            'name' => 'require|max:50|/\S+/',
+            'id'       => 'require',
+            'name'     => 'require|max:50|/\S+/',
             'username' => 'require|max:20|/\S+/',
-            'account' => 'require|regex:^[a-zA-Z0-9]+$|max:20|/\S+/',
-            'phone' => 'require|regex:/^1[3-9]\d{9}$/',
-            'status' => 'require|in:0,1'
+            'account'  => 'require|regex:^[a-zA-Z0-9]+$|max:20|/\S+/',
+            'phone'    => 'require|regex:/^1[3-9]\d{9}$/',
+            'status'   => 'require|in:0,1'
         ], [
-            'id.require' => '非法请求',
-            'name.require' => '请输入项目名称',
+            'id.require'       => '非法请求',
+            'name.require'     => '请输入项目名称',
             'username.require' => '请输入用户昵称',
-            'account.require' => '请输入账号',
-            'account.regex' => '账号只能用数字或者字母或者数字字母组合',
-            'account.max' => '账号长度受限',
-            'phone.require' => '请输入手机号',
-            'phone.regex' => '手机号格式错误',
-            'status.require' => '缺少重要参数',
-            'status.in' => '非法参数',
+            'account.require'  => '请输入账号',
+            'account.regex'    => '账号只能用数字或者字母或者数字字母组合',
+            'account.max'      => '账号长度受限',
+            'phone.require'    => '请输入手机号',
+            'phone.regex'      => '手机号格式错误',
+            'status.require'   => '缺少重要参数',
+            'status.in'        => '非法参数',
         ]);
 
         if (!$validate->check($params)) {

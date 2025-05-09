@@ -61,9 +61,9 @@ class GetPoolListController extends BaseController
     protected function makeReturnedValue(\think\Paginator $list): \think\Paginator
     {
         $list->each(function ($item) {
-            $item->gender = $this->formatGender($item->gender);
+            $item->gender  = $this->formatGender($item->gender);
             $item->addTime = $this->formatDate($item->addTime);
-            $item->tags = $this->handlTags($item->tags);
+            $item->tags    = $this->handlTags($item->tags);
         });
 
         return $list;
@@ -78,15 +78,10 @@ class GetPoolListController extends BaseController
     {
         $query = TrafficPoolModel::alias('tp')
             ->field([
-                'ts.id',
                 'tp.wechatId',
-                'ts.createTime as addTime',
-                'ts.fromd as source',
+                'ts.id', 'ts.createTime as addTime', 'ts.fromd as source',
                 'c.name as projectName',
-                'wa.avatar',
-                'wa.gender',
-                'wa.nickname',
-                'wa.region',
+                'wa.avatar', 'wa.gender', 'wa.nickname', 'wa.region',
                 'wt.tags'
             ])
             ->join('traffic_source ts', 'tp.identifier = ts.identifier', 'RIGHT')
@@ -108,9 +103,9 @@ class GetPoolListController extends BaseController
 
         return ResponseHelper::success(
             [
-                'list' => $this->makeReturnedValue($list)->items(),
+                'list'  => $this->makeReturnedValue($list)->items(),
                 'total' => $list->total(),
-                'page' => $list->currentPage(),
+                'page'  => $list->currentPage(),
                 'limit' => $list->listRows()
             ]
         );

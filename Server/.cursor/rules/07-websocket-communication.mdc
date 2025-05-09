@@ -1,0 +1,104 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# WebSocket通信
+
+村客宝系统使用WebSocket实现实时通信功能，主要用于设备状态监控和消息实时推送。
+
+## WebSocket服务
+
+系统使用ThinkPHP的think-worker扩展实现WebSocket服务：
+
+- 服务配置：[config/worker.php](mdc:config/worker.php)和[config/worker_server.php](mdc:config/worker_server.php)
+- Gateway配置：[config/gateway_worker.php](mdc:config/gateway_worker.php)
+
+## WebSocket控制器
+
+WebSocket服务主要通过以下文件实现：
+
+- [application/api/controller/WebSocketController.php](mdc:application/api/controller/WebSocketController.php) - WebSocket控制器
+- [application/common/socket/](mdc:application/common/socket) - WebSocket核心实现
+
+## 消息格式
+
+WebSocket消息使用JSON格式，基本结构如下：
+
+```json
+{
+  "type": "message_type",  // 消息类型
+  "data": {},              // 消息数据
+  "time": 1628160000       // 时间戳
+}
+```
+
+## 常用消息类型
+
+- `device_status` - 设备状态更新
+- `wechat_login` - 微信登录状态更新
+- `new_message` - 新消息通知
+- `task_status` - 任务状态更新
+- `error` - 错误消息
+
+## 客户端连接
+
+客户端可以通过以下方式连接WebSocket服务：
+
+```javascript
+const ws = new WebSocket('ws://{host}/ws');
+
+ws.onopen = function() {
+  console.log('Connected to WebSocket server');
+  // 发送认证消息
+  ws.send(JSON.stringify({
+    type: 'auth',
+    data: {
+      token: 'YOUR_AUTH_TOKEN'
+    }
+  }));
+};
+
+ws.onmessage = function(event) {
+  const message = JSON.parse(event.data);
+  console.log('Received message:', message);
+  
+  // 根据消息类型处理
+  switch(message.type) {
+    case 'device_status':
+      // 处理设备状态更新
+      break;
+    case 'new_message':
+      // 处理新消息
+      break;
+    // ...其他消息类型
+  }
+};
+```
+
+## WebSocket命令
+
+系统提供命令行工具管理WebSocket服务：
+
+```bash
+# 启动WebSocket服务
+php think worker:server start
+
+# 停止WebSocket服务
+php think worker:server stop
+
+# 重启WebSocket服务
+php think worker:server restart
+
+# 查看WebSocket服务状态
+php think worker:server status
+```
+
+## 消息推送服务
+
+系统使用队列实现消息的异步推送：
+
+- 队列配置：[config/queue.php](mdc:config/queue.php)
+- 消息推送任务：[application/job/](mdc:application/job)
+
+通过队列可以实现高效的消息推送，避免阻塞主进程。

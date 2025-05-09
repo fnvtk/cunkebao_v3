@@ -123,14 +123,82 @@ export default function NewAcquisitionPlan() {
     // 根据标签和计划名称自动判断场景
     const scenario = formData.scenario || determineScenario(formData.planName, formData.tags)
 
-    console.log("计划已创建:", { ...formData, scenario })
-    toast({
-      title: "创建成功",
-      description: "获客计划已创建完成",
-    })
+    // 准备请求数据
+    const requestData = {
+      sceneId: getSceneIdFromScenario(scenario), // 获取场景ID
+      name: formData.planName,
+      status: formData.enabled ? 1 : 0,
+      reqConf: JSON.stringify({
+        remarkType: formData.remarkType,
+        remarkKeyword: formData.remarkKeyword,
+        greeting: formData.greeting,
+        addFriendTimeStart: formData.addFriendTimeStart,
+        addFriendTimeEnd: formData.addFriendTimeEnd,
+        addFriendInterval: formData.addFriendInterval,
+        maxDailyFriends: formData.maxDailyFriends,
+        selectedDevices: formData.selectedDevices,
+      }),
+      msgConf: JSON.stringify({
+        messageInterval: formData.messageInterval,
+        messagePlans: formData.messagePlans,
+      }),
+      tagConf: JSON.stringify({
+        tags: formData.tags,
+        importedTags: formData.importedTags,
+      })
+    }
 
-    // 跳转到首页
-    router.push("/")
+    // 调用API创建获客计划
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/plan/scenes/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify(requestData)
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.code === 200) {
+        toast({
+          title: "创建成功",
+          description: "获客计划已创建完成",
+        })
+        // 跳转到首页
+        router.push("/")
+      } else {
+        toast({
+          title: "创建失败",
+          description: data.msg || "服务器错误，请稍后重试",
+          variant: "destructive"
+        })
+      }
+    })
+    .catch(error => {
+      console.error("创建获客计划失败:", error);
+      toast({
+        title: "创建失败",
+        description: "网络错误，请稍后重试",
+        variant: "destructive"
+      })
+    })
+  }
+
+  // 将场景类型转换为场景ID
+  const getSceneIdFromScenario = (scenario: string): number => {
+    const scenarioMap: Record<string, number> = {
+      'douyin': 1,
+      'xiaohongshu': 2,
+      'weixinqun': 3,
+      'gongzhonghao': 4,
+      'kuaishou': 5,
+      'weibo': 6,
+      'haibao': 7,
+      'phone': 8,
+      'order': 9,
+      'other': 10
+    }
+    return scenarioMap[scenario] || 1 // 默认返回1
   }
 
   const handlePrev = () => {
@@ -206,7 +274,7 @@ export default function NewAcquisitionPlan() {
       case 3:
         return <MessageSettings formData={formData} onChange={setFormData} onNext={handleNext} onPrev={handlePrev} />
       case 4:
-        return <TagSettings formData={formData} onComplete={handleSave} onPrev={handlePrev} onChange={setFormData} />
+        return <TagSettings formData={formData} onNext={handleSave} onPrev={handlePrev} onChange={setFormData} />
       default:
         return null
     }

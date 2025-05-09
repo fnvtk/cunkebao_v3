@@ -23,9 +23,9 @@ class GetCompanyDetailForProfileController extends BaseController
      */
     protected function getDeveiceWechats(int $companyId): array
     {
-        $wechatId = DeviceWechatLoginModel::where('companyId', $companyId)->column('wechatId');
+        $wechatIds = DeviceWechatLoginModel::where('companyId', $companyId)->column('wechatId');
 
-        return array_unique($wechatId);
+        return array_unique($wechatIds);
     }
 
     /**
@@ -60,7 +60,7 @@ class GetCompanyDetailForProfileController extends BaseController
      */
     protected function getUsersCountByCompanyId(int $companyId): int
     {
-        $where = array_merge(compact('companyId'), array('isAdmin' => 0));
+        $where = array_merge(compact('companyId'), array('isAdmin' => UserModel::ADMIN_OTP));
 
         return UserModel::where($where)->count();
     }
@@ -79,7 +79,7 @@ class GetCompanyDetailForProfileController extends BaseController
                 'c.id', 'c.name', 'c.memo', 'c.companyId', 'c.createTime',
                 'u.account', 'u.phone'
             ])
-            ->leftJoin('users u', 'c.companyId = u.companyId and u.isAdmin = 1')
+            ->leftJoin('users u', 'c.companyId = u.companyId and u.isAdmin = ' . UserModel::ADMIN_STP)
             ->find($id);
 
         if (!$detail) {
@@ -100,7 +100,7 @@ class GetCompanyDetailForProfileController extends BaseController
         try {
             $data = $this->getCompanyDetail($id);
 
-            $userCount   = $this->getUsersCountByCompanyId($id);
+            $userCount = $this->getUsersCountByCompanyId($id);
             $deviceCount = $this->getDeviceCountByCompanyId($id);
             $friendCount = $this->getFriendCountByCompanyId($id);
 

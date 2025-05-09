@@ -136,7 +136,7 @@ export const deviceApi = {
     momentsSync?: number;
     aiChat?: number;
   }): Promise<ApiResponse<Device>> {
-    const response = await fetch(`${API_BASE}/task-config`, {
+    const response = await fetch(`${API_BASE}/devices/task-config`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

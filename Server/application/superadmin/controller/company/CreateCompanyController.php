@@ -7,10 +7,12 @@ use app\common\model\Company as CompanyModel;
 use app\common\model\User as UsersModel;
 use app\superadmin\controller\BaseController;
 use Eison\Utils\Helper\ArrHelper;
+use Exception;
 use library\ResponseHelper;
 use library\s2\CurlHandle;
 use think\Db;
 use think\facade\Env;
+use think\response\Json;
 use think\Validate;
 
 /**
@@ -23,7 +25,7 @@ class CreateCompanyController extends BaseController
      *
      * @param array $params
      * @return mixed|null
-     * @throws \Exception
+     * @throws Exception
      */
     protected function s2CreateUser(array $params): ?array
     {
@@ -38,7 +40,7 @@ class CreateCompanyController extends BaseController
         $result = json_decode($response, true);
 
         if ($result['code'] != 200) {
-            throw new \Exception($result['msg'], 210 . $result['code']);
+            throw new Exception($result['msg'], 210 . $result['code']);
         }
 
         return $result['data'] ?: null;
@@ -63,7 +65,7 @@ class CreateCompanyController extends BaseController
         $result = json_decode($response, true);
 
         if ($result['code'] != 200) {
-            throw new \Exception($result['msg'], 210 . $result['code']);
+            throw new Exception($result['msg'], 210 . $result['code']);
         }
 
         return $result['data'] ?: null;
@@ -74,33 +76,33 @@ class CreateCompanyController extends BaseController
      *
      * @param array $params
      * @return $this
-     * @throws \Exception
+     * @throws Exception
      */
     protected function dataValidate(array $params): self
     {
         $validate = Validate::make([
-            'name' => 'require|max:50|/\S+/',
-            'account' => 'require|regex:^[a-zA-Z0-9]+$|max:20|/\S+/',
+            'name'     => 'require|max:50|/\S+/',
+            'account'  => 'require|regex:^[a-zA-Z0-9]+$|max:20|/\S+/',
             'username' => 'require|max:20|/\S+/',
-            'phone' => 'require|regex:/^1[3-9]\d{9}$/',
-            'status' => 'require|in:0,1',
+            'phone'    => 'require|regex:/^1[3-9]\d{9}$/',
+            'status'   => 'require|in:0,1',
             'password' => 'require|/\S+/',
-            'memo' => '/\S+/',
+            'memo'     => '/\S+/',
         ], [
-            'name.require' => '请输入项目名称',
-            'account.require' => '请输入账号',
-            'account.max' => '账号长度受限',
-            'account.regex' => '账号只能用数字或者字母或者数字字母组合',
+            'name.require'     => '请输入项目名称',
+            'account.require'  => '请输入账号',
+            'account.max'      => '账号长度受限',
+            'account.regex'    => '账号只能用数字或者字母或者数字字母组合',
             'username.require' => '请输入用户昵称',
-            'phone.require' => '请输入手机号',
-            'phone.regex' => '手机号格式错误',
-            'status.require' => '缺少重要参数',
-            'status.in' => '非法参数',
+            'phone.require'    => '请输入手机号',
+            'phone.regex'      => '手机号格式错误',
+            'status.require'   => '缺少重要参数',
+            'status.in'        => '非法参数',
             'password.require' => '请输入密码',
         ]);
 
         if (!$validate->check($params)) {
-            throw new \Exception($validate->getError(), 400);
+            throw new Exception($validate->getError(), 400);
         }
 
         return $this;
@@ -111,7 +113,7 @@ class CreateCompanyController extends BaseController
      *
      * @param array $params
      * @return void
-     * @throws \Exception
+     * @throws Exception
      */
     protected function s2CreateDeviceGroup(array $params): void
     {
@@ -119,7 +121,7 @@ class CreateCompanyController extends BaseController
         $respon = json_decode($respon, true);
 
         if ($respon['code'] != 200) {
-            throw new \Exception('设备分组添加错误', 210 . $respon['code']);
+            throw new Exception('设备分组添加错误', 210 . $respon['code']);
         }
     }
 
@@ -128,14 +130,14 @@ class CreateCompanyController extends BaseController
      *
      * @param array $params
      * @return array
-     * @throws \Exception
+     * @throws Exception
      */
     protected function creatS2About(array $params): array
     {
         $department = $this->s2CreateDepartmentAndUser($params);
 
         if (!$department || !isset($department['id']) || !isset($department['departmentId'])) {
-            throw new \Exception('S2返参异常', 210402);
+            throw new Exception('S2返参异常', 210402);
         }
 
         // 设备创建分组
@@ -152,7 +154,7 @@ class CreateCompanyController extends BaseController
      *
      * @param array $params
      * @return void
-     * @throws \Exception
+     * @throws Exception
      */
     protected function ckbCreateCompany(array $params): void
     {
@@ -160,7 +162,7 @@ class CreateCompanyController extends BaseController
         $result = CompanyModel::create($params);
 
         if (!$result) {
-            throw new \Exception('创建公司记录失败', 402);
+            throw new Exception('创建公司记录失败', 402);
         }
     }
 
@@ -169,17 +171,17 @@ class CreateCompanyController extends BaseController
      *
      * @param array $params
      * @return void
-     * @throws \Exception
+     * @throws Exception
      */
     protected function createFuncUsers(array $params): void
     {
         $seedCols = [
-            ['account' => $params['account'] . '_offline', 'username' => '处理离线专用', 'status' => 0, 'isAdmin' => 0, 'typeId' => -1],
-            ['account' => $params['account'] . '_delete' , 'username' => '处理删除专用', 'status' => 0, 'isAdmin' => 0, 'typeId' => -1],
+            ['account' => $params['account'] . '_offline', 'username' => '处理离线专用', 'status' => UsersModel::STATUS_STOP, 'isAdmin' => UsersModel::ADMIN_OTP, 'typeId' => UsersModel::NOT_USER],
+            ['account' => $params['account'] . '_delete', 'username'  => '处理删除专用', 'status' => UsersModel::STATUS_STOP, 'isAdmin' => UsersModel::ADMIN_OTP, 'typeId' => UsersModel::NOT_USER],
         ];
 
         foreach ($seedCols as $seeds) {
-            $this->s2CreateUser (array_merge($params, ArrHelper::getValue('account,username', $seeds)));
+            $this->s2CreateUser(array_merge($params, ArrHelper::getValue('account,username', $seeds)));
             $this->ckbCreateUser(array_merge($params, $seeds));
         }
     }
@@ -189,7 +191,7 @@ class CreateCompanyController extends BaseController
      *
      * @param array $params
      * @return void
-     * @throws \Exception
+     * @throws Exception
      */
     protected function ckbCreateUser(array $params): void
     {
@@ -201,14 +203,14 @@ class CreateCompanyController extends BaseController
         ]);
 
         if (!UsersModel::create($params)) {
-            throw new \Exception('创建用户记录失败', 402);
+            throw new Exception('创建用户记录失败', 402);
         }
     }
 
     /**
      * @param array $params
      * @return void
-     * @throws \Exception
+     * @throws Exception
      */
     protected function createCkbAbout(array $params)
     {
@@ -217,8 +219,8 @@ class CreateCompanyController extends BaseController
 
         // 2. 存客宝创建操盘手总账号
         $this->ckbCreateUser(array_merge($params, [
-            'isAdmin' => 1,  // 主要账号默认1
-            'typeId' => 1,   // 类型：运营后台/操盘手传1、 门店传2
+            'isAdmin' => UsersModel::ADMIN_STP,     // 主要账号默认1
+            'typeId'  => UsersModel::MASTER_USER,   // 类型：运营后台/操盘手传1、 门店传2
         ]));
     }
 
@@ -227,7 +229,7 @@ class CreateCompanyController extends BaseController
      *
      * @param array $where
      * @return void
-     * @throws \Exception
+     * @throws Exception
      */
     protected function checkCompanyNameOrAccountOrPhoneExists(array $where): void
     {
@@ -236,26 +238,26 @@ class CreateCompanyController extends BaseController
         // 项目名称尽量不重名
         $exists = CompanyModel::where(compact('name'))->count() > 0;
         if ($exists) {
-            throw new \Exception('项目名称已存在', 403);
+            throw new Exception('项目名称已存在', 403);
         }
 
         // 账号不重名
         $exists = UsersModel::where(compact('account'))->count() > 0;
         if ($exists) {
-            throw new \Exception('用户账号已存在', 403);
+            throw new Exception('用户账号已存在', 403);
         }
 
         // 手机号不重名
         $exists = UsersModel::where(compact('phone'))->count() > 0;
         if ($exists) {
-            throw new \Exception('手机号已存在', 403);
+            throw new Exception('手机号已存在', 403);
         }
     }
 
     /**
      * 创建新项目
      *
-     * @return \think\response\Json
+     * @return Json
      */
     public function index()
     {
@@ -273,7 +275,7 @@ class CreateCompanyController extends BaseController
 
             Db::commit();
             return ResponseHelper::success();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Db::rollback();
             return ResponseHelper::error($e->getMessage(), $e->getCode());
         }

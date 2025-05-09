@@ -66,12 +66,12 @@ class DeleteAdministratorController extends BaseController
         }
 
         // 只有超级管理员(ID为1)可以删除管理员
-        if ($this->getAdminInfo('id') != 1) {
+        if ($this->getAdminInfo('id') != AdministratorModel::MASTER_ID) {
             throw new \Exception('您没有权限删除管理员', 403);
         }
 
         // 不能删除超级管理员账号
-        if ($adminId == 1) {
+        if ($adminId == AdministratorModel::MASTER_ID) {
             throw new \Exception('不能删除超级管理员账号', 403);
         }
     }
@@ -88,7 +88,7 @@ class DeleteAdministratorController extends BaseController
         $validate = Validate::make([
             'id' => 'require|regex:/^[1-9]\d*$/',
         ], [
-            'id.regex' => '非法请求',
+            'id.regex'   => '非法请求',
             'id.require' => '非法请求',
         ]);
 

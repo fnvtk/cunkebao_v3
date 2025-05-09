@@ -1,9 +1,11 @@
 <?php
+
 namespace app\cunkebao\controller\device;
 
 use app\common\model\Device as DeviceModel;
 use app\common\model\DeviceHandleLog as DeviceHandleLogModel;
 use app\cunkebao\controller\BaseController;
+use library\ResponseHelper;
 use library\s2\CurlHandle;
 use think\Db;
 use think\Validate;
@@ -23,9 +25,8 @@ class PostAddDeviceV1Controller extends BaseController
     {
         if ($this->request->param('imei')) {
             $where = [
-                'imei' => $this->request->param('imei'),
+                'imei'      => $this->request->param('imei'),
                 'companyId' => $this->getUserInfo('companyId'),
-                'deleteTime' => 0
             ];
 
             $exist = DeviceModel::where($where)->count() > 0;
@@ -43,7 +44,7 @@ class PostAddDeviceV1Controller extends BaseController
     {
         $curl = CurlHandle::getInstant();
 
-     //   $curl->setMethod()
+        //   $curl->setMethod()
     }
 
     /**
@@ -70,9 +71,9 @@ class PostAddDeviceV1Controller extends BaseController
     {
         DeviceHandleLogModel::addLog(
             [
-                'deviceId' => $deviceId,
-                'content' => '添加设备',
-                'userId' => $this->getUserInfo('id'),
+                'deviceId'  => $deviceId,
+                'content'   => '添加设备',
+                'userId'    => $this->getUserInfo('id'),
                 'companyId' => $this->getUserInfo('companyId'),
             ]
         );
@@ -114,17 +115,10 @@ class PostAddDeviceV1Controller extends BaseController
 
             Db::commit();
 
-            return json([
-                'code' => 200,
-                'msg' => '添加成功'
-            ]);
+            return ResponseHelper::success();
         } catch (\Exception $e) {
             Db::rollback();
-
-            return json([
-                'code' => $e->getCode(),
-                'msg' => $e->getMessage()
-            ]);
+            return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
     }
 } 
