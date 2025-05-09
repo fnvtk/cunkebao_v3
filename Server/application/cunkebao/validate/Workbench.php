@@ -25,7 +25,7 @@ class Workbench extends Validate
         'startTime' => 'requireIf:type,1|dateFormat:H:i',
         'endTime' => 'requireIf:type,1|dateFormat:H:i',
         'contentTypes' => 'requireIf:type,1|array|contentTypeEnum:text,image,video',
-        'targetGroups' => 'requireIf:type,1|array',
+        //'targetGroups' => 'requireIf:type,1|array',
         // 朋友圈同步特有参数
         'syncInterval' => 'requireIf:type,2|number|min:1',
         'syncCount' => 'requireIf:type,2|number|min:1',

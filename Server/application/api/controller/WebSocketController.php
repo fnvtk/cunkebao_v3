@@ -220,8 +220,8 @@ class WebSocketController extends BaseController
         $maxPages = 20; // 最大页数限制为20
         $currentPage = 1; // 当前页码
         $allMoments = []; // 存储所有朋友圈数据
-     
-        //过滤消息
+
+            //过滤消息
         if (empty($wechatAccountId)) {
             return json_encode(['code'=>400,'msg'=>'指定账号不能为空']);
         }
@@ -243,12 +243,39 @@ class WebSocketController extends BaseController
                 $message = $this->sendMessage($params);
                 Log::info('获取朋友圈信成功：' . json_encode($message, 256));
 
+
+                // 检查是否遇到频率限制
+                if (isset($message['extra']) && strpos($message['extra'], '朋友圈太频繁了') !== false) {
+                    Log::info('遇到频率限制,休息10秒后继续');
+                    sleep(10);
+                    continue;
+                }
+                
+
                 // 检查返回结果
                 if (!isset($message['result']) || empty($message['result']) || !is_array($message['result'])) {
                     break;
                 }
 
+            
+                // 检查是否遇到旧数据
+                $hasOldData = false;
+                foreach ($message['result'] as $moment) {
+                    $momentId = WechatMoments::where('snsId', $moment['snsId'])
+                        ->where('wechatAccountId', $wechatAccountId)
+                        ->value('id');
+                    
+                    if (!empty($momentId)) {
+                        $hasOldData = true;
+                        break;
+                    }
+                }
 
+                // 如果遇到旧数据,结束本次任务
+                if ($hasOldData) {
+                    // Log::info('遇到旧数据,结束本次任务');
+                    // break;
+                }
 
                 // 合并朋友圈数据
                 $allMoments = array_merge($allMoments, $message['result']);
@@ -299,40 +326,36 @@ class WebSocketController extends BaseController
      * 朋友圈点赞
      * @return \think\response\Json
      */
-    public function momentInteract()
+    public function momentInteract($data = [])
     {
-        if ($this->request->isPost()) {
-            $data = $this->request->param();
+        
+        $snsId = !empty($data['snsId']) ? $data['snsId'] : '';
+        $wechatAccountId = !empty($data['wechatAccountId']) ? $data['wechatAccountId'] : '';
+        $wechatFriendId = !empty($data['wechatFriendId']) ? $data['wechatFriendId'] : 0;
 
-            if (empty($data)) {
-                return json_encode(['code'=>400,'msg'=>'参数缺失']);
-            }
 
-            //过滤消息
-            if (empty($data['snsId'])) {
-                return json_encode(['code'=>400,'msg'=>'snsId不能为空']);
-            }
-            if (empty($data['wechatAccountId'])) {
-                return json_encode(['code'=>400,'msg'=>'微信id不能为空']);
-            }
+        //过滤消息
+         if (empty($snsId)) {
+             return json_encode(['code'=>400,'msg'=>'snsId不能为空']);
+        }
+         if (empty($wechatAccountId)) {
+             return json_encode(['code'=>400,'msg'=>'微信id不能为空']);
+        }
             
-            try {
+         try {
             $result = [
                 "cmdType" => "CmdMomentInteract",
                 "momentInteractType" => 1,
                 "seq" => time(),
-                    "snsId" => $data['snsId'],
-                    "wechatAccountId" => $data['wechatAccountId'],
-                "wechatFriendId" => 0,
-            ];
+            "snsId" => $snsId,
+            "wechatAccountId" => $wechatAccountId,
+            "wechatFriendId" => $wechatFriendId,
+        ];
 
-                $message = $this->sendMessage($result);
-                return json_encode(['code'=>200,'msg'=>'点赞成功','data'=>$message]);
-            } catch (\Exception $e) {
-                return json_encode(['code'=>500,'msg'=>$e->getMessage()]);
-            }
-        } else {
-            return json_encode(['code'=>400,'msg'=>'非法请求']);
+            $message = $this->sendMessage($result);
+            return json_encode(['code'=>200,'msg'=>'点赞成功','data'=>$message]);
+         } catch (\Exception $e) {
+            return json_encode(['code'=>500,'msg'=>$e->getMessage()]);
         }
     }
 

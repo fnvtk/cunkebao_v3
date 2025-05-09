@@ -27,4 +27,5 @@ return [
     'allotrule:autocreate' => 'app\command\AutoCreateAllotRulesCommand', // 自动创建分配规则 √
     'content:collect' => 'app\command\ContentCollectCommand', // 内容采集任务 √
     'moments:collect' => 'app\command\WechatMomentsCommand', // 朋友圈采集任务
+    'workbench:run' => 'app\command\WorkbenchCommand', // 工作台任务
 ];

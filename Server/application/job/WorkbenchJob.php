@@ -1,0 +1,460 @@
+<?php
+
+namespace app\job;
+
+use think\queue\Job;
+use think\facade\Log;
+use think\Queue;
+use think\facade\Config;
+use think\facade\Cache;
+use app\cunkebao\model\Workbench;
+use app\cunkebao\model\WorkbenchAutoLike;
+use app\cunkebao\model\WorkbenchMomentsSync;
+use app\cunkebao\model\WorkbenchGroupPush;
+use app\cunkebao\model\WorkbenchGroupCreate;
+use think\Db;
+use app\api\controller\WebSocketController;
+
+class WorkbenchJob
+{
+    /**
+     * 工作台类型定义
+     */
+    const TYPE_AUTO_LIKE = 1;      // 自动点赞
+    const TYPE_MOMENTS_SYNC = 2;    // 朋友圈同步
+    const TYPE_GROUP_PUSH = 3;      // 群消息推送
+    const TYPE_GROUP_CREATE = 4;    // 自动建群
+
+    /**
+     * 最大重试次数
+     */
+    const MAX_RETRY_ATTEMPTS = 3;
+
+    /**
+     * 队列任务处理
+     * @param Job $job 队列任务
+     * @param array $data 任务数据
+     * @return bool
+     */
+    public function fire(Job $job, $data)
+    {
+        $jobId = $data['jobId'] ?? '';
+        $queueLockKey = $data['queueLockKey'] ?? '';
+        
+        try {
+            $this->logJobStart($jobId, $queueLockKey);
+            
+            $workbenches = $this->getActiveWorkbenches();
+            if ($workbenches->isEmpty()) {
+                $this->handleEmptyWorkbenches($job, $queueLockKey);
+                return true;
+            }
+            
+            $this->processWorkbenches($workbenches);
+            
+            $this->handleJobSuccess($job, $queueLockKey);
+            return true;
+            
+        } catch (\Exception $e) {
+            return $this->handleJobError($e, $job, $queueLockKey);
+        }
+    }
+
+    /**
+     * 获取活跃的工作台
+     * @return \think\Collection
+     */
+    protected function getActiveWorkbenches()
+    {
+        return Workbench::where([
+            ['status', '=', 1],
+            ['isDel', '=', 0]
+        ])->order('id DESC')->select();
+    }
+
+    /**
+     * 处理空工作台情况
+     * @param Job $job
+     * @param string $queueLockKey
+     */
+    protected function handleEmptyWorkbenches(Job $job, $queueLockKey)
+    {
+        Log::info('没有需要处理的工作台任务');
+        $job->delete();
+        Cache::rm($queueLockKey);
+    }
+
+    /**
+     * 处理工作台列表
+     * @param \think\Collection $workbenches
+     */
+    protected function processWorkbenches($workbenches)
+    {
+        foreach ($workbenches as $workbench) {
+            try {
+                $this->processSingleWorkbench($workbench);
+            } catch (\Exception $e) {
+                Log::error("处理工作台 {$workbench->id} 失败: " . $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * 处理单个工作台
+     * @param Workbench $workbench
+     */
+    protected function processSingleWorkbench($workbench)
+    {
+        $config = $this->getWorkbenchConfig($workbench);
+        if (!$config) {
+            Log::error("工作台 {$workbench->id} 配置获取失败");
+            return;
+        }
+
+        $handler = $this->getWorkbenchHandler($workbench->type);
+        if ($handler) {
+            $handler($workbench, $config);
+        }
+    }
+
+    /**
+     * 获取工作台处理器
+     * @param int $type
+     * @return callable|null
+     */
+    protected function getWorkbenchHandler($type)
+    {
+        $handlers = [
+            self::TYPE_AUTO_LIKE => [$this, 'handleAutoLike'],
+            self::TYPE_MOMENTS_SYNC => [$this, 'handleMomentsSync'],
+            self::TYPE_GROUP_PUSH => [$this, 'handleGroupPush'],
+            self::TYPE_GROUP_CREATE => [$this, 'handleGroupCreate']
+        ];
+
+        return $handlers[$type] ?? null;
+    }
+
+    /**
+     * 处理自动点赞任务
+     * @param Workbench $workbench
+     * @param WorkbenchAutoLike $config
+     */
+    protected function handleAutoLike($workbench, $config)
+    {
+        if (!$this->validateAutoLikeConfig($workbench, $config)) {
+            return;
+        }
+
+        $likeCount = $this->getTodayLikeCount($workbench, $config);
+        if ($likeCount >= $config['maxLikes']) {
+            Log::info("工作台 {$workbench->id} 点赞次数已达上限");
+            return;
+        }
+
+        if (!$this->isWithinLikeTimeRange($config)) {
+            return;
+        }
+
+        $friendList = $this->getFriendList($config['friends']);
+        foreach ($friendList as $friend) {
+            $this->processFriendMoments($workbench, $config, $friend, $likeCount);
+        }
+    }
+
+    /**
+     * 验证自动点赞配置
+     * @param Workbench $workbench
+     * @param WorkbenchAutoLike $config
+     * @return bool
+     */
+    protected function validateAutoLikeConfig($workbench, $config)
+    {
+        $requiredFields = ['friends', 'contentTypes', 'interval', 'maxLikes', 'startTime', 'endTime'];
+        foreach ($requiredFields as $field) {
+            if (empty($config[$field])) {
+                Log::error("工作台 {$workbench->id} 配置字段 {$field} 为空");
+                return false;
+            }
+        }
+
+        $friends = json_decode($config['friends'], true);
+        if (!is_array($friends) || empty($friends)) {
+            Log::error("工作台 {$workbench->id} 点赞的好友为空");
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 获取今日点赞次数
+     * @param Workbench $workbench
+     * @param WorkbenchAutoLike $config
+     * @return int
+     */
+    protected function getTodayLikeCount($workbench, $config)
+    {
+        return Db::name('workbench_auto_like_item')
+            ->where('workbenchId', $workbench->id)
+            ->whereTime('createTime', 'between', [
+                strtotime(date('Y-m-d') . ' ' . $config['startTime'] . ':00'),
+                strtotime(date('Y-m-d') . ' ' . $config['endTime'] . ':00')
+            ])
+            ->count();
+    }
+
+    /**
+     * 检查是否在点赞时间范围内
+     * @param WorkbenchAutoLike $config
+     * @return bool
+     */
+    protected function isWithinLikeTimeRange($config)
+    {
+        $currentTime = date('H:i');
+        if ($currentTime < $config['startTime'] || $currentTime > $config['endTime']) {
+            Log::info("当前时间 {$currentTime} 不在点赞时间范围内 ({$config['startTime']} - {$config['endTime']})");
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 获取好友列表
+     * @param string $friendsJson
+     * @return array
+     */
+    protected function getFriendList($friendsJson)
+    {
+        $friends = json_decode($friendsJson, true);
+        return Db::table('s2_company_account')
+            ->alias('ca')
+            ->join(['s2_wechat_account' => 'wa'], 'ca.id = wa.deviceAccountId')
+            ->join(['s2_wechat_friend' => 'wf'], 'ca.id = wf.accountId')
+            ->where('ca.passwordLocal', '<>', '')
+            ->where([
+                'ca.status' => 0,
+                'wf.isDeleted' => 0,
+                'wa.deviceAlive' => 1,
+                'wa.wechatAlive' => 1
+            ])
+            ->whereIn('wf.id', $friends)
+            ->field([
+                'ca.id as accountId',
+                'ca.userName',
+                'ca.passwordLocal',
+                'wf.id as friendId',
+                'wf.wechatId',
+                'wf.wechatAccountId'
+            ])
+            ->group('wf.wechatAccountId DESC')
+            ->order('ca.id DESC')
+            ->select()
+            ->toArray();
+    }
+
+    /**
+     * 处理好友朋友圈
+     * @param Workbench $workbench
+     * @param WorkbenchAutoLike $config
+     * @param array $friend
+     * @param int &$likeCount
+     */
+    protected function processFriendMoments($workbench, $config, $friend, &$likeCount)
+    {
+        $moments = $this->getUnlikedMoments($friend['friendId']);
+        if ($moments->isEmpty()) {
+            Log::info("好友 {$friend['friendId']} 没有需要点赞的朋友圈");
+            return;
+        }
+
+        foreach ($moments as $moment) {
+            if ($likeCount >= $config['maxLikes']) {
+                break;
+            }
+
+            $this->likeMoment($workbench, $config, $friend, $moment, $likeCount);
+        }
+    }
+
+    /**
+     * 获取未点赞的朋友圈
+     * @param int $friendId
+     * @return \think\Collection
+     */
+    protected function getUnlikedMoments($friendId)
+    {
+        return Db::table('s2_wechat_moments')
+            ->alias('wm')
+            ->join('workbench_auto_like_item wali', 'wali.momentsId = wm.id', 'left')
+            ->where([
+                ['wm.wechatFriendId', '=', $friendId],
+                ['wali.id', 'null', null]
+            ])
+            ->field('wm.id, wm.snsId')
+            ->order('wm.id DESC')
+            ->select();
+    }
+
+    /**
+     * 点赞朋友圈
+     * @param Workbench $workbench
+     * @param WorkbenchAutoLike $config
+     * @param array $friend
+     * @param array $moment
+     * @param int &$likeCount
+     */
+    protected function likeMoment($workbench, $config, $friend, $moment, &$likeCount)
+    {
+        try {
+            $wsController = new WebSocketController([
+                'userName' => $friend['userName'],
+                'password' => localDecrypt($friend['passwordLocal']),
+                'accountId' => $friend['accountId']
+            ]);
+
+            $result = $wsController->momentInteract([
+                'snsId' => $moment['snsId'],
+                'wechatAccountId' => $friend['wechatAccountId'],
+            ]);
+
+            $result = json_decode($result, true);
+            
+            if ($result['code'] == 200) {
+                $this->recordLike($workbench, $moment, $friend);
+                $likeCount++;
+                sleep($config['interval']);
+            } else {
+                Log::error("工作台 {$workbench->id} 点赞失败: " . ($result['msg'] ?? '未知错误'));
+            }
+        } catch (\Exception $e) {
+            Log::error("工作台 {$workbench->id} 点赞异常: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * 记录点赞
+     * @param Workbench $workbench
+     * @param array $moment
+     * @param array $friend
+     */
+    protected function recordLike($workbench, $moment, $friend)
+    {
+        Db::name('workbench_auto_like_item')->insert([
+            'workbenchId' => $workbench->id,
+            'momentsId' => $moment['id'],
+            'snsId' => $moment['snsId'],
+            'wechatAccountId' => $friend['wechatAccountId'],
+            'wechatFriendId' => $friend['friendId'],
+            'createTime' => time()
+        ]);
+        Log::info("工作台 {$workbench->id} 点赞成功: {$moment['snsId']}");
+    }
+
+    /**
+     * 记录任务开始
+     * @param string $jobId
+     * @param string $queueLockKey
+     */
+    protected function logJobStart($jobId, $queueLockKey)
+    {
+        Log::info('开始处理工作台任务: ' . json_encode([
+            'jobId' => $jobId,
+            'queueLockKey' => $queueLockKey
+        ]));
+    }
+
+    /**
+     * 处理任务成功
+     * @param Job $job
+     * @param string $queueLockKey
+     */
+    protected function handleJobSuccess($job, $queueLockKey)
+    {
+        $job->delete();
+        Cache::rm($queueLockKey);
+        Log::info('工作台任务执行成功');
+    }
+
+    /**
+     * 处理任务错误
+     * @param \Exception $e
+     * @param Job $job
+     * @param string $queueLockKey
+     * @return bool
+     */
+    protected function handleJobError(\Exception $e, $job, $queueLockKey)
+    {
+        Log::error('工作台任务异常：' . $e->getMessage());
+        
+        if (!empty($queueLockKey)) {
+            Cache::rm($queueLockKey);
+            Log::info("由于异常释放队列锁: {$queueLockKey}");
+        }
+        
+        if ($job->attempts() > self::MAX_RETRY_ATTEMPTS) {
+            $job->delete();
+        } else {
+            $job->release(Config::get('queue.failed_delay', 10));
+        }
+        
+        return false;
+    }
+
+    /**
+     * 获取工作台配置
+     * @param Workbench $workbench 工作台实例
+     * @return mixed
+     */
+    protected function getWorkbenchConfig($workbench)
+    {
+        switch ($workbench->type) {
+            case self::TYPE_AUTO_LIKE:
+                return WorkbenchAutoLike::where('workbenchId', $workbench->id)->find();
+                
+            case self::TYPE_MOMENTS_SYNC:
+                return WorkbenchMomentsSync::where('workbenchId', $workbench->id)->find();
+                
+            case self::TYPE_GROUP_PUSH:
+                return WorkbenchGroupPush::where('workbenchId', $workbench->id)->find();
+                
+            case self::TYPE_GROUP_CREATE:
+                return WorkbenchGroupCreate::where('workbenchId', $workbench->id)->find();
+                
+            default:
+                return null;
+        }
+    }
+    
+    /**
+     * 处理朋友圈同步任务
+     * @param Workbench $workbench 工作台实例
+     * @param WorkbenchMomentsSync $config 配置实例
+     */
+    protected function handleMomentsSync($workbench, $config)
+    {
+        // TODO: 实现朋友圈同步逻辑
+        Log::info("处理朋友圈同步任务: {$workbench->id}");
+    }
+    
+    /**
+     * 处理群消息推送任务
+     * @param Workbench $workbench 工作台实例
+     * @param WorkbenchGroupPush $config 配置实例
+     */
+    protected function handleGroupPush($workbench, $config)
+    {
+        // TODO: 实现群消息推送逻辑
+        Log::info("处理群消息推送任务: {$workbench->id}");
+    }
+    
+    /**
+     * 处理自动建群任务
+     * @param Workbench $workbench 工作台实例
+     * @param WorkbenchGroupCreate $config 配置实例
+     */
+    protected function handleGroupCreate($workbench, $config)
+    {
+        // TODO: 实现自动建群逻辑
+        Log::info("处理自动建群任务: {$workbench->id}");
+    }
+} 

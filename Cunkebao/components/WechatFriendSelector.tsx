@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { api } from "@/lib/api"
 import { showToast } from "@/lib/toast"
 
-interface WechatFriend {
+export interface WechatFriend {
   id: string
   nickname: string
   wechatId: string

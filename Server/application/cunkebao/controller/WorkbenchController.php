@@ -71,8 +71,9 @@ class WorkbenchController extends Controller
                     $config->endTime = $param['endTime'];
                     $config->contentTypes = json_encode($param['contentTypes']);
                     $config->devices = json_encode($param['devices']);
-                    $config->targetGroups = json_encode($param['targetGroups']);
-                    $config->tagOperator = $param['tagOperator'];
+                    $config->friends = json_encode($param['friends']);
+                    // $config->targetGroups = json_encode($param['targetGroups']);
+                    // $config->tagOperator = $param['tagOperator'];
                     $config->createTime = time();
                     $config->updateTime = time();
                     $config->save();
@@ -156,7 +157,7 @@ class WorkbenchController extends Controller
         // 定义关联关系
         $with = [
             'autoLike' => function($query) {
-                $query->field('workbenchId,interval,maxLikes,startTime,endTime,contentTypes,devices,targetGroups');
+                $query->field('workbenchId,interval,maxLikes,startTime,endTime,contentTypes,devices,friends');
             },
             'momentsSync' => function($query) {
                 $query->field('workbenchId,syncInterval,syncCount,syncType,startTime,endTime,accountType,devices,contentLibraries');
@@ -179,8 +180,9 @@ class WorkbenchController extends Controller
                         if (!empty($item->autoLike)) {
                             $item->config = $item->autoLike;
                             $item->config->devices = json_decode($item->config->devices, true);
-                            $item->config->targetGroups = json_decode($item->config->targetGroups, true);
+                            //$item->config->targetGroups = json_decode($item->config->targetGroups, true);
                             $item->config->contentTypes =  json_decode($item->config->contentTypes, true);
+                            $item->config->friends = json_decode($item->config->friends, true);
                         }
                         unset($item->autoLike,$item->auto_like);
                         break;
@@ -256,7 +258,7 @@ class WorkbenchController extends Controller
         // 定义关联关系
         $with = [
             'autoLike' => function($query) {
-                $query->field('workbenchId,interval,maxLikes,startTime,endTime,contentTypes,devices,targetGroups');
+                $query->field('workbenchId,interval,maxLikes,startTime,endTime,contentTypes,devices,friends');
             },
             'momentsSync' => function($query) {
                 $query->field('workbenchId,syncInterval,syncCount,syncType,startTime,endTime,accountType,devices,contentLibraries');
@@ -288,7 +290,8 @@ class WorkbenchController extends Controller
                 if (!empty($workbench->autoLike)) {
                     $workbench->config = $workbench->autoLike;
                     $workbench->config->devices = json_decode($workbench->config->devices, true);
-                    $workbench->config->targetGroups = json_decode($workbench->config->targetGroups, true);
+                    $workbench->config->friends = json_decode($workbench->config->friends, true);
+                    //$workbench->config->targetGroups = json_decode($workbench->config->targetGroups, true);
                     $workbench->config->contentTypes = json_decode($workbench->config->contentTypes, true);
                     unset($workbench->autoLike,$workbench->auto_like);
                 }
@@ -372,8 +375,9 @@ class WorkbenchController extends Controller
                         $config->endTime = $param['endTime'];
                         $config->contentTypes = json_encode($param['contentTypes']);
                         $config->devices = json_encode($param['devices']);
-                        $config->targetGroups = json_encode($param['targetGroups']);
-                        $config->tagOperator = $param['tagOperator'];
+                        $config->friends = json_encode($param['friends']);
+                        // $config->targetGroups = json_encode($param['targetGroups']);
+                        // $config->tagOperator = $param['tagOperator'];
                         $config->updateTime = time();
                         $config->save();
                     }
@@ -540,7 +544,8 @@ class WorkbenchController extends Controller
                         $newConfig->endTime = $config->endTime;
                         $newConfig->contentTypes = $config->contentTypes;
                         $newConfig->devices = $config->devices;
-                        $newConfig->targetGroups = $config->targetGroups;
+                        $newConfig->friends = $config->friends;
+                        //$newConfig->targetGroups = $config->targetGroups;
                         $newConfig->save();
                     }
                     break;
