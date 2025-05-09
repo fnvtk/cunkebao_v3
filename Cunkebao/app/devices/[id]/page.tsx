@@ -93,6 +93,7 @@ export default function DeviceDetailPage() {
     momentsSync: false,
     aiChat: false
   })
+  const [tabChangeLoading, setTabChangeLoading] = useState(false)
 
   useEffect(() => {
     if (!params.id) return
@@ -330,6 +331,9 @@ export default function DeviceDetailPage() {
   const handleTabChange = (value: string) => {
     setActiveTab(value)
     
+    // 显示过渡加载状态
+    setTabChangeLoading(true)
+    
     // 当切换到"关联账号"标签时，获取最新的关联微信账号信息
     if (value === "accounts") {
       fetchRelatedAccounts()
@@ -339,6 +343,11 @@ export default function DeviceDetailPage() {
     if (value === "history") {
       fetchHandleLogs()
     }
+    
+    // 设置短暂的延迟来关闭加载状态，模拟加载过程
+    setTimeout(() => {
+      setTabChangeLoading(false)
+    }, 300)
   }
 
   // 处理功能开关状态变化
@@ -599,6 +608,15 @@ export default function DeviceDetailPage() {
 
             <TabsContent value="info">
               <Card className="p-4 space-y-4">
+                {/* 标签切换时的加载状态 */}
+                {tabChangeLoading && (
+                  <div className="absolute inset-0 bg-white bg-opacity-80 flex justify-center items-center z-10">
+                    <div className="flex flex-col items-center space-y-3">
+                      <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
+                      <div className="text-gray-500 text-sm">加载中...</div>
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
@@ -697,6 +715,15 @@ export default function DeviceDetailPage() {
                 </div>
                 
                 <ScrollArea className="h-[calc(100vh-300px)]">
+                  {/* 标签切换时的加载状态 */}
+                  {tabChangeLoading && (
+                    <div className="absolute inset-0 bg-white bg-opacity-80 flex justify-center items-center z-10">
+                      <div className="flex flex-col items-center space-y-3">
+                        <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
+                        <div className="text-gray-500 text-sm">加载中...</div>
+                      </div>
+                    </div>
+                  )}
                   {accountsLoading && (
                     <div className="flex justify-center items-center py-8">
                       <div className="w-6 h-6 rounded-full border-2 border-blue-500 border-t-transparent animate-spin mr-2"></div>
@@ -781,6 +808,15 @@ export default function DeviceDetailPage() {
                 </div>
                 
                 <ScrollArea className="h-[calc(min(80vh, 500px))]">
+                  {/* 标签切换时的加载状态 */}
+                  {tabChangeLoading && (
+                    <div className="absolute inset-0 bg-white bg-opacity-80 flex justify-center items-center z-10">
+                      <div className="flex flex-col items-center space-y-3">
+                        <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
+                        <div className="text-gray-500 text-sm">加载中...</div>
+                      </div>
+                    </div>
+                  )}
                   {logsLoading && handleLogs.length === 0 ? (
                     <div className="flex justify-center items-center py-8">
                       <div className="w-6 h-6 rounded-full border-2 border-blue-500 border-t-transparent animate-spin mr-2"></div>
