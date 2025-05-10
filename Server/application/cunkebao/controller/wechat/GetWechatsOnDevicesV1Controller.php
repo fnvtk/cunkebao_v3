@@ -29,14 +29,21 @@ class GetWechatsOnDevicesV1Controller extends BaseController
     }
 
     /**
-     * TODO 计算今日新增好友数量
+     * 计算今日新增好友数量
      *
-     * @param string $wechatId
+     * @param string $ownerWechatId
      * @return int
      */
-    protected function getTodayNewFriendCount(string $wechatId): int
+    protected function getTodayNewFriendCount(string $ownerWechatId): int
     {
-        return 0;
+        return WechatFriendModel::where( compact('ownerWechatId') )
+            ->whereBetween('createTime',
+                [
+                    strtotime(date('Y-m-d 00:00:00')),
+                    strtotime(date('Y-m-d 23:59:59'))
+                ]
+            )
+            ->count('*');
     }
 
     /**
