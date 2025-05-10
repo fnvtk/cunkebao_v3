@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { ChevronLeft, Filter, Search, RefreshCw, ArrowRightLeft, AlertCircle, Loader2 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -48,9 +48,10 @@ export default function WechatAccountsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const accountsPerPage = 10
+  const mounted = useRef(false)
 
   // 获取微信账号列表
-  const fetchAccounts = async (page: number = 1, keyword: string = "") => {
+  const fetchAccounts = useCallback(async (page: number = 1, keyword: string = "") => {
     try {
       setIsLoading(true);
       const response = await fetchWechatAccountList({
@@ -88,7 +89,6 @@ export default function WechatAccountsPage() {
           description: response?.msg || "请稍后再试",
           variant: "destructive"
         });
-        // 如果API请求失败，设置空数组
         setAccounts([]);
         setTotalAccounts(0);
       }
@@ -104,9 +104,29 @@ export default function WechatAccountsPage() {
     } finally {
       setIsLoading(false);
     }
+  }, [accountsPerPage]);
+
+  // 初始化数据加载
+  useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      fetchAccounts(currentPage, searchQuery);
+    }
+  }, []);
+
+  // 处理页码和搜索变化
+  useEffect(() => {
+    if (mounted.current) {
+      fetchAccounts(currentPage, searchQuery);
+    }
+  }, [currentPage, searchQuery, fetchAccounts]);
+
+  // 搜索处理
+  const handleSearch = () => {
+    setCurrentPage(1);
   };
 
-  // 刷新微信账号状态
+  // 刷新处理
   const handleRefresh = async () => {
     try {
       setIsRefreshing(true);
@@ -135,24 +155,6 @@ export default function WechatAccountsPage() {
       });
     } finally {
       setIsRefreshing(false);
-    }
-  };
-
-  // 初始加载和页码变化时获取数据
-  useEffect(() => {
-    fetchAccounts(currentPage, searchQuery);
-  }, [currentPage]);
-
-  // 搜索时重置页码并获取数据
-  const handleSearch = () => {
-    setCurrentPage(1);
-    fetchAccounts(1, searchQuery);
-  };
-
-  // 处理搜索框回车事件
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSearch();
     }
   };
 
@@ -207,7 +209,6 @@ export default function WechatAccountsPage() {
                 placeholder="搜索微信号/昵称"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
               />
             </div>
             <Button variant="outline" size="icon">
