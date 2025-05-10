@@ -18,16 +18,14 @@ use library\ResponseHelper;
 class GetWechatsOnDevicesV1Controller extends BaseController
 {
     /**
-     * TODO 计算今日可添加好友数量
+     * 计算今日可添加好友数量
      *
      * @param string $wechatId
      * @return int
      */
     protected function getCanAddFriendCount(string $wechatId): int
     {
-        $canAddFriendCount = 20; // 最多限制 20 次
-
-        return $canAddFriendCount < 0 ? 0 : $canAddFriendCount;
+        return 20; // 最多限制 20 次
     }
 
     /**
@@ -71,7 +69,7 @@ class GetWechatsOnDevicesV1Controller extends BaseController
      */
     protected function getWhereOnDevice(string $wechatId): string
     {
-        return DeviceModel::alias('d')
+        return (string)DeviceModel::alias('d')
             ->where(
                 [
                     'l.wechatId' => $wechatId,
@@ -79,7 +77,7 @@ class GetWechatsOnDevicesV1Controller extends BaseController
                 ]
             )
             ->join('device_wechat_login l', 'd.id = l.deviceId')
-            ->value('d.imei');
+            ->value('d.memo');
     }
 
     /**
@@ -150,7 +148,7 @@ class GetWechatsOnDevicesV1Controller extends BaseController
     }
 
     /**
-     * 获取设备最新活跃时间
+     * TODO 获取设备最新活跃时间
      *
      * @param string $wechatId
      * @return string
@@ -191,9 +189,12 @@ class GetWechatsOnDevicesV1Controller extends BaseController
     protected function getOnlineWechatList(array $where): \think\Paginator
     {
         $query = WechatAccountModel::alias('w')
-            ->field([
-                'w.id', 'w.wechatId', 'w.nickname', 'w.avatar', 'w.s2_wechatAccountId'
-            ])
+            ->field(
+                [
+                    'w.id', 'w.nickname', 'w.avatar',
+                    'CASE WHEN w.alias IS NULL OR w.alias = "" THEN w.wechatId ELSE w.alias END AS wechatId',
+                ]
+            )
             ->order('w.id desc');
 
         foreach ($where as $key => $value) {

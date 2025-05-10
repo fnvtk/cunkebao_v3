@@ -20,8 +20,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "@/components/ui/use-toast"
 import { Progress } from "@/components/ui/progress"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { fetchWechatAccountList, refreshWechatAccounts, transferWechatFriends, transformWechatAccount } from "@/api/wechat-accounts"
+import { fetchWechatAccountList, refreshWechatAccounts, transferWechatFriends } from "@/api/wechat-accounts"
 import { WechatAccount } from "@/types/wechat-account"
+
+// 定义接口以匹配新的数据结构
+interface WechatAccountResponse {
+  id: number
+  wechatId: string
+  nickname: string
+  avatar: string
+  times: number
+  addedCount: number
+  wechatStatus: number
+  totalFriend: number
+  deviceMemo: string
+  activeTime: string
+}
 
 export default function WechatAccountsPage() {
   const router = useRouter()
@@ -49,7 +63,23 @@ export default function WechatAccountsPage() {
 
       if (response && response.code === 200 && response.data) {
         // 转换数据格式
-        const wechatAccounts = response.data.list.map(transformWechatAccount);
+        const wechatAccounts = response.data.list.map((item: any) => {
+          const account: WechatAccount = {
+            id: item.id.toString(),
+            wechatId: item.wechatId,
+            nickname: item.nickname,
+            avatar: item.avatar,
+            remainingAdds: item.times - item.addedCount,
+            todayAdded: item.addedCount,
+            status: item.wechatStatus === 1 ? "normal" as const : "abnormal" as const,
+            friendCount: item.totalFriend,
+            deviceName: item.deviceMemo,
+            lastActive: item.activeTime,
+            maxDailyAdds: item.times,
+            deviceId: item.id.toString(),
+          };
+          return account;
+        });
         setAccounts(wechatAccounts);
         setTotalAccounts(response.data.total);
       } else {
@@ -279,7 +309,10 @@ export default function WechatAccountsPage() {
                             {account.todayAdded}/{account.maxDailyAdds}
                           </span>
                         </div>
-                        <Progress value={(account.todayAdded / account.maxDailyAdds) * 100} className="h-2" />
+                        <Progress 
+                          value={(account.todayAdded / account.maxDailyAdds) * 100} 
+                          className="h-2" 
+                        />
                       </div>
                       <div className="flex items-center justify-between text-xs text-gray-500 pt-2 flex-wrap gap-1">
                         <div className="truncate max-w-[150px]">所属设备：{account.deviceName || '未知设备'}</div>
