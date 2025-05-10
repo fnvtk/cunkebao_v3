@@ -108,10 +108,10 @@ class GetDeviceListV1Controller extends BaseController
                 $sections['totalFriend'] = WechatFriendModel::where(['ownerWechatId' => $item->wechatId])->count();
             }
 
-            array_push($result, $sections);
+            array_push($resultSets, $sections);
         }
 
-        return $result;
+        return $resultSets;
     }
 
     /**
