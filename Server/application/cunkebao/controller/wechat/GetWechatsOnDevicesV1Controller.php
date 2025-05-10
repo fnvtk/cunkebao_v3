@@ -200,8 +200,10 @@ class GetWechatsOnDevicesV1Controller extends BaseController
                 [
                     'w.id', 'w.nickname', 'w.avatar',
                     'CASE WHEN w.alias IS NULL OR w.alias = "" THEN w.wechatId ELSE w.alias END AS wechatId',
+                    'l.deviceId'
                 ]
             )
+            ->join('device_wechat_login l', 'w.wechatId = l.wechatId')
             ->order('w.id desc');
 
         foreach ($where as $key => $value) {

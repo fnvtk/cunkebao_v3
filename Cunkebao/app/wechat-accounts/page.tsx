@@ -76,7 +76,7 @@ export default function WechatAccountsPage() {
             deviceName: item.deviceMemo,
             lastActive: item.activeTime,
             maxDailyAdds: item.times,
-            deviceId: item.id.toString(),
+            deviceId: item.deviceId.toString(),
           };
           return account;
         });
@@ -264,6 +264,7 @@ export default function WechatAccountsPage() {
                     status: account.status,
                     wechatId: account.wechatId,
                     deviceName: account.deviceName,
+                    deviceId: account.deviceId,
                   }));
                   router.push(`/wechat-accounts/${account.id}?data=${accountData}`);
                 }}

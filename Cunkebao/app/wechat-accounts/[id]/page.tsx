@@ -140,6 +140,7 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
     status: "normal" | "abnormal";
     wechatId: string;
     deviceName: string;
+    deviceId?: string | number;
   } | null>(null)
 
   useEffect(() => {
@@ -594,9 +595,19 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
                 </div>
                 <p className="text-sm text-gray-500 mt-1">微信号：{account.wechatId}</p>
                 <div className="flex gap-2 mt-2">
-                  <Button variant="outline" onClick={() => router.push(`/devices/${account.deviceId}`)}>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      // 优先使用 initialData.deviceId
+                      const targetDeviceId = initialData?.deviceId || account.deviceId;
+                      if (targetDeviceId) {
+                        // 保证 deviceId 是数字或字符串
+                        return router.push(`/devices/${targetDeviceId}`);
+                      }
+                    }}
+                  >
                     <Smartphone className="w-4 h-4 mr-2" />
-                    {account.deviceName}
+                    {account.deviceName || '未命名设备'}
                   </Button>
                   <Button variant="outline" onClick={handleTransferFriends}>
                     <UserPlus className="w-4 h-4 mr-2" />
