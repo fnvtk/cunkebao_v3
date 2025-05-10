@@ -12,7 +12,7 @@ use think\Db;
 /**
  * 设备控制器
  */
-class GetAddResultedDevicesController extends BaseController
+class GetAddResultedV1Controller extends BaseController
 {
     /**
      * 通过账号id 获取项目id。
