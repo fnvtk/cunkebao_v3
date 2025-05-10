@@ -589,7 +589,7 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
               <div className="flex-1">
                 <div className="flex items-center space-x-2">
                     <h2 className="text-xl font-semibold truncate max-w-[200px]">{account.nickname}</h2>
-                    <Badge variant={account.status === "normal" ? "outline" : "destructive"}>
+                    <Badge variant={account.status === "normal" ? "default" : "destructive"} className={account.status === "normal" ? "bg-green-500 hover:bg-green-600 text-white" : ""}>
                     {account.status === "normal" ? "正常" : "异常"}
                   </Badge>
                 </div>

@@ -279,7 +279,7 @@ export default function WechatAccountsPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <h3 className="font-medium truncate max-w-[180px]">{account.nickname}</h3>
-                        <Badge variant={account.status === "normal" ? "outline" : "destructive"}>
+                        <Badge variant={account.status === "normal" ? "default" : "destructive"} className={account.status === "normal" ? "bg-green-500 hover:bg-green-600 text-white" : ""}>
                           {account.status === "normal" ? "正常" : "异常"}
                         </Badge>
                       </div>
@@ -416,4 +416,3 @@ export default function WechatAccountsPage() {
     </div>
   )
 }
-
