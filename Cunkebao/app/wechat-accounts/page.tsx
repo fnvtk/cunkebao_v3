@@ -256,7 +256,17 @@ export default function WechatAccountsPage() {
               <Card
                 key={account.id}
                 className="p-4 hover:shadow-lg transition-all cursor-pointer overflow-hidden"
-                onClick={() => router.push(`/wechat-accounts/${account.id}`)}
+                onClick={() => {
+                  // 将需要的数据编码为 URL 安全的字符串
+                  const accountData = encodeURIComponent(JSON.stringify({
+                    avatar: account.avatar,
+                    nickname: account.nickname,
+                    status: account.status,
+                    wechatId: account.wechatId,
+                    deviceName: account.deviceName,
+                  }));
+                  router.push(`/wechat-accounts/${account.id}?data=${accountData}`);
+                }}
               >
                 <div className="flex items-start space-x-4">
                   <Avatar className="h-12 w-12 ring-2 ring-offset-2 ring-blue-500/20">

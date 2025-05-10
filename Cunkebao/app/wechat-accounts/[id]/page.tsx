@@ -134,6 +134,28 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
   const friendsLoadingRef = useRef<HTMLDivElement | null>(null)
   const friendsContainerRef = useRef<HTMLDivElement | null>(null)
 
+  const [initialData, setInitialData] = useState<{
+    avatar: string;
+    nickname: string;
+    status: "normal" | "abnormal";
+    wechatId: string;
+    deviceName: string;
+  } | null>(null)
+
+  useEffect(() => {
+    // 从 URL 参数中获取初始数据
+    const searchParams = new URLSearchParams(window.location.search);
+    const dataParam = searchParams.get('data');
+    if (dataParam) {
+      try {
+        const decodedData = JSON.parse(decodeURIComponent(dataParam));
+        setInitialData(decodedData);
+      } catch (error) {
+        console.error('解析初始数据失败:', error);
+      }
+    }
+  }, []);
+
   // 计算好友列表容器高度
   const getFriendsContainerHeight = () => {
     // 最少显示一条记录的高度，最多显示十条记录的高度
@@ -411,6 +433,14 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
         if (response && response.code === 200) {
           // 转换数据格式
           const transformedAccount = transformWechatAccountDetail(response)
+          // 使用初始数据覆盖API返回的部分字段
+          if (initialData) {
+            transformedAccount.avatar = initialData.avatar;
+            transformedAccount.nickname = initialData.nickname;
+            transformedAccount.status = initialData.status;
+            transformedAccount.wechatId = initialData.wechatId;
+            transformedAccount.deviceName = initialData.deviceName;
+          }
           setAccount(transformedAccount)
           
           // 如果有好友总数，更新friendsTotal状态
@@ -425,6 +455,14 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
           })
           // 获取失败时使用模拟数据
           const mockData = generateMockAccountData();
+          // 使用初始数据覆盖模拟数据的部分字段
+          if (initialData) {
+            mockData.avatar = initialData.avatar;
+            mockData.nickname = initialData.nickname;
+            mockData.status = initialData.status;
+            mockData.wechatId = initialData.wechatId;
+            mockData.deviceName = initialData.deviceName;
+          }
           setAccount(mockData);
           // 更新好友总数
           setFriendsTotal(mockData.friendCount);
@@ -438,6 +476,14 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
         })
         // 请求出错时使用模拟数据
         const mockData = generateMockAccountData();
+        // 使用初始数据覆盖模拟数据的部分字段
+        if (initialData) {
+          mockData.avatar = initialData.avatar;
+          mockData.nickname = initialData.nickname;
+          mockData.status = initialData.status;
+          mockData.wechatId = initialData.wechatId;
+          mockData.deviceName = initialData.deviceName;
+        }
         setAccount(mockData);
         // 更新好友总数
         setFriendsTotal(mockData.friendCount);
@@ -447,7 +493,7 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
     }
 
     fetchAccount()
-  }, [params.id])
+  }, [params.id, initialData])
 
   if (!account) {
     return <div>加载中...</div>
@@ -534,7 +580,7 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
                   <AvatarFallback>{account.nickname[0]}</AvatarFallback>
                 </Avatar>
                 {account.isVerified && (
-                    <Badge variant="outline" className="absolute -top-2 -right-2 px-2 py-0.5 text-xs">
+                  <Badge className="absolute -top-2 -right-2 px-2 py-0.5 text-xs bg-blue-500 text-white hover:bg-blue-600">
                     已认证
                   </Badge>
                 )}
