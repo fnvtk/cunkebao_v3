@@ -64,7 +64,7 @@ class ContentItemService
     {
         try {
             $result = ContentItem::where('id', $itemId)
-                ->update(['isDel' => 1, 'updateTime' => time()]);
+                ->update(['isDel' => 1, 'delTime' => time()]);
 
             if ($result === false) {
                 return ['code' => 500, 'msg' => '删除失败'];

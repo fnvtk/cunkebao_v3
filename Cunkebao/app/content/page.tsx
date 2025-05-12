@@ -115,7 +115,7 @@ export default function ContentLibraryPage() {
             ],
             creator: item.creatorName || "系统",
             creatorName: item.creatorName,
-            itemCount: 0,
+            itemCount: item.itemCount,
             lastUpdated: item.updateTime,
             enabled: item.isEnabled === 1,
             // 新增字段

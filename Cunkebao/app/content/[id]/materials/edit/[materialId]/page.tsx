@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronLeft, Plus, X, Image as ImageIcon, UploadCloud } from "lucide-react"
 import { Card } from "@/components/ui/card"
@@ -10,13 +10,95 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
+import { api } from "@/lib/api"
+import { showToast } from "@/lib/toast"
 import Image from "next/image"
 
-export default function NewMaterialPage({ params }: { params: { id: string } }) {
+interface ApiResponse<T = any> {
+  code: number
+  msg: string
+  data: T
+}
+
+interface Material {
+  id: number
+  type: string
+  title: string
+  content: string
+  coverImage: string | null
+  resUrls: string[]
+  urls: string[]
+  createTime: string
+  createMomentTime: number
+  time: string
+  wechatId: string
+  friendId: string | null
+  wechatChatroomId: number
+  senderNickname: string
+  location: string | null
+  lat: string
+  lng: string
+}
+
+const isImageUrl = (url: string) => {
+  return /\.(jpg|jpeg|png|gif|webp)$/i.test(url) || url.includes('oss-cn-shenzhen.aliyuncs.com')
+}
+
+export default function EditMaterialPage({ params }: { params: Promise<{ id: string, materialId: string }> }) {
+  const resolvedParams = use(params)
   const router = useRouter()
+  const [isLoading, setIsLoading] = useState(true)
   const [content, setContent] = useState("")
   const [images, setImages] = useState<string[]>([])
   const [previewUrls, setPreviewUrls] = useState<string[]>([])
+  const [originalMaterial, setOriginalMaterial] = useState<Material | null>(null)
+
+  // 获取素材详情
+  useEffect(() => {
+    const fetchMaterialDetail = async () => {
+      setIsLoading(true)
+      try {
+        const response = await api.get<ApiResponse<Material>>(`/v1/content/library/get-item-detail?id=${resolvedParams.materialId}`)
+        
+        if (response.code === 200 && response.data) {
+          const material = response.data
+          setOriginalMaterial(material)
+          setContent(material.content)
+          
+          // 处理图片
+          const imageUrls: string[] = []
+          
+          // 检查内容本身是否为图片链接
+          if (isImageUrl(material.content)) {
+            if (!imageUrls.includes(material.content)) {
+              imageUrls.push(material.content)
+            }
+          }
+          
+          // 添加资源URL中的图片
+          material.resUrls.forEach(url => {
+            if (isImageUrl(url) && !imageUrls.includes(url)) {
+              imageUrls.push(url)
+            }
+          })
+          
+          setImages(imageUrls)
+          setPreviewUrls(imageUrls)
+        } else {
+          showToast(response.msg || "获取素材详情失败", "error")
+          router.back()
+        }
+      } catch (error: any) {
+        console.error("Failed to fetch material detail:", error)
+        showToast(error?.message || "请检查网络连接", "error")
+        router.back()
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    fetchMaterialDetail()
+  }, [resolvedParams.materialId, router])
 
   // 模拟上传图片
   const handleUploadImage = () => {
@@ -45,29 +127,38 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!content && images.length === 0) {
-      toast({
-        title: "错误",
-        description: "请输入素材内容或上传图片",
-        variant: "destructive",
-      })
+      showToast("请输入素材内容或上传图片", "error")
       return
     }
+
+    const loadingToast = showToast("正在更新素材...", "loading", true)
     try {
-      // 模拟保存新素材
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      toast({
-        title: "成功",
-        description: "新素材已创建",
+      const response = await api.post<ApiResponse>('/v1/content/library/update-item', {
+        id: resolvedParams.materialId,
+        content: content,
+        resUrls: images
       })
-      router.push(`/content/${params.id}/materials`)
-    } catch (error) {
-      console.error("Failed to create new material:", error)
-      toast({
-        title: "错误",
-        description: "创建新素材失败",
-        variant: "destructive",
-      })
+
+      if (response.code === 200) {
+        showToast("素材更新成功", "success")
+        router.push(`/content/${resolvedParams.id}/materials`)
+      } else {
+        showToast(response.msg || "更新失败", "error")
+      }
+    } catch (error: any) {
+      console.error("Failed to update material:", error)
+      showToast(error?.message || "更新失败", "error")
+    } finally {
+      loadingToast.remove && loadingToast.remove()
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">加载中...</div>
+      </div>
+    )
   }
 
   return (
@@ -78,7 +169,7 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
             <Button variant="ghost" size="icon" onClick={() => router.back()}>
               <ChevronLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-lg font-medium">新建素材</h1>
+            <h1 className="text-lg font-medium">编辑素材</h1>
           </div>
         </div>
       </header>
@@ -86,17 +177,20 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
       <div className="p-4">
         <Card className="p-4">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="content">素材内容</Label>
-              <Textarea
-                id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="请输入素材内容"
-                className="mt-1"
-                rows={5}
-              />
-            </div>
+            {/* 只有当内容不是图片链接时才显示内容编辑区 */}
+            {!isImageUrl(content) && (
+              <div>
+                <Label htmlFor="content">素材内容</Label>
+                <Textarea
+                  id="content"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="请输入素材内容"
+                  className="mt-1"
+                  rows={5}
+                />
+              </div>
+            )}
 
             <div>
               <Label>图片集</Label>
@@ -144,12 +238,11 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
             </div>
 
             <Button type="submit" className="w-full">
-              保存素材
+              保存修改
             </Button>
           </form>
         </Card>
       </div>
     </div>
   )
-}
-
+} 

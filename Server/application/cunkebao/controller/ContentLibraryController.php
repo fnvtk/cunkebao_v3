@@ -14,7 +14,7 @@ use app\api\controller\WebSocketController;
 class ContentLibraryController extends Controller
 {
     /************************************
-     * 内容库管理相关功能
+     * 内容库基础管理功能
      ************************************/
     
     /**
@@ -138,7 +138,7 @@ class ContentLibraryController extends Controller
             $item['keywordExclude'] = json_decode($item['keywordExclude'] ?: '[]', true);
             // 添加创建人名称
             $item['creatorName'] = $item['user']['username'] ?? '';
-
+            $item['itemCount'] = Db::name('content_item')->where('libraryId', $item['id'])->count();
 
             // 获取好友详细信息
             if (!empty($item['sourceFriends'] && $item['sourceType'] == 1)) {
@@ -373,8 +373,96 @@ class ContentLibraryController extends Controller
     }
 
     /************************************
-     * 内容项目管理相关功能
+     * 内容项目管理功能
      ************************************/
+
+    /**
+     * 获取内容库素材列表
+     * @return \think\response\Json
+     */
+    public function getItemList()
+    {
+        $page = $this->request->param('page', 1);
+        $limit = $this->request->param('limit', 10);
+        $libraryId = $this->request->param('libraryId', 0);
+        $keyword = $this->request->param('keyword', ''); // 搜索关键词
+
+        if (empty($libraryId)) {
+            return json(['code' => 400, 'msg' => '内容库ID不能为空']);
+        }
+
+        // 验证内容库权限
+        $library = ContentLibrary::where([
+            ['id', '=', $libraryId],
+            ['userId', '=', $this->request->userInfo['id']],
+            ['isDel', '=', 0]
+        ])->find();
+
+        if (empty($library)) {
+            return json(['code' => 404, 'msg' => '内容库不存在或无权限访问']);
+        }
+
+        // 构建查询条件
+        $where = [
+            ['libraryId', '=', $libraryId],
+            ['isDel', '=', 0]
+        ];
+
+
+        // 关键词搜索
+        if (!empty($keyword)) {
+            $where[] = ['content', 'like', '%' . $keyword . '%'];
+        }
+
+        // 查询数据
+        $list = ContentItem::where($where)
+            ->field('id,type,title,content,coverImage,resUrls,urls,createTime,createMomentTime,createMessageTime,wechatId,friendId,wechatChatroomId,senderNickname,location,lat,lng')
+            ->order('createTime', 'desc')
+            ->page($page, $limit)
+            ->select();
+
+        // 处理数据
+        foreach ($list as &$item) {
+            // 处理资源URL
+            $item['resUrls'] = json_decode($item['resUrls'] ?: '[]', true);
+            $item['urls'] = json_decode($item['urls'] ?: '[]', true);
+            
+            // 格式化时间
+            //$item['createTime'] = date('Y-m-d H:i:s', $item['createTime']);
+            if ($item['createMomentTime']) {
+                $item['time'] = date('Y-m-d H:i:s', $item['createMomentTime']);
+            }
+            if ($item['createMessageTime']) {
+                $item['time'] = date('Y-m-d H:i:s', $item['createMessageTime']);
+            }
+
+            // 获取发送者信息
+            if ($item['type'] == 'moment' && $item['friendId']) {
+                $friendInfo = Db::name('wechat_friend')
+                    ->alias('wf')
+                    ->join('wechat_account wa', 'wf.wechatId = wa.wechatId')
+                    ->where('wf.id', $item['friendId'])
+                    ->field('wa.nickname, wa.avatar')
+                    ->find();
+                $item['senderNickname'] = $friendInfo['nickname'] ?: '';
+            }
+        }
+        unset($item);
+
+        // 获取总数
+        $total = ContentItem::where($where)->count();
+
+        return json([
+            'code' => 200,
+            'msg' => '获取成功',
+            'data' => [
+                'list' => $list,
+                'total' => $total,
+                'page' => $page,
+                'limit' => $limit
+            ]
+        ]);
+    }
 
     /**
      * 添加内容项目
@@ -400,6 +488,18 @@ class ContentLibraryController extends Controller
 
         if (empty($param['contentData'])) {
             return json(['code' => 400, 'msg' => '内容数据不能为空']);
+        }
+        
+        // 当类型为群消息时，限制图片只能上传一张
+        if ($param['type'] == 'group_message') {
+            $images = isset($param['images']) ? $param['images'] : [];
+            if (is_string($images)) {
+                $images = json_decode($images, true);
+            }
+            
+            if (count($images) > 1) {
+                return json(['code' => 400, 'msg' => '群消息类型只能上传一张图片']);
+            }
         }
 
         // 查询内容库是否存在
@@ -432,8 +532,10 @@ class ContentLibraryController extends Controller
      * @param int $id 内容项目ID
      * @return \think\response\Json
      */
-    public function deleteItem($id)
+    public function deleteItem()
     {
+
+        $id = $this->request->param('id', 0);
         if (empty($id)) {
             return json(['code' => 400, 'msg' => '参数错误']);
         }
@@ -453,12 +555,93 @@ class ContentLibraryController extends Controller
 
         try {
             // 删除内容项目
-            ContentItem::destroy($id);
+            $service = new \app\cunkebao\service\ContentItemService();
+            $result = $service->deleteItem($id);
+            if ($result['code'] != 200) {
+                return json($result);
+            }
 
             return json(['code' => 200, 'msg' => '删除成功']);
         } catch (\Exception $e) {
             return json(['code' => 500, 'msg' => '删除失败：' . $e->getMessage()]);
         }
+    }
+
+    /**
+     * 获取内容项目详情
+     * @return \think\response\Json
+     */
+    public function getItemDetail()
+    {
+        $id = $this->request->param('id', 0);
+        if (empty($id)) {
+            return json(['code' => 400, 'msg' => '参数错误']);
+        }
+
+        // 查询内容项目是否存在并检查权限
+        $item = ContentItem::alias('i')
+            ->join('content_library l', 'i.libraryId = l.id')
+            ->where([
+                ['i.id', '=', $id],
+                ['l.userId', '=', $this->request->userInfo['id']],
+                ['i.isDel', '=', 0]
+            ])
+            ->field('i.*')
+            ->find();
+
+        if (empty($item)) {
+            return json(['code' => 404, 'msg' => '内容项目不存在或无权限访问']);
+        }
+
+        // 处理数据
+        // 处理资源URL
+        $item['resUrls'] = json_decode($item['resUrls'] ?: '[]', true);
+        $item['urls'] = json_decode($item['urls'] ?: '[]', true);
+        
+        // 添加内容类型的文字描述
+        $contentTypeMap = [
+            0 => '未知',
+            1 => '图片',
+            2 => '链接',
+            3 => '视频',
+            4 => '文本',
+            5 => '小程序',
+            6 => '图文'
+        ];
+        $item['contentTypeName'] = $contentTypeMap[$item['contentType'] ?? 0] ?? '未知';
+        
+        // 格式化时间
+        if ($item['createMomentTime']) {
+            $item['createMomentTimeFormatted'] = date('Y-m-d H:i:s', $item['createMomentTime']);
+        }
+        if ($item['createMessageTime']) {
+            $item['createMessageTimeFormatted'] = date('Y-m-d H:i:s', $item['createMessageTime']);
+        }
+        //$item['createTimeFormatted'] = date('Y-m-d H:i:s', $item['createTime']);
+
+        // 获取发送者信息
+        if ($item['type'] == 'moment' && $item['friendId']) {
+            $friendInfo = Db::name('wechat_friend')
+                ->alias('wf')
+                ->join('wechat_account wa', 'wf.wechatId = wa.wechatId')
+                ->where('wf.id', $item['friendId'])
+                ->field('wa.nickname, wa.avatar')
+                ->find();
+            $item['senderInfo'] = $friendInfo ?: [];
+        } elseif ($item['type'] == 'group_message' && $item['wechatChatroomId']) {
+            // 获取群组信息
+            $groupInfo = Db::name('wechat_group')
+                ->where('id', $item['wechatChatroomId'])
+                ->field('name, avatar')
+                ->find();
+            $item['groupInfo'] = $groupInfo ?: [];
+        }
+
+        return json([
+            'code' => 200, 
+            'msg' => '获取成功', 
+            'data' => $item
+        ]);
     }
 
     /************************************
@@ -709,81 +892,6 @@ class ContentLibraryController extends Controller
     }
     
     /**
-     * 保存朋友圈数据到内容项目表
-     * @param array $moment 朋友圈数据
-     * @param int $libraryId 内容库ID
-     * @param array $friend 好友信息
-     * @param string $nickname 好友昵称
-     * @return bool 是否保存成功
-     */
-    private function saveMomentToContentItem($moment, $libraryId, $friend, $nickname)
-    {
-        if (empty($moment) || empty($libraryId)) {
-            return false;
-        }
-
-
-        try {
-            
-            // 检查朋友圈数据是否已存在于内容项目中
-            $exists = ContentItem::where('libraryId', $libraryId)
-                ->where('snsId', $moment['snsId'] ?? '')
-                ->find();
-                
-            if ($exists) {
-                return true;
-            }
-            
-            // 解析资源URL (可能是JSON字符串)
-            $resUrls = $moment['resUrls'];
-            if (is_string($resUrls)) {
-                $resUrls = json_decode($resUrls, true);
-            }
-            
-            // 处理urls字段
-            $urls = $moment['urls'] ?? [];
-            if (is_string($urls)) {
-                $urls = json_decode($urls, true);
-            }
-            
-            // 构建封面图片
-            $coverImage = '';
-            if (!empty($resUrls) && is_array($resUrls) && count($resUrls) > 0) {
-                $coverImage = $resUrls[0];
-            }
-            
-            // 如果不存在，则创建新的内容项目
-            $item = new ContentItem();
-            $item->libraryId = $libraryId;
-            $item->type = 'moment'; // 朋友圈类型
-            $item->title = '来自 ' . $nickname . ' 的朋友圈';
-            $item->contentData = json_encode($moment, JSON_UNESCAPED_UNICODE);
-            $item->snsId = $moment['snsId'] ?? ''; // 存储snsId便于后续查询
-            $item->createTime = time();
-            $item->wechatId = $friend['wechatId'];
-            $item->friendId = $friend['id'];
-            $item->createMomentTime = $moment['createTime'] ?? 0;
-            $item->content = $moment['content'] ?? '';
-            $item->coverImage = $coverImage;
-            
-            // 独立存储resUrls和urls字段
-            $item->resUrls = is_string($moment['resUrls']) ? $moment['resUrls'] : json_encode($resUrls, JSON_UNESCAPED_UNICODE);
-            $item->urls = is_string($moment['urls']) ? $moment['urls'] : json_encode($urls, JSON_UNESCAPED_UNICODE);
-            
-            // 保存地理位置信息
-            $item->location = $moment['location'] ?? '';
-            $item->lat = $moment['lat'] ?? 0;
-            $item->lng = $moment['lng'] ?? 0;
-            $item->save();
-            return true;
-        } catch (\Exception $e) {
-            // 记录错误日志
-            \think\facade\Log::error('保存朋友圈数据失败: ' . $e->getMessage());
-            return false;
-        }
-    }
-    
-    /**
      * 从群组采集消息内容
      * @param array $library 内容库配置
      * @return array 采集结果
@@ -974,6 +1082,176 @@ class ContentLibraryController extends Controller
     }
     
     /**
+     * 判断内容类型
+     * @param string $content 内容文本
+     * @param array $resUrls 资源URL数组
+     * @param array $urls URL数组
+     * @return int 内容类型: 0=未知, 1=图片, 2=链接, 3=视频, 4=文本, 5=小程序, 6=图文
+     */
+    private function determineContentType($content, $resUrls = [], $urls = [])
+    {
+        // 判断是否为空
+        if (empty($content) && empty($resUrls) && empty($urls)) {
+            return 0; // 未知类型
+        }
+        
+        // 判断是否有小程序信息
+        if (strpos($content, '小程序') !== false || strpos($content, 'appid') !== false) {
+            return 5; // 小程序
+        }
+        
+        // 检查资源URL中是否有视频或图片
+        $hasVideo = false;
+        $hasImage = false;
+        
+        if (!empty($resUrls)) {
+            foreach ($resUrls as $url) {
+                // 检查是否为视频文件
+                if (stripos($url, '.mp4') !== false || 
+                    stripos($url, '.mov') !== false || 
+                    stripos($url, '.avi') !== false ||
+                    stripos($url, '.wmv') !== false ||
+                    stripos($url, '.flv') !== false ||
+                    stripos($url, 'video') !== false) {
+                    $hasVideo = true;
+                    break; // 一旦发现视频文件，立即退出循环
+                }
+                
+                // 检查是否为图片文件
+                if (stripos($url, '.jpg') !== false || 
+                    stripos($url, '.jpeg') !== false || 
+                    stripos($url, '.png') !== false || 
+                    stripos($url, '.gif') !== false || 
+                    stripos($url, '.webp') !== false || 
+                    stripos($url, '.bmp') !== false ||
+                    stripos($url, 'image') !== false) {
+                    $hasImage = true;
+                    // 不退出循环，继续检查是否有视频（视频优先级更高）
+                }
+            }
+        }
+        
+        // 如果发现视频文件，判定为视频类型
+        if ($hasVideo) {
+            return 3; // 视频
+        }
+        
+        // 优先判断内容文本
+        // 如果有文本内容(不仅仅是链接)
+        if (!empty($content)) {
+            // 判断内容是否主要为文本(排除链接部分)
+            $contentWithoutUrls = $content;
+            if (!empty($urls)) {
+                foreach ($urls as $url) {
+                    $contentWithoutUrls = str_replace($url, '', $contentWithoutUrls);
+                }
+            }
+            
+            // 如果去除链接后仍有文本内容(不考虑长度)
+            if (!empty(trim($contentWithoutUrls))) {
+                // 判断是否为图文类型
+                if ($hasImage) {
+                    return 6; // 图文
+                } else {
+                    return 4; // 纯文本
+                }
+            }
+        }
+        
+        // 判断是否为图片类型
+        if ($hasImage) {
+            return 1; // 图片
+        }
+        
+        // 判断是否为链接类型
+        if (!empty($urls)) {
+            return 2; // 链接
+        }
+        
+        // 默认为文本类型
+        return 4; // 文本
+    }
+
+    /**
+     * 保存朋友圈数据到内容项目表
+     * @param array $moment 朋友圈数据
+     * @param int $libraryId 内容库ID
+     * @param array $friend 好友信息
+     * @param string $nickname 好友昵称
+     * @return bool 是否保存成功
+     */
+    private function saveMomentToContentItem($moment, $libraryId, $friend, $nickname)
+    {
+        if (empty($moment) || empty($libraryId)) {
+            return false;
+        }
+
+
+        try {
+            
+            // 检查朋友圈数据是否已存在于内容项目中
+            $exists = ContentItem::where('libraryId', $libraryId)
+                ->where('snsId', $moment['snsId'] ?? '')
+                ->find();
+                
+            if ($exists) {
+                return true;
+            }
+            
+            // 解析资源URL (可能是JSON字符串)
+            $resUrls = $moment['resUrls'];
+            if (is_string($resUrls)) {
+                $resUrls = json_decode($resUrls, true);
+            }
+            
+            // 处理urls字段
+            $urls = $moment['urls'] ?? [];
+            if (is_string($urls)) {
+                $urls = json_decode($urls, true);
+            }
+            
+            // 构建封面图片
+            $coverImage = '';
+            if (!empty($resUrls) && is_array($resUrls) && count($resUrls) > 0) {
+                $coverImage = $resUrls[0];
+            }
+            
+            // 判断内容类型 (0=未知, 1=图片, 2=链接, 3=视频, 4=文本, 5=小程序, 6=图文)
+            $contentType = $this->determineContentType($moment['content'] ?? '', $resUrls, $urls);
+            
+            // 如果不存在，则创建新的内容项目
+            $item = new ContentItem();
+            $item->libraryId = $libraryId;
+            $item->type = 'moment'; // 朋友圈类型
+            $item->title = '来自 ' . $nickname . ' 的朋友圈';
+            $item->contentData = json_encode($moment, JSON_UNESCAPED_UNICODE);
+            $item->snsId = $moment['snsId'] ?? ''; // 存储snsId便于后续查询
+            $item->createTime = time();
+            $item->wechatId = $friend['wechatId'];
+            $item->friendId = $friend['id'];
+            $item->createMomentTime = $moment['createTime'] ?? 0;
+            $item->content = $moment['content'] ?? '';
+            $item->coverImage = $coverImage;
+            $item->contentType = $contentType; // 设置内容类型
+            
+            // 独立存储resUrls和urls字段
+            $item->resUrls = is_string($moment['resUrls']) ? $moment['resUrls'] : json_encode($resUrls, JSON_UNESCAPED_UNICODE);
+            $item->urls = is_string($moment['urls']) ? $moment['urls'] : json_encode($urls, JSON_UNESCAPED_UNICODE);
+            
+            // 保存地理位置信息
+            $item->location = $moment['location'] ?? '';
+            $item->lat = $moment['lat'] ?? 0;
+            $item->lng = $moment['lng'] ?? 0;
+            $item->save();
+            return true;
+        } catch (\Exception $e) {
+            // 记录错误日志
+            \think\facade\Log::error('保存朋友圈数据失败: ' . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
      * 保存群聊消息到内容项目表
      * @param array $message 消息数据
      * @param int $libraryId 内容库ID
@@ -1006,6 +1284,15 @@ class ContentLibraryController extends Controller
                 $links = $matches[0];
             }
             
+            // 提取可能的图片URL
+            $resUrls = [];
+            if (isset($message['imageUrl']) && !empty($message['imageUrl'])) {
+                $resUrls[] = $message['imageUrl'];
+            }
+            
+            // 判断内容类型 (0=未知, 1=图片, 2=链接, 3=视频, 4=文本, 5=小程序, 6=图文)
+            $contentType = $this->determineContentType($content, $resUrls, $links);
+            
             // 创建新的内容项目
             $item = new ContentItem();
             $item->libraryId = $libraryId;
@@ -1015,6 +1302,7 @@ class ContentLibraryController extends Controller
             $item->msgId = $message['msgId'] ?? ''; // 存储msgId便于后续查询
             $item->createTime = time();
             $item->content = $content;
+            $item->contentType = $contentType; // 设置内容类型
             
             // 设置发送者信息
             $item->wechatId = $message['senderWechatId'] ?? '';
@@ -1022,9 +1310,18 @@ class ContentLibraryController extends Controller
             $item->senderNickname = $message['senderNickname'] ?? '';
             $item->createMessageTime = $message['createTime'] ?? 0;
             
+            // 处理资源URL
+            if (!empty($resUrls)) {
+                $item->resUrls = json_encode($resUrls, JSON_UNESCAPED_UNICODE);
+                // 设置封面图片
+                if (!empty($resUrls[0])) {
+                    $item->coverImage = $resUrls[0];
+                }
+            }
+            
             // 处理链接
             if (!empty($links)) {
-                $item->resUrls = json_encode($links, JSON_UNESCAPED_UNICODE);
+                $item->urls = json_encode($links, JSON_UNESCAPED_UNICODE);
             }
             
             // 设置商品信息（需根据消息内容解析）
@@ -1077,7 +1374,7 @@ class ContentLibraryController extends Controller
     }
     
     /**
-     * 获取朋友圈数据（示例方法，实际实现需要根据具体API）
+     * 获取朋友圈数据
      * @param string $wechatId 微信ID
      * @return array 朋友圈数据
      */
