@@ -5,7 +5,7 @@ namespace app\cunkebao\controller\device;
 use app\common\model\Device as DeviceModel;
 use app\common\model\DeviceUser as DeviceUserModel;
 use app\common\model\User as UserModel;
-use app\common\model\WechatFriend as WechatFriendModel;
+use app\common\model\WechatFriendShip as WechatFriendShipModel;
 use app\cunkebao\controller\BaseController;
 use library\ResponseHelper;
 
@@ -105,7 +105,7 @@ class GetDeviceListV1Controller extends BaseController
             $sections = $item->toArray();
 
             if ($item->wechatId) {
-                $sections['totalFriend'] = WechatFriendModel::where(['ownerWechatId' => $item->wechatId])->count();
+                $sections['totalFriend'] = WechatFriendShipModel::where(['ownerWechatId' => $item->wechatId])->count();
             }
 
             array_push($resultSets, $sections);

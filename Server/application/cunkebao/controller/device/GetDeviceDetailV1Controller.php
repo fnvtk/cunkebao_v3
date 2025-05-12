@@ -7,7 +7,7 @@ use app\common\model\DeviceTaskconf as DeviceTaskconfModel;
 use app\common\model\DeviceUser as DeviceUserModel;
 use app\common\model\DeviceWechatLogin;
 use app\common\model\User as UserModel;
-use app\common\model\WechatFriend;
+use app\common\model\WechatFriendShip as WechatFriendShipModel;
 use app\cunkebao\controller\BaseController;
 use Eison\Utils\Helper\ArrHelper;
 use library\ResponseHelper;
@@ -97,7 +97,7 @@ class GetDeviceDetailV1Controller extends BaseController
         $ownerWechatId = DeviceWechatLogin::where(compact('companyId', 'deviceId'))->order('createTime desc')->value('wechatId');
 
         if ($ownerWechatId) {
-            return WechatFriend::where(['ownerWechatId' => $ownerWechatId])->count();
+            return WechatFriendShipModel::where(['ownerWechatId' => $ownerWechatId])->count();
         }
 
         return 0;

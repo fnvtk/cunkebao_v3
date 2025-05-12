@@ -3,7 +3,7 @@ namespace app\cunkebao\controller\friend;
 
 use app\common\model\Device as DeviceModel;
 use app\common\model\DeviceUser as DeviceUserModel;
-use app\common\model\WechatFriend;
+use app\common\model\WechatFriendShip as WechatFriendShipModel;
 use app\cunkebao\controller\BaseController;
 use think\Db;
 
@@ -42,7 +42,7 @@ class GetFriendListV1Controller extends BaseController
             }
 
 
-            $data = WechatFriend::alias('wf')
+            $data = WechatFriendShipModel::alias('wf')
                 ->field(['wa1.nickname','wa1.avatar','wa1.alias','wf.id','wf.wechatId','wa2.nickname as ownerNickname','wa2.alias as ownerAlias','wa2.wechatId as ownerWechatId','wf.createTime'])
                 ->Join('wechat_account wa1','wf.wechatId = wa1.wechatId')
                 ->Join('wechat_account wa2','wf.ownerWechatId = wa2.wechatId')

@@ -4,7 +4,7 @@ namespace app\superadmin\controller\company;
 
 use app\common\model\Device as DeviceModel;
 use app\common\model\DeviceWechatLogin as DeviceWechatLoginModel;
-use app\common\model\WechatFriend as WechatFriendModel;
+use app\common\model\WechatFriendShip as WechatFriendShipModel;
 use Eison\Utils\Helper\ArrHelper;
 use library\ResponseHelper;
 use think\Controller;
@@ -72,7 +72,7 @@ class GetCompanyDevicesForProfileController extends Controller
         $relations = $this->getDeviceWechatRelationsByDeviceIds($deviceIds);
 
         // 统计微信好友数量
-        $friendCounts = WechatFriendModel::alias('f')
+        $friendCounts = WechatFriendShipModel::alias('f')
             ->field([
                 'f.ownerWechatId wechatId', 'count(*) friendCount'
             ])
