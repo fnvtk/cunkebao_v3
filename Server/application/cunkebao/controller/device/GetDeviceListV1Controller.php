@@ -5,7 +5,7 @@ namespace app\cunkebao\controller\device;
 use app\common\model\Device as DeviceModel;
 use app\common\model\DeviceUser as DeviceUserModel;
 use app\common\model\User as UserModel;
-use app\common\model\WechatFriend;
+use app\common\model\WechatFriend as WechatFriendModel;
 use app\cunkebao\controller\BaseController;
 use library\ResponseHelper;
 
@@ -22,8 +22,6 @@ class GetDeviceListV1Controller extends BaseController
      */
     protected function makeWhere(array $params = []): array
     {
-        $where = [];
-
         // 关键词搜索（同时搜索IMEI和备注）
         if (!empty($keyword = $this->request->param('keyword'))) {
             $where[] = ['exp', "d.imei LIKE '%{$keyword}%' OR d.memo LIKE '%{$keyword}%'"];
@@ -47,8 +45,10 @@ class GetDeviceListV1Controller extends BaseController
     protected function makeDeviceIdsWhere(): array
     {
         $deviceIds = DeviceUserModel::where(
-            $this->getUserInfo('id'),
-            $this->getUserInfo('companyId')
+            [
+                'userId'    => $this->getUserInfo('id'),
+                'companyId' => $this->getUserInfo('companyId')
+            ]
         )
             ->column('deviceId');
 
@@ -56,7 +56,7 @@ class GetDeviceListV1Controller extends BaseController
             throw new \Exception('请联系管理员绑定设备', 403);
         }
 
-        $where['d.id'] = ['in', $deviceIds];
+        $where['d.id'] = array('in', $deviceIds);
 
         return $where;
     }
@@ -65,11 +65,9 @@ class GetDeviceListV1Controller extends BaseController
      * 获取设备列表
      *
      * @param array $where 查询条件
-     * @param int $page 页码
-     * @param int $limit 每页数量
      * @return \think\Paginator 分页对象
      */
-    protected function getDeviceList(array $where, int $page = 1, int $limit = 10): \think\Paginator
+    protected function getDeviceList(array $where): \think\Paginator
     {
         $query = DeviceModel::alias('d')
             ->field([
@@ -101,19 +99,19 @@ class GetDeviceListV1Controller extends BaseController
      */
     protected function countFriend(\think\Paginator $list): array
     {
-        $result = [];
+        $resultSets = [];
 
         foreach ($list->items() as $item) {
-            $section = $item->toArray();
+            $sections = $item->toArray();
 
             if ($item->wechatId) {
-                $section['totalFriend'] = WechatFriend::where(['ownerWechatId' => $section['wechatId']])->count();
+                $sections['totalFriend'] = WechatFriendModel::where(['ownerWechatId' => $item->wechatId])->count();
             }
 
-            array_push($result, $section);
+            array_push($resultSets, $sections);
         }
 
-        return $result;
+        return $resultSets;
     }
 
     /**
@@ -126,8 +124,10 @@ class GetDeviceListV1Controller extends BaseController
             if ($this->getUserInfo('isAdmin') == UserModel::ADMIN_STP) {
                 $where = $this->makeWhere();
                 $result = $this->getDeviceList($where);
-            } else {
-                $where = $this->makeWhere($this->makeDeviceIdsWhere());
+            }
+
+            else {
+                $where = $this->makeWhere( $this->makeDeviceIdsWhere() );
                 $result = $this->getDeviceList($where);
             }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { ChevronLeft, Filter, Search, RefreshCw, ArrowRightLeft, AlertCircle, Loader2 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,8 +20,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "@/components/ui/use-toast"
 import { Progress } from "@/components/ui/progress"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { fetchWechatAccountList, refreshWechatAccounts, transferWechatFriends, transformWechatAccount } from "@/api/wechat-accounts"
+import { fetchWechatAccountList, refreshWechatAccounts, transferWechatFriends } from "@/api/wechat-accounts"
 import { WechatAccount } from "@/types/wechat-account"
+
+// 定义接口以匹配新的数据结构
+interface WechatAccountResponse {
+  id: number
+  wechatId: string
+  nickname: string
+  avatar: string
+  times: number
+  addedCount: number
+  wechatStatus: number
+  totalFriend: number
+  deviceMemo: string
+  activeTime: string
+}
 
 export default function WechatAccountsPage() {
   const router = useRouter()
@@ -34,9 +48,10 @@ export default function WechatAccountsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const accountsPerPage = 10
+  const mounted = useRef(false)
 
   // 获取微信账号列表
-  const fetchAccounts = async (page: number = 1, keyword: string = "") => {
+  const fetchAccounts = useCallback(async (page: number = 1, keyword: string = "") => {
     try {
       setIsLoading(true);
       const response = await fetchWechatAccountList({
@@ -49,7 +64,23 @@ export default function WechatAccountsPage() {
 
       if (response && response.code === 200 && response.data) {
         // 转换数据格式
-        const wechatAccounts = response.data.list.map(transformWechatAccount);
+        const wechatAccounts = response.data.list.map((item: any) => {
+          const account: WechatAccount = {
+            id: item.id.toString(),
+            wechatId: item.wechatId,
+            nickname: item.nickname,
+            avatar: item.avatar,
+            remainingAdds: item.times - item.addedCount,
+            todayAdded: item.addedCount,
+            status: item.wechatStatus === 1 ? "normal" as const : "abnormal" as const,
+            friendCount: item.totalFriend,
+            deviceName: item.deviceMemo,
+            lastActive: item.activeTime,
+            maxDailyAdds: item.times,
+            deviceId: item.deviceId.toString(),
+          };
+          return account;
+        });
         setAccounts(wechatAccounts);
         setTotalAccounts(response.data.total);
       } else {
@@ -58,7 +89,6 @@ export default function WechatAccountsPage() {
           description: response?.msg || "请稍后再试",
           variant: "destructive"
         });
-        // 如果API请求失败，设置空数组
         setAccounts([]);
         setTotalAccounts(0);
       }
@@ -74,9 +104,29 @@ export default function WechatAccountsPage() {
     } finally {
       setIsLoading(false);
     }
+  }, [accountsPerPage]);
+
+  // 初始化数据加载
+  useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      fetchAccounts(currentPage, searchQuery);
+    }
+  }, []);
+
+  // 处理页码和搜索变化
+  useEffect(() => {
+    if (mounted.current) {
+      fetchAccounts(currentPage, searchQuery);
+    }
+  }, [currentPage, searchQuery, fetchAccounts]);
+
+  // 搜索处理
+  const handleSearch = () => {
+    setCurrentPage(1);
   };
 
-  // 刷新微信账号状态
+  // 刷新处理
   const handleRefresh = async () => {
     try {
       setIsRefreshing(true);
@@ -105,24 +155,6 @@ export default function WechatAccountsPage() {
       });
     } finally {
       setIsRefreshing(false);
-    }
-  };
-
-  // 初始加载和页码变化时获取数据
-  useEffect(() => {
-    fetchAccounts(currentPage, searchQuery);
-  }, [currentPage]);
-
-  // 搜索时重置页码并获取数据
-  const handleSearch = () => {
-    setCurrentPage(1);
-    fetchAccounts(1, searchQuery);
-  };
-
-  // 处理搜索框回车事件
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSearch();
     }
   };
 
@@ -177,7 +209,6 @@ export default function WechatAccountsPage() {
                 placeholder="搜索微信号/昵称"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
               />
             </div>
             <Button variant="outline" size="icon">
@@ -226,7 +257,18 @@ export default function WechatAccountsPage() {
               <Card
                 key={account.id}
                 className="p-4 hover:shadow-lg transition-all cursor-pointer overflow-hidden"
-                onClick={() => router.push(`/wechat-accounts/${account.id}`)}
+                onClick={() => {
+                  // 将需要的数据编码为 URL 安全的字符串
+                  const accountData = encodeURIComponent(JSON.stringify({
+                    avatar: account.avatar,
+                    nickname: account.nickname,
+                    status: account.status,
+                    wechatId: account.wechatId,
+                    deviceName: account.deviceName,
+                    deviceId: account.deviceId,
+                  }));
+                  router.push(`/wechat-accounts/${account.id}?data=${accountData}`);
+                }}
               >
                 <div className="flex items-start space-x-4">
                   <Avatar className="h-12 w-12 ring-2 ring-offset-2 ring-blue-500/20">
@@ -237,7 +279,7 @@ export default function WechatAccountsPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <h3 className="font-medium truncate max-w-[180px]">{account.nickname}</h3>
-                        <Badge variant={account.status === "normal" ? "outline" : "destructive"}>
+                        <Badge variant={account.status === "normal" ? "default" : "destructive"} className={account.status === "normal" ? "bg-green-500 hover:bg-green-600 text-white" : ""}>
                           {account.status === "normal" ? "正常" : "异常"}
                         </Badge>
                       </div>
@@ -279,7 +321,10 @@ export default function WechatAccountsPage() {
                             {account.todayAdded}/{account.maxDailyAdds}
                           </span>
                         </div>
-                        <Progress value={(account.todayAdded / account.maxDailyAdds) * 100} className="h-2" />
+                        <Progress 
+                          value={(account.todayAdded / account.maxDailyAdds) * 100} 
+                          className="h-2" 
+                        />
                       </div>
                       <div className="flex items-center justify-between text-xs text-gray-500 pt-2 flex-wrap gap-1">
                         <div className="truncate max-w-[150px]">所属设备：{account.deviceName || '未知设备'}</div>
@@ -371,4 +416,3 @@ export default function WechatAccountsPage() {
     </div>
   )
 }
-
