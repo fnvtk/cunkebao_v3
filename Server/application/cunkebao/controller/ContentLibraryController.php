@@ -1095,6 +1095,50 @@ class ContentLibraryController extends Controller
             return 0; // 未知类型
         }
         
+        // 分析内容中可能包含的链接或图片地址
+        if (!empty($content)) {
+            // 检查内容中是否有链接
+            $urlPattern = '/https?:\/\/[-A-Za-z0-9+&@#\/%?=~_|!:,.;]+[-A-Za-z0-9+&@#\/%=~_|]/';
+            preg_match_all($urlPattern, $content, $contentUrlMatches);
+            
+            if (!empty($contentUrlMatches[0])) {
+                // 将内容中的链接添加到urls数组中(去重)
+                foreach ($contentUrlMatches[0] as $url) {
+                    if (!in_array($url, $urls)) {
+                        $urls[] = $url;
+                    }
+                }
+            }
+            
+            // 检查内容中是否包含图片或视频链接
+            foreach ($contentUrlMatches[0] ?? [] as $url) {
+                // 检查是否为图片文件
+                if (stripos($url, '.jpg') !== false || 
+                    stripos($url, '.jpeg') !== false || 
+                    stripos($url, '.png') !== false || 
+                    stripos($url, '.gif') !== false || 
+                    stripos($url, '.webp') !== false || 
+                    stripos($url, '.bmp') !== false ||
+                    stripos($url, 'image') !== false) {
+                    if (!in_array($url, $resUrls)) {
+                        $resUrls[] = $url;
+                    }
+                }
+                
+                // 检查是否为视频文件
+                if (stripos($url, '.mp4') !== false || 
+                    stripos($url, '.mov') !== false || 
+                    stripos($url, '.avi') !== false ||
+                    stripos($url, '.wmv') !== false ||
+                    stripos($url, '.flv') !== false ||
+                    stripos($url, 'video') !== false) {
+                    if (!in_array($url, $resUrls)) {
+                        $resUrls[] = $url;
+                    }
+                }
+            }
+        }
+        
         // 判断是否有小程序信息
         if (strpos($content, '小程序') !== false || strpos($content, 'appid') !== false) {
             return 5; // 小程序
@@ -1136,25 +1180,32 @@ class ContentLibraryController extends Controller
             return 3; // 视频
         }
         
+        // 判断内容是否纯链接
+        $isPureLink = false;
+        if (!empty($content) && !empty($urls)) {
+            $contentWithoutUrls = $content;
+            foreach ($urls as $url) {
+                $contentWithoutUrls = str_replace($url, '', $contentWithoutUrls);
+            }
+            // 如果去除链接后内容为空，则认为是纯链接
+            if (empty(trim($contentWithoutUrls))) {
+                $isPureLink = true;
+            }
+        }
+        
+        // 如果内容是纯链接，判定为链接类型
+        if ($isPureLink) {
+            return 2; // 链接
+        }
+        
         // 优先判断内容文本
         // 如果有文本内容(不仅仅是链接)
-        if (!empty($content)) {
-            // 判断内容是否主要为文本(排除链接部分)
-            $contentWithoutUrls = $content;
-            if (!empty($urls)) {
-                foreach ($urls as $url) {
-                    $contentWithoutUrls = str_replace($url, '', $contentWithoutUrls);
-                }
-            }
-            
-            // 如果去除链接后仍有文本内容(不考虑长度)
-            if (!empty(trim($contentWithoutUrls))) {
-                // 判断是否为图文类型
-                if ($hasImage) {
-                    return 6; // 图文
-                } else {
-                    return 4; // 纯文本
-                }
+        if (!empty($content) && !$isPureLink) {
+            // 如果有图片，则为图文类型
+            if ($hasImage) {
+                return 6; // 图文
+            } else {
+                return 4; // 纯文本
             }
         }
         
