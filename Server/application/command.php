@@ -28,4 +28,5 @@ return [
     'content:collect' => 'app\command\ContentCollectCommand', // 内容采集任务 √
     'moments:collect' => 'app\command\WechatMomentsCommand', // 朋友圈采集任务
     'workbench:run' => 'app\command\WorkbenchCommand', // 工作台任务
+    'sync:wechatData' => 'app\command\SyncWechatDataToCkbTask', // 同步微信数据到存客宝
 ];

@@ -9,7 +9,6 @@ interface WeChatServiceInterface
      * @param string $targetWxId 目标微信ID
      * @return bool 是否成功
      * @throws \WeChatDeviceApi\Exceptions\ApiException
-//     * @throws \WeChatDeviceApi\Exceptions\DeviceOfflineException
      */
     public function addFriend(string $deviceId, string $targetWxId): bool;
 
@@ -26,7 +25,7 @@ interface WeChatServiceInterface
      * @param string $deviceId 设备ID
      * @return array 群信息列表
      */
-    public function getGroupList(string $deviceId): array;
+    public function getGroupList(string $wxId): array;
 
     /**
      * 获取好友列表
@@ -49,6 +48,20 @@ interface WeChatServiceInterface
      * @return bool 是否成功
      */
     public function bindDeviceToCompany(string $deviceId, string $companyId): bool;
+
+    /**
+     * 获取群成员列表
+     * @param string $deviceId 设备ID
+     * @param string $chatroomId 群ID
+     * @return array 群成员列表
+     */
+    public function getChatroomMemberList(string $deviceId, string $chatroomId): array;
+
+    // 获取指定微信的朋友圈内容/列表
+    public function getMomentList(string $deviceId, string $wxId): array;
+
+    // 发送微信朋友圈
+    public function sendMoment(string $deviceId, string $wxId, string $moment): bool;
 
     // ... 其他方法定义
 }
