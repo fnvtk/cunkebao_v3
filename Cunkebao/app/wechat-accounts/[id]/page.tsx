@@ -716,25 +716,33 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
                   <>
                     <p className="text-sm text-gray-500 mb-4">{getWeightDescription(accountSummary.accountWeight.scope)}</p>
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="flex-shrink-0">账号年龄</span>
-                        <Progress value={accountSummary.accountWeight.ageWeight} className="flex-1 min-w-0 mx-2" />
-                        <span className="flex-shrink-0">{accountSummary.accountWeight.ageWeight}%</span>
+                      <div className="flex items-center">
+                        <span className="flex-shrink-0 w-16 text-sm">账号年龄</span>
+                        <div className="flex-1 mx-4">
+                          <Progress value={accountSummary.accountWeight.ageWeight} className="h-2" />
+                        </div>
+                        <span className="flex-shrink-0 w-12 text-sm text-right">{accountSummary.accountWeight.ageWeight}%</span>
                       </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="flex-shrink-0">活跃度</span>
-                        <Progress value={accountSummary.accountWeight.activityWeigth} className="flex-1 min-w-0 mx-2" />
-                        <span className="flex-shrink-0">{accountSummary.accountWeight.activityWeigth}%</span>
+                      <div className="flex items-center">
+                        <span className="flex-shrink-0 w-16 text-sm">活跃度</span>
+                        <div className="flex-1 mx-4">
+                          <Progress value={accountSummary.accountWeight.activityWeigth} className="h-2" />
+                        </div>
+                        <span className="flex-shrink-0 w-12 text-sm text-right">{accountSummary.accountWeight.activityWeigth}%</span>
                       </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="flex-shrink-0">限制影响</span>
-                        <Progress value={accountSummary.accountWeight.restrictWeight} className="flex-1 min-w-0 mx-2" />
-                        <span className="flex-shrink-0">{accountSummary.accountWeight.restrictWeight}%</span>
+                      <div className="flex items-center">
+                        <span className="flex-shrink-0 w-16 text-sm">限制影响</span>
+                        <div className="flex-1 mx-4">
+                          <Progress value={accountSummary.accountWeight.restrictWeight} className="h-2" />
+                        </div>
+                        <span className="flex-shrink-0 w-12 text-sm text-right">{accountSummary.accountWeight.restrictWeight}%</span>
                       </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="flex-shrink-0">实名认证</span>
-                        <Progress value={accountSummary.accountWeight.realNameWeight} className="flex-1 min-w-0 mx-2" />
-                        <span className="flex-shrink-0">{accountSummary.accountWeight.realNameWeight}%</span>
+                      <div className="flex items-center">
+                        <span className="flex-shrink-0 w-16 text-sm">实名认证</span>
+                        <div className="flex-1 mx-4">
+                          <Progress value={accountSummary.accountWeight.realNameWeight} className="h-2" />
+                        </div>
+                        <span className="flex-shrink-0 w-12 text-sm text-right">{accountSummary.accountWeight.realNameWeight}%</span>
                       </div>
                     </div>
                   </>
