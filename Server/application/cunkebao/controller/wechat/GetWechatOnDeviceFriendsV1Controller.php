@@ -23,13 +23,8 @@ class GetWechatOnDeviceFriendsV1Controller extends Controller
         $resultSets = [];
 
         foreach ($result->items() as $item) {
-
-
-            dd($item);
-
-            $sections = $item->toArray() + [];
-
-            array_push($resultSets, $sections);
+            $item->tags = json_decode($item->tags);
+            array_push($resultSets, $item->toArray());
         }
 
         return $resultSets;
@@ -80,8 +75,6 @@ class GetWechatOnDeviceFriendsV1Controller extends Controller
         if (is_null($account)) {
             throw new \Exception('微信账号不存在', 404);
         }
-
-        return 'udbfnvtk';
 
         return $account->wechatId;
     }
