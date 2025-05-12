@@ -25,7 +25,7 @@ Route::group('v1/', function () {
         Route::get('', 'app\cunkebao\controller\wechat\GetWechatsOnDevicesV1Controller@index');                      // 获取在线微信账号列表
         Route::get(':id/summary', 'app\cunkebao\controller\wechat\GetWechatOnDeviceSummarizeV1Controller@index');    // 获取微信号详情
         Route::get(':id/friends', 'app\cunkebao\controller\wechat\GetWechatOnDeviceFriendsV1Controller@index');      // 获取微信好友列表
-        Route::get(':id/friend/:id', 'app\cunkebao\controller\wechat\GetWechatOnDeviceFriendProfileV1Controller@index'); // 获取微信好友信息
+        Route::get(':id/friend/:aId', 'app\cunkebao\controller\wechat\GetWechatOnDeviceFriendProfileV1Controller@index'); // 获取微信好友信息
 
         Route::get('count', 'app\cunkebao\controller\DeviceWechat@count');       // 获取在线微信账号数量
         Route::get('device-count', 'app\cunkebao\controller\DeviceWechat@deviceCount'); // 获取有登录微信的设备数量
