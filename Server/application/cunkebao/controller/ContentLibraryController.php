@@ -7,6 +7,8 @@ use app\cunkebao\model\ContentItem;
 use think\Controller;
 use think\Db;
 use app\api\controller\WebSocketController;
+use think\facade\Env;
+use app\api\controller\AutomaticAssign;
 
 /**
  * 内容库控制器
@@ -732,7 +734,7 @@ class ContentLibraryController extends Controller
         }
         
         // 返回采集结果
-        return json([
+        return json_encode([
             'code' => 200,
             'msg' => '采集任务执行完成',
             'data' => [
@@ -760,14 +762,20 @@ class ContentLibraryController extends Controller
         }
         
         try {
+            $toAccountId = '';
+            $username = Env::get('api.username', '');
+            $password = Env::get('api.password', '');
+            if (!empty($username) || !empty($password)) {
+                $toAccountId = Db::name('users')->where('account',$username)->value('s2_accountId');
+            }
+   
             // 查询好友信息
             $friends = Db::table('s2_wechat_friend')
-                ->field('id, wechatAccountId, wechatId')
+                ->field('id, wechatAccountId, wechatId,accountId')
                 ->whereIn('id', $friendIds)
                 ->where('isDeleted', 0)
                 ->select();
             
-
             if (empty($friends)) {
                 return [
                     'status' => 'failed',
@@ -778,8 +786,22 @@ class ContentLibraryController extends Controller
             // 从朋友圈采集内容
             $collectedData = [];
             $totalMomentsCount = 0;
-            
+
             foreach ($friends as $friend) {
+                if (!empty($username) && !empty($password)) {
+                    //执行切换好友命令
+                    $automaticAssign = new AutomaticAssign();
+                    $automaticAssign->allotWechatFriend(['wechatFriendId' => $friend['id'],'toAccountId' => $toAccountId],true);
+                    //执行采集朋友圈命令
+                    $webSocket = new WebSocketController(['userName' => $username,'password' => $password,'accountId' => $toAccountId]);
+                    $webSocket->getMoments(['wechatFriendId' => $friend['id'],'wechatAccountId' => $friend['wechatAccountId']]);
+                    //采集完毕切换
+                    $automaticAssign->allotWechatFriend(['wechatFriendId' => $friend['id'],'toAccountId' => $friend['accountId']],true);
+                }
+
+
+
+
                 // 从s2_wechat_moments表获取朋友圈数据
                 $moments = Db::table('s2_wechat_moments')
                     ->where([
@@ -788,7 +810,7 @@ class ContentLibraryController extends Controller
                     ])
                     ->order('createTime', 'desc')
                     ->select();
-                
+
                 if (empty($moments)) {
                     continue;
                 }
