@@ -6,7 +6,7 @@ use app\common\model\Company as CompanyModel;
 use app\common\model\Device as DeviceModel;
 use app\common\model\DeviceWechatLogin as DeviceWechatLoginModel;
 use app\common\model\User as UserModel;
-use app\common\model\WechatFriend as WechatFriendModel;
+use app\common\model\WechatFriendShip as WechatFriendModel;
 use app\superadmin\controller\BaseController;
 use library\ResponseHelper;
 

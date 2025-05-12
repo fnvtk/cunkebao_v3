@@ -6,7 +6,7 @@ use app\common\model\DeviceUser as DeviceUserModel;
 use app\common\model\DeviceWechatLogin as DeviceWechatLoginModel;
 use app\common\model\User as UserModel;
 use app\common\model\WechatAccount as WechatAccountModel;
-use app\common\model\WechatFriend;
+use app\common\model\WechatFriendShip;
 use app\cunkebao\controller\BaseController;
 use library\ResponseHelper;
 
@@ -110,7 +110,7 @@ class GetRelatedAccountsV1Controller extends BaseController
      */
     protected function countFriend(string $wechatId): int
     {
-        return WechatFriend::where(['ownerWechatId' => $wechatId])->count();
+        return WechatFriendShip::where(['ownerWechatId' => $wechatId])->count();
     }
 
     /**

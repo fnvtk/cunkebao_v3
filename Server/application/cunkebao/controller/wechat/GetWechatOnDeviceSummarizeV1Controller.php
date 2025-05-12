@@ -3,7 +3,7 @@
 namespace app\cunkebao\controller\wechat;
 
 use app\common\model\WechatAccount as WechatAccountModel;
-use app\common\model\WechatFriend as WechatFriendModel;
+use app\common\model\WechatFriendShip as WechatFriendShipModel;
 use app\cunkebao\controller\BaseController;
 use library\ResponseHelper;
 
@@ -208,7 +208,7 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
      */
     protected function getTodayNewFriendCount(string $ownerWechatId): int
     {
-        return WechatFriendModel::where( compact('ownerWechatId') )
+        return WechatFriendShipModel::where( compact('ownerWechatId') )
             ->whereBetween('createTime',
                 [
                     strtotime(date('Y-m-d 00:00:00')),
@@ -239,9 +239,11 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
      * @return string
      * @throws \Exception
      */
-    protected function getStringWechatId(): string
+    protected function getStringWechatIdByNumberId(): string
     {
-        $account = WechatAccountModel::find(333333);
+        $account = WechatAccountModel::find(
+            $this->request->param('id/d')
+        );
 
         if (is_null($account)) {
             throw new \Exception('微信账号不存在', 404);
@@ -258,9 +260,9 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
     public function index()
     {
         try {
-          //  $wechatId = $this->getStringWechatId();
-            $wechatId = '1111111';
+            $wechatId = $this->getStringWechatIdByNumberId();
 
+            // 以下内容依次加工数据
             $accountAge = $this->getRegisterDate($wechatId);
             $activityLevel = $this->getActivityLevel($wechatId);
             $accountWeight = $this->getAccountWeight($wechatId);

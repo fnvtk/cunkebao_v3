@@ -8,7 +8,7 @@ use app\common\model\DeviceUser as DeviceUserModel;
 use app\common\model\DeviceWechatLogin as DeviceWechatLoginModel;
 use app\common\model\User as UserModel;
 use app\common\model\WechatAccount as WechatAccountModel;
-use app\common\model\WechatFriend as WechatFriendModel;
+use app\common\model\WechatFriendShip as WechatFriendShipModel;
 use app\cunkebao\controller\BaseController;
 use library\ResponseHelper;
 
@@ -36,7 +36,7 @@ class GetWechatsOnDevicesV1Controller extends BaseController
      */
     protected function getTodayNewFriendCount(string $ownerWechatId): int
     {
-        return WechatFriendModel::where( compact('ownerWechatId') )
+        return WechatFriendShipModel::where( compact('ownerWechatId') )
             ->whereBetween('createTime',
                 [
                     strtotime(date('Y-m-d 00:00:00')),
@@ -65,7 +65,7 @@ class GetWechatsOnDevicesV1Controller extends BaseController
      */
     protected function getFriendsCount(string $ownerWechatId): int
     {
-        return WechatFriendModel::where(compact('ownerWechatId'))->count();
+        return WechatFriendShipModel::where(compact('ownerWechatId'))->count();
     }
 
     /**
@@ -184,7 +184,7 @@ class GetWechatsOnDevicesV1Controller extends BaseController
 
         $where['w.wechatId'] = array('in', implode(',', $wechatIds));
 
-        return array_merge($params, $where);
+        return array_merge($where, $params);
     }
 
     /**

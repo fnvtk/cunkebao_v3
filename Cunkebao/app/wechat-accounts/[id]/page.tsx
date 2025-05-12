@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import * as React from "react"
+import { useRouter, useParams } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -136,8 +137,16 @@ interface WechatAccountSummary {
   }[];
 }
 
-export default function WechatAccountDetailPage({ params }: { params: { id: string } }) {
+interface PageProps {
+  params: {
+    id: string
+  }
+}
+
+export default function WechatAccountDetailPage() {
   const router = useRouter()
+  const params = useParams()
+  const id = params?.id as string
   const [account, setAccount] = useState<WechatAccountDetail | null>(null)
   const [accountSummary, setAccountSummary] = useState<WechatAccountSummary | null>(null)
   const [showRestrictions, setShowRestrictions] = useState(false)
@@ -177,7 +186,7 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
         const decodedData = JSON.parse(decodeURIComponent(dataParam));
         setInitialData(decodedData);
         // 使用初始数据设置account
-        const mockData = generateMockAccountData();
+        const mockData = generateMockAccountData(id);
         if (decodedData) {
           mockData.avatar = decodedData.avatar;
           mockData.nickname = decodedData.nickname;
@@ -194,12 +203,12 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
       }
     } else {
       // 如果没有初始数据，使用模拟数据
-      const mockData = generateMockAccountData();
+      const mockData = generateMockAccountData(id);
       setAccount(mockData);
       setFriendsTotal(mockData.friendCount);
       setIsLoading(false);
     }
-  }, []);
+  }, [id]);
 
   // 计算好友列表容器高度
   const getFriendsContainerHeight = () => {
@@ -212,7 +221,7 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
   };
 
   // 生成模拟账号数据（作为备用，服务器请求失败时使用）
-  const generateMockAccountData = (): WechatAccountDetail => {
+  const generateMockAccountData = (accountId: string): WechatAccountDetail => {
       // 生成随机标签
     const generateRandomTags = (count: number): FriendTag[] => {
         const tagPool = [
@@ -288,7 +297,7 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
     const friends = generateFriends(friendCount);
 
       const mockAccount: WechatAccountDetail = {
-        id: params.id,
+        id: accountId,
         avatar:
           "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/img_v3_02jn_e7fcc2a4-3560-478d-911a-4ccd69c6392g.jpg-a8zVtwxMuSrPWN9dfWH93EBY0yM3Dh.jpeg",
         nickname: "卡若-25vig",
@@ -490,7 +499,7 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
   const fetchSummaryData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetchWechatAccountSummary(params.id);
+      const response = await fetchWechatAccountSummary(id);
       if (response.code === 200) {
         setAccountSummary(response.data);
       } else {
@@ -510,7 +519,7 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
     } finally {
       setIsLoading(false);
     }
-  }, [params.id]);
+  }, [id]);
 
   // 在页面加载和切换到概览标签时获取数据
   useEffect(() => {
