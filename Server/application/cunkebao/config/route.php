@@ -7,10 +7,9 @@ use think\facade\Route;
 
 // 定义RESTful风格的API路由
 Route::group('v1/', function () {
-
     // 设备管理相关
     Route::group('devices', function () {
-        Route::get('add-results', 'app\cunkebao\controller\device\GetAddResultedDevicesController@index');           // 更新设备任务配置
+        Route::get('add-results', 'app\cunkebao\controller\device\GetAddResultedV1Controller@index');                // 更新设备任务配置
         Route::get(':id/related-accounts', 'app\cunkebao\controller\device\GetRelatedAccountsV1Controller@index');   // 设备关联微信账号路由
         Route::get(':id/handle-logs', 'app\cunkebao\controller\device\GetDeviceHandleLogsV1Controller@index');       // 获取设备操作记录
         Route::get('', 'app\cunkebao\controller\device\GetDeviceListV1Controller@index');                            // 获取设备列表
@@ -23,11 +22,12 @@ Route::group('v1/', function () {
 
     // 设备微信相关
     Route::group('device/wechats', function () {
+        Route::get('', 'app\cunkebao\controller\wechat\GetWechatsOnDevicesV1Controller@index');                      // 获取在线微信账号列表
+        Route::get(':id', 'app\cunkebao\controller\wechat\GetWechatOnDeviceSummarizeV1Controller@index');            // 获取微信号详情
+
         Route::get('friends', 'app\cunkebao\controller\DeviceWechat@getFriends'); // 获取微信好友列表
         Route::get('count', 'app\cunkebao\controller\DeviceWechat@count');       // 获取在线微信账号数量
         Route::get('device-count', 'app\cunkebao\controller\DeviceWechat@deviceCount'); // 获取有登录微信的设备数量
-        Route::get('', 'app\cunkebao\controller\DeviceWechat@index');     // 获取在线微信账号列表
-        Route::get(':id', 'app\cunkebao\controller\DeviceWechat@detail'); // 获取微信号详情
         Route::put('refresh', 'app\cunkebao\controller\DeviceWechat@refresh');  // 刷新设备微信状态
         Route::post('transfer-friends', 'app\cunkebao\controller\DeviceWechat@transferFriends'); // 微信好友转移
     });
