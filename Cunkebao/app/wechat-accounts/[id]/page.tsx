@@ -44,7 +44,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { toast } from "@/components/ui/use-toast"
-import { fetchWechatAccountDetail, transformWechatAccountDetail, fetchWechatFriends } from "@/api/wechat-accounts"
+import { fetchWechatFriends, fetchWechatAccountSummary } from "@/api/wechat-accounts"
 
 interface RestrictionRecord {
   id: string
@@ -87,13 +87,12 @@ interface WechatAccountDetail {
   lastActive: string
   messageCount: number
   activeRate: number
-  // 新增和修改的字段
   accountAge: {
     years: number
     months: number
   }
   totalChats: number
-  chatFrequency: number // 每日平均聊天次数
+  chatFrequency: number
   restrictionRecords: RestrictionRecord[]
   isVerified: boolean
   firstMomentDate: string
@@ -112,9 +111,35 @@ interface WechatAccountDetail {
   friends: WechatFriend[]
 }
 
+interface WechatAccountSummary {
+  accountAge: string;
+  activityLevel: {
+    allTimes: number;
+    dayTimes: number;
+  };
+  accountWeight: {
+    scope: number;
+    ageWeight: number;
+    activityWeigth: number;
+    restrictWeight: number;
+    realNameWeight: number;
+  };
+  statistics: {
+    todayAdded: number;
+    addLimit: number;
+  };
+  restrictions: {
+    id: number;
+    level: string;
+    reason: string;
+    date: string;
+  }[];
+}
+
 export default function WechatAccountDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [account, setAccount] = useState<WechatAccountDetail | null>(null)
+  const [accountSummary, setAccountSummary] = useState<WechatAccountSummary | null>(null)
   const [showRestrictions, setShowRestrictions] = useState(false)
   const [showTransferConfirm, setShowTransferConfirm] = useState(false)
   const [showFriendDetail, setShowFriendDetail] = useState(false)
@@ -151,9 +176,28 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
       try {
         const decodedData = JSON.parse(decodeURIComponent(dataParam));
         setInitialData(decodedData);
+        // 使用初始数据设置account
+        const mockData = generateMockAccountData();
+        if (decodedData) {
+          mockData.avatar = decodedData.avatar;
+          mockData.nickname = decodedData.nickname;
+          mockData.status = decodedData.status;
+          mockData.wechatId = decodedData.wechatId;
+          mockData.deviceName = decodedData.deviceName;
+        }
+        setAccount(mockData);
+        setFriendsTotal(mockData.friendCount);
+        setIsLoading(false);
       } catch (error) {
         console.error('解析初始数据失败:', error);
+        setIsLoading(false);
       }
+    } else {
+      // 如果没有初始数据，使用模拟数据
+      const mockData = generateMockAccountData();
+      setAccount(mockData);
+      setFriendsTotal(mockData.friendCount);
+      setIsLoading(false);
     }
   }, []);
 
@@ -422,79 +466,73 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
     };
   }, [friendsLoadingRef.current, friendsObserver.current]);
 
-  useEffect(() => {
-    // 模拟API调用获取账号详情
-    const fetchAccount = async () => {
-      try {
-        setIsLoading(true)
-        
-        // 调用API获取微信账号详情
-        const response = await fetchWechatAccountDetail(params.id)
-        
-        if (response && response.code === 200) {
-          // 转换数据格式
-          const transformedAccount = transformWechatAccountDetail(response)
-          // 使用初始数据覆盖API返回的部分字段
-          if (initialData) {
-            transformedAccount.avatar = initialData.avatar;
-            transformedAccount.nickname = initialData.nickname;
-            transformedAccount.status = initialData.status;
-            transformedAccount.wechatId = initialData.wechatId;
-            transformedAccount.deviceName = initialData.deviceName;
-          }
-          setAccount(transformedAccount)
-          
-          // 如果有好友总数，更新friendsTotal状态
-          if (transformedAccount && transformedAccount.friendCount > 0) {
-            setFriendsTotal(transformedAccount.friendCount);
-          }
-        } else {
-          toast({
-            title: "获取微信账号详情失败",
-            description: response?.msg || "请稍后再试",
-            variant: "destructive"
-          })
-          // 获取失败时使用模拟数据
-          const mockData = generateMockAccountData();
-          // 使用初始数据覆盖模拟数据的部分字段
-          if (initialData) {
-            mockData.avatar = initialData.avatar;
-            mockData.nickname = initialData.nickname;
-            mockData.status = initialData.status;
-            mockData.wechatId = initialData.wechatId;
-            mockData.deviceName = initialData.deviceName;
-          }
-          setAccount(mockData);
-          // 更新好友总数
-          setFriendsTotal(mockData.friendCount);
-        }
-      } catch (error) {
-        console.error("获取微信账号详情失败:", error)
-        toast({
-          title: "获取微信账号详情失败",
-          description: "请检查网络连接或稍后再试",
-          variant: "destructive"
-        })
-        // 请求出错时使用模拟数据
-        const mockData = generateMockAccountData();
-        // 使用初始数据覆盖模拟数据的部分字段
-        if (initialData) {
-          mockData.avatar = initialData.avatar;
-          mockData.nickname = initialData.nickname;
-          mockData.status = initialData.status;
-          mockData.wechatId = initialData.wechatId;
-          mockData.deviceName = initialData.deviceName;
-        }
-        setAccount(mockData);
-        // 更新好友总数
-        setFriendsTotal(mockData.friendCount);
-      } finally {
-        setIsLoading(false)
-      }
+  // 计算账号年龄
+  const calculateAccountAge = (registerTime: string) => {
+    const register = new Date(registerTime);
+    const now = new Date();
+    const years = now.getFullYear() - register.getFullYear();
+    const months = now.getMonth() - register.getMonth();
+    
+    if (months < 0) {
+      return {
+        years: years - 1,
+        months: months + 12
+      };
     }
+    
+    return {
+      years,
+      months
+    };
+  };
 
-    fetchAccount()
-  }, [params.id, initialData])
+  // 获取账号概览数据
+  const fetchSummaryData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetchWechatAccountSummary(params.id);
+      if (response.code === 200) {
+        setAccountSummary(response.data);
+      } else {
+        toast({
+          title: "获取账号概览失败",
+          description: response.msg || "请稍后再试",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("获取账号概览失败:", error);
+      toast({
+        title: "获取账号概览失败",
+        description: "请检查网络连接或稍后再试",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [params.id]);
+
+  // 在页面加载和切换到概览标签时获取数据
+  useEffect(() => {
+    if (activeTab === "overview") {
+      fetchSummaryData();
+    }
+  }, [activeTab, fetchSummaryData]);
+
+  // 在初始加载时获取数据
+  useEffect(() => {
+    if (activeTab === "overview") {
+      fetchSummaryData();
+    }
+  }, [fetchSummaryData, activeTab]);
+
+  // 处理标签切换
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === "overview") {
+      fetchSummaryData();
+    }
+  };
 
   if (!account) {
     return <div>加载中...</div>
@@ -618,7 +656,7 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
             </div>
           </Card>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="overview">账号概览</TabsTrigger>
                 <TabsTrigger value="friends">
@@ -634,8 +672,16 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
                     <Clock className="w-4 h-4" />
                     <span className="text-sm">账号年龄</span>
                   </div>
-                  <div className="text-2xl font-bold text-blue-600">{formatAccountAge(account.accountAge)}</div>
-                  <div className="text-sm text-gray-500 mt-1">注册时间：{account.firstMomentDate}</div>
+                  {accountSummary && (
+                    <>
+                      <div className="text-2xl font-bold text-blue-600">
+                        {formatAccountAge(calculateAccountAge(accountSummary.accountAge))}
+                      </div>
+                      <div className="text-sm text-gray-500 mt-1">
+                        注册时间：{new Date(accountSummary.accountAge).toLocaleDateString()}
+                      </div>
+                    </>
+                  )}
                 </Card>
 
                 <Card className="p-4">
@@ -643,8 +689,12 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
                     <MessageSquare className="w-4 h-4" />
                     <span className="text-sm">活跃程度</span>
                   </div>
-                  <div className="text-2xl font-bold text-blue-600">{account.chatFrequency}次/天</div>
-                  <div className="text-sm text-gray-500 mt-1">总聊天数：{account.totalChats.toLocaleString()}</div>
+                  {accountSummary && (
+                    <>
+                      <div className="text-2xl font-bold text-blue-600">{accountSummary.activityLevel.dayTimes}次/天</div>
+                      <div className="text-sm text-gray-500 mt-1">总聊天数：{accountSummary.activityLevel.allTimes.toLocaleString()}</div>
+                    </>
+                  )}
                 </Card>
               </div>
 
@@ -655,34 +705,40 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
                     <Star className="w-4 h-4 text-yellow-500" />
                     <span className="font-medium">账号权重评估</span>
                   </div>
-                  <div className={`flex items-center space-x-2 ${getWeightColor(account.accountWeight)}`}>
-                    <span className="text-2xl font-bold">{account.accountWeight}</span>
-                    <span className="text-sm">分</span>
-                  </div>
+                  {accountSummary && (
+                    <div className={`flex items-center space-x-2 ${getWeightColor(accountSummary.accountWeight.scope)}`}>
+                      <span className="text-2xl font-bold">{accountSummary.accountWeight.scope}</span>
+                      <span className="text-sm">分</span>
+                    </div>
+                  )}
                 </div>
-                <p className="text-sm text-gray-500 mb-4">{getWeightDescription(account.accountWeight)}</p>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                      <span className="flex-shrink-0">账号年龄</span>
-                      <Progress value={account.weightFactors.ageFactor * 100} className="flex-1 min-w-0 mx-2" />
-                      <span className="flex-shrink-0">{(account.weightFactors.ageFactor * 100).toFixed(0)}%</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                      <span className="flex-shrink-0">活跃度</span>
-                      <Progress value={account.weightFactors.activityFactor * 100} className="flex-1 min-w-0 mx-2" />
-                      <span className="flex-shrink-0">{(account.weightFactors.activityFactor * 100).toFixed(0)}%</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                      <span className="flex-shrink-0">限制影响</span>
-                      <Progress value={account.weightFactors.restrictionFactor * 100} className="flex-1 min-w-0 mx-2" />
-                      <span className="flex-shrink-0">{(account.weightFactors.restrictionFactor * 100).toFixed(0)}%</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                      <span className="flex-shrink-0">实名认证</span>
-                      <Progress value={account.weightFactors.verificationFactor * 100} className="flex-1 min-w-0 mx-2" />
-                      <span className="flex-shrink-0">{(account.weightFactors.verificationFactor * 100).toFixed(0)}%</span>
-                  </div>
-                </div>
+                {accountSummary && (
+                  <>
+                    <p className="text-sm text-gray-500 mb-4">{getWeightDescription(accountSummary.accountWeight.scope)}</p>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="flex-shrink-0">账号年龄</span>
+                        <Progress value={accountSummary.accountWeight.ageWeight} className="flex-1 min-w-0 mx-2" />
+                        <span className="flex-shrink-0">{accountSummary.accountWeight.ageWeight}%</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="flex-shrink-0">活跃度</span>
+                        <Progress value={accountSummary.accountWeight.activityWeigth} className="flex-1 min-w-0 mx-2" />
+                        <span className="flex-shrink-0">{accountSummary.accountWeight.activityWeigth}%</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="flex-shrink-0">限制影响</span>
+                        <Progress value={accountSummary.accountWeight.restrictWeight} className="flex-1 min-w-0 mx-2" />
+                        <span className="flex-shrink-0">{accountSummary.accountWeight.restrictWeight}%</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="flex-shrink-0">实名认证</span>
+                        <Progress value={accountSummary.accountWeight.realNameWeight} className="flex-1 min-w-0 mx-2" />
+                        <span className="flex-shrink-0">{accountSummary.accountWeight.realNameWeight}%</span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </Card>
 
               {/* 添加好友统计 */}
@@ -701,29 +757,31 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
                     </TooltipContent>
                   </UITooltip>
                 </div>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">今日已添加</span>
-                    <span className="text-xl font-bold text-blue-600">{account.todayAdded}</span>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-500">添加进度</span>
-                      <span>
-                        {account.todayAdded}/{calculateMaxDailyAdds(account.accountWeight)}
-                      </span>
+                {accountSummary && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500">今日已添加</span>
+                      <span className="text-xl font-bold text-blue-600">{accountSummary.statistics.todayAdded}</span>
                     </div>
-                    <Progress
-                      value={(account.todayAdded / calculateMaxDailyAdds(account.accountWeight)) * 100}
-                      className="h-2"
-                    />
+                    <div>
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="text-gray-500">添加进度</span>
+                        <span>
+                          {accountSummary.statistics.todayAdded}/{accountSummary.statistics.addLimit}
+                        </span>
+                      </div>
+                      <Progress
+                        value={(accountSummary.statistics.todayAdded / accountSummary.statistics.addLimit) * 100}
+                        className="h-2"
+                      />
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      根据当前账号权重({accountSummary.accountWeight.scope}分)，每日最多可添加{" "}
+                      <span className="font-medium text-blue-600">{accountSummary.statistics.addLimit}</span>{" "}
+                      个好友
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-500">
-                    根据当前账号权重({account.accountWeight}分)，每日最多可添加{" "}
-                    <span className="font-medium text-blue-600">{calculateMaxDailyAdds(account.accountWeight)}</span>{" "}
-                    个好友
-                  </div>
-                </div>
+                )}
               </Card>
 
               {/* 限制记录 */}
@@ -733,20 +791,26 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
                     <Shield className="w-4 h-4 text-red-500" />
                     <span className="font-medium">限制记录</span>
                   </div>
-                  <Badge variant="outline" className="cursor-pointer" onClick={() => setShowRestrictions(true)}>
-                    共 {account.restrictionRecords.length} 次
-                  </Badge>
+                  {accountSummary && (
+                    <Badge variant="outline" className="cursor-pointer" onClick={() => setShowRestrictions(true)}>
+                      共 {accountSummary.restrictions.length} 次
+                    </Badge>
+                  )}
                 </div>
-                <div className="space-y-2">
-                  {account.restrictionRecords.slice(0, 2).map((record) => (
-                    <div key={record.id} className="text-sm">
-                      <div className="flex items-center justify-between">
-                        <span className={getRestrictionTypeColor(record.type)}>{record.reason}</span>
-                        <span className="text-gray-500">{record.date}</span>
+                {accountSummary && (
+                  <div className="space-y-2">
+                    {accountSummary.restrictions.slice(0, 2).map((record) => (
+                      <div key={record.id} className="text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-${record.level === "2" ? "yellow" : "red"}-600`}>
+                            {record.reason}
+                          </span>
+                          <span className="text-gray-500">{new Date(record.date).toLocaleDateString()}</span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </Card>
             </TabsContent>
 

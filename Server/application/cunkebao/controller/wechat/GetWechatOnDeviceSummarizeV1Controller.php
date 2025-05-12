@@ -70,13 +70,13 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
         return [
             [
                 'id'     => 1,
-                'type'   => 'warnnig',
+                'level'   => 2,
                 'reason' => '频繁添加好友',
                 'date'   => date('Y-m-d H:i:s', strtotime('-1 day')),
             ],
             [
                 'id'     => 2,
-                'type'   => 'error',
+                'level'   => 3,
                 'reason' => '营销内容违规',
                 'date'   => date('Y-m-d H:i:s', strtotime('-1 day')),
             ],
@@ -228,7 +228,7 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
     protected function getStatistics(string $wechatId, array $accountWeight): array
     {
         return [
-            'addedCount' => $this->getTodayNewFriendCount($wechatId),
+            'todayAdded' => $this->getTodayNewFriendCount($wechatId),
             'addLimit'   => $this->_calAllowedFriends($accountWeight['scope'])
         ];
     }

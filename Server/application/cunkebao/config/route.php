@@ -23,7 +23,7 @@ Route::group('v1/', function () {
     // 设备微信相关
     Route::group('device/wechats', function () {
         Route::get('', 'app\cunkebao\controller\wechat\GetWechatsOnDevicesV1Controller@index');                      // 获取在线微信账号列表
-        Route::get(':id', 'app\cunkebao\controller\wechat\GetWechatOnDeviceSummarizeV1Controller@index');            // 获取微信号详情
+        Route::get(':id/summary', 'app\cunkebao\controller\wechat\GetWechatOnDeviceSummarizeV1Controller@index');    // 获取微信号详情
 
         Route::get('friends', 'app\cunkebao\controller\DeviceWechat@getFriends'); // 获取微信好友列表
         Route::get('count', 'app\cunkebao\controller\DeviceWechat@count');       // 获取在线微信账号数量
