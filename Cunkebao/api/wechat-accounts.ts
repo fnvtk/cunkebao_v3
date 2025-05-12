@@ -52,7 +52,7 @@ export const fetchWechatAccountList = async (params: QueryWechatAccountParams = 
   if (params.order) queryParams.append('order', params.order);
   
   // 发起API请求
-  return api.get<ServerWechatAccountsResponse>(`/v1/device/wechats?${queryParams.toString()}`);
+  return api.get<ServerWechatAccountsResponse>(`/v1/wechats?${queryParams.toString()}`);
 };
 
 /**
@@ -60,7 +60,7 @@ export const fetchWechatAccountList = async (params: QueryWechatAccountParams = 
  * @returns 刷新结果
  */
 export const refreshWechatAccounts = async (): Promise<{ code: number; msg: string; data: any }> => {
-  return api.put<{ code: number; msg: string; data: any }>('/v1/device/wechats/refresh', {});
+  return api.put<{ code: number; msg: string; data: any }>('/v1/wechats/refresh', {});
 };
 
 /**
@@ -70,7 +70,7 @@ export const refreshWechatAccounts = async (): Promise<{ code: number; msg: stri
  * @returns 转移结果
  */
 export const transferWechatFriends = async (sourceId: string | number, targetId: string | number): Promise<{ code: number; msg: string; data: any }> => {
-  return api.post<{ code: number; msg: string; data: any }>('/v1/device/wechats/transfer-friends', {
+  return api.post<{ code: number; msg: string; data: any }>('/v1/wechats/transfer-friends', {
     source_id: sourceId,
     target_id: targetId
   });
@@ -147,9 +147,7 @@ export const transformWechatAccount = (serverAccount: any): import("@/types/wech
  */
 export const fetchWechatFriends = async (wechatId: string, page: number = 1, pageSize: number = 20, searchQuery: string = '') => {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/device/wechats/${wechatId}/friends?page=${page}&pageSize=${pageSize}&search=${searchQuery}`);
-    const data = await response.json();
-    return data;
+    return api.get(`/v1/wechats/${wechatId}/friends?page=${page}&limit=${pageSize}${searchQuery ? `&search=${searchQuery}` : ''}`, true);
   } catch (error) {
     console.error("获取好友列表失败:", error);
     throw error;
@@ -163,7 +161,7 @@ export const fetchWechatFriends = async (wechatId: string, page: number = 1, pag
  */
 export const fetchWechatAccountSummary = async (id: string): Promise<WechatAccountSummaryResponse> => {
   try {
-    return api.get<WechatAccountSummaryResponse>(`/v1/device/wechats/${id}/summary`);
+    return api.get<WechatAccountSummaryResponse>(`/v1/wechats/${id}/summary`);
   } catch (error) {
     console.error("获取账号概览失败:", error);
     throw error;

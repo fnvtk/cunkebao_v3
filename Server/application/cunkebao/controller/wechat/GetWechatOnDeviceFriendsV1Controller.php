@@ -4,13 +4,13 @@ namespace app\cunkebao\controller\wechat;
 
 use app\common\model\WechatAccount as WechatAccountModel;
 use app\common\model\WechatFriendShip as WechatFriendShipModel;
+use app\cunkebao\controller\BaseController;
 use library\ResponseHelper;
-use think\Controller;
 
 /**
  * 设备微信控制器
  */
-class GetWechatOnDeviceFriendsV1Controller extends Controller
+class GetWechatOnDeviceFriendsV1Controller extends BaseController
 {
     /**
      * 构建返回数据

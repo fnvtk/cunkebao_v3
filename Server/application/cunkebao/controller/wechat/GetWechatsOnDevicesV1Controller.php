@@ -251,6 +251,7 @@ class GetWechatsOnDevicesV1Controller extends BaseController
 
     /**
      * 获取在线微信账号列表
+     *
      * @return \think\response\Json
      */
     public function index()

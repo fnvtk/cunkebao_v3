@@ -396,7 +396,7 @@ export default function WechatAccountDetailPage() {
       setIsFetchingFriends(true);
       setHasFriendLoadError(false);
       
-      const data = await api.get<ApiResponse<FriendsResponse>>(`/v1/device/wechats/${id}/friends?page=${page}&limit=30`, true);
+      const data = await api.get<ApiResponse<FriendsResponse>>(`/v1/wechats/${id}/friends?page=${page}&limit=30`, true);
       
       if (data && data.code === 200) {
         // 更新总数计数
