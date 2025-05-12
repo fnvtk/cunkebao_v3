@@ -1,10 +1,18 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import * as React from "react"
-import { useRouter, useParams } from "next/navigation"
+import { useParams } from "next/navigation"
+import { useRouter } from "next/navigation"
+import { api } from "@/lib/api"
+import { fetchWechatAccountSummary } from "@/api/wechat-accounts"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Progress } from "@/components/ui/progress"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { toast } from "@/components/ui/use-toast"
 import {
   ChevronLeft,
   Smartphone,
@@ -21,11 +29,6 @@ import {
   ChevronRight,
   Loader2,
 } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Progress } from "@/components/ui/progress"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Dialog,
   DialogContent,
@@ -44,8 +47,25 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { toast } from "@/components/ui/use-toast"
-import { fetchWechatFriends, fetchWechatAccountSummary } from "@/api/wechat-accounts"
+import { fetchWechatFriends } from "@/api/wechat-accounts"
+
+interface ApiResponse<T> {
+  code: number;
+  msg: string;
+  data: T;
+}
+
+interface FriendsResponse {
+  list: Array<{
+    id: number;
+    nickname: string;
+    avatar: string;
+    wechatId: string;
+    memo: string;
+    tags: string[];
+  }>;
+  total: number;
+}
 
 interface RestrictionRecord {
   id: string
@@ -61,18 +81,22 @@ interface FriendTag {
   color: string
 }
 
-interface WechatFriend {
-  id: string
-  avatar: string
-  nickname: string
-  wechatId: string
-  remark: string
-  addTime: string
-  lastInteraction: string
-  tags: FriendTag[]
-  region: string
-  source: string
-  notes: string
+interface Friend {
+  id: string;
+  avatar: string;
+  nickname: string;
+  wechatId: string;
+  remark: string;
+  addTime: string;
+  lastInteraction: string;
+  tags: Array<{
+    id: string;
+    name: string;
+    color: string;
+  }>;
+  region: string;
+  source: string;
+  notes: string;
 }
 
 interface WechatAccountDetail {
@@ -109,7 +133,7 @@ interface WechatAccountDetail {
     friends: number
     messages: number
   }[]
-  friends: WechatFriend[]
+  friends: Friend[]
 }
 
 interface WechatAccountSummary {
@@ -152,13 +176,13 @@ export default function WechatAccountDetailPage() {
   const [showRestrictions, setShowRestrictions] = useState(false)
   const [showTransferConfirm, setShowTransferConfirm] = useState(false)
   const [showFriendDetail, setShowFriendDetail] = useState(false)
-  const [selectedFriend, setSelectedFriend] = useState<WechatFriend | null>(null)
+  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("overview")
   const [isLoading, setIsLoading] = useState(false)
 
   // 好友列表相关状态
-  const [friends, setFriends] = useState<any[]>([])
+  const [friends, setFriends] = useState<Friend[]>([])
   const [friendsPage, setFriendsPage] = useState(1)
   const [friendsTotal, setFriendsTotal] = useState(0)
   const [hasMoreFriends, setHasMoreFriends] = useState(true)
@@ -249,7 +273,7 @@ export default function WechatAccountDetailPage() {
 
       // 生成随机好友
     const friendCount = Math.floor(Math.random() * (300 - 150)) + 150;
-    const generateFriends = (count: number): WechatFriend[] => {
+    const generateFriends = (count: number): Friend[] => {
         return Array.from({ length: count }, (_, i) => {
         const firstName = ["张", "王", "李", "赵", "陈", "刘", "杨", "黄", "周", "吴"][Math.floor(Math.random() * 10)];
           const secondName = ["小", "大", "明", "华", "强", "伟", "芳", "娜", "秀", "英"][
@@ -364,7 +388,7 @@ export default function WechatAccountDetailPage() {
     return colors[Math.floor(Math.random() * colors.length)];
   };
 
-  // 获取好友列表数据
+  // 修改fetchFriends函数
   const fetchFriends = useCallback(async (page: number = 1, isNewSearch: boolean = false) => {
     if (!account || isFetchingFriends) return;
     
@@ -372,30 +396,29 @@ export default function WechatAccountDetailPage() {
       setIsFetchingFriends(true);
       setHasFriendLoadError(false);
       
-      // 调用API获取好友列表
-      const response = await fetchWechatFriends(account.wechatId, page, 20, searchQuery);
+      const data = await api.get<ApiResponse<FriendsResponse>>(`/v1/device/wechats/${id}/friends?page=${page}&limit=30`, true);
       
-      if (response && response.code === 200) {
-        // 更新总数计数，确保在第一次加载时设置
+      if (data && data.code === 200) {
+        // 更新总数计数
         if (isNewSearch || friendsTotal === 0) {
-          setFriendsTotal(response.data.total || 0);
+          setFriendsTotal(data.data.total || 0);
         }
         
-        const newFriends = response.data.list.map((friend: any) => ({
-          id: friend.wechatId,
+        const newFriends = data.data.list.map((friend) => ({
+          id: friend.id.toString(),
           avatar: friend.avatar,
-          nickname: friend.nickname || '未设置昵称',
+          nickname: friend.nickname,
           wechatId: friend.wechatId,
-          remark: friend.remark || '',
+          remark: friend.memo || '',
           addTime: '2024-01-01', // 接口未返回，使用默认值
           lastInteraction: '2024-01-01', // 接口未返回，使用默认值
-          tags: (friend.labels || []).map((label: string, index: number) => ({
+          tags: (friend.tags || []).map((label: string, index: number) => ({
             id: `tag-${index}`,
             name: label,
             color: getRandomTagColor(),
           })),
-          region: friend.region || '未知地区',
-          source: '微信好友', // 接口未返回，使用默认值
+          region: '未知地区',
+          source: '微信好友',
           notes: '',
         }));
         
@@ -408,14 +431,13 @@ export default function WechatAccountDetailPage() {
         
         setFriendsPage(page);
         // 判断是否还有更多数据
-        setHasMoreFriends(page * 20 < response.data.total);
+        setHasMoreFriends(page * 30 < data.data.total);
         
-        console.log("好友列表加载成功，总数:", response.data.total);
       } else {
         setHasFriendLoadError(true);
         toast({
           title: "获取好友列表失败",
-          description: response?.msg || "请稍后再试",
+          description: data?.msg || "请稍后再试",
           variant: "destructive"
         });
       }
@@ -430,7 +452,7 @@ export default function WechatAccountDetailPage() {
     } finally {
       setIsFetchingFriends(false);
     }
-  }, [account, searchQuery, friendsTotal]);
+  }, [account, id, friendsTotal]);
 
   // 处理搜索
   const handleSearch = useCallback(() => {
@@ -441,11 +463,14 @@ export default function WechatAccountDetailPage() {
   }, [fetchFriends]);
 
   // 处理标签切换
-  useEffect(() => {
-    if (account && friends.length === 0) {
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === "overview") {
+      fetchSummaryData();
+    } else if (value === "friends" && friends.length === 0) {
       fetchFriends(1, true);
     }
-  }, [account, friends.length, fetchFriends]);
+  };
 
   // 设置IntersectionObserver用于懒加载
   useEffect(() => {
@@ -535,14 +560,6 @@ export default function WechatAccountDetailPage() {
     }
   }, [fetchSummaryData, activeTab]);
 
-  // 处理标签切换
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    if (value === "overview") {
-      fetchSummaryData();
-    }
-  };
-
   if (!account) {
     return <div>加载中...</div>
   }
@@ -597,7 +614,7 @@ export default function WechatAccountDetailPage() {
     setShowTransferConfirm(false)
   }
 
-  const handleFriendClick = (friend: WechatFriend) => {
+  const handleFriendClick = (friend: Friend) => {
     setSelectedFriend(friend)
     setShowFriendDetail(true)
   }
@@ -633,7 +650,7 @@ export default function WechatAccountDetailPage() {
           <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
         </div>
       ) : account ? (
-        <div className="flex-1 bg-gradient-to-b from-blue-50 to-white min-h-screen pb-16 overflow-x-hidden">
+        <div className="flex-1 bg-gradient-to-b from-blue-50 to-white min-h-screen overflow-x-hidden">
         <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b">
           <div className="flex items-center p-4">
             <Button variant="ghost" size="icon" onClick={() => router.back()}>
@@ -692,9 +709,9 @@ export default function WechatAccountDetailPage() {
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="overview">账号概览</TabsTrigger>
-                <TabsTrigger value="friends">
-                  好友列表 ({friendsTotal > 0 ? friendsTotal : account.friendCount})
-                </TabsTrigger>
+              <TabsTrigger value="friends">
+                好友列表{activeTab === "friends" && friendsTotal > 0 ? ` (${friendsTotal})` : ''}
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4 mt-4">
