@@ -593,6 +593,30 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
     setShowFriendDetail(true)
   }
 
+  // 修改获取限制等级颜色的函数
+  const getRestrictionLevelColor = (level: string) => {
+    const colorMap = {
+      "1": "text-gray-600",
+      "2": "text-yellow-600",
+      "3": "text-red-600"
+    };
+    return colorMap[level as keyof typeof colorMap] || "text-gray-600";
+  }
+
+  // 添加时间格式化函数
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).replace(/\//g, '-');
+  }
+
   return (
     <TooltipProvider>
       {isLoading ? (
@@ -810,10 +834,10 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
                     {accountSummary.restrictions.slice(0, 2).map((record) => (
                       <div key={record.id} className="text-sm">
                         <div className="flex items-center justify-between">
-                          <span className={`text-${record.level === "2" ? "yellow" : "red"}-600`}>
+                          <span className={`${getRestrictionLevelColor(record.level)}`}>
                             {record.reason}
                           </span>
-                          <span className="text-gray-500">{new Date(record.date).toLocaleDateString()}</span>
+                          <span className="text-gray-500">{formatDateTime(record.date)}</span>
                         </div>
                       </div>
                     ))}
@@ -938,13 +962,15 @@ export default function WechatAccountDetailPage({ params }: { params: { id: stri
               </DialogHeader>
               <ScrollArea className="max-h-[400px]">
                 <div className="space-y-4">
-                  {account.restrictionRecords.map((record) => (
+                  {accountSummary && accountSummary.restrictions.map((record) => (
                     <div key={record.id} className="border-b pb-4 last:border-0">
                       <div className="flex justify-between items-start">
-                        <div className={`text-sm ${getRestrictionTypeColor(record.type)}`}>{record.reason}</div>
-                        <Badge variant="outline">{record.date}</Badge>
+                        <div className={`text-sm ${getRestrictionLevelColor(record.level)}`}>
+                          {record.reason}
+                        </div>
+                        <Badge variant="outline">{formatDateTime(record.date)}</Badge>
                       </div>
-                      <div className="text-sm text-gray-500 mt-1">恢复时间：{record.recoveryTime}</div>
+                      <div className="text-sm text-gray-500 mt-1">恢复时间：{formatDateTime(record.date)}</div>
                     </div>
                   ))}
                 </div>
