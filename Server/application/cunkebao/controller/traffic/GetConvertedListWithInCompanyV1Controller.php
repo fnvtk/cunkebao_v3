@@ -11,7 +11,7 @@ use library\ResponseHelper;
 /**
  * 流量池控制器
  */
-class GetPotentialListWithInCompanyV1Controller extends BaseController
+class GetConvertedListWithInCompanyV1Controller extends BaseController
 {
     /**
      * 构建查询条件
@@ -22,14 +22,7 @@ class GetPotentialListWithInCompanyV1Controller extends BaseController
     protected function makeWhere(array $params = []): array
     {
         if (!empty($keyword = $this->request->param('keyword'))) {
-            $where[] = ['exp', "p.identifier LIKE '%{$keyword}%'"];
-        }
-
-        // 状态筛选
-        if ($status = $this->request->param('status')) {
-            $where['s.status'] = $status;
-        } else {
-            $where['s.status'] = array('<>', TrafficSourceModel::STATUS_PASSED);
+            $where[] = ['exp', "w.alias LIKE '%{$keyword}%' OR w.nickname LIKE '%{$keyword}%'"];
         }
 
         // 来源的筛选
@@ -38,6 +31,7 @@ class GetPotentialListWithInCompanyV1Controller extends BaseController
         }
 
         $where['s.companyId'] = $this->getUserInfo('companyId');
+        $where['s.status'] = TrafficSourceModel::STATUS_PASSED;
 
         return array_merge($where, $params);
     }
@@ -50,24 +44,22 @@ class GetPotentialListWithInCompanyV1Controller extends BaseController
      */
     protected function getPoolListByCompanyId(array $where): \think\Paginator
     {
-        $query = TrafficPoolModel::alias('p')
+        $query = TrafficSourceModel::alias('s')
             ->field(
                 [
-                    'p.identifier nickname', 'p.mobile', 'p.wechatId', 'p.identifier',
-                    's.id', 's.fromd', 's.status', 's.createTime'
+                    'w.id', 'w.nickname', 'w.avatar', 'w.wechatId',
+                    's.fromd',
+                    'f.tags', 'f.createTime', TrafficSourceModel::STATUS_PASSED . ' status'
                 ]
             )
-            ->join('traffic_source s', 'p.identifier=s.identifier')
+            ->join('traffic_pool p', 'p.identifier=s.identifier')
+            ->join('wechat_account w', 'p.wechatId=w.wechatId')
+            ->join('wechat_friendship f', 'w.wechatId=f.wechatId and f.deleteTime=0')
             ->order('s.id desc');
 
         foreach ($where as $key => $value) {
             if (is_numeric($key) && is_array($value) && isset($value[0]) && $value[0] === 'exp') {
                 $query->whereExp('', $value[1]);
-                continue;
-            }
-
-            if (is_array($value)) {
-                $query->where($key, ...$value);
                 continue;
             }
 
