@@ -21,6 +21,7 @@ import { useDebounce } from "@/hooks/use-debounce"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { api } from "@/lib/api"
 
 interface UserTag {
   id: string
@@ -44,6 +45,17 @@ interface TrafficUser {
   tags: UserTag[]
 }
 
+interface StatusType {
+  id: number
+  name: string
+}
+
+interface ApiResponse<T> {
+  code: number
+  msg: string
+  data: T
+}
+
 export default function TrafficPoolPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -51,7 +63,8 @@ export default function TrafficPoolPage() {
   const [loading, setLoading] = useState(true) // Start with loading state
   const [activeCategory, setActiveCategory] = useState("potential") // Changed default from "all" to "potential"
   const [sourceFilter, setSourceFilter] = useState("all")
-  const [statusFilter, setStatusFilter] = useState("all")
+  const [statusTypes, setStatusTypes] = useState<StatusType[]>([])
+  const [statusFilter, setStatusFilter] = useState<string>("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -81,7 +94,7 @@ export default function TrafficPoolPage() {
         search: debouncedSearchQuery,
         category: activeCategory,
         source: sourceFilter,
-        status: statusFilter,
+        status: statusFilter === "all" ? "" : statusFilter,
       })
 
       // 检查是否有来源参数
@@ -147,14 +160,38 @@ export default function TrafficPoolPage() {
     }
   }, [currentPage, debouncedSearchQuery, activeCategory, sourceFilter, statusFilter, toast, searchParams])
 
+  const fetchStatusTypes = useCallback(async () => {
+    try {
+      const response = await api.get<ApiResponse<StatusType[]>>('/v1/traffic/pool/types')
+      
+      if (response.code === 200) {
+        setStatusTypes(response.data)
+      } else {
+        toast({
+          title: "获取状态列表失败",
+          description: response.msg || "请稍后重试",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("获取状态列表失败:", error)
+      toast({
+        title: "获取状态列表失败",
+        description: "请检查网络连接或稍后重试",
+        variant: "destructive",
+      })
+    }
+  }, [])
+
   useEffect(() => {
     fetchUsers()
+    fetchStatusTypes()
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
       }
     }
-  }, [fetchUsers])
+  }, [fetchUsers, fetchStatusTypes])
 
   const handleUserClick = (user: TrafficUser) => {
     setSelectedUser(user)
@@ -259,9 +296,11 @@ export default function TrafficPoolPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部状态</SelectItem>
-                <SelectItem value="pending">待处理</SelectItem>
-                <SelectItem value="added">已添加</SelectItem>
-                <SelectItem value="failed">已失败</SelectItem>
+                {statusTypes.map((status) => (
+                  <SelectItem key={status.id} value={status.id.toString()}>
+                    {status.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
