@@ -95,6 +95,22 @@ interface Statistics {
   todayAddCount: number
 }
 
+interface ConvertedUser {
+  id: number
+  nickname: string
+  avatar: string
+  wechatId: string
+  fromd: string
+  tags: string[]
+  createTime: string
+  status: number
+}
+
+interface ConvertedResponse {
+  list: ConvertedUser[]
+  total: number
+}
+
 export default function TrafficPoolPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -155,12 +171,10 @@ export default function TrafficPoolPage() {
         limit: "30"
       })
 
-      // 只有在有搜索关键词时才添加 keyword 参数
       if (debouncedSearchQuery) {
         params.append("keyword", debouncedSearchQuery)
       }
 
-      // 只有在选择了特定来源时才添加 fromd 参数
       if (sourceFilter !== "all") {
         const selectedSource = sourceTypes.find(source => source.id.toString() === sourceFilter)
         if (selectedSource) {
@@ -168,39 +182,51 @@ export default function TrafficPoolPage() {
         }
       }
 
-      // 只有在选择了特定状态时才添加 status 参数
       if (statusFilter !== "all") {
         params.append("status", statusFilter)
       }
 
-      const response = await api.get<ApiResponse<TrafficPoolResponse>>(`/v1/traffic/pool?${params.toString()}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
-      } as any)
+      const endpoint = activeCategory === "customer" 
+        ? '/v1/traffic/pool/converted' 
+        : '/v1/traffic/pool'
+
+      const response = await api.get<ApiResponse<any>>(
+        `${endpoint}?${params.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        } as any
+      )
 
       if (response.code === 200) {
-        const { list, pagination } = response.data
+        const { list } = response.data
         
-        const transformedUsers = list.map(user => ({
+        const transformedUsers: TrafficUser[] = list.map((user: any) => ({
           id: user.id.toString(),
           avatar: user.avatar,
-          nickname: user.name || user.nickname || '未知用户',
+          nickname: user.nickname || user.name || '未知用户',
           wechatId: user.wechatId,
-          phone: user.phone,
-          region: user.region,
-          note: user.note,
-          status: user.status,
+          phone: user.phone || '',
+          region: user.region || '',
+          note: user.note || '',
+          status: activeCategory === "customer" ? 3 : user.status,
           addTime: formatDateTime(user.createTime),
           source: user.fromd || '未知来源',
-          assignedTo: user.assignedTo,
-          category: user.category || "potential",
-          tags: user.tags || []
+          assignedTo: user.assignedTo || '',
+          category: activeCategory as "potential" | "customer" | "lost",
+          tags: Array.isArray(user.tags) 
+            ? user.tags.map((tag: string) => ({
+                id: tag,
+                name: tag,
+                color: 'bg-blue-100 text-blue-800'
+              }))
+            : []
         }))
 
         setUsers(prev => isNewSearch ? transformedUsers : [...prev, ...transformedUsers])
         setCurrentPage(page)
-        setHasMore(list.length > 0 && page < pagination.totalPages)
+        setHasMore(list.length === 30)
       } else {
         toast({
           title: "获取数据失败",
@@ -222,7 +248,7 @@ export default function TrafficPoolPage() {
       setIsFetching(false)
       setLoading(false)
     }
-  }, [debouncedSearchQuery, sourceFilter, statusFilter, sourceTypes])
+  }, [debouncedSearchQuery, sourceFilter, statusFilter, sourceTypes, activeCategory])
 
   const fetchStatusTypes = useCallback(async () => {
     try {
@@ -456,25 +482,27 @@ export default function TrafficPoolPage() {
               </SelectContent>
             </Select>
 
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => {
-                setStatusFilter(value)
-                setCurrentPage(1)
-              }}
-            >
-              <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="状态" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部状态</SelectItem>
-                {statusTypes.map((status) => (
-                  <SelectItem key={status.id} value={status.id.toString()}>
-                    {status.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {activeCategory === "potential" && (
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setStatusFilter(value)
+                  setCurrentPage(1)
+                }}
+              >
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="状态" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部状态</SelectItem>
+                  {statusTypes.map((status) => (
+                    <SelectItem key={status.id} value={status.id.toString()}>
+                      {status.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           {/* 用户列表 */}
@@ -506,14 +534,22 @@ export default function TrafficPoolPage() {
                           <div className="font-medium truncate">{user.nickname}</div>
                           <div
                             className={`text-xs px-2 py-1 rounded-full ${
-                              user.status === 2
+                              activeCategory === "customer"
                                 ? "bg-green-100 text-green-800"
-                                : user.status === 1
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-red-100 text-red-800"
+                                : user.status === 2
+                                  ? "bg-green-100 text-green-800"
+                                  : user.status === 1
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-red-100 text-red-800"
                             }`}
                           >
-                            {user.status === 2 ? "已添加" : user.status === 1 ? "待处理" : "已失败"}
+                            {activeCategory === "customer" 
+                              ? "已通过" 
+                              : user.status === 2 
+                                ? "已添加" 
+                                : user.status === 1 
+                                  ? "待处理" 
+                                  : "已失败"}
                           </div>
                         </div>
                         <div className="text-sm text-gray-500">微信号: {user.wechatId}</div>
@@ -577,14 +613,22 @@ export default function TrafficPoolPage() {
                   <div className="text-sm text-gray-500">{selectedUser.wechatId}</div>
                   <Badge
                     className={`mt-1 ${
-                      selectedUser.status === 2
+                      activeCategory === "customer"
                         ? "bg-green-100 text-green-800"
-                        : selectedUser.status === 1
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-red-100 text-red-800"
+                        : selectedUser.status === 2
+                          ? "bg-green-100 text-green-800"
+                          : selectedUser.status === 1
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
                     }`}
                   >
-                    {selectedUser.status === 2 ? "已添加" : selectedUser.status === 1 ? "待处理" : "已失败"}
+                    {activeCategory === "customer" 
+                      ? "已通过" 
+                      : selectedUser.status === 2 
+                        ? "已添加" 
+                        : selectedUser.status === 1 
+                          ? "待处理" 
+                          : "已失败"}
                   </Badge>
                 </div>
               </div>
