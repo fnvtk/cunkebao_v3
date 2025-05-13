@@ -11,7 +11,11 @@ import { toast } from "@/components/ui/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { api } from "@/lib/api"
 import { showToast } from "@/lib/toast"
+import { Avatar } from "@/components/ui/avatar"
+import { Separator } from "@/components/ui/separator"
+import { format } from "date-fns"
 import Image from "next/image"
+import { cn } from "@/lib/utils"
 
 interface ApiResponse<T = any> {
   code: number
@@ -39,6 +43,7 @@ interface Material {
   friendId: string | null
   wechatChatroomId: number
   senderNickname: string
+  senderAvatar: string  // 发布朋友圈用户的头像
   location: string | null
   lat: string
   lng: string
@@ -46,40 +51,6 @@ interface Material {
 
 const isImageUrl = (url: string) => {
   return /\.(jpg|jpeg|png|gif|webp)$/i.test(url) || url.includes('oss-cn-shenzhen.aliyuncs.com')
-}
-
-const ContentDisplay = ({ content, resUrls }: { content: string, resUrls: string[] }) => {
-  if (isImageUrl(content)) {
-    return (
-      <div className="relative w-full h-48 mb-2">
-        <Image
-          src={content}
-          alt="素材图片"
-          fill
-          className="object-contain rounded-lg"
-        />
-      </div>
-    )
-  }
-
-  if (resUrls.length > 0 && resUrls.some(isImageUrl)) {
-    return (
-      <div className="grid grid-cols-2 gap-2 mb-2">
-        {resUrls.filter(isImageUrl).map((url, index) => (
-          <div key={index} className="relative w-full h-32">
-            <Image
-              src={url}
-              alt={`素材图片 ${index + 1}`}
-              fill
-              className="object-contain rounded-lg"
-            />
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  return <div className="text-sm text-gray-600 mb-2" style={{ whiteSpace: 'pre-line' }}>{content}</div>
 }
 
 export default function MaterialsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -95,8 +66,8 @@ export default function MaterialsPage({ params }: { params: Promise<{ id: string
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<number | null>(null)
 
   const fetchMaterials = useCallback(async () => {
-    setIsLoading(true)
-    try {
+      setIsLoading(true)
+      try {
       const queryParams = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
@@ -112,11 +83,11 @@ export default function MaterialsPage({ params }: { params: Promise<{ id: string
         showToast(response.msg || "获取素材数据失败", "error")
       }
     } catch (error: any) {
-      console.error("Failed to fetch materials:", error)
+        console.error("Failed to fetch materials:", error)
       showToast(error?.message || "请检查网络连接", "error")
-    } finally {
-      setIsLoading(false)
-    }
+      } finally {
+        setIsLoading(false)
+      }
   }, [page, searchQuery, resolvedParams.id])
 
   useEffect(() => {
@@ -171,10 +142,124 @@ export default function MaterialsPage({ params }: { params: Promise<{ id: string
     }
   }
 
-  const filteredMaterials = materials
+  // 处理内容显示
+  const renderContent = (material: Material) => {
+    // 如果内容是图片，由renderImageResources处理
+    if (isImageUrl(material.content)) {
+      return null
+    }
+    
+    // 显示文本内容
+    return (
+      <div className="mb-3">
+        <p className="text-gray-700 whitespace-pre-line">{material.content}</p>
+      </div>
+    )
+  }
+  
+  // 处理图片资源
+  const renderImageResources = (material: Material) => {
+    const imageUrls = material.resUrls.filter(isImageUrl)
+    // 如果内容本身是图片，也添加到图片数组中
+    if (isImageUrl(material.content) && !imageUrls.includes(material.content)) {
+      imageUrls.unshift(material.content)
+    }
+    
+    if (imageUrls.length === 0) return null
+    
+    // 微信朋友圈风格的图片布局
+    if (imageUrls.length === 1) {
+      // 单张图片：大图显示
+      return (
+        <div className="mb-3">
+          <div className="relative rounded-md overflow-hidden">
+            <Image
+              src={imageUrls[0]}
+              alt="图片内容"
+              width={600}
+              height={400}
+              className="object-cover w-full h-auto"
+            />
+          </div>
+        </div>
+      )
+    } else if (imageUrls.length === 2) {
+      // 两张图片：横向排列
+      return (
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          {imageUrls.map((url, idx) => (
+            <div key={idx} className="relative aspect-square rounded-md overflow-hidden">
+              <Image
+                src={url}
+                alt={`图片 ${idx + 1}`}
+                fill
+                className="object-cover"
+              />
+            </div>
+          ))}
+        </div>
+      )
+    } else if (imageUrls.length === 3) {
+      // 三张图片：使用3x3网格的前三个格子
+      return (
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          {imageUrls.map((url, idx) => (
+            <div key={idx} className="relative aspect-square rounded-md overflow-hidden">
+              <Image
+                src={url}
+                alt={`图片 ${idx + 1}`}
+                fill
+                className="object-cover"
+              />
+            </div>
+          ))}
+        </div>
+      )
+    } else if (imageUrls.length === 4) {
+      // 四张图片：2x2网格
+      return (
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          {imageUrls.map((url, idx) => (
+            <div key={idx} className="relative aspect-square rounded-md overflow-hidden">
+              <Image
+                src={url}
+                alt={`图片 ${idx + 1}`}
+                fill
+                className="object-cover"
+              />
+            </div>
+          ))}
+        </div>
+      )
+    } else {
+      // 五张及以上：3x3网格
+      const displayImages = imageUrls.slice(0, 9)
+      const hasMore = imageUrls.length > 9
+      
+      return (
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          {displayImages.map((url, idx) => (
+            <div key={idx} className="relative aspect-square rounded-md overflow-hidden">
+              <Image
+                src={url}
+                alt={`图片 ${idx + 1}`}
+                fill
+                className="object-cover"
+              />
+              {idx === 8 && hasMore && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">+{imageUrls.length - 9}</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )
+    }
+  }
 
   return (
-    <div className="flex-1 bg-gray-50 min-h-screen">
+    <div className="flex-1 bg-gray-50 min-h-screen pb-20">
       <header className="sticky top-0 z-10 bg-white border-b">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-3">
@@ -184,12 +269,6 @@ export default function MaterialsPage({ params }: { params: Promise<{ id: string
             <h1 className="text-lg font-medium">已采集素材</h1>
           </div>
           <div className="flex items-center space-x-2">
-            {/* 已隐藏下载Excel按钮
-            <Button variant="outline" onClick={handleDownload}>
-              <Download className="h-4 w-4 mr-2" />
-              下载Excel
-            </Button>
-            */}
             <Button onClick={handleNewMaterial}>
               <Plus className="h-4 w-4 mr-2" />
               新建素材
@@ -199,120 +278,183 @@ export default function MaterialsPage({ params }: { params: Promise<{ id: string
       </header>
 
       <div className="p-4">
-        <Card className="p-4">
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="搜索素材..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="pl-9"
-                />
-              </div>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={handleRefresh}
-                disabled={isLoading}
-              >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              </Button>
+        <Card className="p-4 mb-4">
+          <div className="flex items-center space-x-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="搜索素材..." 
+                className="pl-9" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              />
             </div>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={handleRefresh}
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        </Card>
 
-            <div className="space-y-4">
-              {isLoading ? (
-                <div className="flex justify-center items-center py-12">
-                  <RefreshCw className="h-8 w-8 text-blue-500 animate-spin" />
-                </div>
-              ) : filteredMaterials.length === 0 ? (
-                <div className="flex justify-center items-center py-12">
-                  <div className="text-center">
-                    <p className="text-gray-500 mb-4">暂无数据</p>
-                    <Button onClick={handleNewMaterial} size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
-                      新建素材
-                    </Button>
+        {isLoading ? (
+          // 加载状态
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <Card key={index} className="p-4">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse"></div>
+                  <div className="space-y-2">
+                    <div className="h-4 w-24 bg-gray-200 animate-pulse rounded"></div>
+                    <div className="h-3 w-16 bg-gray-200 animate-pulse rounded"></div>
                   </div>
                 </div>
-              ) : (
-                filteredMaterials.map((material) => (
-                  <div
-                    key={material.id}
-                    className="bg-white rounded-2xl shadow-md p-5 flex flex-col gap-3 mb-4 border border-gray-100"
-                  >
-                    {/* 图片/内容区 */}
-                    <ContentDisplay content={material.content} resUrls={material.resUrls} />
-                    {/* 资源标签（非图片） */}
-                    {material.resUrls.length > 0 && !material.resUrls.some(isImageUrl) && (
-                      <div className="flex flex-wrap gap-2 mb-1">
-                        {material.resUrls.map((url, index) => (
-                          <Badge key={index} variant="secondary">
-                            <Tag className="h-3 w-3 mr-1" />
-                            资源 {index + 1}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                    {/* 底部信息区 */}
-                    <div className="pt-2 border-t border-gray-100 mt-2 text-xs text-gray-500">
-                      <div className="flex justify-between items-center">
-                        <span>发送者: {material.senderNickname}</span>
-                        <span>时间: {material.time}</span>
-                      </div>
-                      <div className="flex justify-between items-center mt-2">
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm" className="px-3 h-8 text-xs"
-                            onClick={() => router.push(`/content/${resolvedParams.id}/materials/edit/${material.id}`)}>
-                            <Edit className="h-4 w-4 mr-1" />
-                            编辑
-                          </Button>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="outline" size="sm" className="px-3 h-8 text-xs">
-                                <BarChart className="h-4 w-4 mr-1" />
-                                AI分析
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>AI 分析结果</DialogTitle>
-                              </DialogHeader>
-                              <div className="mt-4">
-                                <p>正在分析中...</p>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-                        <div>
-                          <Dialog open={deleteDialogOpen === material.id} onOpenChange={(open) => setDeleteDialogOpen(open ? material.id : null)}>
-                            <DialogTrigger asChild>
-                              <Button variant="destructive" size="sm" className="px-3 h-8 text-xs">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>确认删除</DialogTitle>
-                              </DialogHeader>
-                              <div className="mt-4 mb-4 text-sm text-gray-700">确定要删除该素材吗？此操作不可恢复。</div>
-                              <div className="flex justify-end space-x-2">
-                                <Button variant="outline" size="sm" onClick={() => setDeleteDialogOpen(null)}>取消</Button>
-                                <Button variant="destructive" size="sm" onClick={() => handleDelete(material.id)}>确认删除</Button>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
+                <div className="my-3 h-0.5 bg-gray-100"></div>
+                <div className="space-y-2">
+                  <div className="h-4 w-full bg-gray-200 animate-pulse rounded"></div>
+                  <div className="h-4 w-3/4 bg-gray-200 animate-pulse rounded"></div>
+                  <div className="flex space-x-2 mt-3">
+                    <div className="h-20 w-20 bg-gray-200 animate-pulse rounded"></div>
+                    <div className="h-20 w-20 bg-gray-200 animate-pulse rounded"></div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          // 素材列表
+          <div className="space-y-4">
+            {materials.length === 0 ? (
+              <Card className="p-8 text-center text-gray-500">
+                暂无素材数据
+              </Card>
+            ) : (
+              materials.map(material => (
+                <Card key={material.id} className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3">
+                      <Avatar>
+                        <Image 
+                          src={material.senderAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${material.senderNickname}`} 
+                          alt={material.senderNickname}
+                          width={40}
+                          height={40}
+                          className="rounded-full"
+                        />
+                      </Avatar>
+                      <div>
+                        <div className="font-medium">{material.senderNickname}</div>
+                        <div className="text-sm text-gray-500">
+                          {material.time && format(new Date(material.time), 'yyyy-MM-dd HH:mm')}
                         </div>
                       </div>
                     </div>
+                    <Badge variant="outline" className="bg-blue-50">
+                      ID: {material.id}
+                    </Badge>
                   </div>
-                ))
-              )}
-            </div>
+                  
+                  <Separator className="my-3" />
+                  
+                  {/* 文本内容 */}
+                  {renderContent(material)}
+                  
+                  {/* 图片资源 */}
+                  {renderImageResources(material)}
+                  
+                  {/* 非图片资源标签 */}
+                  {material.resUrls.length > 0 && !material.resUrls.some(isImageUrl) && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {material.resUrls.map((url, index) => (
+                        <Badge key={index} variant="secondary">
+                          <Tag className="h-3 w-3 mr-1" />
+                          资源 {index + 1}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-between mt-4">
+                    <div className="flex space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="px-3 h-8 text-xs"
+                        onClick={() => router.push(`/content/${resolvedParams.id}/materials/edit/${material.id}`)}
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
+                        编辑
+                      </Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="px-3 h-8 text-xs">
+                            <BarChart className="h-4 w-4 mr-1" />
+                            AI分析
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>AI 分析结果</DialogTitle>
+                          </DialogHeader>
+                          <div className="mt-4">
+                            <p>正在分析中...</p>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                    <Dialog open={deleteDialogOpen === material.id} onOpenChange={(open) => setDeleteDialogOpen(open ? material.id : null)}>
+                      <DialogTrigger asChild>
+                        <Button variant="destructive" size="sm" className="px-3 h-8 text-xs">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>确认删除</DialogTitle>
+                        </DialogHeader>
+                        <div className="mt-4 mb-4 text-sm text-gray-700">确定要删除该素材吗？此操作不可恢复。</div>
+                        <div className="flex justify-end space-x-2">
+                          <Button variant="outline" size="sm" onClick={() => setDeleteDialogOpen(null)}>取消</Button>
+                          <Button variant="destructive" size="sm" onClick={() => handleDelete(material.id)}>确认删除</Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </Card>
+              ))
+            )}
           </div>
-        </Card>
+        )}
+        
+        {!isLoading && total > limit && (
+          <div className="flex justify-center mt-6">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 1}
+              onClick={() => setPage(prev => Math.max(prev - 1, 1))}
+              className="mx-1"
+            >
+              上一页
+            </Button>
+            <span className="mx-4 py-2 text-sm text-gray-500">
+              第 {page} 页，共 {Math.ceil(total / limit)} 页
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= Math.ceil(total / limit)}
+              onClick={() => setPage(prev => prev + 1)}
+              className="mx-1"
+            >
+              下一页
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )
