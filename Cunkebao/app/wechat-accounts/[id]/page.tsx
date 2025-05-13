@@ -420,7 +420,7 @@ export default function WechatAccountDetailPage() {
             color: getRandomTagColor(),
           })),
           region: '未知地区',
-          source: '微信好友',
+          source: '未记录',
           notes: '',
         }));
         
@@ -1110,7 +1110,7 @@ export default function WechatAccountDetailPage() {
                     )}
                     <div className="space-y-1">
                       <div className="text-sm text-gray-500">来源</div>
-                      <div className="font-medium">微信好友</div>
+                      <div className="font-medium">{friendDetail.source || '未记录'}</div>
                     </div>
                   </div>
 
@@ -1136,14 +1136,14 @@ export default function WechatAccountDetailPage() {
                     <Button variant="outline" onClick={() => setShowFriendDetail(false)}>
                       关闭
                     </Button>
-                    <Button
+                    {/* <Button
                       onClick={() => {
                         setShowFriendDetail(false)
                         router.push(`/traffic-pool?source=${friendDetail.wechatId}`)
                       }}
                     >
                       添加到流量池
-                    </Button>
+                    </Button> */}
                   </div>
                 </div>
               ) : selectedFriend && (

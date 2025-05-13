@@ -184,6 +184,7 @@ export interface WechatFriendDetail {
   tags: string[];
   playDate: string;
   memo: string;
+  source: string;
 }
 
 interface WechatFriendDetailResponse {
