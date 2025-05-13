@@ -148,8 +148,8 @@ class ContentLibraryController extends Controller
                 $friendsInfo = [];
 
                 if (!empty($friendIds)) {
-                    // 查询好友信息，使用wechat_friend表
-                    $friendsInfo = Db::name('wechat_friend')->alias('wf')
+                    // 查询好友信息，使用wechat_friendship表
+                    $friendsInfo = Db::name('wechat_friendship')->alias('wf')
                         ->field('wf.id,wf.wechatId, wa.nickname, wa.avatar')
                         ->join('wechat_account wa', 'wf.wechatId = wa.wechatId')
                         ->whereIn('wf.id', $friendIds)
@@ -238,8 +238,8 @@ class ContentLibraryController extends Controller
         $friendsInfo = [];
         
         if (!empty($friendIds)) {
-           // 查询好友信息，使用wechat_friend表
-            $friendsInfo = Db::name('wechat_friend')->alias('wf')
+           // 查询好友信息，使用wechat_friendship表
+            $friendsInfo = Db::name('wechat_friendship')->alias('wf')
             ->field('wf.id,wf.wechatId, wa.nickname, wa.avatar')
             ->join('wechat_account wa', 'wf.wechatId = wa.wechatId')
             ->whereIn('wf.id', $friendIds)
@@ -440,7 +440,7 @@ class ContentLibraryController extends Controller
 
             // 获取发送者信息
             if ($item['type'] == 'moment' && $item['friendId']) {
-                $friendInfo = Db::name('wechat_friend')
+                $friendInfo = Db::name('wechat_friendship')
                     ->alias('wf')
                     ->join('wechat_account wa', 'wf.wechatId = wa.wechatId')
                     ->where('wf.id', $item['friendId'])
@@ -623,7 +623,7 @@ class ContentLibraryController extends Controller
 
         // 获取发送者信息
         if ($item['type'] == 'moment' && $item['friendId']) {
-            $friendInfo = Db::name('wechat_friend')
+            $friendInfo = Db::name('wechat_friendship')
                 ->alias('wf')
                 ->join('wechat_account wa', 'wf.wechatId = wa.wechatId')
                 ->where('wf.id', $item['friendId'])
