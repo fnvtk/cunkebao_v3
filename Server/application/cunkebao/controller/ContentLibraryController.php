@@ -447,6 +447,18 @@ class ContentLibraryController extends Controller
                     ->field('wa.nickname, wa.avatar')
                     ->find();
                 $item['senderNickname'] = $friendInfo['nickname'] ?: '';
+                $item['senderAvatar'] = $friendInfo['avatar'] ?: '';
+            }else{
+                // $friendInfo = Db::name('wechat_group_member')
+                //     ->alias('wgm')
+                //     ->join('wechat_account wa', 'wgm.identifier = wa.wechatId')
+                //     ->where('wgm.identifier', $item['wechatId'])
+                //     ->field('wa.nickname, wa.avatar')
+                //     ->find();
+                //     print_r($friendInfo);
+                //     exit;
+                // $item['senderNickname'] = $friendInfo['nickname'] ?: '';
+                // $item['senderAvatar'] = $friendInfo['avatar'] ?: '';
             }
         }
         unset($item);
