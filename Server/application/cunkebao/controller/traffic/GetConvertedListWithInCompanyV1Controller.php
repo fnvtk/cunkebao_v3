@@ -14,6 +14,25 @@ use library\ResponseHelper;
 class GetConvertedListWithInCompanyV1Controller extends BaseController
 {
     /**
+     * 构建返回数据
+     *
+     * @param \think\Paginator $result
+     * @return array
+     */
+    protected function makeResultedSet(\think\Paginator $result): array
+    {
+        $resultSets = [];
+
+        foreach ($result->items() as $item) {
+            $item->tags = json_decode($item->tags);
+
+            array_push($resultSets, $item->toArray());
+        }
+
+        return $resultSets;
+    }
+
+    /**
      * 构建查询条件
      *
      * @param array $params
@@ -47,7 +66,8 @@ class GetConvertedListWithInCompanyV1Controller extends BaseController
         $query = TrafficSourceModel::alias('s')
             ->field(
                 [
-                    'w.id', 'w.nickname', 'w.avatar', 'w.wechatId',
+                    'w.id', 'w.nickname', 'w.avatar',
+                    'CASE WHEN w.alias IS NULL OR w.alias = "" THEN w.wechatId ELSE w.alias END AS wechatId',
                     's.fromd',
                     'f.tags', 'f.createTime', TrafficSourceModel::STATUS_PASSED . ' status'
                 ]
@@ -81,7 +101,7 @@ class GetConvertedListWithInCompanyV1Controller extends BaseController
 
             return ResponseHelper::success(
                 [
-                    'list'  => $result->items(),
+                    'list'  => $this->makeResultedSet($result),
                     'total' => $result->total(),
                 ]
             );
