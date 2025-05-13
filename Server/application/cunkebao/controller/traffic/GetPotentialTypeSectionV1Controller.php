@@ -3,6 +3,7 @@
 namespace app\cunkebao\controller\traffic;
 
 use app\common\model\TrafficPool as TrafficPoolModel;
+use app\common\model\TrafficSource as TrafficSourceModel;
 use app\common\model\WechatFriendShip as WechatFriendShipModel;
 use app\cunkebao\controller\BaseController;
 use library\ResponseHelper;
@@ -21,23 +22,23 @@ class GetPotentialTypeSectionV1Controller extends BaseController
     {
         return [
             [
-                'id'   => 1,
+                'id'   => TrafficSourceModel::STATUS_PENDING,
                 'name' => '待处理'
             ],
             [
-                'id'   => 2,
+                'id'   => TrafficSourceModel::STATUS_WORKING,
                 'name' => '处理中'
             ],
             [
-                'id'   => 4,
+                'id'   => TrafficSourceModel::STATUS_REFUSED,
                 'name' => '已拒绝'
             ],
             [
-                'id'   => 5,
+                'id'   => TrafficSourceModel::STATUS_EXPIRED,
                 'name' => '已过期'
             ],
             [
-                'id'   => 6,
+                'id'   => TrafficSourceModel::STATUS_CANCELED,
                 'name' => '已取消'
             ]
         ];

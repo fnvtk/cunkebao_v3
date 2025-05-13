@@ -88,10 +88,11 @@ interface TrafficPoolResponse {
     pageSize: number
     totalPages: number
   }
-  statistics: {
-    total: number
-    todayNew: number
-  }
+}
+
+interface Statistics {
+  totalCount: number
+  todayAddCount: number
 }
 
 export default function TrafficPoolPage() {
@@ -108,9 +109,9 @@ export default function TrafficPoolPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [isFetching, setIsFetching] = useState(false)
-  const [stats, setStats] = useState({
-    total: 0,
-    todayNew: 0,
+  const [stats, setStats] = useState<Statistics>({
+    totalCount: 0,
+    todayAddCount: 0
   })
   const [selectedUser, setSelectedUser] = useState<TrafficUser | null>(null)
   const [showUserDetail, setShowUserDetail] = useState(false)
@@ -179,7 +180,7 @@ export default function TrafficPoolPage() {
       } as any)
 
       if (response.code === 200) {
-        const { list, pagination, statistics } = response.data
+        const { list, pagination } = response.data
         
         const transformedUsers = list.map(user => ({
           id: user.id.toString(),
@@ -200,10 +201,6 @@ export default function TrafficPoolPage() {
         setUsers(prev => isNewSearch ? transformedUsers : [...prev, ...transformedUsers])
         setCurrentPage(page)
         setHasMore(list.length > 0 && page < pagination.totalPages)
-        setStats({
-          total: statistics.total,
-          todayNew: statistics.todayNew
-        })
       } else {
         toast({
           title: "获取数据失败",
@@ -281,6 +278,33 @@ export default function TrafficPoolPage() {
     }
   }, [])
 
+  const fetchStatistics = useCallback(async () => {
+    try {
+      const response = await api.get<ApiResponse<Statistics>>('/v1/traffic/pool/statistics', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      } as any)
+      
+      if (response.code === 200) {
+        setStats(response.data)
+      } else {
+        toast({
+          title: "获取统计数据失败",
+          description: response.msg || "请稍后重试",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("获取统计数据失败:", error)
+      toast({
+        title: "获取统计数据失败",
+        description: "请检查网络连接或稍后重试",
+        variant: "destructive",
+      })
+    }
+  }, [])
+
   // 处理搜索
   const handleSearch = useCallback(() => {
     setUsers([])
@@ -315,6 +339,7 @@ export default function TrafficPoolPage() {
   useEffect(() => {
     fetchStatusTypes()
     fetchSourceTypes()
+    fetchStatistics()
     fetchUsers(1, true)
   }, [])
 
@@ -377,11 +402,11 @@ export default function TrafficPoolPage() {
           <div className="grid grid-cols-2 gap-4">
             <Card className="p-4">
               <div className="text-sm text-gray-500">流量池总数</div>
-              <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
+              <div className="text-2xl font-bold text-blue-600">{stats.totalCount}</div>
             </Card>
             <Card className="p-4">
               <div className="text-sm text-gray-500">今日新增</div>
-              <div className="text-2xl font-bold text-green-600">{stats.todayNew}</div>
+              <div className="text-2xl font-bold text-green-600">{stats.todayAddCount}</div>
             </Card>
           </div>
 
