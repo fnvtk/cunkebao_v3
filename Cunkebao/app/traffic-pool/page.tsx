@@ -151,16 +151,25 @@ export default function TrafficPoolPage() {
 
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: "30",
-        search: debouncedSearchQuery,
-        category: activeCategory,
-        source: sourceFilter !== "all" ? sourceFilter : "",
-        status: statusFilter === "all" ? "" : statusFilter,
+        limit: "30"
       })
 
-      const sourceParam = searchParams?.get("source")
-      if (sourceParam) {
-        params.append("wechatSource", sourceParam)
+      // 只有在有搜索关键词时才添加 keyword 参数
+      if (debouncedSearchQuery) {
+        params.append("keyword", debouncedSearchQuery)
+      }
+
+      // 只有在选择了特定来源时才添加 fromd 参数
+      if (sourceFilter !== "all") {
+        const selectedSource = sourceTypes.find(source => source.id.toString() === sourceFilter)
+        if (selectedSource) {
+          params.append("fromd", selectedSource.name)
+        }
+      }
+
+      // 只有在选择了特定状态时才添加 status 参数
+      if (statusFilter !== "all") {
+        params.append("status", statusFilter)
       }
 
       const response = await api.get<ApiResponse<TrafficPoolResponse>>(`/v1/traffic/pool?${params.toString()}`, {
@@ -216,7 +225,7 @@ export default function TrafficPoolPage() {
       setIsFetching(false)
       setLoading(false)
     }
-  }, [debouncedSearchQuery, activeCategory, sourceFilter, statusFilter, searchParams])
+  }, [debouncedSearchQuery, sourceFilter, statusFilter, sourceTypes])
 
   const fetchStatusTypes = useCallback(async () => {
     try {

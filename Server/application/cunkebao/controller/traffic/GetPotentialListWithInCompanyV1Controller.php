@@ -20,9 +20,18 @@ class GetPotentialListWithInCompanyV1Controller extends BaseController
      */
     protected function makeWhere(array $params = []): array
     {
-        // 关键词搜索（同时搜索IMEI和备注）
         if (!empty($keyword = $this->request->param('keyword'))) {
             $where[] = ['exp', "p.identifier LIKE '%{$keyword}%'"];
+        }
+
+        // 状态筛选
+        if ($status = $this->request->param('status')) {
+            $where['s.status'] = $status;
+        }
+
+        // 来源的筛选
+        if ($fromd = $this->request->param('fromd')) {
+            $where['s.fromd'] = $fromd;
         }
 
         $where['s.companyId'] = $this->getUserInfo('companyId');
@@ -38,14 +47,14 @@ class GetPotentialListWithInCompanyV1Controller extends BaseController
      */
     protected function getPoolListByCompanyId(array $where): \think\Paginator
     {
-        $query = TrafficPoolModel::alias('t')
+        $query = TrafficPoolModel::alias('p')
             ->field(
                 [
-                    't.identifier nickname', 't.mobile', 't.wechatId', 't.identifier',
+                    'p.identifier nickname', 'p.mobile', 'p.wechatId', 'p.identifier',
                     's.id', 's.fromd', 's.status', 's.createTime'
                 ]
             )
-            ->join('traffic_source s', 't.identifier=s.identifier')
+            ->join('traffic_source s', 'p.identifier=s.identifier')
             ->order('s.id desc');
 
         foreach ($where as $key => $value) {
