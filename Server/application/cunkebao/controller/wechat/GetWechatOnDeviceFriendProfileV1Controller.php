@@ -19,7 +19,7 @@ class GetWechatOnDeviceFriendProfileV1Controller extends BaseController
      */
     protected function getLastPlayTime(string $wechatId): string
     {
-        return date('Y-m-d H:i:s', strtotime('-1 day'));
+        return date('Y-m-d', strtotime('-1 day'));
     }
 
     /**
@@ -36,7 +36,7 @@ class GetWechatOnDeviceFriendProfileV1Controller extends BaseController
                 [
                     'w.id', 'w.avatar', 'w.nickname', 'w.region', 'w.wechatId',
                     'CASE WHEN w.alias IS NULL OR w.alias = "" THEN w.wechatId ELSE w.alias END AS wechatId',
-                    'f.createTime addTime', 'f.tags'
+                    'f.createTime addTime', 'f.tags', 'f.memo'
                 ]
             )
             ->join('wechat_friendship f', 'w.wechatId=f.wechatId')
@@ -63,8 +63,9 @@ class GetWechatOnDeviceFriendProfileV1Controller extends BaseController
 
             return ResponseHelper::success(
                 array_merge($results, [
-                    'play' => $this->getLastPlayTime($results['wechatId']),
-                    'tags' => json_decode($results['tags'], true)
+                    'playDate' => $this->getLastPlayTime($results['wechatId']),
+                    'tags'     => json_decode($results['tags'], true),
+                    'addDate'  => date('Y-m-d', $results['addTime']),
                 ])
             );
         } catch (\Exception $e) {

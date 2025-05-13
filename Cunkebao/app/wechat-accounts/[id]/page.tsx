@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
-import { fetchWechatAccountSummary } from "@/api/wechat-accounts"
+import { fetchWechatAccountSummary, fetchWechatFriendDetail, WechatFriendDetail } from "@/api/wechat-accounts"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -47,7 +47,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { fetchWechatFriends } from "@/api/wechat-accounts"
 
 interface ApiResponse<T> {
   code: number;
@@ -177,6 +176,9 @@ export default function WechatAccountDetailPage() {
   const [showTransferConfirm, setShowTransferConfirm] = useState(false)
   const [showFriendDetail, setShowFriendDetail] = useState(false)
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null)
+  const [friendDetail, setFriendDetail] = useState<WechatFriendDetail | null>(null)
+  const [isLoadingFriendDetail, setIsLoadingFriendDetail] = useState(false)
+  const [friendDetailError, setFriendDetailError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("overview")
   const [isLoading, setIsLoading] = useState(false)
@@ -614,9 +616,25 @@ export default function WechatAccountDetailPage() {
     setShowTransferConfirm(false)
   }
 
-  const handleFriendClick = (friend: Friend) => {
+  const handleFriendClick = async (friend: Friend) => {
     setSelectedFriend(friend)
     setShowFriendDetail(true)
+    setIsLoadingFriendDetail(true)
+    setFriendDetailError(null)
+    
+    try {
+      const response = await fetchWechatFriendDetail(account?.wechatId || id, friend.id)
+      if (response.code === 200) {
+        setFriendDetail(response.data)
+      } else {
+        setFriendDetailError(response.msg || "获取好友详情失败")
+      }
+    } catch (error) {
+      console.error("获取好友详情失败:", error)
+      setFriendDetailError("获取好友详情失败，请稍后再试")
+    } finally {
+      setIsLoadingFriendDetail(false)
+    }
   }
 
   // 修改获取限制等级颜色的函数
@@ -1043,7 +1061,92 @@ export default function WechatAccountDetailPage() {
               <DialogHeader>
                 <DialogTitle>好友详情</DialogTitle>
               </DialogHeader>
-              {selectedFriend && (
+              {isLoadingFriendDetail ? (
+                <div className="flex justify-center items-center py-10">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                </div>
+              ) : friendDetailError ? (
+                <div className="text-center py-8 text-red-500">
+                  <p>{friendDetailError}</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-4"
+                    onClick={() => handleFriendClick(selectedFriend!)}
+                  >
+                    重新加载
+                  </Button>
+                </div>
+              ) : friendDetail ? (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <Avatar className="h-16 w-16">
+                      <AvatarImage src={friendDetail.avatar} />
+                      <AvatarFallback>{friendDetail.nickname[0]}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="text-xl font-medium">{friendDetail.nickname}</div>
+                      <div className="text-sm text-gray-500">{friendDetail.wechatId}</div>
+                      {friendDetail.memo && (
+                        <div className="text-sm text-gray-500">备注: {friendDetail.memo}</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <div className="text-sm text-gray-500">添加时间</div>
+                      <div className="font-medium">{friendDetail.addDate}</div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-sm text-gray-500">最近互动</div>
+                      <div className="font-medium">{friendDetail.playDate}</div>
+                    </div>
+                    {friendDetail.region && (
+                      <div className="space-y-1">
+                        <div className="text-sm text-gray-500">地区</div>
+                        <div className="font-medium">{friendDetail.region || '未知地区'}</div>
+                      </div>
+                    )}
+                    <div className="space-y-1">
+                      <div className="text-sm text-gray-500">来源</div>
+                      <div className="font-medium">微信好友</div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="text-sm text-gray-500 flex items-center">
+                      <Tag className="h-4 w-4 mr-1" />
+                      标签
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {friendDetail.tags.map((tag, index) => (
+                        <span 
+                          key={index} 
+                          className={`text-sm px-2 py-1 rounded-full ${getRandomTagColor()}`}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                      {friendDetail.tags.length === 0 && <span className="text-sm text-gray-500">暂无标签</span>}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setShowFriendDetail(false)}>
+                      关闭
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setShowFriendDetail(false)
+                        router.push(`/traffic-pool?source=${friendDetail.wechatId}`)
+                      }}
+                    >
+                      添加到流量池
+                    </Button>
+                  </div>
+                </div>
+              ) : selectedFriend && (
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3">
                     <Avatar className="h-16 w-16">
@@ -1084,7 +1187,7 @@ export default function WechatAccountDetailPage() {
                       标签
                     </div>
                     <div className="flex flex-wrap gap-2">
-                        {selectedFriend.tags.map((tag: FriendTag) => (
+                      {selectedFriend.tags.map((tag: FriendTag) => (
                         <span key={tag.id} className={`text-sm px-2 py-1 rounded-full ${tag.color}`}>
                           {tag.name}
                         </span>
@@ -1127,4 +1230,5 @@ export default function WechatAccountDetailPage() {
     </TooltipProvider>
   )
 }
+
 

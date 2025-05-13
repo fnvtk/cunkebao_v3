@@ -166,4 +166,37 @@ export const fetchWechatAccountSummary = async (id: string): Promise<WechatAccou
     console.error("获取账号概览失败:", error);
     throw error;
   }
+};
+
+/**
+ * 获取好友详情信息
+ * @param wechatId 微信账号ID
+ * @param friendId 好友ID
+ * @returns 好友详情信息
+ */
+export interface WechatFriendDetail {
+  id: number;
+  avatar: string;
+  nickname: string;
+  region: string;
+  wechatId: string;
+  addDate: string;
+  tags: string[];
+  playDate: string;
+  memo: string;
+}
+
+interface WechatFriendDetailResponse {
+  code: number;
+  msg: string;
+  data: WechatFriendDetail;
+}
+
+export const fetchWechatFriendDetail = async (wechatId: string, friendId: string): Promise<WechatFriendDetailResponse> => {
+  try {
+    return api.get<WechatFriendDetailResponse>(`/v1/wechats/${wechatId}/friend/${friendId}`);
+  } catch (error) {
+    console.error("获取好友详情失败:", error);
+    throw error;
+  }
 }; 
