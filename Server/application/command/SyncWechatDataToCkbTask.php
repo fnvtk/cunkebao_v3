@@ -6,12 +6,27 @@ use think\facade\Log;
 use think\console\Input;
 use think\console\Output;
 use think\console\Command;
+use think\facade\App;
 use WeChatDeviceApi\Adapters\ChuKeBao\Adapter as ChuKeBaoAdapter;
 
 // */7 * * * * cd /www/wwwroot/mckb_quwanzhi_com/Server && php think sync:wechatData >> /www/wwwroot/mckb_quwanzhi_com/Server/runtime/log/sync_wechat_data.log 2>&1
 class SyncWechatDataToCkbTask extends Command
 {
-    protected $lockFile = RUNTIME_PATH . 'sync_wechat_to_ckb.lock';
+    protected $lockFile;
+    
+    public function __construct()
+    {
+        parent::__construct();
+        $this->lockFile = App::getRuntimePath() . 'sync_wechat_to_ckb.lock';
+    }
+
+
+    protected function configure()
+    {
+        $this->setName('sync:wechatData')
+            ->setDescription('同步微信数据到存客宝');
+    }
+
     
     protected function execute(Input $input, Output $output)
     {
@@ -31,6 +46,7 @@ class SyncWechatDataToCkbTask extends Command
             $ChuKeBaoAdapter = new ChuKeBaoAdapter();
             $this->syncWechatAccount($ChuKeBaoAdapter);
             $this->syncWechatFriend($ChuKeBaoAdapter);
+            $this->syncWechatDeviceLoginLog($ChuKeBaoAdapter);
             return true;
         } catch (\Exception $e) {
             Log::error('微信好友同步任务异常：' . $e->getMessage());
@@ -50,5 +66,10 @@ class SyncWechatDataToCkbTask extends Command
     protected function syncWechatAccount(ChuKeBaoAdapter $ChuKeBaoAdapter)
     {
         return $ChuKeBaoAdapter->syncWechatAccount();
+    }
+
+    protected function syncWechatDeviceLoginLog(ChuKeBaoAdapter $ChuKeBaoAdapter)
+    {
+        return $ChuKeBaoAdapter->syncWechatDeviceLoginLog();
     }
 }
