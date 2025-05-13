@@ -10,7 +10,7 @@ use library\ResponseHelper;
 /**
  * 流量池控制器
  */
-class GetDissociateListWithInCompanyV1Controller extends BaseController
+class GetPotentialListWithInCompanyV1Controller extends BaseController
 {
     /**
      * 构建查询条件

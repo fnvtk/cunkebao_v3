@@ -37,7 +37,7 @@ interface TrafficUser {
   phone: string
   region: string
   note: string
-  status: "pending" | "added" | "failed"
+  status: number
   addTime: string
   source: string
   assignedTo: string
@@ -48,6 +48,7 @@ interface TrafficUser {
 interface StatusType {
   id: number
   name: string
+  code: string
 }
 
 interface ApiResponse<T> {
@@ -144,37 +145,43 @@ export default function TrafficPoolPage() {
 
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: "30", // 设置每页显示30条
+        limit: "30",
         search: debouncedSearchQuery,
         category: activeCategory,
         source: sourceFilter !== "all" ? sourceFilter : "",
         status: statusFilter === "all" ? "" : statusFilter,
       })
 
-      // 检查是否有来源参数
       const sourceParam = searchParams?.get("source")
       if (sourceParam) {
         params.append("wechatSource", sourceParam)
       }
 
-      const response = await api.get<ApiResponse<TrafficPoolResponse>>(`/v1/traffic/pool?${params.toString()}`)
+      const response = await api.get<ApiResponse<TrafficPoolResponse>>(`/v1/traffic/pool?${params.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      } as any)
 
       if (response.code === 200) {
         const { list, pagination, statistics } = response.data
         
-        // 转换数据格式
         const transformedUsers = list.map(user => ({
-          ...user,
           id: user.id.toString(),
-          status: getStatusFromCode(user.status),
-          tags: user.tags || [],
-          category: user.category || "potential",
+          avatar: user.avatar,
+          nickname: user.name || user.nickname || '未知用户',
+          wechatId: user.wechatId,
+          phone: user.phone,
+          region: user.region,
+          note: user.note,
+          status: user.status,
           addTime: formatDateTime(user.createTime),
           source: user.fromd || '未知来源',
-          nickname: user.name || user.nickname || '未知用户'
+          assignedTo: user.assignedTo,
+          category: user.category || "potential",
+          tags: user.tags || []
         }))
 
-        // 更新用户列表
         setUsers(prev => isNewSearch ? transformedUsers : [...prev, ...transformedUsers])
         setCurrentPage(page)
         setHasMore(list.length > 0 && page < pagination.totalPages)
@@ -207,7 +214,11 @@ export default function TrafficPoolPage() {
 
   const fetchStatusTypes = useCallback(async () => {
     try {
-      const response = await api.get<ApiResponse<StatusType[]>>('/v1/traffic/pool/types')
+      const response = await api.get<ApiResponse<StatusType[]>>('/v1/traffic/pool/types', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      } as any)
       
       if (response.code === 200) {
         setStatusTypes(response.data)
@@ -236,9 +247,9 @@ export default function TrafficPoolPage() {
     fetchUsers(1, true)
   }, [fetchUsers])
 
-  // 设置 IntersectionObserver
+  // 初始化 IntersectionObserver
   useEffect(() => {
-    observerRef.current = new IntersectionObserver(
+    const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !isFetching) {
           fetchUsers(currentPage + 1)
@@ -247,35 +258,30 @@ export default function TrafficPoolPage() {
       { threshold: 0.5 }
     )
 
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect()
-      }
-    }
-  }, [fetchUsers, currentPage, hasMore, isFetching])
-
-  // 观察加载指示器
-  useEffect(() => {
-    if (loadingRef.current && observerRef.current) {
-      observerRef.current.observe(loadingRef.current)
+    if (loadingRef.current) {
+      observer.observe(loadingRef.current)
     }
 
     return () => {
-      if (loadingRef.current && observerRef.current) {
-        observerRef.current.unobserve(loadingRef.current)
+      if (loadingRef.current) {
+        observer.unobserve(loadingRef.current)
       }
     }
-  }, [loadingRef.current, observerRef.current])
+  }, [hasMore, isFetching, currentPage, fetchUsers])
 
-  // 初始加载
+  // 初始化数据
   useEffect(() => {
+    fetchStatusTypes()
     fetchUsers(1, true)
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
-      }
-    }
-  }, [fetchUsers])
+  }, [])
+
+  // 监听筛选条件变化
+  useEffect(() => {
+    setUsers([])
+    setCurrentPage(1)
+    setHasMore(true)
+    fetchUsers(1, true)
+  }, [activeCategory, sourceFilter, statusFilter, debouncedSearchQuery])
 
   const handleUserClick = (user: TrafficUser) => {
     setSelectedUser(user)
@@ -283,16 +289,8 @@ export default function TrafficPoolPage() {
   }
 
   // 添加状态码转换函数
-  const getStatusFromCode = (statusCode: number): "pending" | "added" | "failed" => {
-    const statusMap: Record<number, "pending" | "added" | "failed"> = {
-      1: "pending", // 待处理
-      2: "pending", // 处理中
-      3: "added",   // 已添加
-      4: "failed",  // 已拒绝
-      5: "failed",  // 已过期
-      6: "failed",  // 已取消
-    }
-    return statusMap[statusCode] || "pending"
+  const getStatusFromCode = (statusCode: number): number => {
+    return statusCode;
   }
 
   return (
@@ -431,14 +429,14 @@ export default function TrafficPoolPage() {
                           <div className="font-medium truncate">{user.nickname}</div>
                           <div
                             className={`text-xs px-2 py-1 rounded-full ${
-                              user.status === "added"
+                              user.status === 2
                                 ? "bg-green-100 text-green-800"
-                                : user.status === "pending"
+                                : user.status === 1
                                   ? "bg-yellow-100 text-yellow-800"
                                   : "bg-red-100 text-red-800"
                             }`}
                           >
-                            {user.status === "added" ? "已添加" : user.status === "pending" ? "待处理" : "已失败"}
+                            {user.status === 2 ? "已添加" : user.status === 1 ? "待处理" : "已失败"}
                           </div>
                         </div>
                         <div className="text-sm text-gray-500">微信号: {user.wechatId}</div>
@@ -463,19 +461,19 @@ export default function TrafficPoolPage() {
                   </Card>
                 ))}
                 
-                {/* 加载更多指示器 */}
-                {hasMore && (
-                  <div ref={loadingRef} className="py-4 flex justify-center">
-                    {isFetching && <RefreshCw className="h-6 w-6 animate-spin text-blue-500" />}
-                  </div>
-                )}
-
-                {/* 显示加载状态和总数 */}
-                <div className="text-sm text-gray-500 text-center">
-                  {stats.total > 0 && (
-                    <span>
-                      已加载 {users.length} / {stats.total} 条记录
-                    </span>
+                {/* 加载状态显示 */}
+                <div ref={loadingRef} className="flex justify-center py-4">
+                  {isFetching && (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-gray-600">加载中...</span>
+                    </div>
+                  )}
+                  {!hasMore && users.length > 0 && (
+                    <span className="text-gray-500">已加载全部数据</span>
+                  )}
+                  {!isFetching && users.length === 0 && (
+                    <span className="text-gray-500">暂无数据</span>
                   )}
                 </div>
               </>
@@ -502,18 +500,14 @@ export default function TrafficPoolPage() {
                   <div className="text-sm text-gray-500">{selectedUser.wechatId}</div>
                   <Badge
                     className={`mt-1 ${
-                      selectedUser.status === "added"
+                      selectedUser.status === 2
                         ? "bg-green-100 text-green-800"
-                        : selectedUser.status === "pending"
+                        : selectedUser.status === 1
                           ? "bg-yellow-100 text-yellow-800"
                           : "bg-red-100 text-red-800"
                     }`}
                   >
-                    {selectedUser.status === "added"
-                      ? "已添加"
-                      : selectedUser.status === "pending"
-                        ? "待处理"
-                        : "已失败"}
+                    {selectedUser.status === 2 ? "已添加" : selectedUser.status === 1 ? "待处理" : "已失败"}
                   </Badge>
                 </div>
               </div>

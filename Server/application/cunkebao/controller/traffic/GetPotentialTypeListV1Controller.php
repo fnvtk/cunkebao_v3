@@ -10,7 +10,7 @@ use library\ResponseHelper;
 /**
  * 流量池控制器
  */
-class GetDissociateTypeListV1Controller extends BaseController
+class GetPotentialTypeListV1Controller extends BaseController
 {
     protected function getTypeList(): array
     {

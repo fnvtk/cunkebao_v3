@@ -41,8 +41,8 @@ Route::group('v1/', function () {
 
     // 流量池相关
     Route::group('traffic/pool', function () {
-        Route::get('', 'app\cunkebao\controller\traffic\GetDissociateListWithInCompanyV1Controller@index');
-        Route::get('types', 'app\cunkebao\controller\traffic\GetDissociateTypeListV1Controller@index');
+        Route::get('', 'app\cunkebao\controller\traffic\GetPotentialListWithInCompanyV1Controller@index');
+        Route::get('types', 'app\cunkebao\controller\traffic\GetPotentialTypeListV1Controller@index');
     });
 
     // 工作台相关
