@@ -361,6 +361,15 @@ export default function TrafficPoolPage() {
     return statusCode;
   }
 
+  // 添加刷新处理函数
+  const handleRefresh = useCallback(() => {
+    setUsers([])
+    setCurrentPage(1)
+    setHasMore(true)
+    fetchUsers(1, true)
+    fetchStatistics()
+  }, [fetchUsers, fetchStatistics])
+
   return (
     <div className="flex-1 bg-white min-h-screen flex flex-col">
       <header className="sticky top-0 z-10 bg-white border-b">
@@ -371,7 +380,7 @@ export default function TrafficPoolPage() {
             </Button>
             <h1 className="text-lg font-medium">流量池</h1>
           </div>
-          <Button variant="outline" size="icon" onClick={() => fetchUsers()}>
+          <Button variant="outline" size="icon" onClick={handleRefresh}>
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
@@ -478,7 +487,7 @@ export default function TrafficPoolPage() {
             ) : users.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg">
                 <div className="text-gray-500">暂无数据</div>
-                <Button variant="outline" className="mt-4" onClick={() => fetchUsers(1, true)}>
+                <Button variant="outline" className="mt-4" onClick={handleRefresh}>
                   刷新
                 </Button>
               </div>
