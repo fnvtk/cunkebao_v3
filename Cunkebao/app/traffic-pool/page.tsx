@@ -56,18 +56,51 @@ interface ApiResponse<T> {
   data: T
 }
 
+// 修改流量池数据类型定义
+interface TrafficPoolUser {
+  id: string
+  avatar: string
+  nickname: string
+  name: string
+  wechatId: string
+  phone: string
+  region: string
+  note: string
+  status: number
+  createTime: string
+  fromd: string
+  assignedTo: string
+  category: "potential" | "customer" | "lost"
+  tags: UserTag[]
+}
+
+interface TrafficPoolResponse {
+  list: TrafficPoolUser[]
+  pagination: {
+    total: number
+    current: number
+    pageSize: number
+    totalPages: number
+  }
+  statistics: {
+    total: number
+    todayNew: number
+  }
+}
+
 export default function TrafficPoolPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [users, setUsers] = useState<TrafficUser[]>([])
-  const [loading, setLoading] = useState(true) // Start with loading state
-  const [activeCategory, setActiveCategory] = useState("potential") // Changed default from "all" to "potential"
+  const [loading, setLoading] = useState(true)
+  const [activeCategory, setActiveCategory] = useState("potential")
   const [sourceFilter, setSourceFilter] = useState("all")
   const [statusTypes, setStatusTypes] = useState<StatusType[]>([])
-  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [statusFilter, setStatusFilter] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [isFetching, setIsFetching] = useState(false)
   const [stats, setStats] = useState({
     total: 0,
     todayNew: 0,
@@ -76,24 +109,45 @@ export default function TrafficPoolPage() {
   const [showUserDetail, setShowUserDetail] = useState(false)
 
   const { toast } = useToast()
+  const observerRef = useRef<IntersectionObserver | null>(null)
+  const loadingRef = useRef<HTMLDivElement | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
-  const fetchUsers = useCallback(async () => {
+  // 添加格式化时间的函数
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return '--';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }).replace(/\//g, '-');
+    } catch (error) {
+      return dateString;
+    }
+  };
+
+  const fetchUsers = useCallback(async (page: number = 1, isNewSearch: boolean = false) => {
     try {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
       }
 
       abortControllerRef.current = new AbortController()
+      setIsFetching(true)
 
-      setLoading(true)
       const params = new URLSearchParams({
-        page: currentPage.toString(),
-        pageSize: "10",
+        page: page.toString(),
+        limit: "30", // 设置每页显示30条
         search: debouncedSearchQuery,
         category: activeCategory,
-        source: sourceFilter,
+        source: sourceFilter !== "all" ? sourceFilter : "",
         status: statusFilter === "all" ? "" : statusFilter,
       })
 
@@ -103,62 +157,53 @@ export default function TrafficPoolPage() {
         params.append("wechatSource", sourceParam)
       }
 
-      const response = await fetch(`/api/users?${params}`, {
-        signal: abortControllerRef.current.signal,
-      })
+      const response = await api.get<ApiResponse<TrafficPoolResponse>>(`/v1/traffic/pool?${params.toString()}`)
 
-      if (!response.ok) throw new Error("请求失败")
-
-      const data = await response.json()
-
-      // 为每个用户添加标签
-      const usersWithTags = data.users.map((user: TrafficUser) => {
-        // 生成随机标签
-        const tagPool = [
-          { name: "潜在客户", color: "bg-blue-100 text-blue-800" },
-          { name: "高意向", color: "bg-green-100 text-green-800" },
-          { name: "已成交", color: "bg-purple-100 text-purple-800" },
-          { name: "需跟进", color: "bg-yellow-100 text-yellow-800" },
-          { name: "活跃用户", color: "bg-indigo-100 text-indigo-800" },
-          { name: "沉默用户", color: "bg-gray-100 text-gray-800" },
-          { name: "企业客户", color: "bg-red-100 text-red-800" },
-          { name: "个人用户", color: "bg-pink-100 text-pink-800" },
-          { name: "新增好友", color: "bg-emerald-100 text-emerald-800" },
-          { name: "老客户", color: "bg-amber-100 text-amber-800" },
-        ]
-
-        const tags = Array.from({ length: Math.floor(Math.random() * 4) + 1 }, () => {
-          const randomTag = tagPool[Math.floor(Math.random() * tagPool.length)]
-          return {
-            id: `tag-${Math.random().toString(36).substring(2, 9)}`,
-            name: randomTag.name,
-            color: randomTag.color,
-          }
-        })
-
-        return {
+      if (response.code === 200) {
+        const { list, pagination, statistics } = response.data
+        
+        // 转换数据格式
+        const transformedUsers = list.map(user => ({
           ...user,
-          tags,
-        }
-      })
+          id: user.id.toString(),
+          status: getStatusFromCode(user.status),
+          tags: user.tags || [],
+          category: user.category || "potential",
+          addTime: formatDateTime(user.createTime),
+          source: user.fromd || '未知来源',
+          nickname: user.name || user.nickname || '未知用户'
+        }))
 
-      setUsers(usersWithTags)
-      setTotalPages(data.pagination.totalPages)
-      setStats(data.stats)
+        // 更新用户列表
+        setUsers(prev => isNewSearch ? transformedUsers : [...prev, ...transformedUsers])
+        setCurrentPage(page)
+        setHasMore(list.length > 0 && page < pagination.totalPages)
+        setStats({
+          total: statistics.total,
+          todayNew: statistics.todayNew
+        })
+      } else {
+        toast({
+          title: "获取数据失败",
+          description: response.msg || "请稍后重试",
+          variant: "destructive",
+        })
+      }
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
         return
       }
 
       toast({
-        title: "错误",
-        description: "获取数据失败，请稍后重试",
+        title: "获取数据失败",
+        description: "请检查网络连接或稍后重试",
         variant: "destructive",
       })
     } finally {
+      setIsFetching(false)
       setLoading(false)
     }
-  }, [currentPage, debouncedSearchQuery, activeCategory, sourceFilter, statusFilter, toast, searchParams])
+  }, [debouncedSearchQuery, activeCategory, sourceFilter, statusFilter, searchParams])
 
   const fetchStatusTypes = useCallback(async () => {
     try {
@@ -183,19 +228,71 @@ export default function TrafficPoolPage() {
     }
   }, [])
 
+  // 处理搜索
+  const handleSearch = useCallback(() => {
+    setUsers([])
+    setCurrentPage(1)
+    setHasMore(true)
+    fetchUsers(1, true)
+  }, [fetchUsers])
+
+  // 设置 IntersectionObserver
   useEffect(() => {
-    fetchUsers()
-    fetchStatusTypes()
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isFetching) {
+          fetchUsers(currentPage + 1)
+        }
+      },
+      { threshold: 0.5 }
+    )
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect()
+      }
+    }
+  }, [fetchUsers, currentPage, hasMore, isFetching])
+
+  // 观察加载指示器
+  useEffect(() => {
+    if (loadingRef.current && observerRef.current) {
+      observerRef.current.observe(loadingRef.current)
+    }
+
+    return () => {
+      if (loadingRef.current && observerRef.current) {
+        observerRef.current.unobserve(loadingRef.current)
+      }
+    }
+  }, [loadingRef.current, observerRef.current])
+
+  // 初始加载
+  useEffect(() => {
+    fetchUsers(1, true)
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
       }
     }
-  }, [fetchUsers, fetchStatusTypes])
+  }, [fetchUsers])
 
   const handleUserClick = (user: TrafficUser) => {
     setSelectedUser(user)
     setShowUserDetail(true)
+  }
+
+  // 添加状态码转换函数
+  const getStatusFromCode = (statusCode: number): "pending" | "added" | "failed" => {
+    const statusMap: Record<number, "pending" | "added" | "failed"> = {
+      1: "pending", // 待处理
+      2: "pending", // 处理中
+      3: "added",   // 已添加
+      4: "failed",  // 已拒绝
+      5: "failed",  // 已过期
+      6: "failed",  // 已取消
+    }
+    return statusMap[statusCode] || "pending"
   }
 
   return (
@@ -307,7 +404,7 @@ export default function TrafficPoolPage() {
 
           {/* 用户列表 */}
           <div className="space-y-2">
-            {loading ? (
+            {loading && users.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <RefreshCw className="h-8 w-8 text-blue-500 animate-spin mb-4" />
                 <div className="text-gray-500">加载中...</div>
@@ -315,97 +412,75 @@ export default function TrafficPoolPage() {
             ) : users.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg">
                 <div className="text-gray-500">暂无数据</div>
-                <Button variant="outline" className="mt-4" onClick={fetchUsers}>
+                <Button variant="outline" className="mt-4" onClick={() => fetchUsers(1, true)}>
                   刷新
                 </Button>
               </div>
             ) : (
-              users.map((user) => (
-                <Card
-                  key={user.id}
-                  className="p-3 cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => handleUserClick(user)}
-                >
-                  <div className="flex items-center space-x-3">
-                    <img src={user.avatar || "/placeholder.svg"} alt="" className="w-10 h-10 rounded-full bg-gray-100" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <div className="font-medium truncate">{user.nickname}</div>
-                        <div
-                          className={`text-xs px-2 py-1 rounded-full ${
-                            user.status === "added"
-                              ? "bg-green-100 text-green-800"
-                              : user.status === "pending"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {user.status === "added" ? "已添加" : user.status === "pending" ? "待处理" : "已失败"}
+              <>
+                {users.map((user) => (
+                  <Card
+                    key={user.id}
+                    className="p-3 cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => handleUserClick(user)}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <img src={user.avatar || "/placeholder.svg"} alt="" className="w-10 h-10 rounded-full bg-gray-100" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium truncate">{user.nickname}</div>
+                          <div
+                            className={`text-xs px-2 py-1 rounded-full ${
+                              user.status === "added"
+                                ? "bg-green-100 text-green-800"
+                                : user.status === "pending"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {user.status === "added" ? "已添加" : user.status === "pending" ? "待处理" : "已失败"}
+                          </div>
+                        </div>
+                        <div className="text-sm text-gray-500">微信号: {user.wechatId}</div>
+                        <div className="text-sm text-gray-500">来源: {user.source}</div>
+                        <div className="text-sm text-gray-500">添加时间: {user.addTime}</div>
+
+                        {/* 标签展示 */}
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {user.tags.slice(0, 2).map((tag) => (
+                            <span key={tag.id} className={`text-xs px-2 py-0.5 rounded-full ${tag.color}`}>
+                              {tag.name}
+                            </span>
+                          ))}
+                          {user.tags.length > 2 && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-800">
+                              +{user.tags.length - 2}
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <div className="text-sm text-gray-500">微信号: {user.wechatId}</div>
-                      <div className="text-sm text-gray-500">来源: {user.source}</div>
-                      <div className="text-sm text-gray-500">添加时间: {new Date(user.addTime).toLocaleString()}</div>
-
-                      {/* 标签展示 */}
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {user.tags.slice(0, 2).map((tag) => (
-                          <span key={tag.id} className={`text-xs px-2 py-0.5 rounded-full ${tag.color}`}>
-                            {tag.name}
-                          </span>
-                        ))}
-                        {user.tags.length > 2 && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-800">
-                            +{user.tags.length - 2}
-                          </span>
-                        )}
-                      </div>
                     </div>
+                  </Card>
+                ))}
+                
+                {/* 加载更多指示器 */}
+                {hasMore && (
+                  <div ref={loadingRef} className="py-4 flex justify-center">
+                    {isFetching && <RefreshCw className="h-6 w-6 animate-spin text-blue-500" />}
                   </div>
-                </Card>
-              ))
+                )}
+
+                {/* 显示加载状态和总数 */}
+                <div className="text-sm text-gray-500 text-center">
+                  {stats.total > 0 && (
+                    <span>
+                      已加载 {users.length} / {stats.total} 条记录
+                    </span>
+                  )}
+                </div>
+              </>
             )}
           </div>
-
-          {/* 分页 */}
-          {!loading && users.length > 0 && (
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      setCurrentPage((prev) => Math.max(1, prev - 1))
-                    }}
-                  />
-                </PaginationItem>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <PaginationItem key={page}>
-                    <PaginationLink
-                      href="#"
-                      isActive={currentPage === page}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        setCurrentPage(page)
-                      }}
-                    >
-                      {page}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
-                <PaginationItem>
-                  <PaginationNext
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                    }}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          )}
         </div>
       </div>
 
@@ -458,7 +533,7 @@ export default function TrafficPoolPage() {
                 </div>
                 <div className="space-y-1">
                   <div className="text-sm text-gray-500">添加时间</div>
-                  <div className="font-medium">{new Date(selectedUser.addTime).toLocaleString()}</div>
+                  <div className="font-medium">{selectedUser.addTime}</div>
                 </div>
               </div>
 

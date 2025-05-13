@@ -41,7 +41,7 @@ class GetDissociateListWithInCompanyV1Controller extends BaseController
         $query = TrafficPoolModel::alias('t')
             ->field(
                 [
-                    't.identifier', 't.mobile', 't.wechatId',
+                    't.identifier nickname', 't.mobile', 't.wechatId', 't.identifier',
                     's.id', 's.fromd', 's.status', 's.createTime'
                 ]
             )
