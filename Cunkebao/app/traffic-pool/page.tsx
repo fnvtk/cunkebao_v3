@@ -446,7 +446,7 @@ export default function TrafficPoolPage() {
               <SelectTrigger className="w-[120px]">
                 <SelectValue placeholder="来源" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-[480px]">
                 <SelectItem value="all">全部来源</SelectItem>
                 {sourceTypes.map((source) => (
                   <SelectItem key={source.id} value={source.id.toString()}>
