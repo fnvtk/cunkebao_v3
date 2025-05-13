@@ -9,25 +9,25 @@ use think\facade\Route;
 Route::group('v1/', function () {
     // 设备管理相关
     Route::group('devices', function () {
-        Route::get('add-results', 'app\cunkebao\controller\device\GetAddResultedV1Controller@index');                // 更新设备任务配置
-        Route::get(':id/related-accounts', 'app\cunkebao\controller\device\GetRelatedAccountsV1Controller@index');   // 设备关联微信账号路由
-        Route::get(':id/handle-logs', 'app\cunkebao\controller\device\GetDeviceHandleLogsV1Controller@index');       // 获取设备操作记录
-        Route::get('', 'app\cunkebao\controller\device\GetDeviceListV1Controller@index');                            // 获取设备列表
-        Route::get(':id', 'app\cunkebao\controller\device\GetDeviceDetailV1Controller@index');                       // 获取设备详情
-        Route::post('', 'app\cunkebao\controller\device\PostAddDeviceV1Controller@index');                           // 添加设备
-        Route::put('refresh', 'app\cunkebao\controller\device\RefreshDeviceDetailV1Controller@index');               // 刷新设备状态
-        Route::delete(':id', 'app\cunkebao\controller\device\DeleteDeviceV1Controller@index');                       // 删除设备
-        Route::post('task-config', 'app\cunkebao\controller\device\UpdateDeviceTaskConfigV1Controller@index');       // 设备任务配置
+        Route::get('add-results', 'app\cunkebao\controller\device\GetAddResultedV1Controller@index');
+        Route::get(':id/related-accounts', 'app\cunkebao\controller\device\GetRelatedAccountsV1Controller@index');
+        Route::get(':id/handle-logs', 'app\cunkebao\controller\device\GetDeviceHandleLogsV1Controller@index');
+        Route::get('', 'app\cunkebao\controller\device\GetDeviceListV1Controller@index');
+        Route::get(':id', 'app\cunkebao\controller\device\GetDeviceDetailV1Controller@index');
+        Route::post('', 'app\cunkebao\controller\device\PostAddDeviceV1Controller@index');
+        Route::put('refresh', 'app\cunkebao\controller\device\RefreshDeviceDetailV1Controller@index');
+        Route::delete(':id', 'app\cunkebao\controller\device\DeleteDeviceV1Controller@index');
+        Route::post('task-config', 'app\cunkebao\controller\device\UpdateDeviceTaskConfigV1Controller@index');
     });
 
     // 设备微信相关
     Route::group('wechats', function () {
-        Route::get('', 'app\cunkebao\controller\wechat\GetWechatsOnDevicesV1Controller@index');                      // 获取在线微信账号列表
-        Route::get(':id/summary', 'app\cunkebao\controller\wechat\GetWechatOnDeviceSummarizeV1Controller@index');    // 获取微信号详情
-        Route::get(':id/friends', 'app\cunkebao\controller\wechat\GetWechatOnDeviceFriendsV1Controller@index');      // 获取微信好友列表
-        Route::get(':id/friend/:aId', 'app\cunkebao\controller\wechat\GetWechatOnDeviceFriendProfileV1Controller@index'); // 获取微信好友信息
+        Route::get('', 'app\cunkebao\controller\wechat\GetWechatsOnDevicesV1Controller@index');
+        Route::get(':id/summary', 'app\cunkebao\controller\wechat\GetWechatOnDeviceSummarizeV1Controller@index');
+        Route::get(':id/friends', 'app\cunkebao\controller\wechat\GetWechatOnDeviceFriendsV1Controller@index');
+        Route::get(':id/friend/:aId', 'app\cunkebao\controller\wechat\GetWechatOnDeviceFriendProfileV1Controller@index');
 
-        Route::get('count', 'app\cunkebao\controller\DeviceWechat@count');       // 获取在线微信账号数量
+        Route::get('count', 'app\cunkebao\controller\DeviceWechat@count');
         Route::get('device-count', 'app\cunkebao\controller\DeviceWechat@deviceCount'); // 获取有登录微信的设备数量
         Route::put('refresh', 'app\cunkebao\controller\DeviceWechat@refresh');  // 刷新设备微信状态
         Route::post('transfer-friends', 'app\cunkebao\controller\DeviceWechat@transferFriends'); // 微信好友转移
@@ -39,14 +39,9 @@ Route::group('v1/', function () {
         Route::post('create', 'app\cunkebao\controller\Plan@index');     // 获取场景列表
     });
 
-    // 流量标签相关
-    Route::group('traffic/tags', function () {
-        Route::get('', 'app\cunkebao\controller\TrafficTag@index');      // 获取标签列表
-    });
-
     // 流量池相关
     Route::group('traffic/pool', function () {
-        Route::post('import', 'app\cunkebao\controller\TrafficPool@importOrders');  // 导入订单标签
+        Route::get('', 'app\cunkebao\controller\traffic\GetDissociateListWithInCompanyV1Controller@index');
     });
 
     // 工作台相关
