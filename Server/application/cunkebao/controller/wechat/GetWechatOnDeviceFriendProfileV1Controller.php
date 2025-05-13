@@ -3,8 +3,8 @@
 namespace app\cunkebao\controller\wechat;
 
 use app\common\model\TrafficPool as TrafficPoolModel;
+use app\common\model\WechatAccount as WechatAccountModel;
 use app\cunkebao\controller\BaseController;
-use app\cunkebao\model\WechatAccount as WechatAccountModel;
 use library\ResponseHelper;
 
 /**
@@ -37,12 +37,12 @@ class GetWechatOnDeviceFriendProfileV1Controller extends BaseController
     /**
      * 获取添加时间
      *
-     * @param int $timestamp
+     * @param int|string $timestamp
      * @return string
      */
-    protected function getAddShipDate(int $timestamp): string
+    protected function getAddShipDate($timestamp): string
     {
-        return date('Y-m-d', $timestamp);
+        return is_numeric($timestamp) ? date('Y-m-d', $timestamp) : date('Y-m-d', strtotime($timestamp));
     }
 
     /**

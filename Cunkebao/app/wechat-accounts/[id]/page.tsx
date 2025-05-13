@@ -398,17 +398,17 @@ export default function WechatAccountDetailPage() {
       setIsFetchingFriends(true);
       setHasFriendLoadError(false);
       
-      const data = await api.get<ApiResponse<FriendsResponse>>(`/v1/wechats/${id}/friends?page=${page}&limit=30`, true);
+      const response = await api.get<ApiResponse<FriendsResponse>>(`/v1/wechats/${id}/friends?page=${page}&limit=30${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`, true);
       
-      if (data && data.code === 200) {
+      if (response && response.code === 200 && response.data) {
         // 更新总数计数
         if (isNewSearch || friendsTotal === 0) {
-          setFriendsTotal(data.data.total || 0);
+          setFriendsTotal(response.data.total || 0);
         }
         
-        const newFriends = data.data.list.map((friend) => ({
+        const newFriends = response.data.list.map((friend) => ({
           id: friend.id.toString(),
-          avatar: friend.avatar,
+          avatar: friend.avatar || '/placeholder.svg',
           nickname: friend.nickname,
           wechatId: friend.wechatId,
           remark: friend.memo || '',
@@ -433,13 +433,12 @@ export default function WechatAccountDetailPage() {
         
         setFriendsPage(page);
         // 判断是否还有更多数据
-        setHasMoreFriends(page * 30 < data.data.total);
-        
+        setHasMoreFriends(page * 30 < response.data.total);
       } else {
         setHasFriendLoadError(true);
         toast({
           title: "获取好友列表失败",
-          description: data?.msg || "请稍后再试",
+          description: response?.msg || "请稍后再试",
           variant: "destructive"
         });
       }
@@ -454,7 +453,7 @@ export default function WechatAccountDetailPage() {
     } finally {
       setIsFetchingFriends(false);
     }
-  }, [account, id, friendsTotal]);
+  }, [account, id, friendsTotal, searchQuery]);
 
   // 处理搜索
   const handleSearch = useCallback(() => {
