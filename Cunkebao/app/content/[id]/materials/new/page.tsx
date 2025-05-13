@@ -94,7 +94,7 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="请输入素材内容"
                 className="mt-1"
-                rows={5}
+                rows={10}
               />
             </div>
 

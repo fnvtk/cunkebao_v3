@@ -187,7 +187,7 @@ export default function EditMaterialPage({ params }: { params: Promise<{ id: str
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="请输入素材内容"
                   className="mt-1"
-                  rows={5}
+                  rows={10}
                 />
               </div>
             )}

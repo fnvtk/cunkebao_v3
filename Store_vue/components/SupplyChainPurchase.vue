@@ -14,7 +14,7 @@
 			
 			<!-- 加载状态 -->
 			<view v-if="loading && packages.length === 0" class="loading-container">
-				<u-loading size="34" mode="circle" color="#CA8A04"></u-loading>
+				<!-- <u-loading size="34" mode="circle" color="#CA8A04"></u-loading> -->
 				<text class="loading-text">加载中...</text>
 			</view>
 			
