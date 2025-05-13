@@ -10,9 +10,14 @@ use library\ResponseHelper;
 /**
  * 流量池控制器
  */
-class GetPotentialTypeListV1Controller extends BaseController
+class GetPotentialTypeSectionV1Controller extends BaseController
 {
-    protected function getTypeList(): array
+    /**
+     * 返回流量处理状态选项
+     *
+     * @return array[]
+     */
+    protected function getTypeSectionCols(): array
     {
         return [
             [
@@ -39,7 +44,7 @@ class GetPotentialTypeListV1Controller extends BaseController
     }
 
     /**
-     * 潜在客户的全部状态
+     * 获取流量池状态筛选列表
      *
      * @return \think\response\Json
      */
@@ -47,7 +52,7 @@ class GetPotentialTypeListV1Controller extends BaseController
     {
         try {
             return ResponseHelper::success(
-                $this->getTypeList()
+                $this->getTypeSectionCols()
             );
         } catch (\Exception $e) {
             return ResponseHelper::error($e->getMessage(), $e->getCode());

@@ -51,6 +51,11 @@ interface StatusType {
   code: string
 }
 
+interface SourceType {
+  id: number
+  name: string
+}
+
 interface ApiResponse<T> {
   code: number
   msg: string
@@ -97,6 +102,7 @@ export default function TrafficPoolPage() {
   const [activeCategory, setActiveCategory] = useState("potential")
   const [sourceFilter, setSourceFilter] = useState("all")
   const [statusTypes, setStatusTypes] = useState<StatusType[]>([])
+  const [sourceTypes, setSourceTypes] = useState<SourceType[]>([])
   const [statusFilter, setStatusFilter] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
@@ -239,6 +245,33 @@ export default function TrafficPoolPage() {
     }
   }, [])
 
+  const fetchSourceTypes = useCallback(async () => {
+    try {
+      const response = await api.get<ApiResponse<SourceType[]>>('/v1/traffic/pool/sources', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      } as any)
+      
+      if (response.code === 200) {
+        setSourceTypes(response.data)
+      } else {
+        toast({
+          title: "获取来源列表失败",
+          description: response.msg || "请稍后重试",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("获取来源列表失败:", error)
+      toast({
+        title: "获取来源列表失败",
+        description: "请检查网络连接或稍后重试",
+        variant: "destructive",
+      })
+    }
+  }, [])
+
   // 处理搜索
   const handleSearch = useCallback(() => {
     setUsers([])
@@ -272,6 +305,7 @@ export default function TrafficPoolPage() {
   // 初始化数据
   useEffect(() => {
     fetchStatusTypes()
+    fetchSourceTypes()
     fetchUsers(1, true)
   }, [])
 
@@ -371,11 +405,11 @@ export default function TrafficPoolPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部来源</SelectItem>
-                <SelectItem value="抖音直播">抖音直播</SelectItem>
-                <SelectItem value="小红书">小红书</SelectItem>
-                <SelectItem value="微信朋友圈">朋友圈</SelectItem>
-                <SelectItem value="视频号">视频号</SelectItem>
-                <SelectItem value="公众号">公众号</SelectItem>
+                {sourceTypes.map((source) => (
+                  <SelectItem key={source.id} value={source.id.toString()}>
+                    {source.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 

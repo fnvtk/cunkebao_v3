@@ -42,7 +42,8 @@ Route::group('v1/', function () {
     // 流量池相关
     Route::group('traffic/pool', function () {
         Route::get('', 'app\cunkebao\controller\traffic\GetPotentialListWithInCompanyV1Controller@index');
-        Route::get('types', 'app\cunkebao\controller\traffic\GetPotentialTypeListV1Controller@index');
+        Route::get('types', 'app\cunkebao\controller\traffic\GetPotentialTypeSectionV1Controller@index');
+        Route::get('sources', 'app\cunkebao\controller\traffic\GetTrafficSourceSectionV1Controller@index');
     });
 
     // 工作台相关
