@@ -2,7 +2,7 @@
 
 namespace app\cunkebao\controller\wechat;
 
-use app\common\model\WechatAccount as WechatAccountModel;
+use AccountWeight\WechatAccountWeightAssessment;
 use app\common\model\WechatFriendShip as WechatFriendShipModel;
 use app\common\model\WechatRestricts as WechatRestrictsModel;
 use app\cunkebao\controller\BaseController;
@@ -79,77 +79,6 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
     }
 
     /**
-     * 计算两个时间相差几个月
-     *
-     * @param string $wechatId
-     * @return float|int
-     * @throws \DateMalformedStringException
-     */
-    protected function getDateDiff(string $wechatId): int
-    {
-        $currentData = new \DateTime(date('Y-m-d H:i:s', time()));
-        $registerDate = new \DateTime($this->getRegisterDate($wechatId));
-
-        $interval = date_diff($currentData, $registerDate);
-
-        return $interval->y * 12 + $interval->m;
-    }
-
-    /**
-     * 计算账号年龄权重
-     *
-     * @param string $wechatId
-     * @return int
-     * @throws \DateMalformedStringException
-     */
-    protected function _calculAgeWeight(string $wechatId): int
-    {
-        // 规定账号年龄五年起拥有最高权重
-        $cha = ceil($this->getDateDiff($wechatId) / 60) * 100;
-
-        return $cha > 100 ? 100 : $cha;
-    }
-
-    /**
-     * 计算活跃度权重
-     *
-     * @param string $wechatId
-     * @return int
-     */
-    protected function _calActivityWeigth(string $wechatId): int
-    {
-        // 规定每天发送50条消息起拥有最高权重
-        $cha = ceil($this->getChatTimesPerDay($wechatId) / 50) * 100;
-
-        return $cha > 100 ? 100 : $cha;
-    }
-
-    /**
-     * 计算限制影响权重
-     *
-     * @param string $wechatId
-     * @return int
-     */
-    protected function _calRestrictWeigth(string $wechatId): int
-    {
-        $list = $this->getRestrict($wechatId);  // 2
-        $gtmd = 10 - count($list);              // 规定没有限制记录拥有最高权重，10条以上权重为0
-
-        return ($gtmd < 0 ? 0 : $gtmd) * 10;
-    }
-
-    /**
-     * 计算实名认证权重
-     *
-     * @param string $wechatId
-     * @return int
-     */
-    protected function _calRealNameWeigth(string $wechatId): int
-    {
-        return 100;
-    }
-
-    /**
      * 计算好友数量（每5权重=1好友，最多20个）
      *
      * @param int $weight
@@ -179,20 +108,17 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
      */
     protected function getAccountWeight(string $wechatId): array
     {
-        $ageWeight = $this->_calculAgeWeight($wechatId);           // 账号年龄权重
-        $activityWeigth = $this->_calActivityWeigth($wechatId);    // 计算活跃度权重
-        $restrictWeight = $this->_calRestrictWeigth($wechatId);    // 计算限制影响权重
-        $realNameWeight = $this->_calRealNameWeigth($wechatId);    // 计算实名认证权重
+        // 微信账号加友权重评估
+        $assessment = new WechatAccountWeightAssessment();
+        $assessment->settingFactor($wechatId);
 
-        $scope = ceil(($ageWeight + $activityWeigth + $restrictWeight + $realNameWeight) / 4);  // 计算总分
-
-        return compact(
-            'scope',
-            'ageWeight',
-            'activityWeigth',
-            'restrictWeight',
-            'realNameWeight'
-        );
+        return [
+            'ageWeight'      => $assessment->calculAgeWeight()->getResult(),        // 账号年龄权重
+            'activityWeigth' => $assessment->calculActivityWeigth()->getResult(),   // 计算活跃度权重
+            'restrictWeight' => $assessment->calculRestrictWeigth()->getResult(),   // 计算限制影响权重
+            'realNameWeight' => $assessment->calculRealNameWeigth()->getResult(),   // 计算实名认证权重
+            'scope'          => $assessment->getWeightScope(),                      // 计算总分
+        ];
     }
 
     /**
