@@ -2,6 +2,7 @@
 export interface ServerWechatAccount {
   id: number;
   wechatId: string;
+  wechatAccount: string;
   nickname: string;
   accountNickname: string;
   avatar: string;

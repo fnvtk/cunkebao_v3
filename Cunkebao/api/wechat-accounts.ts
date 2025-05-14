@@ -159,9 +159,9 @@ export const fetchWechatFriends = async (wechatId: string, page: number = 1, pag
  * @param id 微信账号ID
  * @returns 微信账号概览信息
  */
-export const fetchWechatAccountSummary = async (id: string): Promise<WechatAccountSummaryResponse> => {
+export const fetchWechatAccountSummary = async (wechatIdid: string): Promise<WechatAccountSummaryResponse> => {
   try {
-    return api.get<WechatAccountSummaryResponse>(`/v1/wechats/${id}/summary`);
+    return api.get<WechatAccountSummaryResponse>(`/v1/wechats/${wechatIdid}/summary`);
   } catch (error) {
     console.error("获取账号概览失败:", error);
     throw error;
@@ -193,9 +193,9 @@ interface WechatFriendDetailResponse {
   data: WechatFriendDetail;
 }
 
-export const fetchWechatFriendDetail = async (wechatId: string, friendId: string): Promise<WechatFriendDetailResponse> => {
+export const fetchWechatFriendDetail = async (wechatId: string): Promise<WechatFriendDetailResponse> => {
   try {
-    return api.get<WechatFriendDetailResponse>(`/v1/wechats/${wechatId}/friend/${friendId}`);
+    return api.get<WechatFriendDetailResponse>(`/v1/wechats/${wechatId}`);
   } catch (error) {
     console.error("获取好友详情失败:", error);
     throw error;

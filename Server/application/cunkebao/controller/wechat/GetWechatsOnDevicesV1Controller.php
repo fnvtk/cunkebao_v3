@@ -198,8 +198,8 @@ class GetWechatsOnDevicesV1Controller extends BaseController
         $query = WechatAccountModel::alias('w')
             ->field(
                 [
-                    'w.id', 'w.nickname', 'w.avatar',
-                    'CASE WHEN w.alias IS NULL OR w.alias = "" THEN w.wechatId ELSE w.alias END AS wechatId',
+                    'w.id', 'w.nickname', 'w.avatar', 'w.wechatId',
+                    'CASE WHEN w.alias IS NULL OR w.alias = "" THEN w.wechatId ELSE w.alias END AS wechatAccount',
                     'l.deviceId'
                 ]
             )

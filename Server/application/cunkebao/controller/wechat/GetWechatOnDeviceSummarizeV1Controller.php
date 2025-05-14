@@ -234,25 +234,6 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
     }
 
     /**
-     * 获取原始的64位的微信id
-     *
-     * @return string
-     * @throws \Exception
-     */
-    protected function getStringWechatIdByNumberId(): string
-    {
-        $account = WechatAccountModel::find(
-            $this->request->param('id/d')
-        );
-
-        if (is_null($account)) {
-            throw new \Exception('微信账号不存在', 404);
-        }
-
-        return $account->wechatId;
-    }
-
-    /**
      * 获取微信号详情
      *
      * @return \think\response\Json
@@ -260,7 +241,7 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
     public function index()
     {
         try {
-            $wechatId = $this->getStringWechatIdByNumberId();
+            $wechatId = $this->request->param('id/s');
 
             // 以下内容依次加工数据
             $accountAge = $this->getRegisterDate($wechatId);

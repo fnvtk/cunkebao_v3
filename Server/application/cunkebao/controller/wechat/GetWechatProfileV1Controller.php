@@ -10,7 +10,7 @@ use library\ResponseHelper;
 /**
  * 设备微信控制器
  */
-class GetWechatOnDeviceFriendProfileV1Controller extends BaseController
+class GetWechatProfileV1Controller extends BaseController
 {
     /**
      * 获取最近互动时间
@@ -63,11 +63,11 @@ class GetWechatOnDeviceFriendProfileV1Controller extends BaseController
     /**
      * 获取微信账号
      *
-     * @param int $id
+     * @param string $wechatId
      * @return array
      * @throws \Exception
      */
-    protected function getWechatAccountProfileById(int $id): array
+    protected function getWechatAccountProfileByWechatId(string $wechatId): array
     {
         $account = WechatAccountModel::alias('w')
             ->field(
@@ -78,7 +78,8 @@ class GetWechatOnDeviceFriendProfileV1Controller extends BaseController
                 ]
             )
             ->join('wechat_friendship f', 'w.wechatId=f.wechatId')
-            ->find($id);
+            ->where('w.wechatId', $wechatId)
+            ->find();
 
         if (is_null($account)) {
             throw new \Exception('未获取到微信账号数据', 404);
@@ -95,8 +96,8 @@ class GetWechatOnDeviceFriendProfileV1Controller extends BaseController
     public function index()
     {
         try {
-            $results = $this->getWechatAccountProfileById(
-                $this->request->param('aId/d')
+            $results = $this->getWechatAccountProfileByWechatId(
+                $this->request->param('wechatId/s')
             );
 
             return ResponseHelper::success(

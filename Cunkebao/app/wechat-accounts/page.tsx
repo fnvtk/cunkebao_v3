@@ -68,6 +68,7 @@ export default function WechatAccountsPage() {
           const account: WechatAccount = {
             id: item.id.toString(),
             wechatId: item.wechatId,
+            wechatAccount: item.wechatAccount,
             nickname: item.nickname,
             avatar: item.avatar,
             remainingAdds: item.times - item.addedCount,
@@ -264,6 +265,7 @@ export default function WechatAccountsPage() {
                     nickname: account.nickname,
                     status: account.status,
                     wechatId: account.wechatId,
+                    wechatAccount: account.wechatAccount,
                     deviceName: account.deviceName,
                     deviceId: account.deviceId,
                   }));
@@ -299,7 +301,7 @@ export default function WechatAccountsPage() {
                       </Button>
                     </div>
                     <div className="mt-1 text-sm text-gray-500 space-y-1">
-                      <div className="truncate">微信号：{account.wechatId}</div>
+                      <div className="truncate">微信号：{account.wechatAccount}</div>
                       <div className="flex items-center justify-between flex-wrap gap-1">
                         <div>好友数量：{account.friendCount}</div>
                         <div className="text-green-600">今日新增：+{account.todayAdded}</div>

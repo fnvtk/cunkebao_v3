@@ -25,7 +25,7 @@ Route::group('v1/', function () {
         Route::get('', 'app\cunkebao\controller\wechat\GetWechatsOnDevicesV1Controller@index');
         Route::get(':id/summary', 'app\cunkebao\controller\wechat\GetWechatOnDeviceSummarizeV1Controller@index');
         Route::get(':id/friends', 'app\cunkebao\controller\wechat\GetWechatOnDeviceFriendsV1Controller@index');
-        Route::get(':id/friend/:aId', 'app\cunkebao\controller\wechat\GetWechatOnDeviceFriendProfileV1Controller@index');
+        Route::get(':wechatId', 'app\cunkebao\controller\wechat\GetWechatProfileV1Controller@index');
 
         Route::get('count', 'app\cunkebao\controller\DeviceWechat@count');
         Route::get('device-count', 'app\cunkebao\controller\DeviceWechat@deviceCount'); // 获取有登录微信的设备数量

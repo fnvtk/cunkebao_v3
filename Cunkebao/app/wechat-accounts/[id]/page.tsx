@@ -103,6 +103,7 @@ interface WechatAccountDetail {
   avatar: string
   nickname: string
   wechatId: string
+  wechatAccount: string
   deviceId: string
   deviceName: string
   friendCount: number
@@ -199,6 +200,7 @@ export default function WechatAccountDetailPage() {
     nickname: string;
     status: "normal" | "abnormal";
     wechatId: string;
+    wechatAccount: string;
     deviceName: string;
     deviceId?: string | number;
   } | null>(null)
@@ -219,6 +221,7 @@ export default function WechatAccountDetailPage() {
           mockData.status = decodedData.status;
           mockData.wechatId = decodedData.wechatId;
           mockData.deviceName = decodedData.deviceName;
+          mockData.wechatAccount = decodedData.wechatAccount;
         }
         setAccount(mockData);
         setFriendsTotal(mockData.friendCount);
@@ -328,6 +331,7 @@ export default function WechatAccountDetailPage() {
           "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/img_v3_02jn_e7fcc2a4-3560-478d-911a-4ccd69c6392g.jpg-a8zVtwxMuSrPWN9dfWH93EBY0yM3Dh.jpeg",
         nickname: "卡若-25vig",
         wechatId: `wxid_${Math.random().toString(36).substr(2, 8)}`,
+        wechatAccount: initialData?.wechatAccount || "wxid_default",
         deviceId: "device-1",
         deviceName: "设备1",
         friendCount: friends.length,
@@ -398,7 +402,7 @@ export default function WechatAccountDetailPage() {
       setIsFetchingFriends(true);
       setHasFriendLoadError(false);
       
-      const data = await api.get<ApiResponse<FriendsResponse>>(`/v1/wechats/${id}/friends?page=${page}&limit=30`, true);
+      const data = await api.get<ApiResponse<FriendsResponse>>(`/v1/wechats/${account?.wechatId}/friends?page=${page}&limit=30`, true);
       
       if (data && data.code === 200) {
         // 更新总数计数
@@ -526,7 +530,7 @@ export default function WechatAccountDetailPage() {
   const fetchSummaryData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetchWechatAccountSummary(id);
+      const response = await fetchWechatAccountSummary(account?.wechatId || '');
       if (response.code === 200) {
         setAccountSummary(response.data);
         } else {
@@ -546,7 +550,7 @@ export default function WechatAccountDetailPage() {
       } finally {
       setIsLoading(false);
     }
-  }, [id]);
+  }, [account]);
 
   // 在页面加载和切换到概览标签时获取数据
   useEffect(() => {
@@ -623,7 +627,7 @@ export default function WechatAccountDetailPage() {
     setFriendDetailError(null)
     
     try {
-      const response = await fetchWechatFriendDetail(account?.wechatId || id, friend.id)
+      const response = await fetchWechatFriendDetail(friend.wechatId)
       if (response.code === 200) {
         setFriendDetail(response.data)
       } else {
@@ -699,7 +703,7 @@ export default function WechatAccountDetailPage() {
                     {account.status === "normal" ? "正常" : "异常"}
                   </Badge>
                 </div>
-                <p className="text-sm text-gray-500 mt-1">微信号：{account.wechatId}</p>
+                <p className="text-sm text-gray-500 mt-1">微信号：{account.wechatAccount}</p>
                 <div className="flex gap-2 mt-2">
                   <Button 
                     variant="outline" 

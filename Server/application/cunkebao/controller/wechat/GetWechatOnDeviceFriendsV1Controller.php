@@ -41,8 +41,8 @@ class GetWechatOnDeviceFriendsV1Controller extends BaseController
         $query = WechatFriendShipModel::alias('f')
             ->field(
                 [
-                    'w.id', 'w.nickname', 'w.avatar',
-                    'CASE WHEN w.alias IS NULL OR w.alias = "" THEN w.wechatId ELSE w.alias END AS wechatId',
+                    'w.id', 'w.nickname', 'w.avatar', 'w.wechatId',
+                    'CASE WHEN w.alias IS NULL OR w.alias = "" THEN w.wechatId ELSE w.alias END AS wechatAccount',
                     'f.memo', 'f.tags'
                 ]
             )
@@ -61,25 +61,6 @@ class GetWechatOnDeviceFriendsV1Controller extends BaseController
     }
 
     /**
-     * 获取原始的64位的微信id
-     *
-     * @return string
-     * @throws \Exception
-     */
-    protected function getStringWechatIdByNumberId(): string
-    {
-        $account = WechatAccountModel::find(
-            $this->request->param('id/d')
-        );
-
-        if (is_null($account)) {
-            throw new \Exception('微信账号不存在', 404);
-        }
-
-        return $account->wechatId;
-    }
-
-    /**
      * 构建查询条件
      *
      * @param array $params
@@ -92,7 +73,7 @@ class GetWechatOnDeviceFriendsV1Controller extends BaseController
             $where[] = ['exp', "f.memo LIKE '%{$keyword}%' OR f.tags LIKE '%{$keyword}%'"];
         }
 
-        $where['f.ownerWechatId'] = $this->getStringWechatIdByNumberId();
+        $where['f.ownerWechatId'] = $this->request->param('id/s') ?: 'x_x';
 
         return array_merge($where, $params);
     }

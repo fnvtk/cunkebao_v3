@@ -413,136 +413,136 @@ export default function TrafficPoolPage() {
       </header>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="p-4 space-y-6">
-          {/* 搜索和筛选区域 */}
-          <div className="flex items-center space-x-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="搜索用户"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value)
-                  setCurrentPage(1)
-                }}
-                className="pl-9"
-              />
-            </div>
-            <Button variant="outline" size="icon">
-              <Filter className="h-4 w-4" />
-            </Button>
+      <div className="p-4 space-y-6">
+        {/* 搜索和筛选区域 */}
+        <div className="flex items-center space-x-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="搜索用户"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value)
+                setCurrentPage(1)
+              }}
+              className="pl-9"
+            />
           </div>
+          <Button variant="outline" size="icon">
+            <Filter className="h-4 w-4" />
+          </Button>
+        </div>
 
-          {/* 统计卡片 */}
-          <div className="grid grid-cols-2 gap-4">
-            <Card className="p-4">
-              <div className="text-sm text-gray-500">流量池总数</div>
+        {/* 统计卡片 */}
+        <div className="grid grid-cols-2 gap-4">
+          <Card className="p-4">
+            <div className="text-sm text-gray-500">流量池总数</div>
               <div className="text-2xl font-bold text-blue-600">{stats.totalCount}</div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-sm text-gray-500">今日新增</div>
+          </Card>
+          <Card className="p-4">
+            <div className="text-sm text-gray-500">今日新增</div>
               <div className="text-2xl font-bold text-green-600">{stats.todayAddCount}</div>
-            </Card>
-          </div>
+          </Card>
+        </div>
 
           {/* 分类标签页 */}
-          <Tabs
-            defaultValue="potential"
-            value={activeCategory}
+        <Tabs
+          defaultValue="potential"
+          value={activeCategory}
+          onValueChange={(value) => {
+            setActiveCategory(value)
+            setCurrentPage(1)
+          }}
+        >
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="potential">潜在客户</TabsTrigger>
+            <TabsTrigger value="customer">已转化</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {/* 筛选器 */}
+        <div className="flex space-x-2">
+          <Select
+            value={sourceFilter}
             onValueChange={(value) => {
-              setActiveCategory(value)
+              setSourceFilter(value)
               setCurrentPage(1)
             }}
           >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="potential">潜在客户</TabsTrigger>
-              <TabsTrigger value="customer">已转化</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          {/* 筛选器 */}
-          <div className="flex space-x-2">
-            <Select
-              value={sourceFilter}
-              onValueChange={(value) => {
-                setSourceFilter(value)
-                setCurrentPage(1)
-              }}
-            >
-              <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="来源" />
-              </SelectTrigger>
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="来源" />
+            </SelectTrigger>
               <SelectContent className="max-h-[480px]">
-                <SelectItem value="all">全部来源</SelectItem>
+              <SelectItem value="all">全部来源</SelectItem>
                 {sourceTypes.map((source) => (
                   <SelectItem key={source.id} value={source.id.toString()}>
                     {source.name}
                   </SelectItem>
                 ))}
-              </SelectContent>
-            </Select>
+            </SelectContent>
+          </Select>
 
             {activeCategory === "potential" && (
-              <Select
-                value={statusFilter}
-                onValueChange={(value) => {
-                  setStatusFilter(value)
-                  setCurrentPage(1)
-                }}
-              >
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="状态" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部状态</SelectItem>
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => {
+              setStatusFilter(value)
+              setCurrentPage(1)
+            }}
+          >
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="状态" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部状态</SelectItem>
                   {statusTypes.map((status) => (
                     <SelectItem key={status.id} value={status.id.toString()}>
                       {status.name}
                     </SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
+            </SelectContent>
+          </Select>
             )}
-          </div>
+        </div>
 
           {/* 用户列表 */}
-          <div className="space-y-2">
+        <div className="space-y-2">
             {loading && users.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <RefreshCw className="h-8 w-8 text-blue-500 animate-spin mb-4" />
-                <div className="text-gray-500">加载中...</div>
-              </div>
-            ) : users.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-lg">
-                <div className="text-gray-500">暂无数据</div>
+            <div className="flex flex-col items-center justify-center py-12">
+              <RefreshCw className="h-8 w-8 text-blue-500 animate-spin mb-4" />
+              <div className="text-gray-500">加载中...</div>
+            </div>
+          ) : users.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <div className="text-gray-500">暂无数据</div>
                 <Button variant="outline" className="mt-4" onClick={handleRefresh}>
-                  刷新
-                </Button>
-              </div>
-            ) : (
+                刷新
+              </Button>
+            </div>
+          ) : (
               <>
                 {users.map((user) => (
-                  <Card
-                    key={user.id}
-                    className="p-3 cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => handleUserClick(user)}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <img src={user.avatar || "/placeholder.svg"} alt="" className="w-10 h-10 rounded-full bg-gray-100" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <div className="font-medium truncate">{user.nickname}</div>
-                          <div
-                            className={`text-xs px-2 py-1 rounded-full ${
+              <Card
+                key={user.id}
+                className="p-3 cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => handleUserClick(user)}
+              >
+                <div className="flex items-center space-x-3">
+                  <img src={user.avatar || "/placeholder.svg"} alt="" className="w-10 h-10 rounded-full bg-gray-100" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <div className="font-medium truncate">{user.nickname}</div>
+                      <div
+                        className={`text-xs px-2 py-1 rounded-full ${
                               activeCategory === "customer"
                                 ? "bg-green-100 text-green-800"
                                 : user.status === 2
-                                  ? "bg-green-100 text-green-800"
+                            ? "bg-green-100 text-green-800"
                                   : user.status === 1
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-red-100 text-red-800"
-                            }`}
-                          >
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                        }`}
+                      >
                             {activeCategory === "customer" 
                               ? "已通过" 
                               : user.status === 2 
@@ -550,28 +550,28 @@ export default function TrafficPoolPage() {
                                 : user.status === 1 
                                   ? "待处理" 
                                   : "已失败"}
-                          </div>
-                        </div>
-                        <div className="text-sm text-gray-500">微信号: {user.wechatId}</div>
-                        <div className="text-sm text-gray-500">来源: {user.source}</div>
-                        <div className="text-sm text-gray-500">添加时间: {user.addTime}</div>
-
-                        {/* 标签展示 */}
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {user.tags.slice(0, 2).map((tag) => (
-                            <span key={tag.id} className={`text-xs px-2 py-0.5 rounded-full ${tag.color}`}>
-                              {tag.name}
-                            </span>
-                          ))}
-                          {user.tags.length > 2 && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-800">
-                              +{user.tags.length - 2}
-                            </span>
-                          )}
-                        </div>
                       </div>
                     </div>
-                  </Card>
+                    <div className="text-sm text-gray-500">微信号: {user.wechatId}</div>
+                    <div className="text-sm text-gray-500">来源: {user.source}</div>
+                        <div className="text-sm text-gray-500">添加时间: {user.addTime}</div>
+
+                    {/* 标签展示 */}
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {user.tags.slice(0, 2).map((tag) => (
+                        <span key={tag.id} className={`text-xs px-2 py-0.5 rounded-full ${tag.color}`}>
+                          {tag.name}
+                        </span>
+                      ))}
+                      {user.tags.length > 2 && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-800">
+                          +{user.tags.length - 2}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Card>
                 ))}
                 
                 {/* 加载状态显示 */}
@@ -618,17 +618,17 @@ export default function TrafficPoolPage() {
                         : selectedUser.status === 2
                           ? "bg-green-100 text-green-800"
                           : selectedUser.status === 1
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-red-100 text-red-800"
                     }`}
                   >
                     {activeCategory === "customer" 
                       ? "已通过" 
                       : selectedUser.status === 2 
-                        ? "已添加" 
+                      ? "已添加"
                         : selectedUser.status === 1 
-                          ? "待处理" 
-                          : "已失败"}
+                        ? "待处理"
+                        : "已失败"}
                   </Badge>
                 </div>
               </div>
