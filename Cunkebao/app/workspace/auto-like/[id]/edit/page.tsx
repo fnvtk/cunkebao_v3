@@ -29,6 +29,7 @@ interface TaskConfig {
   tagOperator: number
   createTime: string
   updateTime: string
+  friends?: string[]
 }
 
 interface Task {
@@ -147,6 +148,10 @@ export default function EditAutoLikePage({ params }: { params: Promise<{ id: str
   };
 
   const handleSelectFriends = () => {
+    if (formData.selectedDevices.length === 0) {
+      showToast("请先选择设备", "error")
+      return
+    }
     setIsFriendSelectorOpen(true)
   }
 
@@ -253,6 +258,7 @@ export default function EditAutoLikePage({ params }: { params: Promise<{ id: str
                 onOpenChange={setIsFriendSelectorOpen}
                 selectedFriends={selectedFriends}
                 onSelect={handleSaveSelectedFriends}
+                devices={formData.selectedDevices}
               />
             </div>
           )}
