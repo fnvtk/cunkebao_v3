@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, Search } from "lucide-react"
+import { ChevronLeft, Search, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { StepIndicator } from "../components/step-indicator"
@@ -11,11 +11,14 @@ import { DeviceSelectionDialog } from "../components/device-selection-dialog"
 import { TagSelector } from "../components/tag-selector"
 import { api, ApiResponse } from "@/lib/api"
 import { showToast } from "@/lib/toast"
+import { WechatFriendSelector, WechatFriend } from "@/components/WechatFriendSelector"
 
 export default function NewAutoLikePage() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [deviceDialogOpen, setDeviceDialogOpen] = useState(false)
+  const [isFriendSelectorOpen, setIsFriendSelectorOpen] = useState(false)
+  const [selectedFriends, setSelectedFriends] = useState<WechatFriend[]>([])
   const [formData, setFormData] = useState({
     taskName: "",
     likeInterval: 5, // 默认5秒
@@ -26,6 +29,7 @@ export default function NewAutoLikePage() {
     selectedDevices: [] as number[],
     selectedTags: [] as string[],
     tagOperator: "and" as "and" | "or",
+    friends: [] as string[],
   })
 
   const handleUpdateFormData = (data: Partial<typeof formData>) => {
@@ -40,6 +44,21 @@ export default function NewAutoLikePage() {
     setCurrentStep((prev) => Math.max(prev - 1, 1))
   }
 
+  const handleSelectFriends = () => {
+    if (formData.selectedDevices.length === 0) {
+      showToast("请先选择设备", "error")
+      return
+    }
+    setIsFriendSelectorOpen(true)
+  }
+
+  const handleSaveSelectedFriends = (friends: WechatFriend[]) => {
+    const ids = friends.map(f => f.id)
+    setSelectedFriends(friends)
+    handleUpdateFormData({ friends: ids })
+    setIsFriendSelectorOpen(false)
+  }
+
   const handleComplete = async () => {
     try {
       const response = await api.post<ApiResponse>('/v1/workbench/create', {
@@ -52,8 +71,7 @@ export default function NewAutoLikePage() {
         contentTypes: formData.contentTypes,
         enabled: formData.enabled,
         devices: formData.selectedDevices,
-        targetGroups: formData.selectedTags,
-        tagOperator: formData.tagOperator === 'and' ? 1 : 2
+        friends: formData.friends,
       });
 
       if (response.code === 200) {
@@ -131,15 +149,19 @@ export default function NewAutoLikePage() {
 
           {currentStep === 3 && (
             <div className="px-6">
-              <TagSelector
-                selectedTags={formData.selectedTags}
-                tagOperator={formData.tagOperator}
-                onTagsChange={(tags) => handleUpdateFormData({ selectedTags: tags })}
-                onOperatorChange={(operator) => handleUpdateFormData({ tagOperator: operator })}
-                onBack={handlePrev}
-                onComplete={handleComplete}
-              />
-
+              <div className="relative">
+                <Users className="absolute left-3 top-4 h-5 w-5 text-gray-400" />
+                <Input
+                  placeholder="选择微信好友"
+                  className="h-12 pl-11 rounded-xl border-gray-200 text-base"
+                  onClick={handleSelectFriends}
+                  readOnly
+                  value={formData.friends.length > 0 ? `已选择 ${formData.friends.length} 个好友` : ""}
+                />
+              </div>
+              {formData.friends.length > 0 && (
+                <div className="text-base text-gray-500">已选好友：{formData.friends.length} 个</div>
+              )}
               <div className="flex space-x-4 pt-4">
                 <Button variant="outline" onClick={handlePrev} className="flex-1 h-12 rounded-xl text-base">
                   上一步
@@ -151,6 +173,13 @@ export default function NewAutoLikePage() {
                   完成
                 </Button>
               </div>
+              <WechatFriendSelector
+                open={isFriendSelectorOpen}
+                onOpenChange={setIsFriendSelectorOpen}
+                selectedFriends={selectedFriends}
+                onSelect={handleSaveSelectedFriends}
+                devices={formData.selectedDevices}
+              />
             </div>
           )}
         </div>
