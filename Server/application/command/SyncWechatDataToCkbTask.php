@@ -43,10 +43,14 @@ class SyncWechatDataToCkbTask extends Command
         file_put_contents($this->lockFile, time());
         
         try {
+
+            $output->writeln("同步任务 sync_wechat_to_ckb 开始");
             $ChuKeBaoAdapter = new ChuKeBaoAdapter();
             $this->syncWechatAccount($ChuKeBaoAdapter);
             $this->syncWechatFriend($ChuKeBaoAdapter);
             $this->syncWechatDeviceLoginLog($ChuKeBaoAdapter);
+
+            $output->writeln("同步任务 sync_wechat_to_ckb 已结束");
             return true;
         } catch (\Exception $e) {
             Log::error('微信好友同步任务异常：' . $e->getMessage());
