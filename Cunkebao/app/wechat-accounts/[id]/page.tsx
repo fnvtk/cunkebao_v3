@@ -1010,17 +1010,23 @@ export default function WechatAccountDetailPage() {
               </DialogHeader>
               <ScrollArea className="max-h-[400px]">
                 <div className="space-y-4">
-                  {accountSummary && accountSummary.restrictions.map((record) => (
-                    <div key={record.id} className="border-b pb-4 last:border-0">
-                      <div className="flex justify-between items-start">
-                        <div className={`text-sm ${getRestrictionLevelColor(record.level)}`}>
-                          {record.reason}
+                  {accountSummary?.restrictions?.length > 0 ? (
+                    accountSummary.restrictions.map((record) => (
+                      <div key={record.id} className="border-b pb-4 last:border-0">
+                        <div className="flex justify-between items-start">
+                          <div className={`text-sm ${getRestrictionLevelColor(record.level)}`}>
+                            {record.reason}
+                          </div>
+                          <Badge variant="outline">{formatDateTime(record.date)}</Badge>
+                        </div>
+                        <div className="text-sm text-gray-500 mt-1">恢复时间：{formatDateTime(record.date)}</div>
                       </div>
-                        <Badge variant="outline">{formatDateTime(record.date)}</Badge>
-                      </div>
-                      <div className="text-sm text-gray-500 mt-1">恢复时间：{formatDateTime(record.date)}</div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-green-500">
+                      暂无风险记录，请继续保持
                     </div>
-                  ))}
+                  )}
                 </div>
               </ScrollArea>
             </DialogContent>

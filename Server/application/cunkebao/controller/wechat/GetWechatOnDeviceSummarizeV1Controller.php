@@ -4,6 +4,7 @@ namespace app\cunkebao\controller\wechat;
 
 use app\common\model\WechatAccount as WechatAccountModel;
 use app\common\model\WechatFriendShip as WechatFriendShipModel;
+use app\common\model\WechatRestricts as WechatRestrictsModel;
 use app\cunkebao\controller\BaseController;
 use library\ResponseHelper;
 
@@ -60,27 +61,21 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
     }
 
     /**
-     * TODO 获取限制记录
+     * 获取限制记录
      *
      * @param string $wechatId
      * @return array
      */
     protected function getRestrict(string $wechatId): array
     {
-        return [
-            [
-                'id'     => 1,
-                'level'   => 2,
-                'reason' => '频繁添加好友',
-                'date'   => date('Y-m-d H:i:s', strtotime('-1 day')),
-            ],
-            [
-                'id'     => 2,
-                'level'   => 3,
-                'reason' => '营销内容违规',
-                'date'   => date('Y-m-d H:i:s', strtotime('-1 day')),
-            ],
-        ];
+        return WechatRestrictsModel::alias('r')
+            ->field(
+                [
+                    'r.id', 'r.restrictTime date', 'r.level', 'r.reason'
+                ]
+            )
+            ->where('r.wechatId', $wechatId)->select()
+            ->toArray();
     }
 
     /**
@@ -92,7 +87,7 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
      */
     protected function getDateDiff(string $wechatId): int
     {
-        $currentData  = new \DateTime(date('Y-m-d H:i:s', time()));
+        $currentData = new \DateTime(date('Y-m-d H:i:s', time()));
         $registerDate = new \DateTime($this->getRegisterDate($wechatId));
 
         $interval = date_diff($currentData, $registerDate);
@@ -208,7 +203,7 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
      */
     protected function getTodayNewFriendCount(string $ownerWechatId): int
     {
-        return WechatFriendShipModel::where( compact('ownerWechatId') )
+        return WechatFriendShipModel::where(compact('ownerWechatId'))
             ->whereBetween('createTime',
                 [
                     strtotime(date('Y-m-d 00:00:00')),
