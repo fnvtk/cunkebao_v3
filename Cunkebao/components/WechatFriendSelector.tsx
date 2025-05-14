@@ -39,9 +39,10 @@ interface WechatFriendSelectorProps {
   onOpenChange: (open: boolean) => void
   selectedFriends: WechatFriend[]
   onSelect: (friends: WechatFriend[]) => void
+  devices?: number[]
 }
 
-export function WechatFriendSelector({ open, onOpenChange, selectedFriends, onSelect }: WechatFriendSelectorProps) {
+export function WechatFriendSelector({ open, onOpenChange, selectedFriends, onSelect, devices = [] }: WechatFriendSelectorProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [friends, setFriends] = useState<WechatFriend[]>([])
   const [loading, setLoading] = useState(false)
@@ -66,6 +67,10 @@ export function WechatFriendSelector({ open, onOpenChange, selectedFriends, onSe
         limit: pageSize.toString(),
         ...(searchQuery ? { keyword: searchQuery } : {})
       })
+      
+      if (devices && devices.length > 0) {
+        queryParams.append('deviceIds', devices.join(','))
+      }
       
       const response = await api.get<ApiResponse<FriendListResponse>>(`/v1/friend?${queryParams.toString()}`)
       
