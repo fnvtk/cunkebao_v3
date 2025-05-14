@@ -45,6 +45,9 @@ interface TaskConfig {
   tagOperator: number
   createTime: string
   updateTime: string
+  todayLikeCount?: number
+  totalLikeCount?: number
+  friends?: string[]
 }
 
 interface Task {
@@ -291,35 +294,33 @@ export default function AutoLikePage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="text-sm text-gray-500">
-                  <div>执行设备：{task.config.devices.length} 个</div>
-                  <div>目标人群：{
-                    task.config.targetGroups.length > 2 
-                      ? `${task.config.targetGroups[0]} 等${task.config.targetGroups.length - 1}个标签`
-                      : task.config.targetGroups.join(', ')
-                  }</div>
+                  <div className="mb-1">执行设备：{task.config.devices.length} 个</div>
+                  <div className="mb-1">目标人群：{task.config.friends?.length || 0} 个</div>
+                  <div>更新时间：{task.updateTime}</div>
                 </div>
                 <div className="text-sm text-gray-500">
-                  <div>点赞间隔：{task.config.interval} 秒</div>
-                  <div>每日上限：{task.config.maxLikes} 次</div>
+                  <div className="mb-1">点赞间隔：{task.config.interval} 秒</div>
+                  <div className="mb-1">每日上限：{task.config.maxLikes} 次</div>
+                  <div>创建时间：{task.createTime}</div>
                 </div>
               </div>
-
-              <div className="flex items-center justify-between text-xs text-gray-500 border-t pt-4">
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 mr-1" />
-                  更新时间：{task.updateTime}
+              
+              <div className="grid grid-cols-2 gap-4 border-t pt-4">
+                <div className="text-sm">
+                  <div className="flex items-center">
+                    <ThumbsUp className="h-4 w-4 mr-2 text-blue-500" />
+                    <span className="text-gray-500">今日点赞：</span>
+                    <span className="ml-1 font-medium">{task.config.todayLikeCount || 0} 次</span>
+                  </div>
                 </div>
-                <div className="flex items-center">
-                  <span>创建时间：{task.createTime}</span>
-                  <Button variant="ghost" size="sm" className="ml-2 p-0 h-6 w-6" onClick={() => toggleExpand(task.id)}>
-                    {expandedTaskId === task.id ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                  </Button>
+                <div className="text-sm">
+                  <div className="flex items-center">
+                    <ThumbsUp className="h-4 w-4 mr-2 text-green-500" />
+                    <span className="text-gray-500">总点赞数：</span>
+                    <span className="ml-1 font-medium">{task.config.totalLikeCount || 0} 次</span>
+                  </div>
                 </div>
               </div>
 

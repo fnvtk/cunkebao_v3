@@ -183,6 +183,22 @@ class WorkbenchController extends Controller
                             //$item->config->targetGroups = json_decode($item->config->targetGroups, true);
                             $item->config->contentTypes =  json_decode($item->config->contentTypes, true);
                             $item->config->friends = json_decode($item->config->friends, true);
+                            
+                            // 添加今日点赞数
+                            $startTime = strtotime(date('Y-m-d') . ' 00:00:00');
+                            $endTime = strtotime(date('Y-m-d') . ' 23:59:59');
+                            $todayLikeCount = Db::name('workbench_auto_like_item')
+                                ->where('workbenchId', $item->id)
+                                ->whereTime('createTime', 'between', [$startTime, $endTime])
+                                ->count();
+                            
+                            // 添加总点赞数
+                            $totalLikeCount = Db::name('workbench_auto_like_item')
+                                ->where('workbenchId', $item->id)
+                                ->count();
+                            
+                            $item->config->todayLikeCount = $todayLikeCount;
+                            $item->config->totalLikeCount = $totalLikeCount;
                         }
                         unset($item->autoLike,$item->auto_like);
                         break;
@@ -293,6 +309,23 @@ class WorkbenchController extends Controller
                     $workbench->config->friends = json_decode($workbench->config->friends, true);
                     //$workbench->config->targetGroups = json_decode($workbench->config->targetGroups, true);
                     $workbench->config->contentTypes = json_decode($workbench->config->contentTypes, true);
+                    
+                    // 添加今日点赞数
+                    $startTime = strtotime(date('Y-m-d') . ' 00:00:00');
+                    $endTime = strtotime(date('Y-m-d') . ' 23:59:59');
+                    $todayLikeCount = Db::name('workbench_auto_like_item')
+                        ->where('workbenchId', $workbench->id)
+                        ->whereTime('createTime', 'between', [$startTime, $endTime])
+                        ->count();
+                    
+                    // 添加总点赞数
+                    $totalLikeCount = Db::name('workbench_auto_like_item')
+                        ->where('workbenchId', $workbench->id)
+                        ->count();
+                    
+                    $workbench->config->todayLikeCount = $todayLikeCount;
+                    $workbench->config->totalLikeCount = $totalLikeCount;
+                    
                     unset($workbench->autoLike,$workbench->auto_like);
                 }
                 break;
