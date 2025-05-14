@@ -258,6 +258,10 @@ export default function MaterialsPage({ params }: { params: Promise<{ id: string
     }
   }
 
+  const handleSubmit = async () => {
+    fetchMaterials()
+  }
+
   return (
     <div className="flex-1 bg-gray-50 min-h-screen pb-20">
       <header className="sticky top-0 z-10 bg-white border-b">
@@ -314,7 +318,7 @@ export default function MaterialsPage({ params }: { params: Promise<{ id: string
                   </div>
                 </div>
                 <div className="my-3 h-0.5 bg-gray-100"></div>
-                <div className="space-y-2">
+            <div className="space-y-2">
                   <div className="h-4 w-full bg-gray-200 animate-pulse rounded"></div>
                   <div className="h-4 w-3/4 bg-gray-200 animate-pulse rounded"></div>
                   <div className="flex space-x-2 mt-3">
@@ -389,18 +393,18 @@ export default function MaterialsPage({ params }: { params: Promise<{ id: string
                         <Edit className="h-4 w-4 mr-1" />
                         编辑
                       </Button>
-                      <Dialog>
-                        <DialogTrigger asChild>
+                    <Dialog>
+                      <DialogTrigger asChild>
                           <Button variant="outline" size="sm" className="px-3 h-8 text-xs">
-                            <BarChart className="h-4 w-4 mr-1" />
-                            AI分析
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>AI 分析结果</DialogTitle>
-                          </DialogHeader>
-                          <div className="mt-4">
+                          <BarChart className="h-4 w-4 mr-1" />
+                          AI分析
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>AI 分析结果</DialogTitle>
+                        </DialogHeader>
+                        <div className="mt-4">
                             <p>正在分析中...</p>
                           </div>
                         </DialogContent>
@@ -427,7 +431,7 @@ export default function MaterialsPage({ params }: { params: Promise<{ id: string
                 </Card>
               ))
             )}
-          </div>
+                </div>
         )}
         
         {!isLoading && total > limit && (

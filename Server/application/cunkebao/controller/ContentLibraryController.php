@@ -449,16 +449,12 @@ class ContentLibraryController extends Controller
                 $item['senderNickname'] = $friendInfo['nickname'] ?: '';
                 $item['senderAvatar'] = $friendInfo['avatar'] ?: '';
             }else{
-                // $friendInfo = Db::name('wechat_group_member')
-                //     ->alias('wgm')
-                //     ->join('wechat_account wa', 'wgm.identifier = wa.wechatId')
-                //     ->where('wgm.identifier', $item['wechatId'])
-                //     ->field('wa.nickname, wa.avatar')
-                //     ->find();
-                //     print_r($friendInfo);
-                //     exit;
-                // $item['senderNickname'] = $friendInfo['nickname'] ?: '';
-                // $item['senderAvatar'] = $friendInfo['avatar'] ?: '';
+                $friendInfo = Db::table('s2_wechat_chatroom_member')
+                    ->field('nickname, avatar')
+                    ->where('wechatId', $item['wechatId'])
+                    ->find();
+                $item['senderNickname'] = $friendInfo['nickname'] ?: '';
+                $item['senderAvatar'] = $friendInfo['avatar'] ?: '';
             }
         }
         unset($item);
@@ -614,13 +610,11 @@ class ContentLibraryController extends Controller
         
         // 添加内容类型的文字描述
         $contentTypeMap = [
-            0 => '未知',
             1 => '图片',
             2 => '链接',
             3 => '视频',
             4 => '文本',
             5 => '小程序',
-            6 => '图文'
         ];
         $item['contentTypeName'] = $contentTypeMap[$item['contentType'] ?? 0] ?? '未知';
         
@@ -1120,7 +1114,7 @@ class ContentLibraryController extends Controller
      * @param string $content 内容文本
      * @param array $resUrls 资源URL数组
      * @param array $urls URL数组
-     * @return int 内容类型: 0=未知, 1=图片, 2=链接, 3=视频, 4=文本, 5=小程序, 6=图文
+     * @return int 内容类型:  1=图片, 2=链接, 3=视频, 4=文本, 5=小程序
      */
     private function determineContentType($content, $resUrls = [], $urls = [])
     {
@@ -1237,7 +1231,7 @@ class ContentLibraryController extends Controller
         if (!empty($content) && !$isPureLink) {
             // 如果有图片，则为图文类型
             if ($hasImage) {
-                return 6; // 图文
+                return 1; // 图文
             } else {
                 return 4; // 纯文本
             }
