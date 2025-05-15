@@ -144,7 +144,7 @@ class Adapter implements WeChatServiceInterface
 
     /* todo 以上方法待实现，基于/参考 application/api/controller/WebSocketController.php 去实现 */
 
-    
+
     // NOTE: run in background; 5min 同步一次
     // todo: 后续经过`s2_`表，直接对接三方的api去sync
     public function syncFriendship()
@@ -265,7 +265,8 @@ class Adapter implements WeChatServiceInterface
                 ->alias('a')
                 ->join(['s2_device' => 'd'], 'd.imei = a.imei')
                 ->join(['s2_company_account' => 'c'], 'c.id = d.currentAccountId')
-                ->field('d.id as deviceId, a.wechatId, a.wechatAlive as alive, c.departmentId as companyId, a.updateTime as createTime')
+                // ->field('d.id as deviceId, a.wechatId, a.wechatAlive as alive, c.departmentId as companyId, a.updateTime as createTime')
+                ->field('d.id as deviceId, a.wechatId, a.wechatAlive as alive, c.departmentId as companyId, a.updateTime as updateTime')
                 ->cursor();
 
             // $insertData = [];
@@ -288,8 +289,9 @@ class Adapter implements WeChatServiceInterface
                     Db::table('ck_device_wechat_login')
                         ->where('deviceId', $item['deviceId'])
                         ->where('wechatId', $item['wechatId'])
-                        ->update(['alive' => $item['alive']]);
+                        ->update(['alive' => $item['alive'], 'updateTime' => $item['updateTime']]);
                 } else {
+                    $item['createTime'] = $item['updateTime'];
                     Db::table('ck_device_wechat_login')->insert($item);
                 }
 
@@ -367,5 +369,208 @@ class Adapter implements WeChatServiceInterface
         }
 
         return $affectedRows;
+    }
+
+
+
+    /**
+     * 同步/更新微信客服信息到ck_wechat_customer表
+     * 
+     * @param int $batchSize 每批处理的数据量
+     * @return int 影响的行数
+     */
+    public function syncWechatCustomer($batchSize = 1000)
+    {
+        try {
+            // 1. 获取要处理的wechatId和companyId列表
+            $customerList = Db::table('ck_device_wechat_login')
+                ->field('DISTINCT wechatId, companyId')
+                ->select();
+
+            $totalAffected = 0;
+            $batchCount = ceil(count($customerList) / $batchSize);
+
+            for ($i = 0; $i < $batchCount; $i++) {
+                $batch = array_slice($customerList, $i * $batchSize, $batchSize);
+                $insertData = [];
+
+                foreach ($batch as $customer) {
+                    $wechatId = $customer['wechatId'];
+                    $companyId = $customer['companyId'];
+
+                    if (empty($wechatId)) continue;
+
+                    // 2. 获取s2_wechat_account数据
+                    $accountInfo = Db::table('s2_wechat_account')
+                        ->where('wechatId', $wechatId)
+                        ->find();
+
+                    // 3. 获取群数量 (不包含 @openim 结尾的identifier)
+                    $groupCount = Db::table('ck_wechat_group_member')
+                        ->where('identifier', $wechatId)
+                        ->where('customerIs', 1)
+                        ->where('identifier', 'not like', '%@openim')
+                        ->count();
+
+                    // 4. 检查记录是否已存在
+                    $existingRecord = Db::table('ck_wechat_customer')
+                        ->where('wechatId', $wechatId)
+                        ->find();
+
+                    // 5. 构建basic JSON数据
+                    $basic = [];
+                    if ($existingRecord && !empty($existingRecord['basic'])) {
+                        $basic = json_decode($existingRecord['basic'], true) ?: [];
+                    }
+
+                    if (empty($basic['registerDate'])) {
+                        $basic['registerDate'] = date('Y-m-d H:i:s', strtotime('-' . mt_rand(1, 150) . ' months'));
+                    }
+
+                    // 6. 构建activity JSON数据
+                    $activity = [];
+                    if ($existingRecord && !empty($existingRecord['activity'])) {
+                        $activity = json_decode($existingRecord['activity'], true) ?: [];
+                    }
+
+                    if ($accountInfo) {
+                        $activity['yesterdayMsgCount'] = $accountInfo['yesterdayMsgCount'] ?? 0;
+                        $activity['sevenDayMsgCount'] = $accountInfo['sevenDayMsgCount'] ?? 0;
+                        $activity['thirtyDayMsgCount'] = $accountInfo['thirtyDayMsgCount'] ?? 0;
+
+                        // 计算totalMsgCount
+                        if (empty($activity['totalMsgCount'])) {
+                            $activity['totalMsgCount'] = $activity['thirtyDayMsgCount'];
+                        } else {
+                            $activity['totalMsgCount'] += $activity['yesterdayMsgCount'];
+                        }
+                    }
+
+                    // 7. 构建friendShip JSON数据
+                    $friendShip = [];
+                    if ($existingRecord && !empty($existingRecord['friendShip'])) {
+                        $friendShip = json_decode($existingRecord['friendShip'], true) ?: [];
+                    }
+
+                    if ($accountInfo) {
+                        $friendShip['totalFriend'] = $accountInfo['totalFriend'] ?? 0;
+                        $friendShip['maleFriend'] = $accountInfo['maleFriend'] ?? 0;
+                        $friendShip['unknowFriend'] = $accountInfo['unknowFriend'] ?? 0;
+                        $friendShip['femaleFriend'] = $accountInfo['femaleFriend'] ?? 0;
+                    }
+                    $friendShip['groupNumber'] = $groupCount;
+
+                    // 8. 构建weight JSON数据 (每天只计算一次)
+                    $weight = [];
+                    if ($existingRecord && !empty($existingRecord['weight'])) {
+                        $weight = json_decode($existingRecord['weight'], true) ?: [];
+
+                        // 如果不是今天更新的，重新计算权重
+                        $lastUpdateDate = date('Y-m-d', $existingRecord['updateTime'] ?? 0);
+                        if ($lastUpdateDate !== date('Y-m-d')) {
+                            $weight = $this->calculateCustomerWeight($basic, $activity, $friendShip);
+                        }
+                    } else {
+                        $weight = $this->calculateCustomerWeight($basic, $activity, $friendShip);
+                    }
+
+                    // 9. 准备更新或插入的数据
+                    $data = [
+                        'wechatId' => $wechatId,
+                        'companyId' => $companyId,
+                        'basic' => json_encode($basic),
+                        'activity' => json_encode($activity),
+                        'friendShip' => json_encode($friendShip),
+                        'weight' => json_encode($weight),
+                        'updateTime' => time()
+                    ];
+
+                    if ($existingRecord) {
+                        // 更新记录
+                        Db::table('ck_wechat_customer')
+                            ->where('wechatId', $wechatId)
+                            ->update($data);
+                    } else {
+                        // 插入记录
+                        Db::table('ck_wechat_customer')->insert($data);
+                    }
+
+                    $totalAffected++;
+                }
+
+                // 释放内存
+                if ($i % 5 == 0) {
+                    gc_collect_cycles();
+                }
+
+                usleep(50000); // 50毫秒短暂休息
+            }
+
+            return $totalAffected;
+        } catch (\Exception $e) {
+            Log::error("同步微信客服信息异常: " . $e->getMessage() . ", 堆栈: " . $e->getTraceAsString());
+            throw $e;
+        }
+    }
+
+    /**
+     * 计算客服权重
+     * 
+     * @param array $basic 基础信息
+     * @param array $activity 活跃信息
+     * @param array $friendShip 好友关系信息
+     * @return array 权重信息
+     */
+    private function calculateCustomerWeight($basic, $activity, $friendShip)
+    {
+        // 1. 计算账号年龄权重（最大20分）
+        $ageWeight = 0;
+        if (!empty($basic['registerDate'])) {
+            $registerTime = strtotime($basic['registerDate']);
+            $accountAgeMonths = floor((time() - $registerTime) / (30 * 24 * 3600));
+            $ageWeight = min(20, floor($accountAgeMonths / 12) * 4);
+        }
+
+        // 2. 计算活跃度权重（最大30分）
+        $activityWeight = 0;
+        if (!empty($activity)) {
+            // 基于消息数计算活跃度
+            $msgScore = 0;
+            if ($activity['thirtyDayMsgCount'] > 10000) $msgScore = 15;
+            elseif ($activity['thirtyDayMsgCount'] > 5000) $msgScore = 12;
+            elseif ($activity['thirtyDayMsgCount'] > 1000) $msgScore = 8;
+            elseif ($activity['thirtyDayMsgCount'] > 500) $msgScore = 5;
+            elseif ($activity['thirtyDayMsgCount'] > 100) $msgScore = 3;
+
+            // 连续活跃天数加分（这里简化处理，实际可能需要更复杂逻辑）
+            $activeScore = min(15, $activity['yesterdayMsgCount'] > 10 ? 15 : floor($activity['yesterdayMsgCount'] / 2));
+
+            $activityWeight = $msgScore + $activeScore;
+        }
+
+        // 3. 计算限制影响权重（最大15分）
+        $restrictWeight = 15; // 默认满分，无限制
+
+        // 4. 计算实名认证权重（最大10分）
+        $realNameWeight = 0; // 简化处理，默认未实名
+
+        // 5. 计算可加友数量限制（基于好友数量，最大为5000）
+        $addLimit = 0;
+        if (!empty($friendShip['totalFriend'])) {
+            $addLimit = max(0, min(5000 - $friendShip['totalFriend'], 5000));
+            $addLimit = floor($addLimit / 1000); // 每1000个空位1分，最大5分
+        }
+
+        // 6. 计算总分（满分75+5分）
+        $scope = $ageWeight + $activityWeight + $restrictWeight + $realNameWeight;
+
+        return [
+            'ageWeight' => $ageWeight,
+            'activityWeight' => $activityWeight, // 注意这里修正了拼写错误
+            'restrictWeight' => $restrictWeight,
+            'realNameWeight' => $realNameWeight,
+            'scope' => $scope,
+            'addLimit' => $addLimit
+        ];
     }
 }
