@@ -719,7 +719,7 @@ export default function DevicesPage() {
                         <span className="mr-1">IMEI:</span>
                         <ImeiDisplay imei={device.imei} containerWidth={180} />
                       </div>
-                      <div className="text-sm text-gray-500">微信号: {device.wechatId || "未绑定"}</div>
+                      <div className="text-sm text-gray-500">微信号: {device.wechatId || "未绑定或微信离线"}</div>
                       <div className="flex items-center justify-between mt-1 text-sm">
                         <span className="text-gray-500">好友数: {device.totalFriend}</span>
                       </div>

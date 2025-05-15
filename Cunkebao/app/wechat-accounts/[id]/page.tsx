@@ -763,7 +763,7 @@ export default function WechatAccountDetailPage() {
                   </div>
                   {accountSummary && (
                     <>
-                      <div className="text-2xl font-bold text-blue-600">{accountSummary.activityLevel.dayTimes}次/天</div>
+                      <div className="text-2xl font-bold text-blue-600">{accountSummary.activityLevel.dayTimes.toLocaleString()}次/天</div>
                       <div className="text-sm text-gray-500 mt-1">总聊天数：{accountSummary.activityLevel.allTimes.toLocaleString()}</div>
                     </>
                   )}
@@ -1010,7 +1010,7 @@ export default function WechatAccountDetailPage() {
               </DialogHeader>
               <ScrollArea className="max-h-[400px]">
                 <div className="space-y-4">
-                  {accountSummary?.restrictions?.length > 0 ? (
+                  {(accountSummary?.restrictions && accountSummary.restrictions.length > 0) ? (
                     accountSummary.restrictions.map((record) => (
                       <div key={record.id} className="border-b pb-4 last:border-0">
                         <div className="flex justify-between items-start">

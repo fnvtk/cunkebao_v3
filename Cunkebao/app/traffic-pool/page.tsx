@@ -437,11 +437,11 @@ export default function TrafficPoolPage() {
         <div className="grid grid-cols-2 gap-4">
           <Card className="p-4">
             <div className="text-sm text-gray-500">流量池总数</div>
-              <div className="text-2xl font-bold text-blue-600">{stats.totalCount}</div>
+              <div className="text-2xl font-bold text-blue-600">{stats.totalCount.toLocaleString()}</div>
           </Card>
           <Card className="p-4">
             <div className="text-sm text-gray-500">今日新增</div>
-              <div className="text-2xl font-bold text-green-600">{stats.todayAddCount}</div>
+              <div className="text-2xl font-bold text-green-600">{stats.todayAddCount.toLocaleString()}</div>
           </Card>
         </div>
 

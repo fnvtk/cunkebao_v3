@@ -4,6 +4,7 @@ namespace app\cunkebao\controller\device;
 
 use app\common\model\Device as DeviceModel;
 use app\common\model\DeviceUser as DeviceUserModel;
+use app\common\model\DeviceWechatLogin as DeviceWechatLoginModel;
 use app\common\model\User as UserModel;
 use app\common\model\WechatFriendShip as WechatFriendShipModel;
 use app\cunkebao\controller\BaseController;
@@ -73,10 +74,10 @@ class GetDeviceListV1Controller extends BaseController
             ->field([
                 'd.id', 'd.imei', 'd.memo', 'd.alive',
                 'l.wechatId',
-                'wa.nickname', 'wa.alias', '0 totalFriend'
+                'a.nickname', 'a.alias', '0 totalFriend'
             ])
-            ->leftJoin('device_wechat_login l', 'd.id = l.deviceId')
-            ->leftJoin('wechat_account wa', 'l.wechatId = wa.wechatId')
+            ->leftJoin('device_wechat_login l', 'd.id = l.deviceId and l.alive =' . DeviceWechatLoginModel::ALIVE_WECHAT_ACTIVE)
+            ->leftJoin('wechat_account a', 'l.wechatId = a.wechatId')
             ->order('d.id desc');
 
         foreach ($where as $key => $value) {
@@ -105,7 +106,13 @@ class GetDeviceListV1Controller extends BaseController
             $sections = $item->toArray();
 
             if ($item->wechatId) {
-                $sections['totalFriend'] = WechatFriendShipModel::where(['ownerWechatId' => $item->wechatId])->count();
+                $sections['totalFriend'] = WechatFriendShipModel::where(
+                    [
+                        'ownerWechatId' => $item->wechatId,
+                        'companyId'     => $this->getUserInfo('companyId')
+                    ]
+                )
+                    ->count();
             }
 
             array_push($resultSets, $sections);

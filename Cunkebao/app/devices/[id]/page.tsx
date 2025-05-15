@@ -891,7 +891,7 @@ export default function DeviceDetailPage() {
                 <span className="text-sm">好友总数</span>
               </div>
               <div className="text-2xl font-bold text-blue-600 mt-2">
-                {device.totalFriend || 0}
+                {(device.totalFriend || 0).toLocaleString()}
               </div>
             </Card>
             <Card className="p-4">
@@ -900,7 +900,7 @@ export default function DeviceDetailPage() {
                 <span className="text-sm">消息数量</span>
               </div>
               <div className="text-2xl font-bold text-blue-600 mt-2">
-                {device.thirtyDayMsgCount || 0}
+                {(device.thirtyDayMsgCount || 0).toLocaleString()}
               </div>
             </Card>
           </div>

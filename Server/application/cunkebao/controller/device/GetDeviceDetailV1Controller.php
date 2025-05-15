@@ -5,8 +5,9 @@ namespace app\cunkebao\controller\device;
 use app\common\model\Device as DeviceModel;
 use app\common\model\DeviceTaskconf as DeviceTaskconfModel;
 use app\common\model\DeviceUser as DeviceUserModel;
-use app\common\model\DeviceWechatLogin;
+use app\common\model\DeviceWechatLogin as DeviceWechatLoginModel;
 use app\common\model\User as UserModel;
+use app\common\model\WechatCustomer as WechatCustomerModel;
 use app\common\model\WechatFriendShip as WechatFriendShipModel;
 use app\cunkebao\controller\BaseController;
 use Eison\Utils\Helper\ArrHelper;
@@ -47,10 +48,10 @@ class GetDeviceDetailV1Controller extends BaseController
     protected function parseExtraForBattery(string $extra): int
     {
         if (!empty($extra)) {
-            $extra = json_decode($extra, true);
+            $extra = json_decode($extra);
 
-            if (is_array($extra) && isset($extra['battery'])) {
-                return intval($extra['battery']);
+            if ($extra && isset($extra->battery)) {
+                return intval($extra->battery);
             }
         }
 
@@ -84,6 +85,25 @@ class GetDeviceDetailV1Controller extends BaseController
     }
 
     /**
+     * 获取设备最新登录微信的 wechatId
+     *
+     * @param int $deviceId
+     * @return string|null
+     * @throws \Exception
+     */
+    protected function getDeviceLatestWechatLogin(int $deviceId): ?string
+    {
+        return DeviceWechatLoginModel::where(
+            [
+                'companyId' => $this->getUserInfo('companyId'),
+                'deviceId'  => $deviceId,
+                'alive'     => DeviceWechatLoginModel::ALIVE_WECHAT_ACTIVE
+            ]
+        )
+            ->value('wechatId');
+    }
+
+    /**
      * 统计设备登录微信的好友
      *
      * @param int $deviceId
@@ -92,24 +112,43 @@ class GetDeviceDetailV1Controller extends BaseController
      */
     protected function getTotalFriend(int $deviceId): int
     {
-        $companyId = $this->getUserInfo('companyId');
-
-        $ownerWechatId = DeviceWechatLogin::where(compact('companyId', 'deviceId'))->order('createTime desc')->value('wechatId');
+        $ownerWechatId = $this->getDeviceLatestWechatLogin($deviceId);
 
         if ($ownerWechatId) {
-            return WechatFriendShipModel::where(['ownerWechatId' => $ownerWechatId])->count();
+            return WechatFriendShipModel::where(
+                [
+                    'companyId'     => $this->getUserInfo('companyId'),
+                    'ownerWechatId' => $ownerWechatId
+                ]
+            )
+                ->count();
         }
 
         return 0;
     }
 
     /**
-     * TODO 获取设备绑定微信的消息总数
+     * 获取设备绑定微信的消息总数
      *
+     * @param int $deviceId
      * @return int
      */
-    protected function getThirtyDayMsgCount(): int
+    protected function getThirtyDayMsgCount(int $deviceId): int
     {
+        $ownerWechatId = $this->getDeviceLatestWechatLogin($deviceId);
+
+        if ($ownerWechatId) {
+            $activity = (string)WechatCustomerModel::where(
+                [
+                    'wechatId'  => $ownerWechatId,
+                    'companyId' => $this->getUserInfo('companyId')
+                ]
+            )
+                ->value('activity');
+
+            return json_decode($activity)->totalMsgCount ?? 0;
+        }
+
         return 0;
     }
 
@@ -134,7 +173,7 @@ class GetDeviceDetailV1Controller extends BaseController
         $device['battery'] = $this->parseExtraForBattery($device['extra']);
         $device['features'] = $this->getTaskConfig($id);
         $device['totalFriend'] = $this->getTotalFriend($id);
-        $device['thirtyDayMsgCount'] = $this->getThirtyDayMsgCount();
+        $device['thirtyDayMsgCount'] = $this->getThirtyDayMsgCount($id);
 
         // 设备最后活跃时间为设备状态更新时间
         $device['lastUpdateTime'] = date('Y-m-d H:i:s', $device['lastUpdateTime']);
@@ -147,6 +186,7 @@ class GetDeviceDetailV1Controller extends BaseController
 
     /**
      * 获取设备详情
+     *
      * @return \think\response\Json
      */
     public function index()
@@ -158,9 +198,9 @@ class GetDeviceDetailV1Controller extends BaseController
                 $this->checkUserDevicePermission($id);
             }
 
-            $resultSet = $this->getDeviceInfo($id);
-
-            return ResponseHelper::success($resultSet);
+            return ResponseHelper::success(
+                $this->getDeviceInfo($id)
+            );
         } catch (\Exception $e) {
             return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
