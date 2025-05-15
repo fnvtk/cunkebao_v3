@@ -2,7 +2,8 @@
 
 namespace app\cunkebao\controller\wechat;
 
-use AccountWeight\WechatAccountWeightAssessment;
+use AccountWeight\WechatAccountWeightAssessment as WeightAssessment;
+use AccountWeight\WechatFriendAddLimitAssessment as LimitAssessment;
 use app\common\model\WechatFriendShip as WechatFriendShipModel;
 use app\common\model\WechatRestricts as WechatRestrictsModel;
 use app\cunkebao\controller\BaseController;
@@ -21,7 +22,7 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
      */
     protected function getRegisterDate(string $wechatId): string
     {
-        return date('Y-m-d H:i:s', strtotime('-15 months'));
+        return date('Y-m-d H:i:s', strtotime('-' . mt_rand(1, 150) . ' months'));
     }
 
     /**
@@ -79,28 +80,6 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
     }
 
     /**
-     * 计算好友数量（每5权重=1好友，最多20个）
-     *
-     * @param int $weight
-     * @return int
-     */
-    protected function _calAllowedFriends(int $weight): int
-    {
-        $adjustedWeight = $weight;
-        $lastDigit = $weight % 10;
-
-        if ($weight < 10) {
-            if ($lastDigit < 5) {
-                $adjustedWeight = 5;
-            } else {
-                $adjustedWeight = 10;
-            }
-        }
-
-        return min(20, floor($adjustedWeight / 5));
-    }
-
-    /**
      * 获取账号权重
      *
      * @param string $wechatId
@@ -109,7 +88,7 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
     protected function getAccountWeight(string $wechatId): array
     {
         // 微信账号加友权重评估
-        $assessment = $this->classTable->getInstance(WechatAccountWeightAssessment::class);
+        $assessment = $this->classTable->getInstance(WeightAssessment::class);
         $assessment->settingFactor($wechatId);
 
         return [
@@ -147,11 +126,12 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
      */
     protected function getStatistics(string $wechatId): array
     {
-        $scope = $this->classTable->getInstance(WechatAccountWeightAssessment::class)->getWeightScope();
-
         return [
             'todayAdded' => $this->getTodayNewFriendCount($wechatId),
-            'addLimit'   => $this->_calAllowedFriends($scope)
+            'addLimit'   => (new LimitAssessment())
+                ->maxLimit(
+                    $this->classTable->getInstance(WeightAssessment::class)
+                ),
         ];
     }
 
