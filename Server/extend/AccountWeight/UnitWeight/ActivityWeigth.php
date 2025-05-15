@@ -23,9 +23,7 @@ class ActivityWeigth implements WechatAccountWeightResultSetInterface
         )
             ->value('activity');
 
-        $activity = json_decode($activity, true);
-
-        return $activity->yesterdayMsgCount ?? 0;
+        return json_decode($activity)->yesterdayMsgCount ?? 0;
     }
 
     /**

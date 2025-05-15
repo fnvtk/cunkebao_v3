@@ -23,7 +23,7 @@ class AgeWeight implements WechatAccountWeightResultSetInterface
         )
             ->value('basic');
 
-        $basic = json_decode($basic, true);
+        $basic = json_decode($basic);
 
         // 如果没有设置账号注册时间，则默认今天，即账号年龄为0
         return $basic && isset($basic->registerDate) ? $basic->registerDate : date('Y-m-d', time());

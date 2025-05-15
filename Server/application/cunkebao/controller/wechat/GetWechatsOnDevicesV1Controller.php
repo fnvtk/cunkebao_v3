@@ -8,6 +8,7 @@ use app\common\model\DeviceUser as DeviceUserModel;
 use app\common\model\DeviceWechatLogin as DeviceWechatLoginModel;
 use app\common\model\User as UserModel;
 use app\common\model\WechatAccount as WechatAccountModel;
+use app\common\model\WechatCustomer as WechatCustomerModel;
 use app\common\model\WechatFriendShip as WechatFriendShipModel;
 use app\cunkebao\controller\BaseController;
 use library\ResponseHelper;
@@ -25,7 +26,15 @@ class GetWechatsOnDevicesV1Controller extends BaseController
      */
     protected function getCanAddFriendCount(string $wechatId): int
     {
-        return 20; // 最多限制 20 次
+        $weight = (string)WechatCustomerModel::where(
+            [
+                'wechatId'  => $wechatId,
+                'companyId' => $this->getUserInfo('companyId')
+            ]
+        )
+            ->value('weight');
+
+        return json_decode($weight)->addLimit ?? 0;
     }
 
     /**
@@ -36,7 +45,7 @@ class GetWechatsOnDevicesV1Controller extends BaseController
      */
     protected function getTodayNewFriendCount(string $ownerWechatId): int
     {
-        return WechatFriendShipModel::where( compact('ownerWechatId') )
+        return WechatFriendShipModel::where(compact('ownerWechatId'))
             ->whereBetween('createTime',
                 [
                     strtotime(date('Y-m-d 00:00:00')),
@@ -65,7 +74,13 @@ class GetWechatsOnDevicesV1Controller extends BaseController
      */
     protected function getFriendsCount(string $ownerWechatId): int
     {
-        return WechatFriendShipModel::where(compact('ownerWechatId'))->count();
+        return WechatFriendShipModel::where(
+            [
+                'ownerWechatId' => $ownerWechatId,
+                'companyId'     => $this->getUserInfo('companyId'),
+            ]
+        )
+            ->count();
     }
 
     /**
