@@ -4,9 +4,11 @@ namespace app\cunkebao\controller\wechat;
 
 use AccountWeight\WechatAccountWeightAssessment as WeightAssessment;
 use AccountWeight\WechatFriendAddLimitAssessment as LimitAssessment;
+use app\common\model\WechatCustomer as WechatCustomerModel;
 use app\common\model\WechatFriendShip as WechatFriendShipModel;
 use app\common\model\WechatRestricts as WechatRestrictsModel;
 use app\cunkebao\controller\BaseController;
+use Eison\Utils\Helper\ArrHelper;
 use library\ResponseHelper;
 
 /**
@@ -15,36 +17,58 @@ use library\ResponseHelper;
 class GetWechatOnDeviceSummarizeV1Controller extends BaseController
 {
     /**
-     * TODO 计算账号年龄（从创建时间到现在）
+     * 获取微信客服信息
+     *
+     * @param string $wechatId
+     * @return WechatCustomerModel|null
+     * @throws \Exception
+     */
+    private function getWechatCustomerModel(string $wechatId): ?WechatCustomerModel
+    {
+        if (!isset($this->WechatCustomerModel)) {
+            $this->WechatCustomerModel = WechatCustomerModel::where(
+                [
+                    'wechatId'  => $wechatId,
+                    'companyId' => $this->getUserInfo('companyId')
+                ]
+            )
+                ->find();
+        }
+
+        return $this->WechatCustomerModel;
+    }
+
+    /**
+     * 计算账号年龄（从创建时间到现在）
      *
      * @param string $wechatId
      * @return string
      */
     protected function getRegisterDate(string $wechatId): string
     {
-        return date('Y-m-d H:i:s', strtotime('-' . mt_rand(1, 150) . ' months'));
+        return $this->getWechatCustomerModel($wechatId)->basic->registerDate ?? date('Y-m-d', time());
     }
 
     /**
-     * TODO 获取每天聊天次数。
+     * 获取昨日聊天次数
      *
-     * @param string $wechatId
+     * @param WechatCustomerModel $customer
      * @return int
      */
-    protected function getChatTimesPerDay(string $wechatId): int
+    protected function getChatTimesPerDay(?WechatCustomerModel $customer): int
     {
-        return mt_rand(0, 100);
+        return $customer->activity->yesterdayMsgCount ?? 0;
     }
 
     /**
-     * TODO 总聊天数量
+     * 总聊天数量
      *
-     * @param string $wechatId
+     * @param WechatCustomerModel $customer
      * @return int
      */
-    protected function getChatTimesTotal(string $wechatId): int
+    protected function getChatTimesTotal(?WechatCustomerModel $customer): int
     {
-        return mt_rand(100, 1000000);
+        return $customer->activity->totalMsgCount ?? 0;
     }
 
     /**
@@ -55,9 +79,11 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
      */
     protected function getActivityLevel(string $wechatId): array
     {
+        $customer = $this->getWechatCustomerModel($wechatId);
+
         return [
-            'allTimes' => $this->getChatTimesTotal($wechatId),
-            'dayTimes' => $this->getChatTimesPerDay($wechatId),
+            'allTimes' => $this->getChatTimesTotal($customer),
+            'dayTimes' => $this->getChatTimesPerDay($customer),
         ];
     }
 
@@ -87,17 +113,23 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
      */
     protected function getAccountWeight(string $wechatId): array
     {
-        // 微信账号加友权重评估
-        $assessment = $this->classTable->getInstance(WeightAssessment::class);
-        $assessment->settingFactor($wechatId);
+        $customer = $this->getWechatCustomerModel($wechatId);
+        $seeders  = $customer ? (array)$customer->weight : array();
 
-        return [
-            'ageWeight'      => $assessment->calculAgeWeight()->getResult(),        // 账号年龄权重
-            'activityWeigth' => $assessment->calculActivityWeigth()->getResult(),   // 计算活跃度权重
-            'restrictWeight' => $assessment->calculRestrictWeigth()->getResult(),   // 计算限制影响权重
-            'realNameWeight' => $assessment->calculRealNameWeigth()->getResult(),   // 计算实名认证权重
-            'scope'          => $assessment->getWeightScope(),                      // 计算总分
-        ];
+        // 严谨返回
+        return ArrHelper::getValue('ageWeight,activityWeigth,restrictWeight,realNameWeight,scope', $seeders, 0);
+    }
+
+    /**
+     * 获取当日最高添加好友记录
+     *
+     * @param string $wechatId
+     * @return int
+     * @throws \Exception
+     */
+    protected function getAccountWeightAddLimit(string $wechatId): int
+    {
+        return $this->getWechatCustomerModel($wechatId)->weight->addLimit ?? 0;
     }
 
     /**
@@ -128,10 +160,7 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
     {
         return [
             'todayAdded' => $this->getTodayNewFriendCount($wechatId),
-            'addLimit'   => (new LimitAssessment())
-                ->maxLimit(
-                    $this->classTable->getInstance(WeightAssessment::class)
-                ),
+            'addLimit'   => $this->getAccountWeightAddLimit($wechatId)
         ];
     }
 

@@ -2,6 +2,7 @@
 
 namespace AccountWeight\UnitWeight;
 
+use app\common\model\WechatCustomer as WechatCustomerModel;
 use library\interfaces\WechatAccountWeightResultSet as WechatAccountWeightResultSetInterface;
 
 class AgeWeight implements WechatAccountWeightResultSetInterface
@@ -16,7 +17,16 @@ class AgeWeight implements WechatAccountWeightResultSetInterface
      */
     private function getRegisterDate(string $wechatId): string
     {
-        return date('Y-m-d H:i:s', strtotime('-15 months'));
+        $basic = (string)WechatCustomerModel::where([
+                'wechatId' => $wechatId,
+            ]
+        )
+            ->value('basic');
+
+        $basic = json_decode($basic, true);
+
+        // 如果没有设置账号注册时间，则默认今天，即账号年龄为0
+        return $basic && isset($basic->registerDate) ? $basic->registerDate : date('Y-m-d', time());
     }
 
     /**
@@ -28,7 +38,7 @@ class AgeWeight implements WechatAccountWeightResultSetInterface
      */
     private function getDateTimeDiff(string $wechatId): int
     {
-        $currentData = new \DateTime(date('Y-m-d H:i:s', time()));
+        $currentData = new \DateTime(date('Y-m-d', time()));
         $registerDate = new \DateTime($this->getRegisterDate($wechatId));
 
         $interval = date_diff($currentData, $registerDate);

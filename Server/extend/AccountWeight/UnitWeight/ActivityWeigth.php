@@ -2,6 +2,7 @@
 
 namespace AccountWeight\UnitWeight;
 
+use app\common\model\WechatCustomer as WechatCustomerModel;
 use library\interfaces\WechatAccountWeightResultSet as WechatAccountWeightResultSetInterface;
 
 class ActivityWeigth implements WechatAccountWeightResultSetInterface
@@ -16,7 +17,15 @@ class ActivityWeigth implements WechatAccountWeightResultSetInterface
      */
     private function getChatTimesPerDay(string $wechatId): int
     {
-        return mt_rand(0, 100);
+        $activity = (string)WechatCustomerModel::where([
+                'wechatId' => $wechatId,
+            ]
+        )
+            ->value('activity');
+
+        $activity = json_decode($activity, true);
+
+        return $activity->yesterdayMsgCount ?? 0;
     }
 
     /**
