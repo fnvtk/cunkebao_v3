@@ -43,7 +43,7 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
      */
     protected function getChatTimesTotal(string $wechatId): int
     {
-        return mt_rand(2000, 1000000);
+        return mt_rand(100, 1000000);
     }
 
     /**
@@ -109,7 +109,7 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
     protected function getAccountWeight(string $wechatId): array
     {
         // 微信账号加友权重评估
-        $assessment = new WechatAccountWeightAssessment();
+        $assessment = $this->classTable->getInstance(WechatAccountWeightAssessment::class);
         $assessment->settingFactor($wechatId);
 
         return [
@@ -143,14 +143,15 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
      * 获取账号加友统计数据.
      *
      * @param string $wechatId
-     * @param array $accountWeight
      * @return array
      */
-    protected function getStatistics(string $wechatId, array $accountWeight): array
+    protected function getStatistics(string $wechatId): array
     {
+        $scope = $this->classTable->getInstance(WechatAccountWeightAssessment::class)->getWeightScope();
+
         return [
             'todayAdded' => $this->getTodayNewFriendCount($wechatId),
-            'addLimit'   => $this->_calAllowedFriends($accountWeight['scope'])
+            'addLimit'   => $this->_calAllowedFriends($scope)
         ];
     }
 
@@ -164,21 +165,14 @@ class GetWechatOnDeviceSummarizeV1Controller extends BaseController
         try {
             $wechatId = $this->request->param('id/s');
 
-            // 以下内容依次加工数据
-            $accountAge = $this->getRegisterDate($wechatId);
-            $activityLevel = $this->getActivityLevel($wechatId);
-            $accountWeight = $this->getAccountWeight($wechatId);
-            $statistics = $this->getStatistics($wechatId, $accountWeight);
-            $restrictions = $this->getRestrict($wechatId);
-
             return ResponseHelper::success(
-                compact(
-                    'accountAge',
-                    'activityLevel',
-                    'accountWeight',
-                    'statistics',
-                    'restrictions'
-                )
+                [
+                    'accountAge'    => $this->getRegisterDate($wechatId),
+                    'activityLevel' => $this->getActivityLevel($wechatId),
+                    'accountWeight' => $this->getAccountWeight($wechatId),
+                    'statistics'    => $this->getStatistics($wechatId),
+                    'restrictions'  => $this->getRestrict($wechatId),
+                ]
             );
         } catch (\Exception $e) {
             return ResponseHelper::error($e->getMessage(), $e->getCode());

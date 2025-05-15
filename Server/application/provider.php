@@ -11,4 +11,6 @@
 
 // 应用容器绑定定义
 return [
+    // 类的映射表
+    'ClassTable' => app\common\service\ClassTableService::class,
 ];

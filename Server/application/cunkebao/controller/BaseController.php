@@ -2,6 +2,7 @@
 
 namespace app\cunkebao\controller;
 
+use app\common\service\ClassTableService;
 use think\Controller;
 
 /**
@@ -14,6 +15,21 @@ class BaseController extends Controller
      * @var object
      */
     protected $user;
+
+    /**
+     * @var ClassTableService
+     */
+    protected $classTable;
+
+    /**
+     * @inheritDoc
+     */
+    public function __construct(ClassTableService $classTable)
+    {
+        $this->classTable = $classTable;
+
+        parent::__construct();
+    }
 
     /**
      * 初始化

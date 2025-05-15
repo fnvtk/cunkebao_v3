@@ -6,6 +6,8 @@ use AccountWeight\Exceptions\WechatAccountWeightAssessmentException as WeightAss
 use library\ClassTable;
 use library\interfaces\WechatAccountWeightResultSet as WechatAccountWeightResultSetInterface;
 use library\interfaces\WechatAccountWeightAssessment as WechatAccountWeightAssessmentInterface;
+use AccountWeight\UnitWeight;
+use app\common\service\ClassTableService;
 
 class WechatAccountWeightAssessment implements WechatAccountWeightAssessmentInterface
 {
@@ -14,6 +16,17 @@ class WechatAccountWeightAssessment implements WechatAccountWeightAssessmentInte
     private $activityWeigth;
     private $restrictWeight;
     private $realNameWeight;
+    protected $classTable;
+
+    /**
+     * 依赖注入
+     *
+     * @param ClassTableService|null $classTable
+     */
+    public function __construct(ClassTableService $classTable = null)
+    {
+        $this->classTable = $classTable ?? app('ClassTable');
+    }
 
     /**
      * 获取言
@@ -34,7 +47,7 @@ class WechatAccountWeightAssessment implements WechatAccountWeightAssessmentInte
      */
     public function calculAgeWeight(): WechatAccountWeightResultSetInterface
     {
-        $AgeWeight = ClassTable::getSelfInstance()->getInstance(UnitWeight\AgeWeight::class);
+        $AgeWeight = $this->classTable->getInstance(UnitWeight\AgeWeight::class);
 
         if (!$this->ageWeight) {
             $this->ageWeight = $AgeWeight->settingFactor(
@@ -51,7 +64,7 @@ class WechatAccountWeightAssessment implements WechatAccountWeightAssessmentInte
      */
     public function calculActivityWeigth(): WechatAccountWeightResultSetInterface
     {
-        $ActivityWeigth = ClassTable::getSelfInstance()->getInstance(UnitWeight\ActivityWeigth::class);
+        $ActivityWeigth = $this->classTable->getInstance(UnitWeight\ActivityWeigth::class);
 
         if (!$this->activityWeigth) {
             $this->activityWeigth = $ActivityWeigth->settingFactor(
@@ -68,7 +81,7 @@ class WechatAccountWeightAssessment implements WechatAccountWeightAssessmentInte
      */
     public function calculRestrictWeigth(): WechatAccountWeightResultSetInterface
     {
-        $RestrictWeight = ClassTable::getSelfInstance()->getInstance(UnitWeight\RestrictWeight::class);
+        $RestrictWeight = $this->classTable->getInstance(UnitWeight\RestrictWeight::class);
 
         if (!$this->restrictWeight) {
             $this->restrictWeight = $RestrictWeight->settingFactor(
@@ -85,7 +98,7 @@ class WechatAccountWeightAssessment implements WechatAccountWeightAssessmentInte
      */
     public function calculRealNameWeigth(): WechatAccountWeightResultSetInterface
     {
-        $AccountWeight = ClassTable::getSelfInstance()->getInstance(UnitWeight\RealNameWeight::class);
+        $AccountWeight = $this->classTable->getInstance(UnitWeight\RealNameWeight::class);
 
         if (!$this->realNameWeight) {
             $this->realNameWeight = $AccountWeight->settingFactor(
