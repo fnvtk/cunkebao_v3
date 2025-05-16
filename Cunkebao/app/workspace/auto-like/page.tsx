@@ -37,6 +37,7 @@ interface TaskConfig {
   workbenchId: number
   interval: number
   maxLikes: number
+  friendMaxLikes?: number
   startTime: string
   endTime: string
   contentTypes: string[]
@@ -48,6 +49,8 @@ interface TaskConfig {
   todayLikeCount?: number
   totalLikeCount?: number
   friends?: string[]
+  enableFriendTags?: boolean
+  friendTags?: string
 }
 
 interface Task {
@@ -342,6 +345,10 @@ export default function AutoLikePage() {
                           <span>{task.config.maxLikes} 次</span>
                         </div>
                         <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">每个好友最大点赞数：</span>
+                          <span>{task.config.friendMaxLikes || 3} 次</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
                           <span className="text-gray-500">执行时间段：</span>
                           <span>
                             {task.config.startTime} - {task.config.endTime}
@@ -366,6 +373,14 @@ export default function AutoLikePage() {
                         <div className="text-sm text-gray-500">
                           匹配方式：{task.config.tagOperator === 1 ? "满足所有标签" : "满足任一标签"}
                         </div>
+                        {task.config.enableFriendTags && task.config.friendTags && (
+                          <div className="mt-2">
+                            <div className="text-sm font-medium mb-1">好友标签：</div>
+                            <Badge variant="outline" className="bg-blue-50 border-blue-200">
+                              {task.config.friendTags}
+                            </Badge>
+                          </div>
+                        )}
                       </div>
                     </div>
 

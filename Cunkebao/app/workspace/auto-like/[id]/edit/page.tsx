@@ -21,6 +21,7 @@ interface TaskConfig {
   workbenchId: number
   interval: number
   maxLikes: number
+  friendMaxLikes?: number
   startTime: string
   endTime: string
   contentTypes: string[]
@@ -30,6 +31,8 @@ interface TaskConfig {
   createTime: string
   updateTime: string
   friends?: string[]
+  enableFriendTags?: boolean
+  friendTags?: string
 }
 
 interface Task {
@@ -58,9 +61,12 @@ export default function EditAutoLikePage({ params }: { params: Promise<{ id: str
     taskName: "",
     likeInterval: 5,
     maxLikesPerDay: 200,
+    friendMaxLikes: 3,
     timeRange: { start: "08:00", end: "22:00" },
     contentTypes: ["text", "image", "video"],
     enabled: true,
+    enableFriendTags: false,
+    friendTags: "",
     selectedDevices: [] as number[],
     friends: [] as string[],
   })
@@ -80,12 +86,15 @@ export default function EditAutoLikePage({ params }: { params: Promise<{ id: str
           taskName: task.name,
           likeInterval: task.config.interval,
           maxLikesPerDay: task.config.maxLikes,
+          friendMaxLikes: task.config.friendMaxLikes || 3,
           timeRange: {
             start: task.config.startTime,
             end: task.config.endTime
           },
           contentTypes: task.config.contentTypes,
           enabled: task.status === 1,
+          enableFriendTags: task.config.enableFriendTags || false,
+          friendTags: task.config.friendTags || "",
           selectedDevices: task.config.devices,
           friends: Array.isArray(task.config.friends) ? task.config.friends : [],
         })
@@ -124,12 +133,15 @@ export default function EditAutoLikePage({ params }: { params: Promise<{ id: str
         name: formData.taskName,
         interval: formData.likeInterval,
         maxLikes: formData.maxLikesPerDay,
+        friendMaxLikes: formData.friendMaxLikes,
         startTime: formData.timeRange.start,
         endTime: formData.timeRange.end,
         contentTypes: formData.contentTypes,
         enabled: formData.enabled,
         devices: formData.selectedDevices,
         friends: formData.friends,
+        enableFriendTags: formData.enableFriendTags,
+        friendTags: formData.enableFriendTags ? formData.friendTags : "",
       });
 
       if (response.code === 200) {

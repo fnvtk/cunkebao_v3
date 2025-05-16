@@ -23,9 +23,12 @@ export default function NewAutoLikePage() {
     taskName: "",
     likeInterval: 5, // 默认5秒
     maxLikesPerDay: 200, // 默认200次
+    friendMaxLikes: 3, // 默认每个好友最多点赞3次
     timeRange: { start: "08:00", end: "22:00" },
     contentTypes: ["text", "image", "video"],
     enabled: true,
+    enableFriendTags: false, // 默认不启用好友标签
+    friendTags: "", // 好友标签字段
     selectedDevices: [] as number[],
     selectedTags: [] as string[],
     tagOperator: "and" as "and" | "or",
@@ -66,12 +69,15 @@ export default function NewAutoLikePage() {
         name: formData.taskName,
         interval: formData.likeInterval,
         maxLikes: formData.maxLikesPerDay,
+        friendMaxLikes: formData.friendMaxLikes,
         startTime: formData.timeRange.start,
         endTime: formData.timeRange.end,
         contentTypes: formData.contentTypes,
         enabled: formData.enabled,
         devices: formData.selectedDevices,
         friends: formData.friends,
+        enableFriendTags: formData.enableFriendTags,
+        friendTags: formData.enableFriendTags ? formData.friendTags : "",
       });
 
       if (response.code === 200) {

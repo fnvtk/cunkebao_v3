@@ -10,9 +10,12 @@ interface BasicSettingsProps {
     taskName: string
     likeInterval: number
     maxLikesPerDay: number
+    friendMaxLikes: number
     timeRange: { start: string; end: string }
     contentTypes: string[]
     enabled: boolean
+    enableFriendTags: boolean
+    friendTags: string
   }
   onChange: (data: Partial<BasicSettingsProps["formData"]>) => void
   onNext: () => void
@@ -42,6 +45,14 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
 
   const decrementMaxLikes = () => {
     onChange({ maxLikesPerDay: Math.max(formData.maxLikesPerDay - 10, 10) })
+  }
+
+  const incrementFriendMaxLikes = () => {
+    onChange({ friendMaxLikes: Math.min(formData.friendMaxLikes + 1, 10) })
+  }
+
+  const decrementFriendMaxLikes = () => {
+    onChange({ friendMaxLikes: Math.max(formData.friendMaxLikes - 1, 1) })
   }
 
   return (
@@ -80,7 +91,7 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
               className="h-12 rounded-none border-x-0 border-gray-200 text-center"
             />
             <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-gray-500">
-              分钟
+              秒
             </div>
           </div>
           <Button
@@ -136,6 +147,45 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
       </div>
 
       <div className="space-y-2">
+        <Label htmlFor="friend-max-likes">好友最大点赞数</Label>
+        <div className="flex items-center">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-12 w-12 rounded-l-xl border-gray-200 bg-white hover:bg-gray-50"
+            onClick={decrementFriendMaxLikes}
+          >
+            <Minus className="h-5 w-5" />
+          </Button>
+          <div className="relative flex-1">
+            <Input
+              id="friend-max-likes"
+              type="number"
+              min={1}
+              max={10}
+              value={formData.friendMaxLikes}
+              onChange={(e) => onChange({ friendMaxLikes: Number.parseInt(e.target.value) || 1 })}
+              className="h-12 rounded-none border-x-0 border-gray-200 text-center"
+            />
+            <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-gray-500">
+              次/好友
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-12 w-12 rounded-r-xl border-gray-200 bg-white hover:bg-gray-50"
+            onClick={incrementFriendMaxLikes}
+          >
+            <Plus className="h-5 w-5" />
+          </Button>
+        </div>
+        <p className="text-xs text-gray-500">设置每个好友最多被点赞的次数</p>
+      </div>
+
+      <div className="space-y-2">
         <Label>点赞时间范围</Label>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -180,6 +230,33 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
           ))}
         </div>
         <p className="text-xs text-gray-500">选择要点赞的内容类型</p>
+      </div>
+
+      <div className="space-y-4 py-2 border-t border-gray-100">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="enable-friend-tags" className="cursor-pointer">
+            启用好友标签
+          </Label>
+          <Switch
+            id="enable-friend-tags"
+            checked={formData.enableFriendTags}
+            onCheckedChange={(checked) => onChange({ enableFriendTags: checked })}
+          />
+        </div>
+        
+        {formData.enableFriendTags && (
+          <div className="space-y-2">
+            <Label htmlFor="friend-tags">好友标签</Label>
+            <Input
+              id="friend-tags"
+              placeholder="请输入标签"
+              value={formData.friendTags}
+              onChange={(e) => onChange({ friendTags: e.target.value })}
+              className="h-12 rounded-xl border-gray-200"
+            />
+            <p className="text-xs text-gray-500">只给有此标签的好友点赞</p>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between py-2">
