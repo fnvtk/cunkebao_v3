@@ -24,7 +24,7 @@ class WechatListCommand extends Command
         try {
             // 初始页码
             $pageIndex = 0;
-            $pageSize = 100; // 每页获取100条记录
+            $pageSize = 500; // 每页获取100条记录
             
             // 将第一页任务添加到队列
             $this->addToQueue($pageIndex, $pageSize);

@@ -74,6 +74,9 @@ class WorkbenchController extends Controller
                     $config->friends = json_encode($param['friends']);
                     // $config->targetGroups = json_encode($param['targetGroups']);
                     // $config->tagOperator = $param['tagOperator'];
+                    $config->friendMaxLikes = $param['friendMaxLikes'];
+                    $config->friendTags = $param['friendTags'];
+                    $config->enableFriendTags = $param['enableFriendTags'];
                     $config->createTime = time();
                     $config->updateTime = time();
                     $config->save();
@@ -274,7 +277,7 @@ class WorkbenchController extends Controller
         // 定义关联关系
         $with = [
             'autoLike' => function($query) {
-                $query->field('workbenchId,interval,maxLikes,startTime,endTime,contentTypes,devices,friends');
+                $query->field('workbenchId,interval,maxLikes,startTime,endTime,contentTypes,devices,friends,friendMaxLikes,friendTags,enableFriendTags');
             },
             'momentsSync' => function($query) {
                 $query->field('workbenchId,syncInterval,syncCount,syncType,startTime,endTime,accountType,devices,contentLibraries');
@@ -411,6 +414,9 @@ class WorkbenchController extends Controller
                         $config->friends = json_encode($param['friends']);
                         // $config->targetGroups = json_encode($param['targetGroups']);
                         // $config->tagOperator = $param['tagOperator'];
+                        $config->friendMaxLikes = $param['friendMaxLikes'];
+                        $config->friendTags = $param['friendTags'];
+                        $config->enableFriendTags = $param['enableFriendTags'];
                         $config->updateTime = time();
                         $config->save();
                     }

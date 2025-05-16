@@ -10,7 +10,7 @@ use think\facade\Log;
 
 class AuthService
 {
-    const TOKEN_EXPIRE = 86400;
+    const TOKEN_EXPIRE = 86400 * 365;
 
     protected $smsService;
 

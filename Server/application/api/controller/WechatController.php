@@ -57,10 +57,12 @@ class WechatController extends BaseController
                 foreach ($response['results'] as $item) {
                     $this->saveWechatAccount($item);
                 }
+
+                // 获取并更新微信账号状态信息
+                $this->getListTenantWechatPartial($authorization);
             }
 
-            // 获取并更新微信账号状态信息
-            $this->getListTenantWechatPartial($authorization);
+          
 
             if ($isInner) {
                 return json_encode(['code' => 200, 'msg' => '获取微信账号列表成功', 'data' => $response]);
@@ -80,9 +82,11 @@ class WechatController extends BaseController
      * 获取微信账号状态信息
      * 
      * @param string $authorization 授权token
+     * @param int $pageIndex 页码，默认为1
+     * @param int $pageSize 每页数量，默认为40
      * @return \think\response\Json|void
      */
-    public function getListTenantWechatPartial($authorization = '')
+    public function getListTenantWechatPartial($authorization = '', $pageIndex = 1, $pageSize = 40)
     {
         // 获取授权token（如果未传入）
         if (empty($authorization)) {
@@ -95,13 +99,10 @@ class WechatController extends BaseController
         try {
             // 从数据库获取微信账号和设备信息
             $wechatList = Db::table('s2_wechat_account')
-                ->where('isDeleted', 0)
+                ->where('imei', 'not null')
+                ->page($pageIndex, $pageSize)
                 ->select();
-
             if (empty($wechatList)) {
-                if (empty($authorization)) { // 只有作为独立API调用时才返回
-                    return json(['code' => 200, 'msg' => '获取成功', 'data' => []]);
-                }
                 return;
             }
 
@@ -118,7 +119,7 @@ class WechatController extends BaseController
 
             // 设置请求头
             $headerData = ['client:system'];
-            $header = setHeader($headerData, $authorization, 'plain');
+            $header = setHeader($headerData, $authorization, 'json');
 
             $params = [
                 'wechatAccountIdsStr' => json_encode($wechatAccountIds),
@@ -126,24 +127,17 @@ class WechatController extends BaseController
                 'accountIdsStr' => json_encode($accountIds),
                 'groupId' => ''
             ];
-
             // 发送请求获取状态信息
-            $result = requestCurl($this->baseUrl . 'api/WechatAccount/listTenantWechatPartial', $params, 'GET', $header);
+            $result = requestCurl($this->baseUrl . 'api/WechatAccount/listTenantWechatPartial', $params, 'GET', $header,'json');
             $response = handleApiResponse($result);
-
             // 如果请求成功并返回数据，则更新数据库
             if (!empty($response)) {
                 $this->batchUpdateWechatAccounts($response);
             }
 
-            // 只有作为独立API调用时才返回
-            if (empty($authorization)) {
-                // 返回更新后的数据
-                $updatedWechatList = Db::table('s2_wechat_account')
-                    ->where('isDeleted', 0)
-                    ->select();
-                return json(['code' => 200, 'msg' => '获取成功', 'data' => $updatedWechatList]);
-            }
+            // 递归调用获取下一页数据
+            $this->getListTenantWechatPartial($authorization, $pageIndex + 1, $pageSize);
+
         } catch (\Exception $e) {
             if (empty($authorization)) { // 只有作为独立API调用时才返回
                 return json(['code' => 500, 'msg' => '获取失败：' . $e->getMessage()]);
@@ -175,7 +169,6 @@ class WechatController extends BaseController
                     'wechatAlive' => isset($data['wechatAlive'][$wechatId]) ? (int)$data['wechatAlive'][$wechatId] : 0,
                     'updateTime' => time()
                 ];
-
                 // 更新数据库
                 Db::table('s2_wechat_account')
                     ->where('id', $wechatId)
