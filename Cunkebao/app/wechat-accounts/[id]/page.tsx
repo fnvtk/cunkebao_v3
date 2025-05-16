@@ -471,9 +471,8 @@ export default function WechatAccountDetailPage() {
   // 处理标签切换
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    if (value === "overview") {
-      fetchSummaryData();
-    } else if (value === "friends" && friends.length === 0) {
+    // 只在首次切换到 friends 标签时加载好友列表
+    if (value === "friends" && friends.length === 0) {
       fetchFriends(1, true);
     }
   };
@@ -552,19 +551,12 @@ export default function WechatAccountDetailPage() {
     }
   }, [account]);
 
-  // 在页面加载和切换到概览标签时获取数据
+  // 在页面加载时获取账号概览数据
   useEffect(() => {
-    if (activeTab === "overview") {
+    if (account?.wechatId) {
       fetchSummaryData();
     }
-  }, [activeTab, fetchSummaryData]);
-
-  // 在初始加载时获取数据
-  useEffect(() => {
-    if (activeTab === "overview") {
-      fetchSummaryData();
-    }
-  }, [fetchSummaryData, activeTab]);
+  }, [account?.wechatId, fetchSummaryData]);
 
   if (!account) {
     return <div>加载中...</div>
