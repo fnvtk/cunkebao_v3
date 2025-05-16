@@ -21,7 +21,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN" suppressHydrationWarning>
-      <body className="bg-gray-100">
+      <body className="font-sans">
         <AuthProvider>
           <AuthCheck>
             <ErrorBoundary>

@@ -22,6 +22,9 @@ const nextConfig = {
     parallelServerCompiles: true,
   },
   reactStrictMode: false,
+  compiler: {
+    styledComponents: true,
+  },
 }
 
 mergeConfig(nextConfig, userConfig)

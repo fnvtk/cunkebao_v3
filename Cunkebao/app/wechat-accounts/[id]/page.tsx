@@ -527,31 +527,33 @@ export default function WechatAccountDetailPage() {
 
   // 获取账号概览数据
   const fetchSummaryData = useCallback(async () => {
+    if (!account?.wechatId || isLoading) return;
+    
     try {
       setIsLoading(true);
-      const response = await fetchWechatAccountSummary(account?.wechatId || '');
+      const response = await fetchWechatAccountSummary(account.wechatId);
       if (response.code === 200) {
         setAccountSummary(response.data);
-        } else {
-          toast({
+      } else {
+        toast({
           title: "获取账号概览失败",
           description: response.msg || "请稍后再试",
-            variant: "destructive"
-        });
-        }
-      } catch (error) {
-      console.error("获取账号概览失败:", error);
-        toast({
-        title: "获取账号概览失败",
-          description: "请检查网络连接或稍后再试",
           variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("获取账号概览失败:", error);
+      toast({
+        title: "获取账号概览失败",
+        description: "请检查网络连接或稍后再试",
+        variant: "destructive"
       });
-      } finally {
+    } finally {
       setIsLoading(false);
     }
-  }, [account]);
+  }, [account?.wechatId]);
 
-  // 在页面加载时获取账号概览数据
+  // 统一在账号数据加载完成后获取概览数据
   useEffect(() => {
     if (account?.wechatId) {
       fetchSummaryData();
@@ -724,7 +726,7 @@ export default function WechatAccountDetailPage() {
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="overview">账号概览</TabsTrigger>
                 <TabsTrigger value="friends">
-                好友列表{activeTab === "friends" && friendsTotal > 0 ? ` (${friendsTotal})` : ''}
+                好友列表{activeTab === "friends" && friendsTotal > 0 ? ` (${friendsTotal.toLocaleString()})` : ''}
                 </TabsTrigger>
             </TabsList>
 
@@ -849,7 +851,7 @@ export default function WechatAccountDetailPage() {
                   </div>
                   <div className="text-sm text-gray-500">
                       根据当前账号权重({accountSummary.accountWeight.scope}分)，每日最多可添加{" "}
-                      <span className="font-medium text-blue-600">{accountSummary.statistics.addLimit}</span>{" "}
+                      <span className="font-medium text-blue-600">{accountSummary.statistics.addLimit.toLocaleString()}</span>{" "}
                     个好友
                   </div>
                 </div>
@@ -886,110 +888,80 @@ export default function WechatAccountDetailPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="friends" className="space-y-4 mt-4">
-              <Card className="p-4">
-                <div className="space-y-4">
-                  {/* 搜索栏 */}
-                  <div className="flex items-center space-x-2">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                      <Input
-                        placeholder="搜索好友昵称/微信号/备注/标签"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                        className="pl-9"
-                      />
-                    </div>
-                      <Button variant="outline" size="icon" onClick={handleSearch}>
-                      <Filter className="h-4 w-4" />
-                    </Button>
+            <TabsContent value="friends">
+              <div className="space-y-4">
+                {/* 搜索栏 */}
+                <div className="flex items-center space-x-2 bg-white p-4 rounded-lg shadow-sm">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="搜索好友昵称/微信号/备注/标签"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                      className="pl-9 bg-white border-gray-200 focus:border-blue-500"
+                    />
                   </div>
+                  <Button variant="outline" size="icon" onClick={handleSearch} className="bg-white hover:bg-gray-50">
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </div>
 
-                  {/* 好友列表 */}
-                    <div 
-                      ref={friendsContainerRef}
-                      className="space-y-2 transition-all duration-300"
-                      style={{ 
-                        minHeight: '80px',
-                        height: `${getFriendsContainerHeight()}px`,
-                        overflowY: 'auto'
-                      }}
-                    >
-                      {isFetchingFriends && friends.length === 0 ? (
-                        <div className="flex justify-center items-center py-8">
-                          <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
-                        </div>
-                      ) : friends.length === 0 && hasFriendLoadError ? (
-                        <div className="text-center py-8 text-gray-500">
-                          <p>加载好友失败，请重试</p>
-                          <Button variant="outline" size="sm" className="mt-2" onClick={() => fetchFriends(1, true)}>
-                            重新加载
-                          </Button>
-                        </div>
-                      ) : friends.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">未找到匹配的好友</div>
-                    ) : (
-                        <>
-                          {friends.map((friend) => (
+                {/* 好友列表 */}
+                <div 
+                  ref={friendsContainerRef}
+                  className="space-y-2 min-h-[200px]"
+                  style={{ height: getFriendsContainerHeight() }}
+                >
+                  {isFetchingFriends && friends.length === 0 ? (
+                    <div className="flex items-center justify-center h-full">
+                      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                    </div>
+                  ) : friends.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">未找到匹配的好友</div>
+                  ) : (
+                    <>
+                      {friends.map((friend) => (
                         <div
                           key={friend.id}
-                          className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                          className="flex items-center p-3 bg-white border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-200"
                           onClick={() => handleFriendClick(friend)}
                         >
                           <Avatar className="h-10 w-10 mr-3">
                             <AvatarImage src={friend.avatar} />
-                                <AvatarFallback>{friend.nickname?.[0] || 'U'}</AvatarFallback>
+                            <AvatarFallback>{friend.nickname?.[0] || 'U'}</AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
-                                  <div className="font-medium truncate max-w-[180px]">
+                              <div className="font-medium truncate max-w-[180px]">
                                 {friend.nickname}
-                                    {friend.remark && <span className="text-gray-500 ml-1 truncate">({friend.remark})</span>}
+                                {friend.remark && <span className="text-gray-500 ml-1 truncate">({friend.remark})</span>}
                               </div>
                               <ChevronRight className="h-4 w-4 text-gray-400" />
                             </div>
                             <div className="text-sm text-gray-500 truncate">{friend.wechatId}</div>
                             <div className="flex flex-wrap gap-1 mt-1">
-                                  {friend.tags.slice(0, 3).map((tag: FriendTag) => (
-                                <span key={tag.id} className={`text-xs px-2 py-0.5 rounded-full ${tag.color}`}>
-                                  {tag.name}
+                              {friend.tags?.map((tag, index) => (
+                                <span
+                                  key={index}
+                                  className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-800"
+                                >
+                                  {typeof tag === 'string' ? tag : tag.name}
                                 </span>
                               ))}
-                              {friend.tags.length > 3 && (
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-800">
-                                  +{friend.tags.length - 3}
-                                </span>
-                              )}
                             </div>
                           </div>
                         </div>
-                          ))}
-                          
-                          {/* 懒加载指示器 */}
-                          {hasMoreFriends && (
-                            <div ref={friendsLoadingRef} className="py-4 flex justify-center">
-                              {isFetchingFriends && <Loader2 className="h-6 w-6 animate-spin text-blue-500" />}
-                            </div>
-                          )}
-                        </>
-                    )}
-                  </div>
-
-                    {/* 显示加载状态和总数 */}
-                    <div className="text-sm text-gray-500 text-center">
-                      {friendsTotal > 0 ? (
-                        <span>
-                          已加载 {Math.min(friends.length, friendsTotal)} / {friendsTotal} 条记录
-                        </span>
-                      ) : !isFetchingFriends && !hasFriendLoadError && account ? (
-                        <span>
-                          共 {account.friendCount} 条记录
-                        </span>
-                      ) : null}
-                    </div>
+                      ))}
+                      {hasMoreFriends && (
+                        <div ref={friendsLoadingRef} className="flex justify-center py-4">
+                          <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
-              </Card>
+              </div>
             </TabsContent>
           </Tabs>
 
