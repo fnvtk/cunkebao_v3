@@ -227,22 +227,21 @@ class WorkbenchJob
      */
     protected function handleAutoLike($workbench, $config)
     {
+
         if (!$this->validateAutoLikeConfig($workbench, $config)) {
             return;
         }
-        
         // 验证是否达到点赞次数上限
         $likeCount = $this->getTodayLikeCount($workbench, $config);
         if ($likeCount >= $config['maxLikes']) {
             Log::info("工作台 {$workbench->id} 点赞次数已达上限");
             return;
         }
-        
         // 验证是否在点赞时间范围内
         if (!$this->isWithinLikeTimeRange($config)) {
             return;
         }
-
+        
         // 处理分页获取好友列表
         $this->processAllFriends($workbench, $config);
     }
@@ -260,6 +259,8 @@ class WorkbenchJob
         if (empty($friendList)) {
             return;
         }
+
+        
 
         foreach ($friendList as $friend) {
             // 验证是否达到好友点赞次数上限
@@ -542,10 +543,11 @@ class WorkbenchJob
     {
         $friends = json_decode($config['friends'], true);
         $devices = json_decode($config['devices'], true);
+
         $list = Db::table('s2_company_account')
             ->alias('ca')
             ->join(['s2_wechat_account' => 'wa'], 'ca.id = wa.deviceAccountId')
-            ->join(['s2_wechat_friend' => 'wf'], 'ca.id = wf.accountId')
+            ->join(['s2_wechat_friend' => 'wf'], 'ca.id = wf.accountId AND wf.wechatAccountId = wa.id')
             ->where([
                 'ca.status' => 0,
                 'wf.isDeleted' => 0,

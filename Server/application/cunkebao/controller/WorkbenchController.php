@@ -649,24 +649,12 @@ class WorkbenchController extends Controller
         $page = $this->request->param('page', 1);
         $limit = $this->request->param('limit', 10);
         $workbenchId = $this->request->param('workbenchId', 0);
-        $startTime = $this->request->param('startTime', '');
-        $endTime = $this->request->param('endTime', '');
 
         $where = [
             ['wali.workbenchId', '=', $workbenchId]
         ];
 
-        // 添加时间筛选
-        if (!empty($startTime) && !empty($endTime)) {
-            $where[] = ['wali.createTime', 'between', [
-                strtotime($startTime . ' 00:00:00'),
-                strtotime($endTime . ' 23:59:59')
-            ]];
-        } elseif (!empty($startTime)) {
-            $where[] = ['wali.createTime', '>=', strtotime($startTime . ' 00:00:00')];
-        } elseif (!empty($endTime)) {
-            $where[] = ['wali.createTime', '<=', strtotime($endTime . ' 23:59:59')];
-        }
+ 
 
         // 查询点赞记录
         $list = Db::name('workbench_auto_like_item')->alias('wali')
@@ -686,7 +674,9 @@ class WorkbenchController extends Controller
                 'wm.createTime as momentTime',
                 'wm.userName',
                 'wa.nickName as operatorName',
+                'wa.avatar as operatorAvatar',
                 'wf.nickName as friendName',
+                'wf.avatar as friendAvatar',
             ])
             ->where($where)
             ->order('wali.createTime', 'desc')

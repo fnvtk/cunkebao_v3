@@ -217,7 +217,7 @@ class WebSocketController extends BaseController
         $wechatAccountId = !empty($data['wechatAccountId']) ? $data['wechatAccountId'] : '';
         $wechatFriendId = !empty($data['wechatFriendId']) ? $data['wechatFriendId'] : 0;
         $prevSnsId = !empty($data['prevSnsId']) ? $data['prevSnsId'] : 0;
-        $maxPages = 20; // 最大页数限制为20
+        $maxPages = 1; // 最大页数限制为20
         $currentPage = 1; // 当前页码
         $allMoments = []; // 存储所有朋友圈数据
 
