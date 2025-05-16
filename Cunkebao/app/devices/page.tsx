@@ -646,96 +646,94 @@ export default function DevicesPage() {
           </Card>
         </div>
 
-        <Card className="p-4">
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="搜索设备IMEI/备注"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <Button variant="outline" size="icon">
-                <Filter className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="icon" onClick={handleRefresh}>
-                <RefreshCw className="h-4 w-4" />
-              </Button>
+        <div className="bg-white p-4 rounded-lg shadow-sm space-y-3 mb-4">
+          <div className="flex items-center space-x-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="搜索设备IMEI/备注"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 bg-white border-gray-200 focus:border-blue-500"
+              />
             </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[120px]">
-                    <SelectValue placeholder="全部状态" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">全部状态</SelectItem>
-                    <SelectItem value="online">在线</SelectItem>
-                    <SelectItem value="offline">离线</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleDeleteClick}
-                disabled={!selectedDeviceId}
-              >
-                删除
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              {filteredDevices.map((device) => (
-                <Card
-                  key={device.id}
-                  className="p-3 hover:shadow-md transition-shadow cursor-pointer relative"
-                  onClick={(e) => handleDeviceClick(device.id, e)}
-                >
-                  <div className="flex items-center space-x-3">
-                    <Checkbox
-                      checked={selectedDeviceId === device.id}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedDeviceId(device.id)
-                        } else {
-                          setSelectedDeviceId(null)
-                        }
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="font-medium truncate">{device.memo || "未命名设备"}</div>
-                        <Badge variant={device.status === "online" ? "default" : "secondary"} className="ml-2">
-                          {device.status === "online" ? "在线" : "离线"}
-                        </Badge>
-                      </div>
-                      <div className="text-sm text-gray-500 flex items-center imei-display-area">
-                        <span className="mr-1">IMEI:</span>
-                        <ImeiDisplay imei={device.imei} containerWidth={180} />
-                      </div>
-                      <div className="text-sm text-gray-500">微信号: {device.wechatId || "未绑定或微信离线"}</div>
-                      <div className="flex items-center justify-between mt-1 text-sm">
-                        <span className="text-gray-500">好友数: {device.totalFriend}</span>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-
-              <div ref={observerTarget} className="h-10 flex items-center justify-center">
-                {isLoading && <div className="text-sm text-gray-500">加载中...</div>}
-                {!hasMore && devices.length > 0 && <div className="text-sm text-gray-500">没有更多设备了</div>}
-                {!hasMore && devices.length === 0 && <div className="text-sm text-gray-500">暂无设备</div>}
-            </div>
-            </div>
+            <Button variant="outline" size="icon" className="bg-white hover:bg-gray-50">
+              <Filter className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon" onClick={handleRefresh} className="bg-white hover:bg-gray-50">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           </div>
-        </Card>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[120px] bg-white">
+                  <SelectValue placeholder="全部状态" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部状态</SelectItem>
+                  <SelectItem value="online">在线</SelectItem>
+                  <SelectItem value="offline">离线</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDeleteClick}
+              disabled={!selectedDeviceId}
+            >
+              删除
+            </Button>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {filteredDevices.map((device) => (
+            <div
+              key={device.id}
+              className="bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer relative"
+              onClick={(e) => handleDeviceClick(device.id, e)}
+            >
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  checked={selectedDeviceId === device.id}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedDeviceId(device.id)
+                    } else {
+                      setSelectedDeviceId(null)
+                    }
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="font-medium truncate">{device.memo || "未命名设备"}</div>
+                    <Badge variant={device.status === "online" ? "default" : "secondary"} className="ml-2">
+                      {device.status === "online" ? "在线" : "离线"}
+                    </Badge>
+                  </div>
+                  <div className="text-sm text-gray-500 flex items-center imei-display-area">
+                    <span className="mr-1">IMEI:</span>
+                    <ImeiDisplay imei={device.imei} containerWidth={180} />
+                  </div>
+                  <div className="text-sm text-gray-500">微信号: {device.wechatId || "未绑定或微信离线"}</div>
+                  <div className="flex items-center justify-between mt-1 text-sm">
+                    <span className="text-gray-500">好友数: {device.totalFriend}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <div ref={observerTarget} className="h-10 flex items-center justify-center">
+            {isLoading && <div className="text-sm text-gray-500">加载中...</div>}
+            {!hasMore && devices.length > 0 && <div className="text-sm text-gray-500">没有更多设备了</div>}
+            {!hasMore && devices.length === 0 && <div className="text-sm text-gray-500">暂无设备</div>}
+          </div>
+        </div>
       </div>
 
       <Dialog open={isAddDeviceOpen} onOpenChange={(open) => {
