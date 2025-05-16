@@ -309,17 +309,17 @@ export default function AutoLikePage() {
                   <div>创建时间：{task.createTime}</div>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4 border-t pt-4">
                 <div className="text-sm">
-                  <div className="flex items-center">
+                <div className="flex items-center">
                     <ThumbsUp className="h-4 w-4 mr-2 text-blue-500" />
                     <span className="text-gray-500">今日点赞：</span>
                     <span className="ml-1 font-medium">{task.config.todayLikeCount || 0} 次</span>
                   </div>
                 </div>
                 <div className="text-sm">
-                  <div className="flex items-center">
+                <div className="flex items-center">
                     <ThumbsUp className="h-4 w-4 mr-2 text-green-500" />
                     <span className="text-gray-500">总点赞数：</span>
                     <span className="ml-1 font-medium">{task.config.totalLikeCount || 0} 次</span>
@@ -364,8 +364,8 @@ export default function AutoLikePage() {
                       </div>
                       <div className="space-y-2 pl-7">
                         <div className="flex flex-wrap gap-2">
-                          {task.config.targetGroups.map((tag) => (
-                            <Badge key={tag} variant="outline" className="bg-gray-50">
+                          {task.config.targetGroups.map((tag, index) => (
+                            <Badge key={`${task.id}-tag-${index}-${tag}`} variant="outline" className="bg-gray-50">
                               {tag}
                             </Badge>
                           ))}
@@ -391,8 +391,8 @@ export default function AutoLikePage() {
                       </div>
                       <div className="space-y-2 pl-7">
                         <div className="flex flex-wrap gap-2">
-                          {task.config.contentTypes.map((type) => (
-                            <Badge key={type} variant="outline" className="bg-gray-50">
+                          {task.config.contentTypes.map((type, index) => (
+                            <Badge key={`${task.id}-type-${index}-${type}`} variant="outline" className="bg-gray-50">
                               {type === "text" ? "文字" : type === "image" ? "图片" : "视频"}
                             </Badge>
                           ))}

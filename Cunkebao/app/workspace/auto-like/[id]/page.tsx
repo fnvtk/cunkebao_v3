@@ -6,152 +6,98 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar } from "@/components/ui/avatar"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { Skeleton } from "@/components/ui/skeleton"
 import { format } from "date-fns"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
+import { api } from "@/lib/api"
+import { showToast } from "@/lib/toast"
 
-// 模拟数据接口
+// API响应数据接口
 interface LikeRecord {
   id: number
-  user: {
-    avatar: string
-    nickname: string
-  }
-  likedBy: {
-    avatar: string
-    nickname: string
-  }
+  workbenchId: number
+  momentsId: number
+  snsId: string
+  wechatAccountId: number
+  wechatFriendId: number
   likeTime: string
-  content: {
-    type: 'text' | 'image' | 'text-image'
-    text?: string
-    images?: string[]
+  content: string
+  resUrls: string[]
+  momentTime: string
+  userName: string
+  operatorName: string
+  operatorAvatar: string
+  friendName: string
+  friendAvatar: string
+}
+
+interface LikeRecordsResponse {
+  code: number
+  msg: string
+  data: {
+    list: LikeRecord[]
+    total: number
   }
 }
 
-// 模拟数据
-const mockLikeRecords: LikeRecord[] = [
-  {
-    id: 1,
-    user: {
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alice",
-      nickname: "小红花"
-    },
-    likedBy: {
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Bob",
-      nickname: "蓝色海洋"
-    },
-    likeTime: "2023-12-15T10:30:00",
-    content: {
-      type: "text",
-      text: "今天天气真好，阳光明媚！想出去走走看看这个美丽的世界。"
-    }
-  },
-  {
-    id: 2,
-    user: {
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Charlie",
-      nickname: "绿野仙踪"
-    },
-    likedBy: {
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=David",
-      nickname: "快乐精灵"
-    },
-    likeTime: "2023-12-14T15:45:00",
-    content: {
-      type: "image",
-      images: ["https://picsum.photos/id/237/300/200", "https://picsum.photos/id/238/300/200"]
-    }
-  },
-  {
-    id: 3,
-    user: {
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Eve",
-      nickname: "紫色梦想"
-    },
-    likedBy: {
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Frank",
-      nickname: "阳光男孩"
-    },
-    likeTime: "2023-12-13T09:15:00",
-    content: {
-      type: "text-image",
-      text: "分享一下我的旅行照片，希望大家喜欢！",
-      images: ["https://picsum.photos/id/239/300/200"]
-    }
-  },
-  {
-    id: 4,
-    user: {
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Grace",
-      nickname: "月光星辰"
-    },
-    likedBy: {
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Henry",
-      nickname: "风之子"
-    },
-    likeTime: "2023-12-12T18:20:00",
-    content: {
-      type: "text",
-      text: "学习编程真的很有趣，每天都有新发现。希望能和大家一起进步！"
-    }
-  },
-  {
-    id: 5,
-    user: {
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ivy",
-      nickname: "彩虹糖果"
-    },
-    likedBy: {
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jack",
-      nickname: "幸运草"
-    },
-    likeTime: "2023-12-11T11:05:00",
-    content: {
-      type: "text-image",
-      text: "今天做了一道新菜，味道超级赞！分享食谱：先准备好所有食材...",
-      images: ["https://picsum.photos/id/240/300/200", "https://picsum.photos/id/241/300/200"]
-    }
-  }
-];
-
 export default function LikeRecordsPage() {
   const router = useRouter()
+  const params = useParams<{ id: string }>()
+  const workbenchId = params?.id || ""
+  
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
-  const [records, setRecords] = useState<LikeRecord[]>(mockLikeRecords)
+  const [records, setRecords] = useState<LikeRecord[]>([])
   const [currentPage, setCurrentPage] = useState(1)
-  const [total, setTotal] = useState(mockLikeRecords.length)
+  const [total, setTotal] = useState(0)
   const pageSize = 10
 
-  // 模拟加载数据
+  // 加载点赞记录数据
   const fetchRecords = async (page: number, searchTerm?: string) => {
-    setLoading(true)
-    // 模拟API请求延迟
-    await new Promise(resolve => setTimeout(resolve, 800))
-    
-    // 实际项目中这里应该调用真实API
-    let filteredRecords = [...mockLikeRecords]
-    if (searchTerm) {
-      filteredRecords = mockLikeRecords.filter(record => 
-        record.user.nickname.includes(searchTerm) || 
-        record.likedBy.nickname.includes(searchTerm) ||
-        (record.content.text && record.content.text.includes(searchTerm))
-      )
+    if (!workbenchId) {
+      showToast("任务ID无效", "error")
+      return
     }
     
-    setRecords(filteredRecords)
-    setTotal(filteredRecords.length)
-    setLoading(false)
+    const loadingToast = showToast("正在加载点赞记录...", "loading", true);
+    try {
+      setLoading(true)
+      const queryParams = new URLSearchParams({
+        workbenchId: workbenchId,
+        page: page.toString(),
+        limit: pageSize.toString()
+      })
+      
+      if (searchTerm) {
+        queryParams.append('keyword', searchTerm)
+      }
+      
+      const response = await api.get<LikeRecordsResponse>(`/v1/workbench/like-records?${queryParams.toString()}`)
+      
+      if (response.code === 200) {
+        setRecords(response.data.list)
+        setTotal(response.data.total)
+      } else {
+        showToast(response.msg || "获取点赞记录失败", "error")
+      }
+    } catch (error: any) {
+      console.error("获取点赞记录失败:", error)
+      showToast(error?.message || "请检查网络连接", "error")
+    } finally {
+      loadingToast.remove();
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
-    fetchRecords(currentPage, searchTerm)
-  }, [currentPage])
+    if (workbenchId) {
+      fetchRecords(currentPage, searchTerm)
+    }
+  }, [currentPage, workbenchId])
 
   const handleSearch = () => {
     setCurrentPage(1)
@@ -181,7 +127,7 @@ export default function LikeRecordsPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               <Input 
-                placeholder="搜索用户昵称或内容" 
+                placeholder="搜索好友昵称或内容" 
                 className="pl-9" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -232,48 +178,52 @@ export default function LikeRecordsPage() {
               records.map(record => (
                 <Card key={record.id} className="p-4">
                   <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-3 max-w-[65%]">
                       <Avatar>
                         <Image 
-                          src={record.user.avatar} 
-                          alt={record.user.nickname}
+                          src={record.friendAvatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=fallback"} 
+                          alt={record.friendName}
                           width={40}
                           height={40}
                           className="rounded-full"
                         />
                       </Avatar>
-                      <div>
-                        <div className="font-medium">{record.user.nickname}</div>
+                      <div className="min-w-0">
+                        <div className="font-medium truncate" title={record.friendName}>{record.friendName}</div>
                         <div className="text-sm text-gray-500">内容发布者</div>
                       </div>
                     </div>
-                    <Badge variant="outline" className="bg-blue-50">
-                      {format(new Date(record.likeTime), 'yyyy-MM-dd HH:mm')}
+                    <Badge variant="outline" className="bg-blue-50 whitespace-nowrap shrink-0">
+                      {format(new Date(record.momentTime || record.likeTime), 'yyyy-MM-dd HH:mm')}
                     </Badge>
                   </div>
                   
                   <Separator className="my-3" />
                   
                   <div className="mb-3">
-                    {record.content.text && (
+                    {record.content && (
                       <p className="text-gray-700 mb-3 whitespace-pre-line">
-                        {record.content.text}
+                        {record.content}
                       </p>
                     )}
                     
-                    {record.content.images && record.content.images.length > 0 && (
+                    {record.resUrls && record.resUrls.length > 0 && (
                       <div className={cn(
                         "grid gap-2", 
-                        record.content.images.length === 1 ? "grid-cols-1" : "grid-cols-2"
+                        record.resUrls.length === 1 ? "grid-cols-1" : 
+                        record.resUrls.length === 2 ? "grid-cols-2" :
+                        record.resUrls.length <= 3 ? "grid-cols-3" :
+                        record.resUrls.length <= 6 ? "grid-cols-3 grid-rows-2" :
+                        "grid-cols-3 grid-rows-3"
                       )}>
-                        {record.content.images.map((image, idx) => (
-                          <div key={idx} className="relative rounded-md overflow-hidden">
+                        {record.resUrls.slice(0, 9).map((image, idx) => (
+                          <div key={idx} className="relative aspect-square rounded-md overflow-hidden">
                             <Image
                               src={image}
                               alt={`内容图片 ${idx + 1}`}
                               width={300}
-                              height={200}
-                              className="object-cover w-full h-auto"
+                              height={300}
+                              className="object-cover w-full h-full"
                             />
                           </div>
                         ))}
@@ -282,17 +232,17 @@ export default function LikeRecordsPage() {
                   </div>
                   
                   <div className="flex items-center mt-4 p-2 bg-gray-50 rounded-md">
-                    <Avatar className="h-8 w-8 mr-2">
+                    <Avatar className="h-8 w-8 mr-2 shrink-0">
                       <Image 
-                        src={record.likedBy.avatar} 
-                        alt={record.likedBy.nickname}
+                        src={record.operatorAvatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=operator"} 
+                        alt={record.operatorName}
                         width={32}
                         height={32}
                         className="rounded-full"
                       />
                     </Avatar>
-                    <div className="text-sm">
-                      <span className="font-medium">{record.likedBy.nickname}</span>
+                    <div className="text-sm min-w-0">
+                      <span className="font-medium truncate inline-block max-w-full" title={record.operatorName}>{record.operatorName}</span>
                       <span className="text-gray-500 ml-2">点赞了这条内容</span>
                     </div>
                   </div>

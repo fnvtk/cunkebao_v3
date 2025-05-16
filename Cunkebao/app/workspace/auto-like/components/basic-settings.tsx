@@ -40,11 +40,11 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
   }
 
   const incrementMaxLikes = () => {
-    onChange({ maxLikesPerDay: Math.min(formData.maxLikesPerDay + 10, 200) })
+    onChange({ maxLikesPerDay: Math.min(formData.maxLikesPerDay + 100, 10000) })
   }
 
   const decrementMaxLikes = () => {
-    onChange({ maxLikesPerDay: Math.max(formData.maxLikesPerDay - 10, 10) })
+    onChange({ maxLikesPerDay: Math.max(formData.maxLikesPerDay - 100, 10) })
   }
 
   const incrementFriendMaxLikes = () => {
@@ -124,7 +124,7 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
               id="max-likes"
               type="number"
               min={10}
-              max={200}
+              max={10000}
               value={formData.maxLikesPerDay}
               onChange={(e) => onChange({ maxLikesPerDay: Number.parseInt(e.target.value) || 10 })}
               className="h-12 rounded-none border-x-0 border-gray-200 text-center"
@@ -143,7 +143,7 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
             <Plus className="h-5 w-5" />
           </Button>
         </div>
-        <p className="text-xs text-gray-500">设置每天最多点赞的次数</p>
+        <p className="text-xs text-gray-500">设置每天最多点赞的次数，支持手动输入(最大10000次)</p>
       </div>
 
       <div className="space-y-2">
