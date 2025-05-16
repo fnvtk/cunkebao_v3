@@ -59,29 +59,6 @@ class GetDeviceDetailV1Controller extends BaseController
         return 0;
     }
 
-    /**
-     * 解析taskConfig字段获取功能开关
-     *
-     * @param int $deviceId
-     * @return int[]
-     * @throws \Exception
-     */
-    protected function getTaskConfig(int $deviceId): array
-    {
-        $conf = DeviceTaskconfModel::alias('c')->field([
-            'c.autoAddFriend', 'c.autoReply', 'c.momentsSync', 'c.aiChat'
-        ])
-            ->where(
-                [
-                    'companyId' => $this->getUserInfo('companyId'),
-                    'deviceId'  => $deviceId
-                ]
-            )
-            ->find();
-
-        // 未配置时赋予默认关闭的状态
-        return !is_null($conf) ? $conf->toArray() : ArrHelper::getValue('autoAddFriend,autoReply,momentsSync,aiChat', [], 0);
-    }
 
     /**
      * 获取设备最新登录微信的 wechatId
@@ -103,55 +80,6 @@ class GetDeviceDetailV1Controller extends BaseController
     }
 
     /**
-     * 统计设备登录微信的好友
-     *
-     * @param int $deviceId
-     * @return int
-     * @throws \Exception
-     */
-    protected function getTotalFriend(int $deviceId): int
-    {
-        $ownerWechatId = $this->getDeviceLatestWechatLogin($deviceId);
-
-        if ($ownerWechatId) {
-            return WechatFriendShipModel::where(
-                [
-                    'companyId'     => $this->getUserInfo('companyId'),
-                    'ownerWechatId' => $ownerWechatId
-                ]
-            )
-                ->count();
-        }
-
-        return 0;
-    }
-
-    /**
-     * 获取设备绑定微信的消息总数
-     *
-     * @param int $deviceId
-     * @return int
-     */
-    protected function getThirtyDayMsgCount(int $deviceId): int
-    {
-        $ownerWechatId = $this->getDeviceLatestWechatLogin($deviceId);
-
-        if ($ownerWechatId) {
-            $activity = (string)WechatCustomerModel::where(
-                [
-                    'wechatId'  => $ownerWechatId,
-                    'companyId' => $this->getUserInfo('companyId')
-                ]
-            )
-                ->value('activity');
-
-            return json_decode($activity)->totalMsgCount ?? 0;
-        }
-
-        return 0;
-    }
-
-    /**
      * 获取设备详情
      * @param int $id 设备ID
      * @return array|null 设备信息
@@ -170,11 +98,6 @@ class GetDeviceDetailV1Controller extends BaseController
         }
 
         $device['battery'] = $this->parseExtraForBattery($device['extra']);
-        $device['features'] = $this->getTaskConfig($id);
-        $device['totalFriend'] = $this->getTotalFriend($id);
-        $device['thirtyDayMsgCount'] = $this->getThirtyDayMsgCount($id);
-
-        // 设备最后活跃时间为设备状态更新时间
         $device['lastUpdateTime'] = date('Y-m-d H:i:s', $device['lastUpdateTime']);
 
         // 删除冗余字段

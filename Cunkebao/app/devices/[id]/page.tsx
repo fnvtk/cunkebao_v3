@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { fetchDeviceDetail, fetchDeviceRelatedAccounts, updateDeviceTaskConfig, fetchDeviceHandleLogs } from "@/api/devices"
 import { toast } from "sonner"
 import { ImeiDisplay } from "@/components/ImeiDisplay"
+import { api } from "@/lib/api"
 
 interface WechatAccount {
   id: string
@@ -315,6 +316,37 @@ export default function DeviceDetailPage() {
     }
   }, [logPage, activeTab])
 
+  // 获取任务配置
+  const fetchTaskConfig = async () => {
+    try {
+      const response = await api.get(`/v1/devices/${deviceId}/task-config`)
+      
+      if (response && response.code === 200 && response.data) {
+        setDevice(prev => {
+          if (!prev) return null
+          return {
+            ...prev,
+            features: {
+              autoAddFriend: Boolean(response.data.autoAddFriend),
+              autoReply: Boolean(response.data.autoReply),
+              momentsSync: Boolean(response.data.momentsSync),
+              aiChat: Boolean(response.data.aiChat)
+            }
+          }
+        })
+      }
+    } catch (error) {
+      console.error("获取任务配置失败:", error)
+    }
+  }
+
+  // 在组件加载时获取任务配置
+  useEffect(() => {
+    if (deviceId) {
+      fetchTaskConfig()
+    }
+  }, [deviceId])
+
   // 处理标签页切换
   const handleTabChange = (value: string) => {
     setActiveTab(value)
@@ -330,6 +362,11 @@ export default function DeviceDetailPage() {
     // 当切换到"操作记录"标签时，获取最新的操作记录
     if (value === "history") {
       fetchHandleLogs()
+    }
+
+    // 当切换到"基本信息"标签时，获取最新的任务配置
+    if (value === "info") {
+      fetchTaskConfig()
     }
     
     // 设置短暂的延迟来关闭加载状态，模拟加载过程
