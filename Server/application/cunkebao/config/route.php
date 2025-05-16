@@ -9,19 +9,19 @@ use think\facade\Route;
 Route::group('v1/', function () {
     // 设备管理相关
     Route::group('devices', function () {
-        Route::get('add-results', 'app\cunkebao\controller\device\GetAddResultedV1Controller@index');
-        Route::get(':id/related-accounts', 'app\cunkebao\controller\device\GetRelatedAccountsV1Controller@index');
-        Route::get(':id/handle-logs', 'app\cunkebao\controller\device\GetDeviceHandleLogsV1Controller@index');
-        Route::get('', 'app\cunkebao\controller\device\GetDeviceListV1Controller@index');
-        Route::get(':id', 'app\cunkebao\controller\device\GetDeviceDetailV1Controller@index');
-        Route::post('', 'app\cunkebao\controller\device\PostAddDeviceV1Controller@index');
         Route::put('refresh', 'app\cunkebao\controller\device\RefreshDeviceDetailV1Controller@index');
-        Route::delete(':id', 'app\cunkebao\controller\device\DeleteDeviceV1Controller@index');
+        Route::get('add-results', 'app\cunkebao\controller\device\GetAddResultedV1Controller@index');
         Route::post('task-config', 'app\cunkebao\controller\device\UpdateDeviceTaskConfigV1Controller@index');
+        Route::get(':id/handle-logs', 'app\cunkebao\controller\device\GetDeviceHandleLogsV1Controller@index');
+        Route::get(':id', 'app\cunkebao\controller\device\GetDeviceDetailV1Controller@index');
+        Route::delete(':id', 'app\cunkebao\controller\device\DeleteDeviceV1Controller@index');
+        Route::get('', 'app\cunkebao\controller\device\GetDeviceListV1Controller@index');
+        Route::post('', 'app\cunkebao\controller\device\PostAddDeviceV1Controller@index');
     });
 
     // 设备微信相关
     Route::group('wechats', function () {
+        Route::get('related-device/:id', 'app\cunkebao\controller\wechat\GetWechatsRelatedDeviceV1Controller@index');
         Route::get('', 'app\cunkebao\controller\wechat\GetWechatsOnDevicesV1Controller@index');
         Route::get(':id/summary', 'app\cunkebao\controller\wechat\GetWechatOnDeviceSummarizeV1Controller@index');
         Route::get(':id/friends', 'app\cunkebao\controller\wechat\GetWechatOnDeviceFriendsV1Controller@index');

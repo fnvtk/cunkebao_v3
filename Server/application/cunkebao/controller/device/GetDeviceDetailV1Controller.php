@@ -26,13 +26,14 @@ class GetDeviceDetailV1Controller extends BaseController
      */
     protected function checkUserDevicePermission(int $deviceId): void
     {
-        $where = [
-            'deviceId'  => $deviceId,
-            'userId'    => $this->getUserInfo('id'),
-            'companyId' => $this->getUserInfo('companyId')
-        ];
-
-        $hasPermission = DeviceUserModel::where($where)->count() > 0;
+        $hasPermission = DeviceUserModel::where(
+                [
+                    'deviceId'  => $deviceId,
+                    'userId'    => $this->getUserInfo('id'),
+                    'companyId' => $this->getUserInfo('companyId')
+                ]
+            )
+                ->count() > 0;
 
         if (!$hasPermission) {
             throw new \Exception('您没有权限查看该设备', 403);
@@ -67,21 +68,19 @@ class GetDeviceDetailV1Controller extends BaseController
      */
     protected function getTaskConfig(int $deviceId): array
     {
-        $companyId = $this->getUserInfo('companyId');
-
-        $conf = DeviceTaskconfModel::alias('c')
-            ->field([
-                'c.autoAddFriend', 'c.autoReply', 'c.momentsSync', 'c.aiChat'
-            ])
-            ->where(compact('companyId', 'deviceId'))
+        $conf = DeviceTaskconfModel::alias('c')->field([
+            'c.autoAddFriend', 'c.autoReply', 'c.momentsSync', 'c.aiChat'
+        ])
+            ->where(
+                [
+                    'companyId' => $this->getUserInfo('companyId'),
+                    'deviceId'  => $deviceId
+                ]
+            )
             ->find();
 
-        if (!is_null($conf)) {
-            return $conf->toArray();
-        }
-
         // 未配置时赋予默认关闭的状态
-        return ArrHelper::getValue('autoAddFriend,autoReply,momentsSync,aiChat', [], 0);
+        return !is_null($conf) ? $conf->toArray() : ArrHelper::getValue('autoAddFriend,autoReply,momentsSync,aiChat', [], 0);
     }
 
     /**

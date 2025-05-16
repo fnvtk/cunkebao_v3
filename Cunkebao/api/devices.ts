@@ -35,7 +35,7 @@ export const fetchDeviceDetail = async (id: string | number): Promise<ApiRespons
 
 // 获取设备关联的微信账号
 export const fetchDeviceRelatedAccounts = async (id: string | number): Promise<ApiResponse<any>> => {
-  return api.get<ApiResponse<any>>(`/v1/devices/${id}/related-accounts`);
+  return api.get<ApiResponse<any>>(`/v1/wechats/related-device/${id}`);
 };
 
 // 获取设备操作记录
