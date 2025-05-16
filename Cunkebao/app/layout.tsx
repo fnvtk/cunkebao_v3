@@ -5,6 +5,8 @@ import type React from "react"
 import ErrorBoundary from "./components/ErrorBoundary"
 import { AuthProvider } from "@/app/components/AuthProvider"
 import LayoutWrapper from "./components/LayoutWrapper"
+import { AuthCheck } from "@/app/components/auth-check"
+import { Toaster } from "sonner"
 
 export const metadata: Metadata = {
   title: "存客宝",
@@ -21,10 +23,13 @@ export default function RootLayout({
     <html lang="zh-CN" suppressHydrationWarning>
       <body className="bg-gray-100">
         <AuthProvider>
-          <ErrorBoundary>
-            <LayoutWrapper>{children}</LayoutWrapper>
-          </ErrorBoundary>
+          <AuthCheck>
+            <ErrorBoundary>
+              <LayoutWrapper>{children}</LayoutWrapper>
+            </ErrorBoundary>
+          </AuthCheck>
         </AuthProvider>
+        <Toaster />
       </body>
     </html>
   )

@@ -95,6 +95,17 @@ export default function DeviceDetailPage() {
   })
   const [tabChangeLoading, setTabChangeLoading] = useState(false)
 
+  // 添加登录检查
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      // 如果没有token，重定向到登录页面，并携带当前页面URL作为回调
+      const currentPath = window.location.pathname + window.location.search
+      router.push(`/login?redirect=${encodeURIComponent(currentPath)}`)
+      return
+    }
+  }, [router])
+
   useEffect(() => {
     if (!params.id) return
 
