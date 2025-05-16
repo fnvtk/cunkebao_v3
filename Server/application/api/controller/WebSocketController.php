@@ -519,6 +519,60 @@ class WebSocketController extends BaseController
         }
     }
 
+
+    /**
+     * 修改好友标签
+     * @param array $data 请求参数
+     * @return string JSON响应
+     */
+    public function modifyFriendLabel($data = [])
+    {
+        // 获取请求参数
+        $wechatFriendId = !empty($data['wechatFriendId']) ? $data['wechatFriendId'] : 0;
+        $wechatAccountId = !empty($data['wechatAccountId']) ? $data['wechatAccountId'] : '';
+        $labels = !empty($data['labels']) ? $data['labels'] : [];
+
+        // 验证必要参数
+        if (empty($wechatFriendId)) {
+            return json_encode(['code' => 400, 'msg' => '好友ID不能为空']);
+        }
+        
+        if (empty($wechatAccountId)) {
+            return json_encode(['code' => 400, 'msg' => '微信账号ID不能为空']);
+        }
+
+        if (empty($labels)) {
+            return json_encode(['code' => 400, 'msg' => '标签不能为空']);
+        }
+
+        try {
+            // 构建请求参数
+            $params = [
+                "cmdType" => "CmdModifyFriendLabel",
+                "labels" => $labels,
+                "seq" => time(),
+                "wechatAccountId" => $wechatAccountId,
+                "wechatFriendId" => $wechatFriendId,
+            ];
+
+            // 发送请求并获取响应
+            $message = $this->sendMessage($params);
+            
+            // 记录日志
+            Log::info('修改好友标签：' . json_encode($params, 256));
+            Log::info('修改好友标签结果：' . json_encode($message, 256));
+
+            // 返回成功响应
+            return json_encode(['code' => 200, 'msg' => '修改标签成功', 'data' => $message]);
+        } catch (\Exception $e) {
+            // 记录错误日志
+            Log::error('修改好友标签失败：' . $e->getMessage());
+            
+            // 返回错误响应
+            return json_encode(['code' => 500, 'msg' => '修改标签失败：' . $e->getMessage()]);
+        }
+    }
+
     /************************************
      * 消息发送相关功能
      ************************************/

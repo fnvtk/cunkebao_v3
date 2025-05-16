@@ -48,7 +48,7 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
   }
 
   const incrementFriendMaxLikes = () => {
-    onChange({ friendMaxLikes: Math.min(formData.friendMaxLikes + 1, 10) })
+    onChange({ friendMaxLikes: Math.min(formData.friendMaxLikes + 1, 20) })
   }
 
   const decrementFriendMaxLikes = () => {
@@ -163,7 +163,7 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
               id="friend-max-likes"
               type="number"
               min={1}
-              max={10}
+              max={20}
               value={formData.friendMaxLikes}
               onChange={(e) => onChange({ friendMaxLikes: Number.parseInt(e.target.value) || 1 })}
               className="h-12 rounded-none border-x-0 border-gray-200 text-center"

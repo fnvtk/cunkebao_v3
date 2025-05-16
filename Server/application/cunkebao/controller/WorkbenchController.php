@@ -639,4 +639,88 @@ class WorkbenchController extends Controller
             return json(['code' => 500, 'msg' => '拷贝失败：' . $e->getMessage()]);
         }
     }
+
+    /**
+     * 获取点赞记录列表
+     * @return \think\response\Json
+     */
+    public function getLikeRecords()
+    {
+        $page = $this->request->param('page', 1);
+        $limit = $this->request->param('limit', 10);
+        $workbenchId = $this->request->param('workbenchId', 0);
+        $startTime = $this->request->param('startTime', '');
+        $endTime = $this->request->param('endTime', '');
+
+        $where = [
+            ['wali.workbenchId', '=', $workbenchId]
+        ];
+
+        // 添加时间筛选
+        if (!empty($startTime) && !empty($endTime)) {
+            $where[] = ['wali.createTime', 'between', [
+                strtotime($startTime . ' 00:00:00'),
+                strtotime($endTime . ' 23:59:59')
+            ]];
+        } elseif (!empty($startTime)) {
+            $where[] = ['wali.createTime', '>=', strtotime($startTime . ' 00:00:00')];
+        } elseif (!empty($endTime)) {
+            $where[] = ['wali.createTime', '<=', strtotime($endTime . ' 23:59:59')];
+        }
+
+        // 查询点赞记录
+        $list = Db::name('workbench_auto_like_item')->alias('wali')
+            ->join(['s2_wechat_moments' => 'wm'], 'wm.snsId = wali.snsId', 'left')
+            ->join(['s2_wechat_account' => 'wa'], 'wa.id = wali.wechatAccountId', 'left')
+            ->join(['s2_wechat_friend' => 'wf'], 'wf.id = wm.wechatFriendId', 'left')
+            ->field([
+                'wali.id',
+                'wali.workbenchId',
+                'wali.momentsId',
+                'wali.snsId',
+                'wali.wechatAccountId',
+                'wali.wechatFriendId',
+                'wali.createTime as likeTime',
+                'wm.content',
+                'wm.resUrls',
+                'wm.createTime as momentTime',
+                'wm.userName',
+                'wa.nickName as operatorName',
+                'wf.nickName as friendName',
+            ])
+            ->where($where)
+            ->order('wali.createTime', 'desc')
+            ->page($page, $limit)
+            ->select();
+
+        // 处理数据
+        foreach ($list as &$item) {
+            // 处理时间格式
+            $item['likeTime'] = date('Y-m-d H:i:s', $item['likeTime']);
+            $item['momentTime'] = !empty($item['momentTime']) ? date('Y-m-d H:i:s', $item['momentTime']) : '';
+            
+            // 处理资源链接
+            if (!empty($item['resUrls'])) {
+                $item['resUrls'] = json_decode($item['resUrls'], true);
+            } else {
+                $item['resUrls'] = [];
+            }
+        }
+
+        // 获取总记录数
+        $total = Db::name('workbench_auto_like_item')->alias('wali')
+            ->where($where)
+            ->count();
+
+        return json([
+            'code' => 200,
+            'msg' => '获取成功',
+            'data' => [
+                'list' => $list,
+                'total' => $total,
+                'page' => $page,
+                'limit' => $limit
+            ]
+        ]);
+    }
 } 

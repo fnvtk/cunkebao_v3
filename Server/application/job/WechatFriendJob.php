@@ -73,7 +73,11 @@ class WechatFriendJob
             ]);
             
             // 调用微信好友列表获取方法，传入isDel参数
-            $result = $wechatFriendController->getlist($pageIndex, $pageSize, $preFriendId, true, $isDel);
+            $result = $wechatFriendController->getlist([
+                'pageIndex' => $pageIndex,
+                'pageSize' => $pageSize,
+                'preFriendId' => $preFriendId,
+            ], true, $isDel);
             $response = json_decode($result, true);
             
             // 判断是否成功

@@ -16,6 +16,7 @@ use app\cunkebao\model\WorkbenchGroupCreate;
 use think\Db;
 use app\api\controller\WebSocketController;
 use app\api\controller\AutomaticAssign;
+use app\api\controller\WechatFriendController;
 
 class WorkbenchJob
 {
@@ -113,7 +114,7 @@ class WorkbenchJob
     }
 
     /************************************
-     * 工作台处理主流程
+     * 工作台处理核心逻辑
      ************************************/
     
     /**
@@ -229,37 +230,52 @@ class WorkbenchJob
         if (!$this->validateAutoLikeConfig($workbench, $config)) {
             return;
         }
-        //验证是否达到点赞次数上限
+        
+        // 验证是否达到点赞次数上限
         $likeCount = $this->getTodayLikeCount($workbench, $config);
         if ($likeCount >= $config['maxLikes']) {
             Log::info("工作台 {$workbench->id} 点赞次数已达上限");
             return;
         }
-        //验证是否在点赞时间范围内
+        
+        // 验证是否在点赞时间范围内
         if (!$this->isWithinLikeTimeRange($config)) {
             return;
         }
 
-        
-        $page = 1;
-        $pageSize = 100;
-        $friendList = $this->getFriendList($config,$page,$pageSize);
-        foreach ($friendList as $friend) {
-            //验证是否达到好友点赞次数上限
-            $friendMaxLikes = Db::name('workbench_auto_like_item')
-            ->where('workbenchId', $workbench->id)
-            ->where('wechatFriendId', $friend['friendId'])
-            ->count();
+        // 处理分页获取好友列表
+        $this->processAllFriends($workbench, $config);
+    }
+    
+    /**
+     * 处理所有好友分页
+     * @param Workbench $workbench
+     * @param WorkbenchAutoLike $config
+     * @param int $page 当前页码
+     * @param int $pageSize 每页大小
+     */
+    protected function processAllFriends($workbench, $config, $page = 1, $pageSize = 100)
+    {
+        $friendList = $this->getFriendList($config, $page, $pageSize);
+        if (empty($friendList)) {
+            return;
+        }
 
-            if($friendMaxLikes < $config['friendMaxLikes']){
+        foreach ($friendList as $friend) {
+            // 验证是否达到好友点赞次数上限
+            $friendMaxLikes = Db::name('workbench_auto_like_item')
+                ->where('workbenchId', $workbench->id)
+                ->where('wechatFriendId', $friend['friendId'])
+                ->count();
+            if ($friendMaxLikes < $config['friendMaxLikes']) {
                 $this->processFriendMoments($workbench, $config, $friend);
             }
         }
 
-        if(count($friendList) == $pageSize){
-            $this->getFriendList($config, $page + 1, $pageSize);
+        // 如果当前页数据量等于页大小，说明可能还有更多数据，继续处理下一页
+        if (count($friendList) == $pageSize) {
+            $this->processAllFriends($workbench, $config, $page + 1, $pageSize);
         }
-
     }
     
     /**
@@ -328,55 +344,71 @@ class WorkbenchJob
         }
 
         try {
-
-
-            print_r($friend);
-            exit;
-
-            //执行切换好友命令
+            // 执行切换好友命令
             $automaticAssign = new AutomaticAssign();
-            $automaticAssign->allotWechatFriend(['wechatFriendId' => $friend['friendId'],'toAccountId' => $toAccountId],true);
-            //执行采集朋友圈命令
-            $webSocket = new WebSocketController(['userName' => $username,'password' => $password,'accountId' => $toAccountId]);
-            $webSocket->getMoments(['wechatFriendId' => $friend['friendId'],'wechatAccountId' => $friend['wechatAccountId']]);
+            $automaticAssign->allotWechatFriend(['wechatFriendId' => $friend['friendId'], 'toAccountId' => $toAccountId], true);
+            
+            // 执行采集朋友圈命令
+            $webSocket = new WebSocketController(['userName' => $username, 'password' => $password, 'accountId' => $toAccountId]);
+            $webSocket->getMoments(['wechatFriendId' => $friend['friendId'], 'wechatAccountId' => $friend['wechatAccountId']]);
      
-
-              //查询未点赞的朋友圈
-              $moments = $this->getUnlikedMoments($friend['friendId']);
-
-              print_r($moments);
-              exit;
-
-
-              if (empty($moments)) {
-                  //处理完毕切换
-                  Log::info("好友 {$friend['friendId']} 没有需要点赞的朋友圈");
-                  return;
-              }
-
-
-            foreach ($moments as $moment) {
-                //点赞朋友圈
-                $this->likeMoment($workbench, $config, $friend, $moment, $webSocket);
+            // 查询未点赞的朋友圈
+            $moments = $this->getUnlikedMoments($friend['friendId']);
+            if (empty($moments)) {
+                Log::info("好友 {$friend['friendId']} 没有需要点赞的朋友圈");
+                // 处理完毕切换回原账号
+                $automaticAssign->allotWechatFriend(['wechatFriendId' => $friend['friendId'], 'toAccountId' => $friend['accountId']], true);
                 return;
             }
 
+            foreach ($moments as $moment) {
+                // 点赞朋友圈
+                $this->likeMoment($workbench, $config, $friend, $moment, $webSocket);
+                
+                if(!empty($config['enableFriendTags']) && !empty($config['friendTags'])){
+                    // 修改好友标签
+                    $labels = $this->getFriendLabels($friend);
+                    $labels[] = $config['friendTags'];
+                    $webSocket->modifyFriendLabel(['wechatFriendId' => $friend['friendId'], 'wechatAccountId' => $toAccountId, 'labels' => $labels]);
+                }
 
-            //处理完毕切换
-            $automaticAssign->allotWechatFriend(['wechatFriendId' => $friend['friendId'],'toAccountId' => $friend['accountId']],true);
-    
 
 
+                // 每个好友只点赞一条朋友圈，然后退出
+                break;
+            }
+
+            // 处理完毕切换回原账号
+            $automaticAssign->allotWechatFriend(['wechatFriendId' => $friend['friendId'], 'toAccountId' => $friend['accountId']], true);
         } catch (\Exception $e) {
-            //处理完毕切换
-            $automaticAssign->allotWechatFriend(['wechatFriendId' => $friend['friendId'],'toAccountId' => $friend['accountId']],true);
-             
-            return [
-                'status' => 'error',
-                'message' => '采集过程发生错误: ' . $e->getMessage()
-            ];
+            // 异常情况下也要确保切换回原账号
+            $automaticAssign->allotWechatFriend(['wechatFriendId' => $friend['friendId'], 'toAccountId' => $friend['accountId']], true);
+            
+            Log::error("处理好友 {$friend['friendId']} 朋友圈失败: " . $e->getMessage());
         }
     }
+
+    /** 
+     * 获取好友标签
+     * @param int $friendId
+     * @return array
+     */
+    protected function getFriendLabels($friend)   
+    {
+        // 获取好友标签
+        $wechatFriendController = new WechatFriendController();
+        $result = $wechatFriendController->getlist([ 'friendKeyword' => $friend['wechatId'],'wechatAccountKeyword' => $friend['wechatAccountWechatId']],true);
+        $result = json_decode($result, true);
+        $labels = [];
+        if(!empty($result['data'])){
+            foreach($result['data'] as $item){
+                $labels = array_merge($labels, $item['labels']);
+            }
+        }
+        return $labels;
+    }
+
+
 
     /**
      * 获取未点赞的朋友圈
@@ -404,7 +436,6 @@ class WorkbenchJob
      * @param WorkbenchAutoLike $config
      * @param array $friend
      * @param array $moment
-
      * @param WebSocketController $webSocket
      */
     protected function likeMoment($workbench, $config, $friend, $moment, $webSocket)
@@ -419,7 +450,11 @@ class WorkbenchJob
             
             if ($result['code'] == 200) {
                 $this->recordLike($workbench, $moment, $friend);
-               // sleep($config['interval']);
+                
+                // 添加间隔时间
+                if (!empty($config['interval'])) {
+                    sleep($config['interval']);
+                }
             } else {
                 Log::error("工作台 {$workbench->id} 点赞失败: " . ($result['msg'] ?? '未知错误'));
             }
@@ -498,10 +533,12 @@ class WorkbenchJob
 
     /**
      * 获取好友列表
-     * @param string $friendsJson
+     * @param WorkbenchAutoLike $config 配置
+     * @param int $page 页码
+     * @param int $pageSize 每页大小
      * @return array
      */
-    protected function getFriendList($config,$page = 1,$pageSize = 100)
+    protected function getFriendList($config, $page = 1, $pageSize = 100)
     {
         $friends = json_decode($config['friends'], true);
         $devices = json_decode($config['devices'], true);
@@ -521,14 +558,19 @@ class WorkbenchJob
                 'ca.userName',
                 'wf.id as friendId',
                 'wf.wechatId',
-                'wf.wechatAccountId'
+                'wf.wechatAccountId',
+                'wa.wechatId as wechatAccountWechatId'
             ]);
 
-            if(!empty($friends) && is_array($friends) && count($friends) > 0){
-                $list = $list->whereIn('wf.id', $friends);
-            }
-      
-            $list = $list->group('wf.wechatId')->order('wf.id DESC')->page($page,$pageSize)->select();
-            return $list;
+        if (!empty($friends) && is_array($friends) && count($friends) > 0) {
+            $list = $list->whereIn('wf.id', $friends);
+        }
+  
+        $list = $list->group('wf.wechatId')
+                     ->order('wf.id DESC')
+                     ->page($page, $pageSize)
+                     ->select();
+                     
+        return $list;
     }
 } 

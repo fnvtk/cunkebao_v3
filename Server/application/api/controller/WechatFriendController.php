@@ -16,7 +16,7 @@ class WechatFriendController extends BaseController
      * @param bool $isInner 是否为任务调用
      * @return \think\response\Json
      */
-    public function getlist($pageIndex = '', $pageSize = '', $preFriendId = '', $isInner = false,$isDel = '')
+    public function getlist($data = [], $isInner = false,$isDel = '')
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
@@ -27,6 +27,13 @@ class WechatFriendController extends BaseController
                 return errorJson('缺少授权信息');
             }
         }
+
+        $pageIndex = !empty($data['pageIndex']) ? $data['pageIndex'] : '';
+        $pageSize = !empty($data['pageSize']) ? $data['pageSize'] : '';
+        $preFriendId = !empty($data['preFriendId']) ? $data['preFriendId'] : '';
+        $friendKeyword = !empty($data['friendKeyword']) ? $data['friendKeyword'] : '';
+        $wechatAccountKeyword = !empty($data['wechatAccountKeyword']) ? $data['wechatAccountKeyword'] : '';
+  
 
         try {
             // 初始化isUpdate标志为false
@@ -57,7 +64,8 @@ class WechatFriendController extends BaseController
                 'pageIndex' => !empty($pageIndex) ? $pageIndex : input('pageIndex', 0),
                 'pageSize' => !empty($pageSize) ? $pageSize : input('pageSize', 20),
                 'preFriendId' => !empty($preFriendId) ? $preFriendId : input('preFriendId', ''),
-                'wechatAccountKeyword' => input('wechatAccountKeyword', '')
+                'friendKeyword' => !empty($friendKeyword) ? $friendKeyword : input('friendKeyword', ''),
+                'wechatAccountKeyword' => !empty($wechatAccountKeyword) ? $wechatAccountKeyword : input('wechatAccountKeyword', '')
             ];
 
             // 设置请求头
