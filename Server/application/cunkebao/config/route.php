@@ -12,6 +12,7 @@ Route::group('v1/', function () {
         Route::put('refresh', 'app\cunkebao\controller\device\RefreshDeviceDetailV1Controller@index');
         Route::get('add-results', 'app\cunkebao\controller\device\GetAddResultedV1Controller@index');
         Route::post('task-config', 'app\cunkebao\controller\device\UpdateDeviceTaskConfigV1Controller@index');
+        Route::get(':id/task-config', 'app\cunkebao\controller\device\UpdateDeviceTaskConfigV1Controller@index');
         Route::get(':id/handle-logs', 'app\cunkebao\controller\device\GetDeviceHandleLogsV1Controller@index');
         Route::get(':id', 'app\cunkebao\controller\device\GetDeviceDetailV1Controller@index');
         Route::delete(':id', 'app\cunkebao\controller\device\DeleteDeviceV1Controller@index');
