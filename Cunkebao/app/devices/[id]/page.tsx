@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { fetchDeviceDetail, fetchDeviceRelatedAccounts, updateDeviceTaskConfig, fetchDeviceHandleLogs } from "@/api/devices"
 import { toast } from "sonner"
 import { ImeiDisplay } from "@/components/ImeiDisplay"
+import { api } from "@/lib/api"
 
 interface WechatAccount {
   id: string
@@ -76,6 +77,7 @@ interface HandleLog {
 
 export default function DeviceDetailPage() {
   const params = useParams()
+  const deviceId = params?.id as string
   const router = useRouter()
   const [device, setDevice] = useState<Device | null>(null)
   const [activeTab, setActiveTab] = useState("info")
@@ -94,12 +96,15 @@ export default function DeviceDetailPage() {
     aiChat: false
   })
   const [tabChangeLoading, setTabChangeLoading] = useState(false)
+  const [accountPage, setAccountPage] = useState(1)
+  const [hasMoreAccounts, setHasMoreAccounts] = useState(true)
+  const accountsPerPage = 10
+  const accountsEndRef = useRef<HTMLDivElement>(null)
 
   // 添加登录检查
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (!token) {
-      // 如果没有token，重定向到登录页面，并携带当前页面URL作为回调
       const currentPath = window.location.pathname + window.location.search
       router.push(`/login?redirect=${encodeURIComponent(currentPath)}`)
       return
@@ -107,12 +112,12 @@ export default function DeviceDetailPage() {
   }, [router])
 
   useEffect(() => {
-    if (!params.id) return
+    if (!deviceId) return
 
     const fetchDevice = async () => {
       try {
         setLoading(true)
-        const response = await fetchDeviceDetail(params.id as string)
+        const response = await fetchDeviceDetail(deviceId)
         
         if (response && response.code === 200 && response.data) {
           const serverData = response.data
@@ -140,7 +145,6 @@ export default function DeviceDetailPage() {
           
           // 解析features
           if (serverData.features) {
-            // 如果后端直接返回了features对象，使用它
             formattedDevice.features = {
               autoAddFriend: Boolean(serverData.features.autoAddFriend),
               autoReply: Boolean(serverData.features.autoReply),
@@ -149,7 +153,6 @@ export default function DeviceDetailPage() {
             }
           } else if (serverData.taskConfig) {
             try {
-              // 解析taskConfig字段
               const taskConfig = JSON.parse(serverData.taskConfig || '{}');
               
               if (taskConfig) {
@@ -165,57 +168,33 @@ export default function DeviceDetailPage() {
             }
           }
           
-          // 如果有微信账号信息，构建微信账号对象
-          if (serverData.wechatId) {
-            formattedDevice.wechatAccounts = [
-              {
-                id: serverData.wechatId?.toString() || "1",
-                avatar: "/placeholder.svg", // 默认头像
-                nickname: serverData.memo || "微信账号",
-                wechatId: serverData.imei || "",
-                gender: 1, // 默认性别
-                status: serverData.alive === 1 ? 1 : 0,
-                statusText: serverData.alive === 1 ? "可加友" : "已停用",
-                wechatAlive: serverData.alive === 1 ? 1 : 0,
-                wechatAliveText: serverData.alive === 1 ? "正常" : "异常",
-                addFriendStatus: 1,
-                totalFriend: serverData.totalFriend || 0,
-                lastActive: serverData.lastUpdateTime || new Date().toISOString()
-              }
-            ]
-          }
-          
           setDevice(formattedDevice)
           
-          // 如果当前激活标签是"accounts"，则加载关联微信账号
+          // 如果当前激活标签是"accounts"，则立即加载关联微信账号
           if (activeTab === "accounts") {
             fetchRelatedAccounts()
           }
         } else {
-          // 如果API返回错误，显示错误提示
           toast.error("获取设备信息失败: " + ((response as any)?.msg || "未知错误"))
-          setLoading(false)
         }
       } catch (error) {
         console.error("获取设备信息失败:", error)
         toast.error("获取设备信息出错，请稍后重试")
-        setLoading(false)
       } finally {
-        // 确保loading状态被关闭
         setLoading(false)
       }
     }
     
     fetchDevice()
-  }, [params.id, activeTab])
+  }, [deviceId]) // 使用 deviceId 替代 params.id
   
   // 获取设备关联微信账号
-  const fetchRelatedAccounts = async () => {
-    if (!params.id || accountsLoading) return
+  const fetchRelatedAccounts = async (page = 1) => {
+    if (!deviceId || accountsLoading) return
     
     try {
       setAccountsLoading(true)
-      const response = await fetchDeviceRelatedAccounts(params.id as string)
+      const response = await fetchDeviceRelatedAccounts(deviceId)
       
       if (response && response.code === 200 && response.data) {
         const accounts = response.data.accounts || []
@@ -225,21 +204,20 @@ export default function DeviceDetailPage() {
           if (!prev) return null
           return {
             ...prev,
-            wechatAccounts: accounts
+            // 如果是第一页，替换数据；否则追加数据
+            wechatAccounts: page === 1 
+              ? accounts 
+              : [...(prev.wechatAccounts || []), ...accounts]
           }
         })
         
-        if (accounts.length > 0) {
-          toast.success(`成功获取${accounts.length}个关联微信账号`)
-        } else {
-          toast.info("此设备暂无关联微信账号")
-        }
+        // 判断是否还有更多数据
+        setHasMoreAccounts(accounts.length === accountsPerPage)
       } else {
-        toast.error("获取关联微信账号失败")
+        console.error("获取关联微信账号失败")
       }
     } catch (error) {
       console.error("获取关联微信账号失败:", error)
-      toast.error("获取关联微信账号出错")
     } finally {
       setAccountsLoading(false)
     }
@@ -247,12 +225,12 @@ export default function DeviceDetailPage() {
 
   // 获取设备操作记录
   const fetchHandleLogs = async () => {
-    if (!params.id || logsLoading) return
+    if (!deviceId || logsLoading) return
     
     try {
       setLogsLoading(true)
       const response = await fetchDeviceHandleLogs(
-        params.id as string, 
+        deviceId, 
         logPage, 
         logsPerPage
       )
@@ -338,6 +316,37 @@ export default function DeviceDetailPage() {
     }
   }, [logPage, activeTab])
 
+  // 获取任务配置
+  const fetchTaskConfig = async () => {
+    try {
+      const response = await api.get(`/v1/devices/${deviceId}/task-config`)
+      
+      if (response && response.code === 200 && response.data) {
+        setDevice(prev => {
+          if (!prev) return null
+          return {
+            ...prev,
+            features: {
+              autoAddFriend: Boolean(response.data.autoAddFriend),
+              autoReply: Boolean(response.data.autoReply),
+              momentsSync: Boolean(response.data.momentsSync),
+              aiChat: Boolean(response.data.aiChat)
+            }
+          }
+        })
+      }
+    } catch (error) {
+      console.error("获取任务配置失败:", error)
+    }
+  }
+
+  // 在组件加载时获取任务配置
+  useEffect(() => {
+    if (deviceId) {
+      fetchTaskConfig()
+    }
+  }, [deviceId])
+
   // 处理标签页切换
   const handleTabChange = (value: string) => {
     setActiveTab(value)
@@ -353,6 +362,11 @@ export default function DeviceDetailPage() {
     // 当切换到"操作记录"标签时，获取最新的操作记录
     if (value === "history") {
       fetchHandleLogs()
+    }
+
+    // 当切换到"基本信息"标签时，获取最新的任务配置
+    if (value === "info") {
+      fetchTaskConfig()
     }
     
     // 设置短暂的延迟来关闭加载状态，模拟加载过程
@@ -527,6 +541,51 @@ export default function DeviceDetailPage() {
     return nameMap[feature] || feature
   }
 
+  // 加载更多账号
+  const loadMoreAccounts = () => {
+    if (accountsLoading || !hasMoreAccounts) return
+    setAccountPage(prev => prev + 1)
+    fetchRelatedAccounts(accountPage + 1)
+  }
+
+  // 监听账号列表滚动加载更多
+  useEffect(() => {
+    if (activeTab !== "accounts") return
+    
+    const observerOptions = {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0.1
+    }
+    
+    const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+      const [entry] = entries
+      if (entry.isIntersecting && hasMoreAccounts && !accountsLoading) {
+        loadMoreAccounts()
+      }
+    }
+    
+    const observer = new IntersectionObserver(handleIntersect, observerOptions)
+    
+    if (accountsEndRef.current) {
+      observer.observe(accountsEndRef.current)
+    }
+    
+    return () => {
+      if (accountsEndRef.current) {
+        observer.unobserve(accountsEndRef.current)
+      }
+    }
+  }, [activeTab, hasMoreAccounts, accountsLoading])
+
+  // 当切换到账号标签时重置页码
+  useEffect(() => {
+    if (activeTab === "accounts") {
+      setAccountPage(1)
+      setHasMoreAccounts(true)
+    }
+  }, [activeTab])
+
   if (loading) {
     return (
       <div className="flex h-screen w-full justify-center items-center bg-gray-50">
@@ -547,7 +606,7 @@ export default function DeviceDetailPage() {
           </div>
           <div className="text-xl font-medium text-center">设备不存在或已被删除</div>
           <div className="text-sm text-gray-500 text-center">
-            无法加载ID为 "{params.id}" 的设备信息，请检查设备是否存在。
+            无法加载ID为 "{deviceId}" 的设备信息，请检查设备是否存在。
           </div>
           <Button onClick={() => router.back()}>
             <ChevronLeft className="h-4 w-4 mr-1" />
@@ -618,16 +677,7 @@ export default function DeviceDetailPage() {
             </TabsList>
 
             <TabsContent value="info">
-              <Card className="p-4 space-y-4">
-                {/* 标签切换时的加载状态 */}
-                {tabChangeLoading && (
-                  <div className="absolute inset-0 bg-white bg-opacity-80 flex justify-center items-center z-10">
-                    <div className="flex flex-col items-center space-y-3">
-                      <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
-                      <div className="text-gray-500 text-sm">加载中...</div>
-                    </div>
-                  </div>
-                )}
+              <Card className="p-4">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
@@ -699,6 +749,28 @@ export default function DeviceDetailPage() {
                   </div>
                 </div>
               </Card>
+
+              {/* 统计卡片 */}
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <Card className="p-4">
+                  <div className="flex items-center space-x-2 text-gray-500">
+                    <Users className="w-4 h-4" />
+                    <span className="text-sm">好友总数</span>
+                  </div>
+                  <div className="text-2xl font-bold text-blue-600 mt-2">
+                    {(device.totalFriend || 0).toLocaleString()}
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <div className="flex items-center space-x-2 text-gray-500">
+                    <MessageCircle className="w-4 h-4" />
+                    <span className="text-sm">消息数量</span>
+                  </div>
+                  <div className="text-2xl font-bold text-blue-600 mt-2">
+                    {(device.thirtyDayMsgCount || 0).toLocaleString()}
+                  </div>
+                </Card>
+              </div>
             </TabsContent>
 
             <TabsContent value="accounts">
@@ -708,7 +780,11 @@ export default function DeviceDetailPage() {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={fetchRelatedAccounts}
+                    onClick={() => {
+                      setAccountPage(1)
+                      setHasMoreAccounts(true)
+                      fetchRelatedAccounts(1)
+                    }}
                     disabled={accountsLoading}
                   >
                     {accountsLoading ? (
@@ -725,7 +801,7 @@ export default function DeviceDetailPage() {
                   </Button>
                 </div>
                 
-                <ScrollArea className="h-[calc(100vh-300px)]">
+                <ScrollArea className="min-h-[120px] max-h-[calc(100vh-300px)]">
                   {/* 标签切换时的加载状态 */}
                   {tabChangeLoading && (
                     <div className="absolute inset-0 bg-white bg-opacity-80 flex justify-center items-center z-10">
@@ -735,14 +811,13 @@ export default function DeviceDetailPage() {
                       </div>
                     </div>
                   )}
-                  {accountsLoading && (
+                  
+                  {accountsLoading && !device?.wechatAccounts?.length ? (
                     <div className="flex justify-center items-center py-8">
                       <div className="w-6 h-6 rounded-full border-2 border-blue-500 border-t-transparent animate-spin mr-2"></div>
                       <span className="text-gray-500">加载微信账号中...</span>
                     </div>
-                  )}
-                  
-                  {!accountsLoading && device.wechatAccounts && device.wechatAccounts.length > 0 ? (
+                  ) : device?.wechatAccounts && device.wechatAccounts.length > 0 ? (
                     <div className="space-y-4">
                       {device.wechatAccounts.map((account) => (
                         <div key={account.id} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
@@ -770,22 +845,44 @@ export default function DeviceDetailPage() {
                           </div>
                         </div>
                       ))}
+                      
+                      {/* 加载更多区域 */}
+                      <div 
+                        ref={accountsEndRef} 
+                        className="py-2 flex justify-center items-center"
+                      >
+                        {accountsLoading && hasMoreAccounts ? (
+                          <div className="flex items-center space-x-2">
+                            <div className="w-4 h-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
+                            <span className="text-sm text-gray-500">加载更多...</span>
+                          </div>
+                        ) : hasMoreAccounts ? (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={loadMoreAccounts}
+                            className="text-sm text-blue-500 hover:text-blue-600"
+                          >
+                            加载更多
+                          </Button>
+                        ) : device.wechatAccounts.length > 0 && (
+                          <span className="text-xs text-gray-400">- 已加载全部记录 -</span>
+                        )}
+                      </div>
                     </div>
                   ) : (
-                    !accountsLoading && (
-                      <div className="text-center py-8 text-gray-500">
-                        <p>此设备暂无关联的微信账号</p>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="mt-2"
-                          onClick={fetchRelatedAccounts}
-                        >
-                          <RefreshCw className="h-4 w-4 mr-1" />
-                          刷新
-                        </Button>
-                      </div>
-                    )
+                    <div className="text-center py-8 text-gray-500">
+                      <p>此设备暂无关联的微信账号</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-2"
+                        onClick={() => fetchRelatedAccounts(1)}
+                      >
+                        <RefreshCw className="h-4 w-4 mr-1" />
+                        刷新
+                      </Button>
+                    </div>
                   )}
                 </ScrollArea>
               </Card>
@@ -894,27 +991,6 @@ export default function DeviceDetailPage() {
               </Card>
             </TabsContent>
           </Tabs>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Card className="p-4">
-              <div className="flex items-center space-x-2 text-gray-500">
-                <Users className="w-4 h-4" />
-                <span className="text-sm">好友总数</span>
-              </div>
-              <div className="text-2xl font-bold text-blue-600 mt-2">
-                {(device.totalFriend || 0).toLocaleString()}
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="flex items-center space-x-2 text-gray-500">
-                <MessageCircle className="w-4 h-4" />
-                <span className="text-sm">消息数量</span>
-              </div>
-              <div className="text-2xl font-bold text-blue-600 mt-2">
-                {(device.thirtyDayMsgCount || 0).toLocaleString()}
-              </div>
-            </Card>
-          </div>
         </div>
       </div>
     </div>

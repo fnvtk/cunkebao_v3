@@ -559,14 +559,6 @@ export default function DevicesPage() {
       return;
     }
     
-    let target = event.target as HTMLElement;
-    while (target && target !== event.currentTarget) {
-      if (target.classList.contains('imei-display-area')) {
-        return;
-      }
-      target = target.parentElement as HTMLElement;
-    }
-    
     router.push(`/devices/${deviceId}`);
   }
 
@@ -715,9 +707,8 @@ export default function DevicesPage() {
                       {device.status === "online" ? "在线" : "离线"}
                     </Badge>
                   </div>
-                  <div className="text-sm text-gray-500 flex items-center imei-display-area">
-                    <span className="mr-1">IMEI:</span>
-                    <ImeiDisplay imei={device.imei} containerWidth={180} />
+                  <div className="text-sm text-gray-500">
+                    <span className="mr-1">IMEI: {device.imei}</span>
                   </div>
                   <div className="text-sm text-gray-500">微信号: {device.wechatId || "未绑定或微信离线"}</div>
                   <div className="flex items-center justify-between mt-1 text-sm">
