@@ -6,6 +6,7 @@ use app\common\model\Device as DeviceModel;
 use app\common\model\DeviceUser as DeviceUserModel;
 use app\common\model\DeviceWechatLogin as DeviceWechatLoginModel;
 use app\common\model\User as UserModel;
+use app\common\model\WechatCustomer as WechatCustomerModel;
 use app\common\model\WechatFriendShip as WechatFriendShipModel;
 use app\cunkebao\controller\BaseController;
 use library\ResponseHelper;
@@ -93,6 +94,46 @@ class GetDeviceListV1Controller extends BaseController
     }
 
     /**
+     * 获取设备最新登录微信的 wechatId
+     *
+     * @param int $deviceId
+     * @return string|null
+     * @throws \Exception
+     */
+    protected function getDeviceLatestWechatLogin(int $deviceId): ?string
+    {
+        return DeviceWechatLoginModel::where(
+            [
+                'companyId' => $this->getUserInfo('companyId'),
+                'deviceId'  => $deviceId,
+                'alive'     => DeviceWechatLoginModel::ALIVE_WECHAT_ACTIVE
+            ]
+        )
+            ->value('wechatId');
+    }
+
+    /**
+     * 获取设备绑定的客服信息
+     *
+     * @param string $wechatId
+     * @return int
+     * @throws \Exception
+     */
+    protected function getWechatCustomerInfo(string $wechatId): int
+    {
+        $curstomer = WechatCustomerModel::field('friendShip')
+            ->where(
+                [
+                    'companyId' => $this->getUserInfo('companyId'),
+                    'wechatId'  => $wechatId
+                ]
+            )
+            ->find();
+
+        return $curstomer->friendShip->totalFriend ?? 0;
+    }
+
+    /**
      * 统计微信好友
      *
      * @param \think\Paginator $list
@@ -103,19 +144,11 @@ class GetDeviceListV1Controller extends BaseController
         $resultSets = [];
 
         foreach ($list->items() as $item) {
-            $sections = $item->toArray();
+            $wechatId = $this->getDeviceLatestWechatLogin($item->id);
 
-            if ($item->wechatId) {
-                $sections['totalFriend'] = WechatFriendShipModel::where(
-                    [
-                        'ownerWechatId' => $item->wechatId,
-                        'companyId'     => $this->getUserInfo('companyId')
-                    ]
-                )
-                    ->count();
-            }
+            $item->totalFriend = $wechatId ? $this->getWechatCustomerInfo($wechatId) : 0;
 
-            array_push($resultSets, $sections);
+            array_push($resultSets, $item->toArray());
         }
 
         return $resultSets;
