@@ -35,9 +35,16 @@ Route::group('v1/', function () {
     });
 
     // 获客场景相关
-    Route::group('plan/scenes', function () {
-        Route::get('', 'app\cunkebao\controller\Scene@index');           // 获取场景列表
-        Route::post('create', 'app\cunkebao\controller\Plan@index');     // 获取场景列表
+    Route::group('plan', function () {
+        Route::get('scenes', 'app\cunkebao\controller\plan\GetPlanSceneListV1Controller@index');
+
+        // 添加计划任务
+        Route::post('add', 'app\cunkebao\controller\Plan@index');
+        // 获取计划任务列表
+        Route::get('list', 'app\cunkebao\controller\Plan@getList');
+
+
+
     });
 
     // 流量池相关
@@ -86,15 +93,6 @@ Route::group('v1/', function () {
         Route::get('getMemberList', 'app\cunkebao\controller\chatroom\GetChatroomListV1Controller@getMemberList'); // 获取群详情
         
     });
-
-    // 计划任务相关路由
-    Route::group('plan', function () {
-        // 添加计划任务
-        Route::post('add', 'app\cunkebao\controller\Plan@index');
-        // 获取计划任务列表
-        Route::get('list', 'app\cunkebao\controller\Plan@getList');
-    });
-
 })->middleware(['jwt']);
 
 return [];

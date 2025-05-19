@@ -121,9 +121,9 @@ export default function ScenariosPage() {
         setLoading(true)
         const response = await fetchScenes({ limit: 50 })
         
-        if (response.code === 200 && response.data?.list) {
+        if (response.code === 200 && response.data) {
           // 转换场景数据为前端展示格式
-          const transformedScenes = response.data.list.map((scene) => {
+          const transformedScenes = response.data.map((scene) => {
             const transformedScene = transformSceneItem(scene)
             
             // 添加link属性（用于导航）
@@ -216,9 +216,6 @@ export default function ScenariosPage() {
         <header className="sticky top-0 z-10 bg-white border-b">
           <div className="flex justify-between items-center p-4">
             <div className="flex items-center space-x-3">
-              <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
               <h1 className="text-xl font-semibold text-blue-600">场景获客</h1>
             </div>
 

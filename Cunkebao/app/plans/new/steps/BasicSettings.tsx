@@ -168,8 +168,19 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
         
         const response = await fetchScenes({ limit: 30 })
         
-        if (response.code === 200 && response.data?.list) {
-          setScenes(response.data.list)
+        if (response.code === 200 && Array.isArray(response.data)) {
+          const formattedScenes = response.data.map(scene => ({
+            id: scene.id.toString(),
+            name: scene.name,
+            image: scene.image,
+            status: scene.status,
+            sort: scene.sort,
+            createTime: scene.createTime,
+            updateTime: scene.updateTime,
+            deleteTime: scene.deleteTime
+          }))
+          setScenes(formattedScenes)
+          setSceneError(null) // 成功时清空错误
         } else {
           setSceneError(response.msg || "获取场景列表失败")
           console.error("获取场景列表失败:", response.msg)
@@ -191,15 +202,27 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
       onChange({ ...formData, scenario: "haibao" })
     }
 
-    if (!formData.planName) {
+    // 只在初始化时设置默认计划名称
+    if (!formData.planName && !formData._initialized) {
       if (formData.materials?.length > 0) {
         const today = new Date().toLocaleDateString("zh-CN").replace(/\//g, "")
-        onChange({ ...formData, planName: `海报${today}` })
+        onChange({ ...formData, planName: `海报${today}`, _initialized: true })
       } else {
-        onChange({ ...formData, planName: "场景" })
+        onChange({ ...formData, planName: "场景", _initialized: true })
       }
     }
-  }, [formData, onChange])
+  }, []) // 移除 formData 依赖，只在组件挂载时执行一次
+
+  // 处理本地场景选择
+  const handleScenarioSelect = (scenarioId: string) => {
+    onChange({ ...formData, scenario: scenarioId })
+    
+    // 如果选择了电话获客，自动更新计划名称
+    if (scenarioId === "phone") {
+      const today = new Date().toLocaleDateString("zh-CN").replace(/\//g, "")
+      onChange({ ...formData, planName: `电话${today}` })
+    }
+  }
 
   // 处理从API获取的场景选择
   const handleSceneSelect = (scene: SceneItem) => {
@@ -217,17 +240,6 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
     if (scene.name.includes("电话")) {
       const today = new Date().toLocaleDateString("zh-CN").replace(/\//g, "");
       onChange({ ...formData, planName: `${formattedName}${today}` });
-    }
-  }
-
-  // 处理本地场景选择
-  const handleScenarioSelect = (scenarioId: string) => {
-    onChange({ ...formData, scenario: scenarioId })
-    
-    // 如果选择了电话获客，自动更新计划名称
-    if (scenarioId === "phone") {
-      const today = new Date().toLocaleDateString("zh-CN").replace(/\//g, "")
-      onChange({ ...formData, planName: `电话${today}` })
     }
   }
 
@@ -366,311 +378,318 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
   };
 
   return (
-    <div className="w-full p-4">
-        <div className="space-y-6">
-          <div>
-            <Label className="text-base mb-4 block">获客场景</Label>
-            
-            {/* 场景按钮阵列 */}
-            <div className="grid grid-cols-3 gap-2">
-              {loadingScenes ? (
-                // 加载中状态
-                Array.from({ length: 6 }).map((_, index) => (
-                  <div key={index} className="h-10 w-full rounded-lg bg-gray-200 animate-pulse"></div>
-                ))
-              ) : sceneError || scenes.length === 0 ? (
-                // 加载失败或无数据时显示本地场景
-                displayedScenarios.map((scenario) => (
-                  <button
-                    key={scenario.id}
-                    className={`p-2 rounded-lg text-center transition-all ${
-                      formData.scenario === scenario.id
-                        ? "bg-blue-100 text-blue-600 font-medium"
-                        : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                    }`}
-                  onClick={() => handleScenarioSelect(scenario)}
-                  >
-                    {formatSceneName(scenario.name)}
-                  </button>
-                ))
-              ) : (
-                // 从API获取的场景列表
-                scenes.map((scene) => (
-                  <button
-                    key={scene.id}
-                    className={`p-2 rounded-lg text-center transition-all ${
-                      formData.sceneId === scene.id
-                        ? "bg-blue-100 text-blue-600 font-medium"
-                        : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                    }`}
-                    onClick={() => handleSceneSelect(scene)}
-                  >
-                    {formatSceneName(scene.name)}
-                  </button>
-                ))
-              )}
-            </div>
-            
-            {/* 展开更多按钮 - 仅当显示本地场景且未展开全部时显示 */}
-            {(!loadingScenes && (sceneError || scenes.length === 0) && !showAllScenarios) && (
-              <Button variant="ghost" className="mt-2 w-full text-blue-600" onClick={() => setShowAllScenarios(true)}>
-                展开更多选项 <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
+    <div className="w-full p-4 bg-gray-50">
+      {/* 错误提示，只在 sceneError 存在且不为 'success' 时显示 */}
+      {sceneError && sceneError !== "success" && (
+        <div className="bg-red-100 border border-red-300 text-red-700 p-4 rounded mb-4">
+          <div>{sceneError}</div>
+          <Button onClick={() => window.location.reload()}>重试</Button>
+        </div>
+      )}
+      <div className="space-y-6">
+        <div>
+          <Label className="text-base mb-4 block">获客场景</Label>
+          
+          {/* 场景按钮阵列 */}
+          <div className="grid grid-cols-3 gap-2">
+            {loadingScenes ? (
+              // 加载中状态
+              Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className="h-10 w-full rounded-lg bg-gray-200 animate-pulse"></div>
+              ))
+            ) : sceneError || scenes.length === 0 ? (
+              // 加载失败或无数据时显示本地场景
+              displayedScenarios.map((scenario) => (
+                <button
+                  key={scenario.id}
+                  className={`p-2 rounded-lg text-center transition-all ${
+                    formData.scenario === scenario.id
+                      ? "bg-blue-100 text-blue-600 font-medium"
+                      : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                  }`}
+                  onClick={() => handleScenarioSelect(scenario.id)}
+                >
+                  {formatSceneName(scenario.name)}
+                </button>
+              ))
+            ) : (
+              // 从API获取的场景列表
+              scenes.map((scene) => (
+                <button
+                  key={scene.id}
+                  className={`p-2 rounded-lg text-center transition-all ${
+                    formData.sceneId === scene.id
+                      ? "bg-blue-100 text-blue-600 font-medium"
+                      : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                  }`}
+                  onClick={() => handleSceneSelect(scene)}
+                >
+                  {formatSceneName(scene.name)}
+                </button>
+              ))
             )}
           </div>
+          
+          {/* 展开更多按钮 - 仅当显示本地场景且未展开全部时显示 */}
+          {(!loadingScenes && (sceneError || scenes.length === 0) && !showAllScenarios) && (
+            <Button variant="ghost" className="mt-2 w-full text-blue-600" onClick={() => setShowAllScenarios(true)}>
+              展开更多选项 <ChevronDown className="ml-2 h-4 w-4" />
+            </Button>
+          )}
+        </div>
 
-          <div>
-            <Label htmlFor="planName">计划名称</Label>
-            <Input
-              id="planName"
-              value={formData.planName}
-              onChange={(e) => onChange({ ...formData, planName: e.target.value })}
-              placeholder="请输入计划名称"
-              className="mt-2"
-            />
-          </div>
+        <div>
+          <Label htmlFor="planName">计划名称</Label>
+          <Input
+            id="planName"
+            value={formData.planName}
+            onChange={(e) => onChange({ ...formData, planName: e.target.value })}
+            placeholder="请输入计划名称"
+            className="mt-2"
+          />
+        </div>
 
-          {formData.scenario && (
-            <>
-              {scenarios.find((s) => s.id === formData.scenario)?.type === "social" && (
-                <div>
-                  <Label>绑定账号</Label>
-                  <div className="flex gap-2 mt-2">
-                    <Button
-                      variant="outline"
-                      className="flex-1 justify-start"
-                      onClick={() => setIsAccountDialogOpen(true)}
-                    >
-                      {selectedAccounts.length > 0 ? `已选择 ${selectedAccounts.length} 个账号` : "选择账号"}
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => setIsQRCodeOpen(true)}>
-                      <QrCode className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  {selectedAccounts.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {selectedAccounts.map((account) => (
-                        <div key={account.id} className="flex items-center bg-gray-100 rounded-full px-3 py-1">
-                          <img
-                            src={account.avatar || "/placeholder.svg"}
-                            alt={account.nickname}
-                            className="w-4 h-4 rounded-full mr-2"
-                          />
-                          <span className="text-sm">{account.nickname}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="ml-2 p-0"
-                            onClick={() => handleRemoveAccount(account.id)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+        {formData.scenario && (
+          <>
+            {scenarios.find((s) => s.id === formData.scenario)?.type === "social" && (
+              <div>
+                <Label>绑定账号</Label>
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 justify-start"
+                    onClick={() => setIsAccountDialogOpen(true)}
+                  >
+                    {selectedAccounts.length > 0 ? `已选择 ${selectedAccounts.length} 个账号` : "选择账号"}
+                  </Button>
+                  <Button variant="outline" size="icon" onClick={() => setIsQRCodeOpen(true)}>
+                    <QrCode className="h-4 w-4" />
+                  </Button>
                 </div>
-              )}
-
-              {/* 电话获客特殊设置 */}
-              {formData.scenario === "phone" && (
-                <Card className="p-4 border-blue-100 bg-blue-50/50 mt-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <Label className="text-base font-medium text-blue-700">电话获客设置</Label>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsPhoneSettingsOpen(true)}
-                      className="flex items-center gap-1 bg-white border-blue-200 text-blue-700 hover:bg-blue-100"
-                    >
-                      <Settings className="h-3.5 w-3.5" />
-                      修改设置
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
-                      <div className="flex items-center">
-                        <div
-                          className={`w-3 h-3 rounded-full mr-2 ${phoneSettings.autoAdd ? "bg-green-500" : "bg-gray-300"}`}
-                        ></div>
-                        <span>自动添加客户</span>
-                      </div>
-                      <div
-                        className={`px-2 py-0.5 rounded-full text-xs ${phoneSettings.autoAdd ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}
-                      >
-                        {phoneSettings.autoAdd ? "已开启" : "已关闭"}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
-                      <div className="flex items-center">
-                        <div
-                          className={`w-3 h-3 rounded-full mr-2 ${phoneSettings.speechToText ? "bg-green-500" : "bg-gray-300"}`}
-                        ></div>
-                        <span>语音转文字</span>
-                      </div>
-                      <div
-                        className={`px-2 py-0.5 rounded-full text-xs ${phoneSettings.speechToText ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}
-                      >
-                        {phoneSettings.speechToText ? "已开启" : "已关闭"}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
-                      <div className="flex items-center">
-                        <div
-                          className={`w-3 h-3 rounded-full mr-2 ${phoneSettings.questionExtraction ? "bg-green-500" : "bg-gray-300"}`}
-                        ></div>
-                        <span>问题提取</span>
-                      </div>
-                      <div
-                        className={`px-2 py-0.5 rounded-full text-xs ${phoneSettings.questionExtraction ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}
-                      >
-                        {phoneSettings.questionExtraction ? "已开启" : "已关闭"}
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-xs text-blue-600 mt-2">
-                    提示：电话获客功能将自动记录来电信息，并根据设置执行相应操作
-                  </p>
-                </Card>
-              )}
-
-              {scenarios.find((s) => s.id === formData.scenario)?.type === "material" && (
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <Label>选择海报</Label>
-                    <Button variant="outline" onClick={() => setIsMaterialDialogOpen(true)}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  {/* 海报展示区域 */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {materials.map((material) => (
-                      <div
-                        key={material.id}
-                        className={`relative cursor-pointer rounded-lg overflow-hidden group ${
-                          selectedMaterials.find((m) => m.id === material.id)
-                            ? "ring-2 ring-blue-600"
-                            : "hover:ring-2 hover:ring-blue-600"
-                        }`}
-                        onClick={() => handleMaterialSelect(material)}
-                      >
+                {selectedAccounts.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {selectedAccounts.map((account) => (
+                      <div key={account.id} className="flex items-center bg-gray-100 rounded-full px-3 py-1">
                         <img
-                          src={material.preview || "/placeholder.svg"}
-                          alt={material.name}
-                          className="w-full aspect-[9/16] object-cover"
+                          src={account.avatar || "/placeholder.svg"}
+                          alt={account.nickname}
+                          className="w-4 h-4 rounded-full mr-2"
                         />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handlePreviewImage(material.preview)
-                            }}
-                          >
-                            <Maximize2 className="h-4 w-4 text-white" />
-                          </Button>
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-white">
-                          <div className="text-sm truncate">{material.name}</div>
-                        </div>
+                        <span className="text-sm">{account.nickname}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-2 p-0"
+                          onClick={() => handleRemoveAccount(account.id)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
+            )}
 
-                  {selectedMaterials.length > 0 && (
-                    <div className="mt-4">
-                      <Label>已选择的海报</Label>
-                      <div className="mt-2">
-                        <div className="relative w-full max-w-[200px]">
-                          <img
-                            src={selectedMaterials[0].preview || "/placeholder.svg"}
-                            alt={selectedMaterials[0].name}
-                            className="w-full aspect-[9/16] object-cover rounded-lg cursor-pointer"
-                            onClick={() => handlePreviewImage(selectedMaterials[0].preview)}
-                          />
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="absolute top-2 right-2"
-                            onClick={() => handleRemoveMaterial(selectedMaterials[0].id)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+            {/* 电话获客特殊设置 */}
+            {formData.scenario === "phone" && (
+              <Card className="p-4 border-blue-100 bg-blue-50/50 mt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <Label className="text-base font-medium text-blue-700">电话获客设置</Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsPhoneSettingsOpen(true)}
+                    className="flex items-center gap-1 bg-white border-blue-200 text-blue-700 hover:bg-blue-100"
+                  >
+                    <Settings className="h-3.5 w-3.5" />
+                    修改设置
+                  </Button>
                 </div>
-              )}
-
-              {scenarios.find((s) => s.id === formData.scenario)?.id === "order" && (
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <Label>订单导入</Label>
-                    <div className="flex gap-2">
-                      <Button variant="outline" onClick={handleDownloadTemplate}>
-                        <Download className="h-4 w-4 mr-2" />
-                        下载模板
-                      </Button>
-                      <Button onClick={() => setIsImportDialogOpen(true)}>
-                        <Upload className="h-4 w-4 mr-2" />
-                        导入订单
-                      </Button>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
+                    <div className="flex items-center">
+                      <div
+                        className={`w-3 h-3 rounded-full mr-2 ${phoneSettings.autoAdd ? "bg-green-500" : "bg-gray-300"}`}
+                      ></div>
+                      <span>自动添加客户</span>
+                    </div>
+                    <div
+                      className={`px-2 py-0.5 rounded-full text-xs ${phoneSettings.autoAdd ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}
+                    >
+                      {phoneSettings.autoAdd ? "已开启" : "已关闭"}
                     </div>
                   </div>
+                  <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
+                    <div className="flex items-center">
+                      <div
+                        className={`w-3 h-3 rounded-full mr-2 ${phoneSettings.speechToText ? "bg-green-500" : "bg-gray-300"}`}
+                      ></div>
+                      <span>语音转文字</span>
+                    </div>
+                    <div
+                      className={`px-2 py-0.5 rounded-full text-xs ${phoneSettings.speechToText ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}
+                    >
+                      {phoneSettings.speechToText ? "已开启" : "已关闭"}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
+                    <div className="flex items-center">
+                      <div
+                        className={`w-3 h-3 rounded-full mr-2 ${phoneSettings.questionExtraction ? "bg-green-500" : "bg-gray-300"}`}
+                      ></div>
+                      <span>问题提取</span>
+                    </div>
+                    <div
+                      className={`px-2 py-0.5 rounded-full text-xs ${phoneSettings.questionExtraction ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}
+                    >
+                      {phoneSettings.questionExtraction ? "已开启" : "已关闭"}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-blue-600 mt-2">
+                  提示：电话获客功能将自动记录来电信息，并根据设置执行相应操作
+                </p>
+              </Card>
+            )}
 
-                  {importedTags.length > 0 && (
-                    <div className="mt-4">
-                      <h4 className="text-sm font-medium mb-2">已导入 {importedTags.length} 条数据</h4>
-                      <div className="max-h-[300px] overflow-auto border rounded-md">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>电话号码</TableHead>
-                              <TableHead>来源</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {importedTags.slice(0, 5).map((tag, index) => (
-                              <TableRow key={index}>
-                                <TableCell>{tag.phone}</TableCell>
-                                <TableCell>{tag.source}</TableCell>
-                              </TableRow>
-                            ))}
-                            {importedTags.length > 5 && (
-                              <TableRow>
-                                <TableCell colSpan={4} className="text-center text-gray-500">
-                                  还有 {importedTags.length - 5} 条数据未显示
-                                </TableCell>
-                              </TableRow>
-                            )}
-                          </TableBody>
-                        </Table>
+            {scenarios.find((s) => s.id === formData.scenario)?.type === "material" && (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <Label>选择海报</Label>
+                  <Button variant="outline" onClick={() => setIsMaterialDialogOpen(true)}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* 海报展示区域 */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {materials.map((material) => (
+                    <div
+                      key={material.id}
+                      className={`relative cursor-pointer rounded-lg overflow-hidden group ${
+                        selectedMaterials.find((m) => m.id === material.id)
+                          ? "ring-2 ring-blue-600"
+                          : "hover:ring-2 hover:ring-blue-600"
+                      }`}
+                      onClick={() => handleMaterialSelect(material)}
+                    >
+                      <img
+                        src={material.preview || "/placeholder.svg"}
+                        alt={material.name}
+                        className="w-full aspect-[9/16] object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handlePreviewImage(material.preview)
+                          }}
+                        >
+                          <Maximize2 className="h-4 w-4 text-white" />
+                        </Button>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-white">
+                        <div className="text-sm truncate">{material.name}</div>
                       </div>
                     </div>
-                  )}
+                  ))}
                 </div>
-              )}
-            </>
-          )}
 
-          <div className="flex items-center justify-between">
-            <Label htmlFor="enabled">是否启用</Label>
-            <Switch
-              id="enabled"
-              checked={formData.enabled}
-              onCheckedChange={(checked) => onChange({ ...formData, enabled: checked })}
-            />
-          </div>
+                {selectedMaterials.length > 0 && (
+                  <div className="mt-4">
+                    <Label>已选择的海报</Label>
+                    <div className="mt-2">
+                      <div className="relative w-full max-w-[200px]">
+                        <img
+                          src={selectedMaterials[0].preview || "/placeholder.svg"}
+                          alt={selectedMaterials[0].name}
+                          className="w-full aspect-[9/16] object-cover rounded-lg cursor-pointer"
+                          onClick={() => handlePreviewImage(selectedMaterials[0].preview)}
+                        />
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="absolute top-2 right-2"
+                          onClick={() => handleRemoveMaterial(selectedMaterials[0].id)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
-          <Button className="w-full h-12 text-base" onClick={onNext}>
-            下一步
-              </Button>
-            </div>
-          </div>
+            {scenarios.find((s) => s.id === formData.scenario)?.id === "order" && (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <Label>订单导入</Label>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleDownloadTemplate}>
+                      <Download className="h-4 w-4 mr-2" />
+                      下载模板
+                    </Button>
+                    <Button onClick={() => setIsImportDialogOpen(true)}>
+                      <Upload className="h-4 w-4 mr-2" />
+                      导入订单
+                    </Button>
+                  </div>
+                </div>
+
+                {importedTags.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium mb-2">已导入 {importedTags.length} 条数据</h4>
+                    <div className="max-h-[300px] overflow-auto border rounded-md">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>电话号码</TableHead>
+                            <TableHead>来源</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {importedTags.slice(0, 5).map((tag, index) => (
+                            <TableRow key={index}>
+                              <TableCell>{tag.phone}</TableCell>
+                              <TableCell>{tag.source}</TableCell>
+                            </TableRow>
+                          ))}
+                          {importedTags.length > 5 && (
+                            <TableRow>
+                              <TableCell colSpan={4} className="text-center text-gray-500">
+                                还有 {importedTags.length - 5} 条数据未显示
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        <div className="flex items-center justify-between">
+          <Label htmlFor="enabled">是否启用</Label>
+          <Switch
+            id="enabled"
+            checked={formData.enabled}
+            onCheckedChange={(checked) => onChange({ ...formData, enabled: checked })}
+          />
+        </div>
+
+        <Button className="w-full h-12 text-base" onClick={onNext}>
+          下一步
+        </Button>
+      </div>
+    </div>
   )
 }
 

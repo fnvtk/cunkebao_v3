@@ -21,12 +21,7 @@ export interface SceneItem {
 export interface ScenesResponse {
   code: number;
   msg: string;
-  data: {
-    list: SceneItem[];
-    total: number;
-    page: number;
-    limit: number;
-  };
+  data: SceneItem[];
 }
 
 // 前端使用的场景数据类型
@@ -80,12 +75,7 @@ export const fetchScenes = async (params: {
     return {
       code: 500,
       msg: "获取场景列表失败",
-      data: {
-        list: [],
-        total: 0,
-        page: 1,
-        limit: 10
-      }
+      data: []
     };
   }
 };
