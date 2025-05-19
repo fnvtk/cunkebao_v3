@@ -169,12 +169,11 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
         const response = await fetchScenes({ limit: 30 })
         
         if (response.code === 200 && Array.isArray(response.data)) {
-          const formattedScenes = response.data.map(scene => ({
-            id: scene.id.toString(),
+          const formattedScenes = response.data.map((scene: SceneItem) => ({
+            id: scene.id,
             name: scene.name,
             image: scene.image,
             status: scene.status,
-            sort: scene.sort,
             createTime: scene.createTime,
             updateTime: scene.updateTime,
             deleteTime: scene.deleteTime
@@ -195,23 +194,6 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
     
     loadScenes()
   }, [])
-
-  // 初始化时，如果没有选择场景，默认选择海报获客
-  useEffect(() => {
-    if (!formData.scenario) {
-      onChange({ ...formData, scenario: "haibao" })
-    }
-
-    // 只在初始化时设置默认计划名称
-    if (!formData.planName && !formData._initialized) {
-      if (formData.materials?.length > 0) {
-        const today = new Date().toLocaleDateString("zh-CN").replace(/\//g, "")
-        onChange({ ...formData, planName: `海报${today}`, _initialized: true })
-      } else {
-        onChange({ ...formData, planName: "场景", _initialized: true })
-      }
-    }
-  }, []) // 移除 formData 依赖，只在组件挂载时执行一次
 
   // 处理本地场景选择
   const handleScenarioSelect = (scenarioId: string) => {
@@ -268,10 +250,6 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
     setSelectedMaterials(updatedMaterials)
     onChange({ ...formData, materials: updatedMaterials })
     setIsMaterialDialogOpen(false)
-
-    // 更新计划名称
-    const today = new Date().toLocaleDateString("zh-CN").replace(/\//g, "")
-    onChange({ ...formData, planName: `海报${today}`, materials: updatedMaterials })
   }
 
   const handleRemoveAccount = (accountId: string) => {
@@ -376,6 +354,23 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
       setIsImporting(false);
     }
   };
+
+  // 下一步校验逻辑
+  const handleNextStep = () => {
+    if (!formData.scenario) {
+      toast.error("请选择获客场景")
+      return
+    }
+    if (!formData.planName || !formData.planName.trim()) {
+      toast.error("请输入计划名称")
+      return
+    }
+    if (formData.scenario === "haibao" && (!formData.materials || formData.materials.length === 0)) {
+      toast.error("请选择海报")
+      return
+    }
+    onNext && onNext()
+  }
 
   return (
     <div className="w-full p-4 bg-gray-50">
@@ -685,7 +680,7 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
           />
         </div>
 
-        <Button className="w-full h-12 text-base" onClick={onNext}>
+        <Button className="w-full h-12 text-base" onClick={handleNextStep}>
           下一步
         </Button>
       </div>

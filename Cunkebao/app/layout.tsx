@@ -6,7 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary"
 import { AuthProvider } from "@/app/components/AuthProvider"
 import LayoutWrapper from "./components/LayoutWrapper"
 import { AuthCheck } from "@/app/components/auth-check"
-import { Toaster } from "sonner"
+import { Toaster } from "react-hot-toast"
 
 export const metadata: Metadata = {
   title: "存客宝",

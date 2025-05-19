@@ -294,7 +294,7 @@ export default function NewAcquisitionPlan() {
       <div className="w-full bg-white min-h-screen flex flex-col">
         <header className="sticky top-0 z-10 bg-white border-b">
           <div className="flex items-center h-14 px-4">
-            <Button variant="ghost" size="icon" onClick={() => router.push("/")}>
+            <Button variant="ghost" size="icon" onClick={() => router.push("/scenarios")}>
               <ChevronLeft className="h-5 w-5" />
             </Button>
             <h1 className="ml-2 text-lg font-medium">{formData.sourceWechatId ? "好友转移" : "新建获客计划"}</h1>
