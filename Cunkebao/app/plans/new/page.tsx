@@ -290,8 +290,8 @@ export default function NewAcquisitionPlan() {
   }, [formData.scenario, currentStep, formData.planName])
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-[390px] mx-auto bg-white min-h-screen flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <div className="w-full bg-white min-h-screen flex flex-col">
         <header className="sticky top-0 z-10 bg-white border-b">
           <div className="flex items-center h-14 px-4">
             <Button variant="ghost" size="icon" onClick={() => router.push("/")}>
@@ -303,8 +303,8 @@ export default function NewAcquisitionPlan() {
 
         <div className="flex-1 flex flex-col">
           {/* 步骤指示器样式 */}
-          <div className="bg-white border-b border-gray-200">
-            <div className="px-4 py-4">
+          <div className="bg-white border-gray-200">
+            <div className="px-5 py-5">
               <div className="flex justify-between">
                 {steps.map((step) => (
                   <div key={step.id} className="flex flex-col items-center">
@@ -319,7 +319,7 @@ export default function NewAcquisitionPlan() {
                   </div>
                 ))}
               </div>
-              <div className="flex justify-between mt-1 px-4">
+              <div className="flex justify-between mt-4 px-4">
                 {steps.slice(0, steps.length - 1).map((step, index) => (
                   <div
                     key={`line-${step.id}`}
@@ -335,20 +335,7 @@ export default function NewAcquisitionPlan() {
             </div>
           </div>
 
-          <div className="flex-1 px-4 pb-20">{renderStepContent()}</div>
-
-          <div className="sticky bottom-0 left-0 right-0 bg-white border-t p-4">
-            <div className="flex justify-between max-w-[390px] mx-auto">
-              {currentStep > 1 && (
-                <Button variant="outline" onClick={handlePrev}>
-                  上一步
-                </Button>
-              )}
-              <Button className={cn("min-w-[120px]", currentStep === 1 ? "w-full" : "ml-auto")} onClick={handleNext}>
-                {currentStep === steps.length ? "完成" : "下一步"}
-              </Button>
-            </div>
-          </div>
+          <div className="flex-1 px-4">{renderStepContent()}</div>
         </div>
       </div>
     </div>

@@ -366,8 +366,7 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
   };
 
   return (
-    <TooltipProvider>
-      <Card className="p-6">
+    <div className="w-full p-4">
         <div className="space-y-6">
           <div>
             <Label className="text-base mb-4 block">获客场景</Label>
@@ -389,7 +388,7 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
                         ? "bg-blue-100 text-blue-600 font-medium"
                         : "bg-gray-50 text-gray-600 hover:bg-gray-100"
                     }`}
-                    onClick={() => handleScenarioSelect(scenario.id)}
+                  onClick={() => handleScenarioSelect(scenario)}
                   >
                     {formatSceneName(scenario.name)}
                   </button>
@@ -669,214 +668,9 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
 
           <Button className="w-full h-12 text-base" onClick={onNext}>
             下一步
-          </Button>
-        </div>
-      </Card>
-
-      {/* 账号选择对话框 */}
-      <Dialog open={isAccountDialogOpen} onOpenChange={setIsAccountDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>选择账号</DialogTitle>
-          </DialogHeader>
-          <div className="mt-4 max-h-[400px] overflow-y-auto">
-            <div className="space-y-2">
-              {accounts.map((account) => (
-                <div
-                  key={account.id}
-                  className="flex items-center space-x-3 p-3 hover:bg-gray-100 rounded-lg cursor-pointer"
-                  onClick={() => handleAccountSelect(account)}
-                >
-                  <img src={account.avatar || "/placeholder.svg"} alt="" className="w-10 h-10 rounded-full" />
-                  <span className="flex-1">{account.nickname}</span>
-                  {selectedAccounts.find((a) => a.id === account.id) && (
-                    <div className="w-4 h-4 rounded-full bg-blue-600" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* 二维码对话框 */}
-      <Dialog open={isQRCodeOpen} onOpenChange={setIsQRCodeOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>绑定账号</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center p-6">
-            <div className="w-64 h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-              <img src="/placeholder.svg?height=256&width=256" alt="二维码" className="w-full h-full" />
-            </div>
-            <p className="mt-4 text-sm text-gray-600">请用相应的APP扫码</p>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* 图片预览对话框 */}
-      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>海报预览</DialogTitle>
-          </DialogHeader>
-          <div className="flex justify-center items-center p-4">
-            <img src={previewImage || "/placeholder.svg"} alt="预览" className="max-h-[80vh] object-contain" />
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* 电话获客设置对话框 */}
-      <Dialog open={isPhoneSettingsOpen} onOpenChange={setIsPhoneSettingsOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>电话获客设置</DialogTitle>
-            <DialogDescription>配置电话获客的自动化功能，提高获客效率</DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-6">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-              <div className="space-y-1">
-                <Label htmlFor="auto-add" className="font-medium">
-                  自动添加客户
-                </Label>
-                <p className="text-sm text-gray-500">来电后自动将客户添加为微信好友</p>
-                <p className="text-xs text-blue-600">推荐：开启此功能可提高转化率约30%</p>
-              </div>
-              <Switch
-                id="auto-add"
-                checked={phoneSettings.autoAdd}
-                onCheckedChange={(checked) => setPhoneSettings({ ...phoneSettings, autoAdd: checked })}
-                className="data-[state=checked]:bg-blue-600"
-              />
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-              <div className="space-y-1">
-                <Label htmlFor="speech-to-text" className="font-medium">
-                  语音转文字
-                </Label>
-                <p className="text-sm text-gray-500">自动将通话内容转换为文字记录</p>
-                <p className="text-xs text-blue-600">支持普通话、粤语等多种方言识别</p>
-              </div>
-              <Switch
-                id="speech-to-text"
-                checked={phoneSettings.speechToText}
-                onCheckedChange={(checked) => setPhoneSettings({ ...phoneSettings, speechToText: checked })}
-                className="data-[state=checked]:bg-blue-600"
-              />
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-              <div className="space-y-1">
-                <Label htmlFor="question-extraction" className="font-medium">
-                  问题提取
-                </Label>
-                <p className="text-sm text-gray-500">自动从通话中提取客户的首句问题</p>
-                <p className="text-xs text-blue-600">AI智能识别客户意图，提高回复精准度</p>
-              </div>
-              <Switch
-                id="question-extraction"
-                checked={phoneSettings.questionExtraction}
-                onCheckedChange={(checked) => setPhoneSettings({ ...phoneSettings, questionExtraction: checked })}
-                className="data-[state=checked]:bg-blue-600"
-              />
-            </div>
-          </div>
-          <DialogFooter className="flex space-x-2 pt-2">
-            <Button variant="outline" onClick={() => setIsPhoneSettingsOpen(false)} className="flex-1">
-              取消
-            </Button>
-            <Button onClick={handlePhoneSettingsUpdate} className="flex-1 bg-blue-600 hover:bg-blue-700">
-              保存设置
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* 订单导入对话框 */}
-      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>导入订单</DialogTitle>
-          </DialogHeader>
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex-1">
-                <Input
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  onChange={handleFileImport}
-                  className="hidden"
-                  id="file-upload"
-                />
-                <Label
-                  htmlFor="file-upload"
-                  className="cursor-pointer inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  选择文件
-                </Label>
-              </div>
-              <Button variant="outline" onClick={handleDownloadTemplate}>
-                <Download className="h-4 w-4 mr-2" />
-                下载模板
-              </Button>
-            </div>
-
-            {importedTags.length > 0 && (
-              <div className="mt-4">
-                <h4 className="text-sm font-medium mb-2">已导入 {importedTags.length} 条数据</h4>
-                <div className="max-h-[300px] overflow-auto border rounded-md">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>电话号码</TableHead>
-                        <TableHead>来源</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {importedTags.slice(0, 5).map((tag, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{tag.phone}</TableCell>
-                          <TableCell>{tag.source}</TableCell>
-                        </TableRow>
-                      ))}
-                      {importedTags.length > 5 && (
-                        <TableRow>
-                          <TableCell colSpan={4} className="text-center text-gray-500">
-                            还有 {importedTags.length - 5} 条数据未显示
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            )}
-
-            {importError && (
-              <div className="mt-4 text-red-500 text-sm">{importError}</div>
-            )}
-
-            <div className="mt-6 flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>
-                取消
-              </Button>
-              <Button onClick={handleConfirmImport} disabled={isImporting || importedTags.length === 0}>
-                {isImporting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    导入中...
-                  </>
-                ) : (
-                  '确认导入'
-                )}
               </Button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
-    </TooltipProvider>
   )
 }
 

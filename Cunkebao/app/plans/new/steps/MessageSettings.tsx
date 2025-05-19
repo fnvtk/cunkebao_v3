@@ -192,7 +192,7 @@ export function MessageSettings({ formData, onChange, onNext, onPrev }: MessageS
   }
 
   return (
-    <Card className="p-6">
+    <div className="w-full p-4">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">消息设置</h2>
@@ -549,7 +549,7 @@ export function MessageSettings({ formData, onChange, onNext, onPrev }: MessageS
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </div>
   )
 }
 

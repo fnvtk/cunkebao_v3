@@ -140,7 +140,7 @@ export function FriendRequestSettings({ formData, onChange, onNext, onPrev }: Fr
   }
 
   return (
-    <Card className="p-6">
+    <div className="w-full p-4">
       <div className="space-y-6">
         <div>
           <Label className="text-base">选择设备</Label>
@@ -347,7 +347,7 @@ export function FriendRequestSettings({ formData, onChange, onNext, onPrev }: Fr
           </div>
         </DialogContent>
       </Dialog>
-    </Card>
+    </div>
   )
 }
 

@@ -107,7 +107,7 @@ export function TagSettings({ formData, onChange, onNext, onPrev }: TagSettingsP
   }
 
   return (
-    <Card className="p-6">
+    <div className="w-full p-4">
       <div className="space-y-6">
         <div>
           <div className="flex items-center justify-between mb-4">
@@ -199,7 +199,7 @@ export function TagSettings({ formData, onChange, onNext, onPrev }: TagSettingsP
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </div>
   )
 }
 
