@@ -49,6 +49,8 @@ class SyncWechatDataToCkbTask extends Command
             $this->syncWechatAccount($ChuKeBaoAdapter);
             $this->syncWechatFriend($ChuKeBaoAdapter);
             $this->syncWechatDeviceLoginLog($ChuKeBaoAdapter);
+            $this->syncWechatDevice($ChuKeBaoAdapter);
+            $this->syncWechatCustomer($ChuKeBaoAdapter);
 
             $output->writeln("同步任务 sync_wechat_to_ckb 已结束");
             return true;
@@ -75,5 +77,17 @@ class SyncWechatDataToCkbTask extends Command
     protected function syncWechatDeviceLoginLog(ChuKeBaoAdapter $ChuKeBaoAdapter)
     {
         return $ChuKeBaoAdapter->syncWechatDeviceLoginLog();
+    }
+
+    // syncDevice
+    protected function syncWechatDevice(ChuKeBaoAdapter $ChuKeBaoAdapter)
+    {
+        return $ChuKeBaoAdapter->syncDevice();
+    }
+
+    // syncWechatCustomer
+    protected function syncWechatCustomer(ChuKeBaoAdapter $ChuKeBaoAdapter)
+    {
+        return $ChuKeBaoAdapter->syncWechatCustomer();
     }
 }

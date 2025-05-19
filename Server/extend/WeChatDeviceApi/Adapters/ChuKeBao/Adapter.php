@@ -461,18 +461,18 @@ class Adapter implements WeChatServiceInterface
                     $friendShip['groupNumber'] = $groupCount;
 
                     // 8. 构建weight JSON数据 (每天只计算一次)
-                    $weight = [];
-                    if ($existingRecord && !empty($existingRecord['weight'])) {
-                        $weight = json_decode($existingRecord['weight'], true) ?: [];
+                    // $weight = [];
+                    // if ($existingRecord && !empty($existingRecord['weight'])) {
+                    //     $weight = json_decode($existingRecord['weight'], true) ?: [];
 
-                        // 如果不是今天更新的，重新计算权重
-                        $lastUpdateDate = date('Y-m-d', $existingRecord['updateTime'] ?? 0);
-                        if ($lastUpdateDate !== date('Y-m-d')) {
-                            $weight = $this->calculateCustomerWeight($basic, $activity, $friendShip);
-                        }
-                    } else {
-                        $weight = $this->calculateCustomerWeight($basic, $activity, $friendShip);
-                    }
+                    //     // 如果不是今天更新的，重新计算权重
+                    //     $lastUpdateDate = date('Y-m-d', $existingRecord['updateTime'] ?? 0);
+                    //     if ($lastUpdateDate !== date('Y-m-d')) {
+                    //         $weight = $this->calculateCustomerWeight($basic, $activity, $friendShip);
+                    //     }
+                    // } else {
+                    //     $weight = $this->calculateCustomerWeight($basic, $activity, $friendShip);
+                    // }
 
                     // 9. 准备更新或插入的数据
                     $data = [
@@ -481,7 +481,7 @@ class Adapter implements WeChatServiceInterface
                         'basic' => json_encode($basic),
                         'activity' => json_encode($activity),
                         'friendShip' => json_encode($friendShip),
-                        'weight' => json_encode($weight),
+                        // 'weight' => json_encode($weight),
                         'updateTime' => time()
                     ];
 
@@ -572,5 +572,42 @@ class Adapter implements WeChatServiceInterface
             'scope' => $scope,
             'addLimit' => $addLimit
         ];
+    }
+
+    /**
+     * 同步设备信息到ck_device表
+     * 数据量不大，仅同步一次所有设备
+     * 
+     * @return int 影响的行数
+     */
+    public function syncDevice()
+    {
+        try {
+            $sql = "INSERT INTO ck_device(`id`, `imei`, `model`, phone, operatingSystem, memo, alive, brand, rooted, xPosed, softwareVersion, extra, createTime, updateTime, deleteTime, companyId)  
+            SELECT 
+            d.id, d.imei, d.model, d.phone, d.operatingSystem, d.memo, d.alive, d.brand, d.rooted, d.xPosed, d.softwareVersion, d.extra, d.createTime, d.lastUpdateTime, d.deleteTime, a.departmentId companyId
+            FROM s2_device d 
+            JOIN s2_company_account a ON d.currentAccountId = a.id
+            ON DUPLICATE KEY UPDATE
+                `model` = VALUES(`model`),
+                `phone` = VALUES(`phone`),
+                `operatingSystem` = VALUES(`operatingSystem`),
+                `memo` = VALUES(`memo`),
+                `alive` = VALUES(`alive`),
+                `brand` = VALUES(`brand`),
+                `rooted` = VALUES(`rooted`),
+                `xPosed` = VALUES(`xPosed`),
+                `softwareVersion` = VALUES(`softwareVersion`),
+                `extra` = VALUES(`extra`),
+                `updateTime` = VALUES(`updateTime`),
+                `deleteTime` = VALUES(`deleteTime`),
+                `companyId` = VALUES(`companyId`)";
+                
+            $affected = Db::execute($sql);
+            return $affected;
+        } catch (\Exception $e) {
+            Log::error("同步设备信息异常: " . $e->getMessage() . ", 堆栈: " . $e->getTraceAsString());
+            return false;
+        }
     }
 }
