@@ -59,7 +59,6 @@ class GetDeviceDetailV1Controller extends BaseController
         return 0;
     }
 
-
     /**
      * 获取设备最新登录微信的 wechatId
      *
@@ -80,16 +79,46 @@ class GetDeviceDetailV1Controller extends BaseController
     }
 
     /**
-     * 获取设备详情
-     * @param int $id 设备ID
-     * @return array|null 设备信息
+     * 获取设备绑定的客服信息
+     *
+     * @param int $deviceId
+     * @return array
+     * @throws \Exception
      */
-    protected function getDeviceInfo(int $id)
+    protected function getWechatCustomerInfo(int $deviceId): array
+    {
+        $curstomer = WechatCustomerModel::field('activity,friendShip')
+            ->where(
+            [
+                'companyId' => $this->getUserInfo('companyId'),
+                'wechatId'  => $this->getDeviceLatestWechatLogin($deviceId)
+            ]
+        )
+            ->find();
+
+        return $curstomer ? [
+            'lastUpdateTime'    => $curstomer->activity->lastActivityTime ?? '',
+            'thirtyDayMsgCount' => $curstomer->activity->totalMsgCount    ?? 0,
+            'totalFriend'       => $curstomer->friendShip->totalFriend    ?? 0,
+        ] : [
+            'lastUpdateTime'    => '',
+            'thirtyDayMsgCount' => 0,
+            'totalFriend'       => 0,
+        ];
+    }
+
+    /**
+     * 获取设备详情
+     *
+     * @param int $id
+     * @return array
+     */
+    protected function getDeviceInfo(int $id): array
     {
         // 查询设备基础信息与关联的微信账号信息
         $device = DeviceModel::alias('d')
             ->field([
-                'd.id', 'd.imei', 'd.memo', 'd.alive', 'd.updateTime as lastUpdateTime', 'd.extra'
+                'd.id', 'd.imei', 'd.memo', 'd.alive', 'd.extra'
             ])
             ->find($id);
 
@@ -97,13 +126,12 @@ class GetDeviceDetailV1Controller extends BaseController
             throw new \Exception('设备不存在', 404);
         }
 
-        $device['battery'] = $this->parseExtraForBattery($device['extra']);
-        $device['lastUpdateTime'] = date('Y-m-d H:i:s', $device['lastUpdateTime']);
+        $device->battery = $this->parseExtraForBattery($device->extra);
 
         // 删除冗余字段
-        unset($device['extra']);
+        unset($device->extra);
 
-        return $device;
+        return $device->toArray();
     }
 
     /**
@@ -121,10 +149,10 @@ class GetDeviceDetailV1Controller extends BaseController
             }
 
             return ResponseHelper::success(
-                $this->getDeviceInfo($id)
+                $this->getDeviceInfo($id) + $this->getWechatCustomerInfo($id)
             );
         } catch (\Exception $e) {
             return ResponseHelper::error($e->getMessage(), $e->getCode());
         }
     }
-} 
+}
