@@ -148,6 +148,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const handleLogout = () => {
     safeLocalStorage.removeItem("token")
+    safeLocalStorage.removeItem("token_expired")
+    safeLocalStorage.removeItem("s2_accountId")
+    safeLocalStorage.removeItem("userInfo")
     safeLocalStorage.removeItem("user")
     setToken(null)
     setUser(null)

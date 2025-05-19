@@ -154,8 +154,8 @@ export default function LoginPage() {
   }
 
   useEffect(() => {
-    // 检查是否已登录，如果已登录则跳转到首页
-    if (isAuthenticated) {
+    // 检查是否已登录，如果已登录且不在登录页面，则跳转到首页
+    if (isAuthenticated && window.location.pathname === '/login') {
       router.push("/")
     }
   }, [isAuthenticated, router])
