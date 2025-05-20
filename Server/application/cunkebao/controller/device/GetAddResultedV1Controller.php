@@ -73,6 +73,16 @@ class GetAddResultedV1Controller extends BaseController
         Db::query($sql);
     }
 
+    protected function getCkbDeviceCount(): int
+    {
+        return DeviceModel::where(
+            [
+                'companyId' => $this->getUserInfo('companyId')
+            ]
+        )
+            ->count('*');
+    }
+
     /**
      * 获取添加的关联设备结果。
      *
@@ -85,17 +95,16 @@ class GetAddResultedV1Controller extends BaseController
             [
                 'accountId' => $accountId,
                 'pageIndex' => 0,
-                'pageSize'  => 1
+                'pageSize'  => 100
             ],
             true
         );
 
         $result = json_decode($result, true);
-        $result = $result['data']['results'][0] ?? false;
+        $result = $result['data']['results'] ?? false;
 
         return $result ? (
-            // 125是前端延迟5秒 + 轮询120次 1次/s
-            time() - strtotime($result['lastUpdateTime']) <= 65
+            count($result) > $this->getCkbDeviceCount()
         ) : false;
     }
 

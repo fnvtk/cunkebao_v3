@@ -149,7 +149,7 @@ export default function NewAcquisitionPlan() {
     }
 
     // 调用API创建获客计划
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/plan/scenes/create`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/plan/create`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

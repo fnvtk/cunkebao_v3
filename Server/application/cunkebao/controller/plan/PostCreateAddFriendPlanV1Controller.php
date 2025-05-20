@@ -12,6 +12,13 @@ use think\facade\Request;
  */
 class PostCreateAddFriendPlanV1Controller extends Controller
 {
+
+    protected function yyyyyyy()
+    {
+
+    }
+
+
     /**
      * 添加计划任务
      *
@@ -20,17 +27,12 @@ class PostCreateAddFriendPlanV1Controller extends Controller
     public function index()
     {
         try {
-            // 获取表单数据
-            $data = [
-                'name'       => Request::post('name', ''),
-                'sceneId'    => Request::post('sceneId', 0),
-                'status'     => Request::post('status', 0),
-                'reqConf'    => Request::post('reqConf', ''),
-                'msgConf'    => Request::post('msgConf', ''),
-                'tagConf'    => Request::post('tagConf', ''),
-                'createTime' => time(),
-                'updateTime' => time()
-            ];
+            $params = $this->request->only(['name', 'sceneId', 'status', 'reqConf', 'msgConf', 'tagConf']);
+
+
+            dd($params);
+
+
 
             // 验证必填字段
             if (empty($data['name'])) {
