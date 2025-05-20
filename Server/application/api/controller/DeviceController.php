@@ -22,8 +22,9 @@ class DeviceController extends BaseController
      */
     public function getlist($data = [],$isInner = false,$isDel = 0)
     {
+
         // 获取授权token
-        $authorization = trim($this->request->header('authorization', $this->authorization));
+        $authorization =  $this->authorization;
         if (empty($authorization)) {
             if($isInner){
                 return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
