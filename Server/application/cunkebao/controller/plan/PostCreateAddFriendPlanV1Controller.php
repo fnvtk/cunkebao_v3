@@ -30,7 +30,13 @@ class PostCreateAddFriendPlanV1Controller extends Controller
             $params = $this->request->only(['name', 'sceneId', 'status', 'reqConf', 'msgConf', 'tagConf']);
 
 
-            dd($params);
+            dd(
+
+                json_decode($params['reqConf']),
+                json_decode($params['tagConf']),
+                json_decode($params['msgConf'])
+
+            );
 
 
 

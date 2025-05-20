@@ -62,17 +62,36 @@ class GetAddResultedV1Controller extends BaseController
     {
         $ids = implode(',', $ids);
 
-        $sql = "insert into ck_device(`id`, `imei`, `model`, phone, operatingSystem,memo,alive,brand,rooted,xPosed,softwareVersion,extra,createTime,updateTime,deleteTime,companyId)  
-                select 
-                    d.id,d.imei,d.model,d.phone,d.operatingSystem,d.memo,d.alive,d.brand,d.rooted,d.xPosed,d.softwareVersion,d.extra,d.createTime,d.lastUpdateTime,d.deleteTime,a.departmentId companyId
-                from s2_device d 
-                    join s2_company_account a on d.currentAccountId = a.id
-                where isDeleted = 0 and deletedAndStop = 0 and d.id not in ({$ids}) and a.departmentId = {$companyId}
-                ";
+        $sql = "INSERT INTO ck_device(`id`, `imei`, `model`, phone, operatingSystem, memo, alive, brand, rooted, xPosed, softwareVersion, extra, createTime, updateTime, deleteTime, companyId)  
+                SELECT 
+                    d.id, d.imei, d.model, d.phone, d.operatingSystem, d.memo, d.alive, d.brand, d.rooted, d.xPosed, d.softwareVersion, d.extra, d.createTime, d.lastUpdateTime, d.deleteTime, a.departmentId AS companyId
+                FROM s2_device d 
+                    JOIN s2_company_account a ON d.currentAccountId = a.id 
+                WHERE isDeleted = 0 AND deletedAndStop = 0 AND d.id NOT IN ({$ids}) AND a.departmentId = {$companyId}
+                ON DUPLICATE KEY UPDATE 
+                    imei = VALUES(imei),
+                    model = VALUES(model),
+                    phone = VALUES(phone),
+                    operatingSystem = VALUES(operatingSystem),
+                    memo = VALUES(memo),
+                    alive = VALUES(alive),
+                    brand = VALUES(brand),
+                    rooted = VALUES(rooted),
+                    xPosed = VALUES(xPosed),
+                    softwareVersion = VALUES(softwareVersion),
+                    extra = VALUES(extra),
+                    updateTime = VALUES(updateTime),
+                    deleteTime = VALUES(deleteTime),
+                    companyId = VALUES(companyId)";
 
         Db::query($sql);
     }
 
+    /**
+     * 获取当前设备数量
+     *
+     * @return int
+     */
     protected function getCkbDeviceCount(): int
     {
         return DeviceModel::where(
