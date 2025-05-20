@@ -51,7 +51,7 @@ class WechatMomentsCommand extends Command
             $preMomentIdCacheKey = "preMomentId:{$jobId}";
             
             // 从缓存获取初始页码和上次处理的朋友圈ID
-            $pageIndex = Cache::get($pageIndexCacheKey, 0);
+            $pageIndex = Cache::get($pageIndexCacheKey, 1);
             $preMomentId = Cache::get($preMomentIdCacheKey, '');
             
             $output->writeln("从缓存获取页码: {$pageIndex}, 上次处理的朋友圈ID: {$preMomentId}");

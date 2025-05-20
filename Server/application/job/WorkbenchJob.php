@@ -231,17 +231,10 @@ class WorkbenchJob
         if (!$this->validateAutoLikeConfig($workbench, $config)) {
             return;
         }
-        // 验证是否达到点赞次数上限
-        $likeCount = $this->getTodayLikeCount($workbench, $config);
-        if ($likeCount >= $config['maxLikes']) {
-            Log::info("工作台 {$workbench->id} 点赞次数已达上限");
-            return;
-        }
         // 验证是否在点赞时间范围内
         if (!$this->isWithinLikeTimeRange($config)) {
             return;
-        }
-        
+        }   
         // 处理分页获取好友列表
         $this->processAllFriends($workbench, $config);
     }
@@ -259,10 +252,14 @@ class WorkbenchJob
         if (empty($friendList)) {
             return;
         }
-
-        
-
+       
         foreach ($friendList as $friend) {
+        // 验证是否达到点赞次数上限
+        $likeCount = $this->getTodayLikeCount($workbench, $config, $friend['deviceId']);
+        if ($likeCount >= $config['maxLikes']) {
+            Log::info("工作台 {$workbench->id} 点赞次数已达上限");
+            return;
+        }
             // 验证是否达到好友点赞次数上限
             $friendMaxLikes = Db::name('workbench_auto_like_item')
                 ->where('workbenchId', $workbench->id)
@@ -303,10 +300,11 @@ class WorkbenchJob
      * @param WorkbenchAutoLike $config
      * @return int
      */
-    protected function getTodayLikeCount($workbench, $config)
+    protected function getTodayLikeCount($workbench, $config, $deviceId)
     {
         return Db::name('workbench_auto_like_item')
             ->where('workbenchId', $workbench->id)
+            ->where('deviceId', $deviceId)
             ->whereTime('createTime', 'between', [
                 strtotime(date('Y-m-d') . ' ' . $config['startTime'] . ':00'),
                 strtotime(date('Y-m-d') . ' ' . $config['endTime'] . ':00')
@@ -370,10 +368,8 @@ class WorkbenchJob
                     // 修改好友标签
                     $labels = $this->getFriendLabels($friend);
                     $labels[] = $config['friendTags'];
-                    $webSocket->modifyFriendLabel(['wechatFriendId' => $friend['friendId'], 'wechatAccountId' => $toAccountId, 'labels' => $labels]);
+                    $webSocket->modifyFriendLabel(['wechatFriendId' => $friend['friendId'], 'wechatAccountId' => $friend['wechatAccountId'], 'labels' => $labels]);
                 }
-
-
 
                 // 每个好友只点赞一条朋友圈，然后退出
                 break;
@@ -474,6 +470,7 @@ class WorkbenchJob
     {
         Db::name('workbench_auto_like_item')->insert([
             'workbenchId' => $workbench->id,
+            'deviceId' => $friend['deviceId'],
             'momentsId' => $moment['id'],
             'snsId' => $moment['snsId'],
             'wechatAccountId' => $friend['wechatAccountId'],
@@ -561,7 +558,8 @@ class WorkbenchJob
                 'wf.id as friendId',
                 'wf.wechatId',
                 'wf.wechatAccountId',
-                'wa.wechatId as wechatAccountWechatId'
+                'wa.wechatId as wechatAccountWechatId',
+                'wa.currentDeviceId as deviceId'
             ]);
 
         if (!empty($friends) && is_array($friends) && count($friends) > 0) {

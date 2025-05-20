@@ -404,55 +404,81 @@ class WebSocketController extends BaseController
 
     /**
      * 获取指定账号朋友圈图片地址
-     * @return \think\response\Json
+     * @param array $data 请求参数
+     * @return string JSON响应
      */
-    public function getMomentSourceRealUrl()
+    public function getMomentSourceRealUrl($data = [])
     {
-        if ($this->request->isPost()) {
-            $data = $this->request->param();
-
+        try {
+            // 参数验证
             if (empty($data)) {
-                return json_encode(['code'=>400,'msg'=>'参数缺失']);
-            }
-            $dataArray = $data;
-            if (!is_array($dataArray)) {
-                return json_encode(['code'=>400,'msg'=>'数据格式错误']);
-            }
-            //获取数据条数
-//            $count = isset($dataArray['count']) ? $dataArray['count'] : 10;
-            //过滤消息
-            if (empty($dataArray['wechatAccountId'])) {
-                return json_encode(['code'=>400,'msg'=>'指定账号不能为空']);
-            }
-            if (empty($dataArray['snsId'])) {
-                return json_encode(['code'=>400,'msg'=>'指定消息ID不能为空']);
-            }
-            if (empty($dataArray['snsUrls'])) {
-                return json_encode(['code'=>400,'msg'=>'资源信息不能为空']);
-            }
-            $msg = '获取朋友圈资源链接成功';
-            $message = [];
-            try {
-                $params = [
-                    "cmdType" => $dataArray['type'],
-                    "snsId" => $dataArray['snsId'],
-                    "urls" => $dataArray['snsUrls'],
-                    "wechatAccountId" => $dataArray['wechatAccountId'],
-                    "seq" => time(),
-                ];
-                $params = json_encode($params);
-                $this->client->send($params);
-            $message = $this->client->receive();
-                //Log::write('WS获取朋友圈图片/视频链接成功，结果：' . json_encode($message, 256));
-            //关闭WS链接
-            $this->client->close();
-            } catch (\Exception $e) {
-                $msg = $e->getMessage();
+                return json_encode(['code' => 400, 'msg' => '参数缺失']);
             }
 
-            return json_encode(['code'=>200,'msg'=>$msg,'data'=>$message]);
-        } else {
-            return json_encode(['code'=>400,'msg'=>'非法请求']);
+            // 验证必要参数
+            $requiredParams = ['snsId', 'snsUrls', 'wechatAccountId'];
+            foreach ($requiredParams as $param) {
+                if (empty($data[$param])) {
+                    return json_encode(['code' => 400, 'msg' => "参数 {$param} 不能为空"]);
+                }
+            }
+
+            // 验证snsUrls是否为数组
+            if (!is_array($data['snsUrls'])) {
+                return json_encode(['code' => 400, 'msg' => '资源信息格式错误，应为数组']);
+            }
+
+            // 检查连接状态
+            if (!$this->isConnected) {
+                $this->connect();
+                if (!$this->isConnected) {
+                    return json_encode(['code' => 500, 'msg' => 'WebSocket连接失败']);
+                }
+            }
+
+            // 构建请求参数
+            $params = [
+                "cmdType" => 'CmdDownloadMomentImagesResult',
+                "snsId" => $data['snsId'],
+                "urls" => $data['snsUrls'],
+                "wechatAccountId" => $data['wechatAccountId'],
+                "seq" => time(),
+            ];
+
+            // 记录请求日志
+            Log::info('获取朋友圈资源链接请求：' . json_encode($params, 256));
+
+            // 发送请求
+            $this->client->send(json_encode($params));
+            
+            // 接收响应
+            $response = $this->client->receive();
+            $message = json_decode($response, true);
+
+            if(empty($message)){
+                return json_encode(['code'=>500,'msg'=>'获取朋友圈资源链接失败']);
+            }
+            if($message['cmdType'] == 'CmdDownloadMomentImagesResult' && is_array($message['urls']) && count($message['urls']) > 0){
+                $urls = json_encode($message['urls'],256);
+                Db::table('s2_wechat_moments')->where('snsId',$data['snsId'])->update(['resUrls'=>$urls]);
+            }
+            return json_encode(['code'=>200,'msg'=>'获取朋友圈资源链接成功','data'=>$message]);
+        } catch (\Exception $e) {
+            // 记录错误日志
+            Log::error('获取朋友圈资源链接异常：' . $e->getMessage());
+            Log::error('异常堆栈：' . $e->getTraceAsString());
+
+            // 尝试重连
+            try {
+                $this->reconnect();
+            } catch (\Exception $reconnectError) {
+                Log::error('WebSocket重连失败：' . $reconnectError->getMessage());
+            }
+
+            return json_encode([
+                'code' => 500,
+                'msg' => '获取朋友圈资源链接失败：' . $e->getMessage()
+            ]);
         }
     }
 
@@ -490,12 +516,12 @@ class WebSocketController extends BaseController
                     'location' => $momentEntity['location'] ?? '',
                     'picSize' => $momentEntity['picSize'] ?? 0,
                     'resUrls' => json_encode($momentEntity['resUrls'] ?? [], 256),
+                    'urls' => json_encode($momentEntity['urls'] ?? [], 256),
                     'userName' => $momentEntity['userName'] ?? '',
                     'snsId' => $moment['snsId'] ?? '',
                     'type' => $moment['type'] ?? 0,
                     'update_time' => time()
                 ];
-                    
                 if (!empty($momentId)) {
                     // 如果已存在，则更新数据
                     Db::table('s2_wechat_moments')->where('id', $momentId)->update($dataToSave);
@@ -509,8 +535,17 @@ class WebSocketController extends BaseController
                     $dataToSave['create_time'] = time();
                     $res = WechatMoments::create($dataToSave);
                 }
+                // // 获取资源链接
+                // if(empty($momentEntity['resUrls']) && !empty($momentEntity['urls'])){
+                //     $snsData = [
+                //         'snsId' => $moment['snsId'],
+                //         'snsUrls' => $momentEntity['urls'],
+                //         'wechatAccountId' => $wechatAccountId,
+                //     ];
+                //     $this->getMomentSourceRealUrl($snsData);
+                // }
+
             }
-            
             //Log::write('朋友圈数据已存入数据库，共' . count($momentList) . '条');
             return true;
         } catch (\Exception $e) {
