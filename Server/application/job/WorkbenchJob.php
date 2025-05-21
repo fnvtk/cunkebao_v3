@@ -361,6 +361,7 @@ class WorkbenchJob
                 break;
             }
 
+            Log::info("处理完毕切换回原账号 {$friend['friendId']}");
             // 处理完毕切换回原账号
             $automaticAssign->allotWechatFriend(['wechatFriendId' => $friend['friendId'], 'toAccountId' => $friend['accountId']], true);
         } catch (\Exception $e) {
