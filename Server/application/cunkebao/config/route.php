@@ -74,9 +74,10 @@ Route::group('v1/', function () {
         Route::get('detail', 'app\cunkebao\controller\ContentLibraryController@detail'); // 获取内容库详情
         Route::get('collectMoments', 'app\cunkebao\controller\ContentLibraryController@collectMoments'); // 采集朋友圈
         Route::get('item-list', 'app\cunkebao\controller\ContentLibraryController@getItemList'); // 获取内容库素材列表
-        Route::post('add-item', 'app\cunkebao\controller\ContentLibraryController@addItem'); // 添加内容库素材
+        Route::post('create-item', 'app\cunkebao\controller\ContentLibraryController@addItem'); // 添加内容库素材
         Route::delete('delete-item', 'app\cunkebao\controller\ContentLibraryController@deleteItem'); // 删除内容库素材
         Route::get('get-item-detail', 'app\cunkebao\controller\ContentLibraryController@getItemDetail'); // 获取内容库素材详情
+        Route::post('update-item', 'app\cunkebao\controller\ContentLibraryController@updateItem'); // 更新内容库素材
     });
 
     // 好友相关

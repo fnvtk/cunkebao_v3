@@ -160,7 +160,7 @@ class ContentLibraryController extends Controller
                 $item['selectedFriends'] = $friendsInfo;
             }
 
-            // 获取群组详细信息
+         
             if (!empty($item['sourceGroups']) && $item['sourceType'] == 2) {
                 $groupIds = $item['sourceGroups'];
                 $groupsInfo = [];
@@ -448,7 +448,7 @@ class ContentLibraryController extends Controller
                     ->find();
                 $item['senderNickname'] = $friendInfo['nickname'] ?: '';
                 $item['senderAvatar'] = $friendInfo['avatar'] ?: '';
-            }else{
+            }else if ($item['type'] == 'group_message' && $item['wechatChatroomId']) {
                 $friendInfo = Db::table('s2_wechat_chatroom_member')
                     ->field('nickname, avatar')
                     ->where('wechatId', $item['wechatId'])
@@ -496,7 +496,7 @@ class ContentLibraryController extends Controller
             return json(['code' => 400, 'msg' => '内容类型不能为空']);
         }
 
-        if (empty($param['contentData'])) {
+        if (empty($param['content'])) {
             return json(['code' => 400, 'msg' => '内容数据不能为空']);
         }
         
@@ -526,9 +526,21 @@ class ContentLibraryController extends Controller
             // 创建内容项目
             $item = new ContentItem;
             $item->libraryId = $param['libraryId'];
-            $item->type = $param['type'];
-            $item->title = $param['title'] ?? '';
-            $item->contentData = $param['contentData'];
+            $item->contentType = $param['type'];
+            $item->type = 'diy';
+            $item->title = '自定义内容';
+            $item->content = $param['content'];
+            $item->comment = $param['comment'] ?? '';
+            $item->sendTime = strtotime($param['sendTime']);
+            $item->resUrls = json_encode($param['resUrls'] ?? [],256);
+            $item->urls = json_encode($param['urls'] ?? [],256);
+            $item->senderNickname = '系统创建';
+            $item->coverImage = $param['coverImage'] ?? '';
+
+
+            print_r($item);
+            exit;
+
             $item->save();
 
             return json(['code' => 200, 'msg' => '添加成功', 'data' => ['id' => $item->id]]);

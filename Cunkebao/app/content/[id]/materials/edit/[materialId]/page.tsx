@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, Plus, X, Image as ImageIcon, UploadCloud, Link, Video, FileText, Layers } from "lucide-react"
+import { ChevronLeft, Plus, X, Image as ImageIcon, UploadCloud, Link, Video, FileText, Layers, CalendarDays, ChevronDown } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -40,6 +40,9 @@ interface Material {
   location: string | null
   lat: string
   lng: string
+  comment: string | null
+  icon: string | null
+  videoUrl?: string
 }
 
 const isImageUrl = (url: string) => {
@@ -65,6 +68,11 @@ export default function EditMaterialPage({ params }: { params: Promise<{ id: str
   const [originalMaterial, setOriginalMaterial] = useState<Material | null>(null)
   const [materialType, setMaterialType] = useState<number>(1) // 默认为图片类型
   const [url, setUrl] = useState<string>("")
+  const [title, setTitle] = useState<string>("")
+  const [iconUrl, setIconUrl] = useState<string>("")
+  const [videoUrl, setVideoUrl] = useState<string>("")
+  const [publishTime, setPublishTime] = useState("")
+  const [comment, setComment] = useState("")
 
   // 获取素材详情
   useEffect(() => {
@@ -77,6 +85,10 @@ export default function EditMaterialPage({ params }: { params: Promise<{ id: str
           const material = response.data
           setOriginalMaterial(material)
           setContent(material.content)
+          setTitle(material.title || "")
+          setIconUrl(material.icon || "")
+          setVideoUrl(material.videoUrl || "")
+          setComment(material.comment || "")
           
           // 设置素材类型
           setMaterialType(Number(material.type) || 1)
@@ -166,6 +178,10 @@ export default function EditMaterialPage({ params }: { params: Promise<{ id: str
         id: resolvedParams.materialId,
         type: materialType,
         content: content,
+        title: materialType === 2 ? title : undefined,
+        icon: materialType === 2 ? iconUrl : undefined,
+        videoUrl: materialType === 3 ? videoUrl : undefined,
+        comment: comment,
       }
       
       // 根据类型添加不同的字段
@@ -215,145 +231,270 @@ export default function EditMaterialPage({ params }: { params: Promise<{ id: str
       </header>
 
       <div className="p-4">
-        <Card className="p-4">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* 素材类型选择器 */}
-            <div>
-              <Label className="text-base required">类型</Label>
-              <div className="flex items-center mt-2 border border-gray-200 rounded-md overflow-hidden">
-                {MATERIAL_TYPES.map((type) => (
-                  <button
-                    key={type.id}
-                    type="button"
-                    className={cn(
-                      "flex-1 py-2 px-4 flex items-center justify-center gap-1 text-sm transition-colors",
-                      materialType === type.id
-                        ? "bg-blue-500 text-white"
-                        : "bg-white text-gray-600 hover:bg-gray-50"
-                    )}
-                    onClick={() => setMaterialType(type.id)}
+        <Card className="p-8 rounded-3xl shadow-xl bg-white max-w-lg mx-auto">
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* 基础信息分组 */}
+            <div className="mb-6">
+              <div className="text-xs text-gray-400 mb-2 tracking-widest">基础信息</div>
+              <div className="mb-4">
+                <Label className="font-bold flex items-center mb-2">
+                  发布时间
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="publish-time"
+                    type="datetime-local"
+                    step="60"
+                    value={publishTime}
+                    onChange={(e) => setPublishTime(e.target.value)}
+                    className="w-full h-12 rounded-2xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 px-4 text-base placeholder:text-gray-300"
+                    placeholder="请选择发布时间"
+                    style={{ width: 'auto' }}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="font-bold flex items-center mb-2">
+                  <span className="text-red-500 mr-1">*</span>类型
+                </Label>
+                <div className="relative">
+                  <select
+                    style={{ border: '1px solid #e0e0e0' }}
+                    className="appearance-none w-full h-12 rounded-2xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 px-4 pr-10 text-base bg-white placeholder:text-gray-300"
+                    value={materialType}
+                    onChange={e => setMaterialType(Number(e.target.value))}
                   >
-                    <type.icon className="h-4 w-4" />
-                    {type.name}
-                  </button>
-                ))}
+                    {MATERIAL_TYPES.map(type => (
+                      <option key={type.id} value={type.id}>{type.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                </div>
               </div>
             </div>
-
-            {/* 根据不同类型显示不同的编辑区域 */}
+            <div className="border-b border-gray-100 my-4" />
+            {/* 内容信息分组 */}
             {(materialType === 4 || materialType === 6 || (materialType === 1 && !isImageUrl(content))) && (
-              <div>
-                <Label htmlFor="content">素材内容</Label>
+              <div className="mb-6">
+                <div className="text-xs text-gray-400 mb-2 tracking-widest">内容信息</div>
+                <Label htmlFor="content" className="font-bold flex items-center mb-2">
+                  <span className="text-red-500 mr-1">*</span>内容
+                </Label>
                 <Textarea
                   id="content"
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  placeholder="请输入素材内容"
-                  className="mt-1"
+                  placeholder="请输入内容"
+                  className="w-full rounded-2xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 px-4 text-base min-h-[120px] bg-gray-50 placeholder:text-gray-300"
                   rows={10}
                 />
+                <div className="mt-4">
+                  <Label htmlFor="comment" className="font-bold mb-2">评论</Label>
+                  <Textarea
+                    id="comment"
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="请输入评论内容"
+                    className="w-full rounded-2xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 px-4 text-base min-h-[80px] bg-gray-50 placeholder:text-gray-300"
+                    rows={4}
+                  />
+                </div>
               </div>
             )}
-
-            {/* 链接或视频类型 */}
             {(materialType === 2 || materialType === 3) && (
-              <div>
-                <Label htmlFor="url">{materialType === 2 ? "链接地址" : "视频链接"}</Label>
+              <div className="mb-6">
+                <div className="text-xs text-gray-400 mb-2 tracking-widest">内容信息</div>
+                {materialType === 2 && (
+                  <div className="mb-4">
+                    <Label htmlFor="title" className="font-bold flex items-center mb-2">
+                      <span className="text-red-500 mr-1">*</span>标题
+                    </Label>
+                    <Input
+                      id="title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="请输入标题"
+                      className="w-full h-12 rounded-2xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 px-4 text-base placeholder:text-gray-300"/>
+                    {/* 图标上传 */}
+                    <div className="mt-4">
+                      <Label className="font-bold mb-2">图标</Label>
+                      <div className="flex items-center gap-4">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="rounded-2xl border-dashed border-2 border-blue-300 bg-white hover:bg-blue-50 h-28 w-28 flex flex-col items-center justify-center p-0"
+                          onClick={() => {
+                            // 模拟上传，实际应对接上传接口
+                            const mock = [
+                              "https://cdn-icons-png.flaticon.com/512/732/732212.png",
+                              "https://cdn-icons-png.flaticon.com/512/5968/5968764.png",
+                              "https://cdn-icons-png.flaticon.com/512/5968/5968705.png"
+                            ];
+                            const random = mock[Math.floor(Math.random() * mock.length)];
+                            setIconUrl(random);
+                          }}
+                        >
+                          {iconUrl ? (
+                            <Image src={iconUrl} alt="图标" width={80} height={80} className="object-contain rounded-xl mx-auto my-auto" />
+                          ) : (
+                            <>
+                              <UploadCloud className="h-8 w-8 mb-2 text-gray-400 mx-auto" />
+                              <span className="text-sm text-gray-500">上传图标</span>
+                            </>
+                          )}
+                        </Button>
+                        {iconUrl && (
+                          <Button type="button" variant="destructive" size="sm" className="h-8 px-2 rounded-lg" onClick={() => setIconUrl("")}>删除</Button>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">建议尺寸 80x80，支持 PNG/JPG</div>
+                    </div>
+                  </div>
+                )}
+                <Label htmlFor="url" className="font-bold flex items-center mb-2">
+                  <span className="text-red-500 mr-1">*</span>{materialType === 2 ? "链接地址" : "视频链接"}
+                </Label>
                 <Input
                   id="url"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder={materialType === 2 ? "请输入链接地址" : "请输入视频链接"}
-                  className="mt-1"
+                  className="w-full h-12 rounded-2xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 px-4 text-base placeholder:text-gray-300"
                 />
+                {/* 视频类型上传视频 */}
+                {materialType === 3 && (
+                  <div className="mt-4">
+                    <Label className="font-bold mb-2">上传视频</Label>
+                    <div className="flex items-center gap-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="rounded-2xl border-dashed border-2 border-blue-300 bg-white hover:bg-blue-50 h-28 w-44 flex flex-col items-center justify-center p-0"
+                        onClick={() => {
+                          // 模拟上传，实际应对接上传接口
+                          const mock = [
+                            "https://www.w3schools.com/html/mov_bbb.mp4",
+                            "https://www.w3schools.com/html/movie.mp4"
+                          ];
+                          const random = mock[Math.floor(Math.random() * mock.length)];
+                          setVideoUrl(random);
+                        }}
+                      >
+                        {videoUrl ? (
+                          <video src={videoUrl} controls className="object-contain rounded-xl h-24 w-40 mx-auto my-auto" />
+                        ) : (
+                          <>
+                            <UploadCloud className="h-8 w-8 mb-2 text-gray-400 mx-auto" />
+                            <span className="text-sm text-gray-500">上传视频</span>
+                          </>
+                        )}
+                      </Button>
+                      {videoUrl && (
+                        <Button type="button" variant="destructive" size="sm" className="h-8 px-2 rounded-lg" onClick={() => setVideoUrl("")}>删除</Button>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-400 mt-1">支持MP4，建议不超过20MB</div>
+                  </div>
+                )}
+                <div className="mt-4">
+                  <Label htmlFor="comment" className="font-bold mb-2">评论</Label>
+                  <Textarea
+                    id="comment"
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="请输入评论内容"
+                    className="w-full rounded-2xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 px-4 text-base min-h-[80px] bg-gray-50 placeholder:text-gray-300"
+                    rows={4}
+                  />
+                </div>
               </div>
             )}
-
-            {/* 图片类型 */}
-            {materialType === 1 && (
-              <div>
-                <Label>图片集</Label>
-                <div className="mt-2 border border-dashed border-gray-300 rounded-lg p-4 text-center">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={handleUploadImage} 
-                    className="w-full py-8 flex flex-col items-center justify-center"
-                  >
-                    <UploadCloud className="h-8 w-8 mb-2 text-gray-400" />
-                    <span>点击上传图片</span>
-                    <span className="text-xs text-gray-500 mt-1">支持 JPG、PNG 格式</span>
-                  </Button>
-                </div>
-
-                {previewUrls.length > 0 && (
-                  <div className="mt-4">
-                    <Label>已上传图片</Label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-                      {previewUrls.map((url, index) => (
-                        <div key={index} className="relative group">
-                          <div className="aspect-square relative rounded-lg overflow-hidden border border-gray-200">
-                            <Image
-                              src={url}
-                              alt={`图片 ${index + 1}`}
-                              fill
-                              className="object-cover"
-                            />
-                          </div>
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="sm"
-                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
-                            onClick={() => handleRemoveImage(index)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
+            {/* 素材上传分组（仅图片类型和小程序类型） */}
+            {(materialType === 1 || materialType === 5) && (
+              <div className="mb-6">
+                <div className="text-xs text-gray-400 mb-2 tracking-widest">素材上传</div>
+                {materialType === 1 && (
+                  <>
+                    <Label className="font-bold mb-2">素材</Label>
+                    <div className="border border-dashed border-gray-300 rounded-2xl p-4 text-center bg-gray-50">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={handleUploadImage} 
+                        className="w-full py-8 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-blue-300 bg-white hover:bg-blue-50"
+                      >
+                        <UploadCloud className="h-8 w-8 mb-2 text-gray-400" />
+                        <span>点击上传图片</span>
+                        <span className="text-xs text-gray-500 mt-1">支持 JPG、PNG 格式</span>
+                      </Button>
+                    </div>
+                    {previewUrls.length > 0 && (
+                      <div className="mt-2">
+                        <Label className="font-bold mb-2">已上传图片</Label>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
+                          {previewUrls.map((url, index) => (
+                            <div key={index} className="relative group">
+                              <div className="aspect-square relative rounded-2xl overflow-hidden border border-gray-200">
+                                <Image
+                                  src={url}
+                                  alt={`图片 ${index + 1}`}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0 rounded-full"
+                                onClick={() => handleRemoveImage(index)}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      </div>
+                    )}
+                  </>
+                )}
+                {materialType === 5 && (
+                  <div className="space-y-6">
+                    <div>
+                      <Label htmlFor="appTitle" className="font-bold mb-2">小程序名称</Label>
+                      <Input
+                        id="appTitle"
+                        placeholder="请输入小程序名称"
+                        className="w-full h-12 rounded-2xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 px-4 text-base placeholder:text-gray-300"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="appId" className="font-bold mb-2">AppID</Label>
+                      <Input
+                        id="appId"
+                        placeholder="请输入AppID"
+                        className="w-full h-12 rounded-2xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 px-4 text-base placeholder:text-gray-300"
+                      />
+                    </div>
+                    <div>
+                      <Label className="font-bold mb-2">小程序封面图</Label>
+                      <div className="border border-dashed border-gray-300 rounded-2xl p-4 text-center bg-gray-50">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={handleUploadImage} 
+                          className="w-full py-4 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-blue-300 bg-white hover:bg-blue-50"
+                        >
+                          <UploadCloud className="h-6 w-6 mb-2 text-gray-400" />
+                          <span>上传小程序封面图</span>
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
             )}
-
-            {/* 小程序类型 */}
-            {materialType === 5 && (
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="appTitle">小程序名称</Label>
-                  <Input
-                    id="appTitle"
-                    placeholder="请输入小程序名称"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="appId">AppID</Label>
-                  <Input
-                    id="appId"
-                    placeholder="请输入AppID"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label>小程序封面图</Label>
-                  <div className="mt-2 border border-dashed border-gray-300 rounded-lg p-4 text-center">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={handleUploadImage} 
-                      className="w-full py-4 flex flex-col items-center justify-center"
-                    >
-                      <UploadCloud className="h-6 w-6 mb-2 text-gray-400" />
-                      <span>上传小程序封面图</span>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full h-12 rounded-2xl bg-blue-600 hover:bg-blue-700 text-base font-bold mt-12 shadow">
               保存修改
             </Button>
           </form>

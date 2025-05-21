@@ -347,9 +347,9 @@ class WebSocketController extends BaseController
                 "cmdType" => "CmdMomentInteract",
                 "momentInteractType" => 1,
                 "seq" => time(),
-            "snsId" => $snsId,
-            "wechatAccountId" => $wechatAccountId,
-            "wechatFriendId" => $wechatFriendId,
+                "snsId" => $snsId,
+                "wechatAccountId" => $wechatAccountId,
+                "wechatFriendId" => $wechatFriendId,
         ];
 
             $message = $this->sendMessage($result);
