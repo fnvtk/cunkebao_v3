@@ -200,15 +200,6 @@ class WorkbenchJob
         $friendGroups = array_chunk($friendList, 20);
         $processes = [];
 
-        // 初始化WebSocketController
-        $username = Env::get('api.username', '');
-        $password = Env::get('api.password', '');
-        $toAccountId = '';
-        if (!empty($username) || !empty($password)) {
-            $toAccountId = Db::name('users')->where('account',$username)->value('s2_accountId');
-        }
-        $webSocket = new WebSocketController(['userName' => $username, 'password' => $password, 'accountId' => $toAccountId]);
-
         foreach ($friendGroups as $groupIndex => $friendGroup) {
             // 创建子进程
             $pid = pcntl_fork();
@@ -224,7 +215,6 @@ class WorkbenchJob
                 // 子进程
                 try {
                     foreach ($friendGroup as $friend) {
-                        Log::info("工作台 {$workbench->id} 开始处理好友 {$friend['friendId']}");
                         // 验证是否达到点赞次数上限
                         $likeCount = $this->getTodayLikeCount($workbench, $config, $friend['deviceId']);
                         if ($likeCount >= $config['maxLikes']) {
@@ -239,7 +229,7 @@ class WorkbenchJob
                             ->count();
                         
                         if ($friendMaxLikes < $config['friendMaxLikes']) {
-                            $this->processFriendMoments($workbench, $config, $friend, $webSocket);
+                            $this->processFriendMoments($workbench, $config, $friend);
                         }
                     }
                 } catch (\Exception $e) {
@@ -315,9 +305,8 @@ class WorkbenchJob
      * @param Workbench $workbench
      * @param WorkbenchAutoLike $config
      * @param array $friend
-     * @param WebSocketController $webSocket
      */
-    protected function processFriendMoments($workbench, $config, $friend, $webSocket)
+    protected function processFriendMoments($workbench, $config, $friend)
     {
         $toAccountId = '';
         $username = Env::get('api.username', '');
@@ -332,12 +321,11 @@ class WorkbenchJob
             $automaticAssign->allotWechatFriend(['wechatFriendId' => $friend['friendId'], 'toAccountId' => $toAccountId], true);
             
             // 执行采集朋友圈命令
+            $webSocket = new WebSocketController(['userName' => $username, 'password' => $password, 'accountId' => $toAccountId]);
             $webSocket->getMoments(['wechatFriendId' => $friend['friendId'], 'wechatAccountId' => $friend['wechatAccountId']]);
      
             // 查询未点赞的朋友圈
             $moments = $this->getUnlikedMoments($friend['friendId']);
-            Log::info("获取朋友圈信成功 {$friend['friendId']} 的朋友圈" . json_encode($moments));
-
             if (empty($moments)) {
                 Log::info("好友 {$friend['friendId']} 没有需要点赞的朋友圈");
                 // 处理完毕切换回原账号
@@ -346,7 +334,6 @@ class WorkbenchJob
             }
 
             foreach ($moments as $moment) {
-                Log::info("工作台开始点赞朋友圈 {$moment['snsId']}");
                 // 点赞朋友圈
                 $this->likeMoment($workbench, $config, $friend, $moment, $webSocket);
                 
@@ -361,7 +348,6 @@ class WorkbenchJob
                 break;
             }
 
-            Log::info("处理完毕切换回原账号 {$friend['friendId']}");
             // 处理完毕切换回原账号
             $automaticAssign->allotWechatFriend(['wechatFriendId' => $friend['friendId'], 'toAccountId' => $friend['accountId']], true);
         } catch (\Exception $e) {

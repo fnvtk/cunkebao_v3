@@ -11,6 +11,7 @@ use WebSocket\Client;
 use think\facade\Env;
 use app\api\model\WechatFriendModel as WechatFriend; 
 use app\api\model\WechatMomentsModel as WechatMoments;
+use think\facade\Cache;
 
 
 
@@ -47,23 +48,36 @@ class WebSocketController extends BaseController
             if (empty($userData['userName']) || empty($userData['password'])) {
                 return json_encode(['code'=>400,'msg'=>'参数缺失']);
             }
-            $params = [
-                'grant_type' => 'password',
-                'username' => $userData['userName'],
-                'password' => $userData['password']
-            ];
-            
-            // 调用登录接口获取token
-            $headerData = ['client:kefu-client'];
-            $header = setHeader($headerData, '', 'plain');
-            $result = requestCurl('https://kf.quwanzhi.com:9991/token', $params, 'POST', $header);
-            $result_array = handleApiResponse($result);
 
-            if (isset($result_array['access_token']) && !empty($result_array['access_token'])) {
-                $this->authorized = $result_array['access_token'];
+            // 检查缓存中是否存在有效的token
+            $cacheKey = 'websocket_token_' . $userData['userName'];
+            $cachedToken =  Cache::get($cacheKey);
+            
+            if ($cachedToken) {
+                $this->authorized = $cachedToken;
                 $this->accountId = $userData['accountId'];
             } else {
-                return json_encode(['code'=>400,'msg'=>'获取系统授权信息失败']);
+                $params = [
+                    'grant_type' => 'password',
+                    'username' => $userData['userName'],
+                    'password' => $userData['password']
+                ];
+                
+                // 调用登录接口获取token
+                $headerData = ['client:kefu-client'];
+                $header = setHeader($headerData, '', 'plain');
+                $result = requestCurl('https://kf.quwanzhi.com:9991/token', $params, 'POST', $header);
+                $result_array = handleApiResponse($result);
+
+                if (isset($result_array['access_token']) && !empty($result_array['access_token'])) {
+                    $this->authorized = $result_array['access_token'];
+                    $this->accountId = $userData['accountId'];
+                    
+                    // 将token存入缓存，有效期5分钟
+                    Cache::set($cacheKey, $this->authorized, 300);
+                } else {
+                    return json_encode(['code'=>400,'msg'=>'获取系统授权信息失败']);
+                }
             }
         } else {
             $this->authorized = $this->request->header('authorization', '');
@@ -75,7 +89,7 @@ class WebSocketController extends BaseController
         }
 
         $this->connect();
-        }
+    }
 
     /**
      * 建立WebSocket连接
