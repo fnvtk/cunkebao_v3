@@ -196,8 +196,8 @@ class WorkbenchJob
             return;
         }
 
-        // 将好友列表分成20组
-        $friendGroups = array_chunk($friendList, 20);
+        // 将好友列表分成10组
+        $friendGroups = array_chunk($friendList, 10);
         $processes = [];
 
         foreach ($friendGroups as $groupIndex => $friendGroup) {
@@ -214,6 +214,10 @@ class WorkbenchJob
             } else {
                 // 子进程
                 try {
+                    // 重置数据库连接
+                    Db::close();
+                    Db::init();
+                    
                     foreach ($friendGroup as $friend) {
                         // 验证是否达到点赞次数上限
                         $likeCount = $this->getTodayLikeCount($workbench, $config, $friend['deviceId']);
@@ -234,6 +238,9 @@ class WorkbenchJob
                     }
                 } catch (\Exception $e) {
                     Log::error("工作台 {$workbench->id} 子进程异常: " . $e->getMessage());
+                } finally {
+                    // 确保关闭数据库连接
+                    Db::close();
                 }
                 
                 // 子进程执行完毕后退出
