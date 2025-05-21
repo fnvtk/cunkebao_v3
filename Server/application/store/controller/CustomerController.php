@@ -77,6 +77,7 @@ class CustomerController extends Api
         // 格式化数据
         foreach ($list as &$item) {
             $item['labels'] = json_decode($item['labels'], true);
+            $item['createTime'] = date('Y-m-d H:i:s', $item['createTime']);
         }
         unset($item);
 
