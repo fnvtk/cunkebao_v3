@@ -216,8 +216,7 @@ class WorkbenchJob
                 // 子进程
                 try {
                     foreach ($friendGroup as $friend) {
-                        Log::info("我是一个工作台子进程");
-
+                        
                         // 验证是否达到点赞次数上限
                         $likeCount = $this->getTodayLikeCount($workbench, $config, $friend['deviceId']);
                         if ($likeCount >= $config['maxLikes']) {
@@ -232,7 +231,6 @@ class WorkbenchJob
                             ->count();
                         
                         if ($friendMaxLikes < $config['friendMaxLikes']) {
-                            Log::info("工作台 {$workbench->id} 开始处理好友 {$friend['friendId']} 的朋友圈");
                             $this->processFriendMoments($workbench, $config, $friend);
                         }
                     }
@@ -330,6 +328,9 @@ class WorkbenchJob
      
             // 查询未点赞的朋友圈
             $moments = $this->getUnlikedMoments($friend['friendId']);
+
+            Log::info("工作台开始处理好友 {$friend['friendId']} 的朋友圈" . json_encode($moments));
+
             if (empty($moments)) {
                 Log::info("好友 {$friend['friendId']} 没有需要点赞的朋友圈");
                 // 处理完毕切换回原账号
@@ -338,6 +339,7 @@ class WorkbenchJob
             }
 
             foreach ($moments as $moment) {
+                Log::info("工作台开始点赞朋友圈 {$moment['snsId']}");
                 // 点赞朋友圈
                 $this->likeMoment($workbench, $config, $friend, $moment, $webSocket);
                 
