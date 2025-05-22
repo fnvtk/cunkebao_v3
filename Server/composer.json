@@ -27,7 +27,8 @@
         "topthink/think-queue": "2.0.*",
         "textalk/websocket": "^1.5",
         "guzzlehttp/guzzle": "^7.9",
-        "eison/utils": "^1.2"
+        "eison/utils": "^1.2",
+        "overtrue/wechat": "~5.0"
     },
     "autoload": {
         "psr-4": {
@@ -40,7 +41,8 @@
     "config": {
         "preferred-install": "dist",
         "allow-plugins": {
-            "topthink/think-installer": true
+            "topthink/think-installer": true,
+            "easywechat-composer/easywechat-composer": true
         }
     },
     "require-dev": {

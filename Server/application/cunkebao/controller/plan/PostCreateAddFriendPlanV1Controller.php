@@ -62,7 +62,7 @@ class PostCreateAddFriendPlanV1Controller extends Controller
                 return ResponseHelper::error('标签设置格式不正确', 400);
             }
 
-            // 插入数据库
+            // 插入数据库 customer_acquisition_task
             $result = Db::name('friend_plan')->insert($data);
 
             if ($result) {
@@ -73,5 +73,21 @@ class PostCreateAddFriendPlanV1Controller extends Controller
         } catch (\Exception $e) {
             return ResponseHelper::error('系统错误: ' . $e->getMessage(), 500);
         }
+    }
+
+        /**
+     * 验证JSON格式是否正确
+     *
+     * @param string $string
+     * @return bool
+     */
+    private function validateJson($string)
+    {
+        if (empty($string)) {
+            return true;
+        }
+        
+        json_decode($string);
+        return (json_last_error() == JSON_ERROR_NONE);
     }
 } 
