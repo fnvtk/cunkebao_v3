@@ -1,31 +1,30 @@
 <?php
-
 namespace app\command;
 
+use app\job\WorkbenchMomentsJob;
 use think\console\Command;
 use think\console\Input;
 use think\console\Output;
 use think\console\input\Option;
 use think\facade\Log;
 use think\Queue;
-use app\job\WorkbenchJob;
 use think\facade\Cache;
 
-class WorkbenchCommand extends Command
+class WorkbenchMomentsCommand extends Command
 {
     // 队列名称
-    protected $queueName = 'workbench';
+    protected $queueName = 'workbench_moments';
     
     protected function configure()
     {
-        $this->setName('workbench:run')
-            ->setDescription('工作台任务队列')
+        $this->setName('workbench:moments')
+            ->setDescription('工作台朋友圈同步任务队列')
             ->addOption('jobId', null, Option::VALUE_OPTIONAL, '任务ID，用于区分不同实例', date('YmdHis') . rand(1000, 9999));
     }
 
     protected function execute(Input $input, Output $output)
     {
-        $output->writeln('开始处理工作台任务...');
+        $output->writeln('开始处理工作台朋友圈同步任务...');
         
         try {
             // 获取任务ID
@@ -49,10 +48,10 @@ class WorkbenchCommand extends Command
             // 将任务添加到队列
             $this->addToQueue($jobId, $queueLockKey);
             
-            $output->writeln('工作台任务已添加到队列');
+            $output->writeln('工作台朋友圈同步任务已添加到队列');
         } catch (\Exception $e) {
-            Log::error('工作台任务添加失败：' . $e->getMessage());
-            $output->writeln('工作台任务添加失败：' . $e->getMessage());
+            Log::error('工作台朋友圈同步任务添加失败：' . $e->getMessage());
+            $output->writeln('工作台朋友圈同步任务添加失败：' . $e->getMessage());
             return false;
         }
         
@@ -71,7 +70,7 @@ class WorkbenchCommand extends Command
             'queueLockKey' => $queueLockKey
         ];
         
-        // 添加到队列，设置任务名为 workbench
-        Queue::push(WorkbenchJob::class, $data, $this->queueName);
+        // 添加到队列，设置任务名为 workbench_moments
+        Queue::push(WorkbenchMomentsJob::class, $data, $this->queueName);
     }
 } 
