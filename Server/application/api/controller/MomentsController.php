@@ -12,33 +12,33 @@ class MomentsController extends BaseController
      * 发布朋友圈
      * @return \think\response\Json
      */
-    public function addJob()
+    public function addJob($data = [])
     {
         // 获取授权token
-        $authorization = trim($this->request->header('authorization', $this->authorization));
+        $authorization = $this->authorization;
         if (empty($authorization)) {
             return errorJson('缺少授权信息');
         }
 
         try {
             // 获取请求参数
-            $text = $this->request->param('text', ''); // 朋友圈文本内容
-            $picUrlList = $this->request->param('picUrlList', []); // 图片URL列表
-            $videoUrl = $this->request->param('videoUrl', ''); // 视频URL
-            $immediately = $this->request->param('immediately', true); // 是否立即发布
-            $timingTime = $this->request->param('timingTime', ''); // 定时发布时间
-            $beginTime = $this->request->param('beginTime', ''); // 开始时间
-            $endTime = $this->request->param('endTime', ''); // 结束时间
-            $isUseLocation = $this->request->param('isUseLocation', false); // 是否使用位置信息
-            $poiName = $this->request->param('poiName', ''); // 位置名称
-            $poiAddress = $this->request->param('poiAddress', ''); // 位置地址
-            $lat = $this->request->param('lat', 0); // 纬度
-            $lng = $this->request->param('lng', 0); // 经度
-            $momentContentType = $this->request->param('momentContentType', 1); // 朋友圈内容类型
-            $publicMode = $this->request->param('publicMode', 0); // 发布模式
-            $altList = $this->request->param('altList', ''); // 替代列表
-            $link = $this->request->param('link', []); // 链接信息
-            $jobPublishWechatMomentsItems = $this->request->param('jobPublishWechatMomentsItems', []); // 发布账号和评论信息
+            $text = $data['text'] ?? ''; // 朋友圈文本内容
+            $picUrlList = $data['picUrlList'] ?? []; // 图片URL列表
+            $videoUrl = $data['videoUrl'] ?? ''; // 视频URL
+            $immediately = $data['immediately'] ?? true; // 是否立即发布
+            $timingTime = $data['timingTime'] ?? ''; // 定时发布时间
+            $beginTime = $data['beginTime'] ?? ''; // 开始时间
+            $endTime = $data['endTime'] ?? ''; // 结束时间
+            $isUseLocation = $data['isUseLocation'] ?? false; // 是否使用位置信息
+            $poiName = $data['poiName'] ?? ''; // 位置名称
+            $poiAddress = $data['poiAddress'] ?? ''; // 位置地址
+            $lat = $data['lat'] ?? 0; // 纬度
+            $lng = $data['lng'] ?? 0; // 经度
+            $momentContentType = $data['momentContentType'] ?? 1; // 朋友圈内容类型
+            $publicMode = $data['publicMode'] ?? 0; // 发布模式
+            $altList = $data['altList'] ?? ''; // 替代列表
+            $link = $data['link'] ?? []; // 链接信息
+            $jobPublishWechatMomentsItems = $data['jobPublishWechatMomentsItems'] ?? []; // 发布账号和评论信息
 
             // 必填参数验证
             if (empty($jobPublishWechatMomentsItems) || !is_array($jobPublishWechatMomentsItems)) {
