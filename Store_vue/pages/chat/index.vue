@@ -2,7 +2,7 @@
 	<view class="chat-container">
 		<!-- 顶部导航栏 -->
 		<view class="header">
-			<view class="title">美业AI助理</view>
+			<view class="title">AI助理</view>
 			<view class="header-right">
 				<text style="font-size: 16px;" @click='showMenu'>
                     <u-icon name="list" color="#333" size="28"></u-icon>

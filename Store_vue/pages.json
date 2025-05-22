@@ -6,7 +6,7 @@
 		{
 			"path": "pages/chat/index",
 			"style": {
-				"navigationBarTitleText": "美业AI助理",
+				"navigationBarTitleText": "AI助理",
 				"navigationStyle": "custom"
 			}
 		},
@@ -19,7 +19,7 @@
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "美业AI助理",
+		"navigationBarTitleText": "AI助理",
 		"navigationBarBackgroundColor": "#F8F8F8",
 		"backgroundColor": "#F8F8F8"
 	},

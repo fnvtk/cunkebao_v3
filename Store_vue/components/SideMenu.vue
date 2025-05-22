@@ -3,7 +3,7 @@
 		<view class="side-menu-mask" @tap="closeSideMenu"></view>
 		<view class="side-menu">
 			<view class="side-menu-header">
-				<text class="side-menu-title">美业赋能</text>
+				<text class="side-menu-title">AI赋能</text>
 				<text class="close-icon" @tap="closeSideMenu">
 					<u-icon name="close" color="#333" size="24"></u-icon>
 				</text>
