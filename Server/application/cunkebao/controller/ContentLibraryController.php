@@ -536,11 +536,6 @@ class ContentLibraryController extends Controller
             $item->urls = json_encode($param['urls'] ?? [],256);
             $item->senderNickname = '系统创建';
             $item->coverImage = $param['coverImage'] ?? '';
-
-
-            print_r($item);
-            exit;
-
             $item->save();
 
             return json(['code' => 200, 'msg' => '添加成功', 'data' => ['id' => $item->id]]);

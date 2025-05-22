@@ -27,6 +27,7 @@ return [
     'allotrule:autocreate' => 'app\command\AutoCreateAllotRulesCommand', // 自动创建分配规则 √
     'content:collect' => 'app\command\ContentCollectCommand', // 内容采集任务 √
     'moments:collect' => 'app\command\WechatMomentsCommand', // 朋友圈采集任务
-    'workbench:run' => 'app\command\WorkbenchCommand', // 工作台任务
+    'workbench:autoLike' => 'app\command\WorkbenchAutoLikeCommand', // 工作台自动点赞任务
+    'workbench:moments' => 'app\command\WorkbenchMomentsCommand', // 工作台朋友圈同步任务
     'sync:wechatData' => 'app\command\SyncWechatDataToCkbTask', // 同步微信数据到存客宝
 ];
