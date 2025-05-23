@@ -38,8 +38,8 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
   const [previewUrls, setPreviewUrls] = useState<string[]>([])
   const [materialType, setMaterialType] = useState<number>(1)
   const [url, setUrl] = useState<string>("")
-  const [title, setTitle] = useState<string>("")
-  const [coverImage, setCoverImage] = useState<string>("")
+  const [desc, setDesc] = useState<string>("")
+  const [image, setImage] = useState<string>("")
   const [videoUrl, setVideoUrl] = useState<string>("")
   const [publishTime, setPublishTime] = useState("")
   const [comment, setComment] = useState("")
@@ -79,8 +79,8 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
     if (materialType === 1 && images.length === 0) {
       showToast("请上传图片", "error")
       return
-    } else if (materialType === 2 && (!url || !title)) {
-      showToast("请输入标题和链接地址", "error")
+    } else if (materialType === 2 && (!url || !desc)) {
+      showToast("请输入描述和链接地址", "error")
       return
     } else if (materialType === 3 && (!url && !videoUrl)) {
       showToast("请填写视频链接或上传视频", "error")
@@ -99,9 +99,7 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
       if (materialType === 1) {
         payload.resUrls = images
       } else if (materialType === 2) {
-        payload.title = title
-        payload.urls = [url]
-        payload.coverImage = coverImage
+        payload.urls = [{ desc, image, url }]
       } else if (materialType === 3) {
         payload.urls = videoUrl ? [videoUrl] : []
       }
@@ -205,14 +203,14 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
                 <div className="text-xs text-gray-400 mb-2 tracking-widest">内容信息</div>
                 {materialType === 2 && (
                   <div className="mb-4">
-                    <Label htmlFor="title" className="font-bold flex items-center mb-2">
-                      <span className="text-red-500 mr-1">*</span>标题
+                    <Label htmlFor="desc" className="font-bold flex items-center mb-2">
+                      <span className="text-red-500 mr-1">*</span>描述
                     </Label>
                     <Input
-                      id="title"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="请输入标题"
+                      id="desc"
+                      value={desc}
+                      onChange={(e) => setDesc(e.target.value)}
+                      placeholder="请输入描述"
                       className="w-full h-12 rounded-2xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 px-4 text-base placeholder:text-gray-300"/>
                     {/* 封面图上传 */}
                     <div className="mt-4">
@@ -229,11 +227,11 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
                               "https://cdn-icons-png.flaticon.com/512/5968/5968705.png"
                             ];
                             const random = mock[Math.floor(Math.random() * mock.length)];
-                            setCoverImage(random);
+                            setImage(random);
                           }}
                         >
-                          {coverImage ? (
-                            <Image src={coverImage} alt="封面图" width={80} height={80} className="object-contain rounded-xl mx-auto my-auto" />
+                          {image ? (
+                            <Image src={image} alt="封面图" width={80} height={80} className="object-contain rounded-xl mx-auto my-auto" />
                           ) : (
                             <>
                               <UploadCloud className="h-8 w-8 mb-2 text-gray-400 mx-auto" />
@@ -241,8 +239,8 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
                             </>
                           )}
                         </Button>
-                        {coverImage && (
-                          <Button type="button" variant="destructive" size="sm" className="h-8 px-2 rounded-lg" onClick={() => setCoverImage("")}>删除</Button>
+                        {image && (
+                          <Button type="button" variant="destructive" size="sm" className="h-8 px-2 rounded-lg" onClick={() => setImage("")}>删除</Button>
                         )}
                       </div>
                       <div className="text-xs text-gray-400 mt-1">建议尺寸 80x80，支持 PNG/JPG</div>

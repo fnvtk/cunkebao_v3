@@ -418,7 +418,6 @@ class ContentLibraryController extends Controller
 
         // 查询数据
         $list = ContentItem::where($where)
-            ->field('id,type,title,content,coverImage,resUrls,urls,createTime,createMomentTime,createMessageTime,wechatId,friendId,wechatChatroomId,senderNickname,location,lat,lng')
             ->order('createTime', 'desc')
             ->page($page, $limit)
             ->select();
@@ -528,7 +527,7 @@ class ContentLibraryController extends Controller
             $item->libraryId = $param['libraryId'];
             $item->contentType = $param['type'];
             $item->type = 'diy';
-            $item->title = '自定义内容';
+            $item->title = $param['title'] ?? '自定义内容';
             $item->content = $param['content'];
             $item->comment = $param['comment'] ?? '';
             $item->sendTime = strtotime($param['sendTime']);
@@ -617,11 +616,13 @@ class ContentLibraryController extends Controller
         
         // 添加内容类型的文字描述
         $contentTypeMap = [
+            0 => '未知',
             1 => '图片',
             2 => '链接',
             3 => '视频',
             4 => '文本',
             5 => '小程序',
+            6 => '图文'
         ];
         $item['contentTypeName'] = $contentTypeMap[$item['contentType'] ?? 0] ?? '未知';
         
@@ -632,7 +633,11 @@ class ContentLibraryController extends Controller
         if ($item['createMessageTime']) {
             $item['createMessageTimeFormatted'] = date('Y-m-d H:i:s', $item['createMessageTime']);
         }
-        //$item['createTimeFormatted'] = date('Y-m-d H:i:s', $item['createTime']);
+
+        // 格式化发送时间
+        if ($item['sendTime']) {
+            $item['sendTime'] = date('Y-m-d H:i:s', $item['sendTime']);
+        }
 
         // 获取发送者信息
         if ($item['type'] == 'moment' && $item['friendId']) {
@@ -658,6 +663,90 @@ class ContentLibraryController extends Controller
             'data' => $item
         ]);
     }
+
+    /**
+     * 更新内容项目
+     * @return \think\response\Json
+     */
+    public function updateItem()
+    {
+        if (!$this->request->isPost()) {
+            return json(['code' => 400, 'msg' => '请求方式错误']);
+        }
+
+        // 获取请求参数
+        $param = $this->request->post();
+
+        // 简单验证
+        if (empty($param['id'])) {
+            return json(['code' => 400, 'msg' => '参数错误']);
+        }
+
+        // 查询内容项目是否存在并检查权限
+        $item = ContentItem::where([
+            ['id', '=', $param['id']],
+            ['isDel', '=', 0]
+        ]) ->find();
+
+        if (!$item) {
+            return json(['code' => 404, 'msg' => '内容项目不存在或无权限操作']);
+        }
+
+        try {
+            // 更新内容项目
+            $item->title = $param['title'] ?? $item->title;
+            $item->content = $param['content'] ?? $item->content;
+            $item->comment = $param['comment'] ?? $item->comment;
+            
+            // 处理发送时间
+            if (!empty($param['sendTime'])) {
+                $item->sendTime = strtotime($param['sendTime']);
+            }
+
+            // 处理内容类型
+            if (isset($param['contentType'])) {
+                $item->contentType = $param['contentType'];
+            }
+
+            // 处理资源URL
+            if (isset($param['resUrls'])) {
+                $resUrls = is_string($param['resUrls']) ? json_decode($param['resUrls'], true) : $param['resUrls'];
+                $item->resUrls = json_encode($resUrls, JSON_UNESCAPED_UNICODE);
+                
+                // 设置封面图片
+                if (!empty($resUrls[0])) {
+                    $item->coverImage = $resUrls[0];
+                }
+            }
+
+            // 处理链接URL
+            if (isset($param['urls'])) {
+                $urls = is_string($param['urls']) ? json_decode($param['urls'], true) : $param['urls'];
+                $item->urls = json_encode($urls, JSON_UNESCAPED_UNICODE);
+            }
+
+            // 处理地理位置信息
+            if (isset($param['location'])) {
+                $item->location = $param['location'];
+            }
+            if (isset($param['lat'])) {
+                $item->lat = $param['lat'];
+            }
+            if (isset($param['lng'])) {
+                $item->lng = $param['lng'];
+            }
+
+            // 更新修改时间
+            $item->updateTime = time();
+            // 保存更新
+            $item->save();
+
+            return json(['code' => 200, 'msg' => '更新成功']);
+        } catch (\Exception $e) {
+            return json(['code' => 500, 'msg' => '更新失败：' . $e->getMessage()]);
+        }
+    }
+
 
     /************************************
      * 数据采集相关功能

@@ -142,21 +142,78 @@ export default function MaterialsPage({ params }: { params: Promise<{ id: string
     }
   }
 
-  // 处理内容显示
-  const renderContent = (material: Material) => {
-    // 如果内容是图片，由renderImageResources处理
-    if (isImageUrl(material.content)) {
-      return null
+  // 新增：根据类型渲染内容
+  const renderMaterialByType = (material: any) => {
+    const type = Number(material.contentType || material.type);
+    // 链接类型
+    if (type === 2 && material.urls && material.urls.length > 0) {
+      const first = material.urls[0];
+      return (
+        <a
+          href={first.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center bg-white rounded p-2 hover:bg-gray-50 transition group"
+          style={{ textDecoration: 'none' }}
+        >
+          {first.image && (
+            <div className="flex-shrink-0 w-14 h-14 rounded overflow-hidden mr-3 bg-gray-100">
+              <Image
+                src={first.image}
+                alt="封面图"
+                width={56}
+                height={56}
+                className="object-cover w-full h-full"
+              />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="text-base font-medium truncate group-hover:text-blue-600">{first.desc}</div>
+          </div>
+        </a>
+      );
     }
-    
-    // 显示文本内容
-    return (
-      <div className="mb-3">
-        <p className="text-gray-700 whitespace-pre-line">{material.content}</p>
-      </div>
-    )
+    // 视频类型
+    if (type === 3 && material.urls && material.urls.length > 0) {
+      const first = material.urls[0];
+      const videoUrl = typeof first === "string" ? first : (first.url || "");
+      return videoUrl ? (
+        <div className="mb-3">
+          <video src={videoUrl} controls className="rounded w-full max-w-md" />
+        </div>
+      ) : null;
+    }
+    // 文本类型
+    if (type === 4 || type === 6) {
+      return (
+        <div className="mb-3">
+          <p className="text-gray-700 whitespace-pre-line">{material.content}</p>
+        </div>
+      );
+    }
+    // 小程序类型
+    if (type === 5 && material.urls && material.urls.length > 0) {
+      const first = material.urls[0];
+      return (
+        <div className="mb-3">
+          <div>小程序名称：{first.appTitle}</div>
+          <div>AppID：{first.appId}</div>
+          {first.image && (
+            <div className="mb-2">
+              <Image src={first.image} alt="小程序封面图" width={80} height={80} className="rounded" />
+            </div>
+          )}
+        </div>
+      );
+    }
+    // 图片类型
+    if (type === 1) {
+      return renderImageResources(material);
+    }
+    // 其它类型
+    return null;
   }
-  
+
   // 处理图片资源
   const renderImageResources = (material: Material) => {
     const imageUrls = material.resUrls.filter(isImageUrl)
@@ -364,11 +421,8 @@ export default function MaterialsPage({ params }: { params: Promise<{ id: string
                   
                   <Separator className="my-3" />
                   
-                  {/* 文本内容 */}
-                  {renderContent(material)}
-                  
-                  {/* 图片资源 */}
-                  {renderImageResources(material)}
+                  {/* 类型分发内容渲染 */}
+                  {renderMaterialByType(material)}
                   
                   {/* 非图片资源标签 */}
                   {material.resUrls.length > 0 && !material.resUrls.some(isImageUrl) && (
