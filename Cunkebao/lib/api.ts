@@ -93,12 +93,11 @@ export const request = async <T>(
     // 使用响应拦截器处理响应
     if (result && result.code === 401) {
       if (typeof window !== 'undefined') {
+        // 只清除 token，不进行重定向
         localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        // 使用客户端导航而不是直接修改window.location
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 0);
+        localStorage.removeItem('userInfo');
+        // 使用 window.location 进行一次性重定向
+        window.location.href = '/login';
       }
       throw new Error(result.msg || '登录已过期，请重新登录');
     }
@@ -113,11 +112,10 @@ export const request = async <T>(
          (error.message.toLowerCase().includes('unauthorized') && 
           error.message.toLowerCase().includes('token')))) {
       if (typeof window !== 'undefined') {
+        // 只清除 token，不进行重定向
         localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 0);
+        localStorage.removeItem('userInfo');
+        // 重定向逻辑由 AuthProvider 统一处理
       }
     }
     

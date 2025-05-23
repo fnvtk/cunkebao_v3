@@ -147,6 +147,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []) // 空依赖数组，仅在组件挂载时执行一次
 
   const handleLogout = () => {
+    // 先清除所有认证相关的状态
     safeLocalStorage.removeItem("token")
     safeLocalStorage.removeItem("token_expired")
     safeLocalStorage.removeItem("s2_accountId")
@@ -155,11 +156,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setToken(null)
     setUser(null)
     setIsAuthenticated(false)
+    
+    // 使用 window.location 而不是 router.push，避免状态更新和路由跳转的竞态条件
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login'
+    }
   }
 
   const login = (newToken: string, userData: User) => {
     safeLocalStorage.setItem("token", newToken)
-    safeLocalStorage.setItem("user", JSON.stringify(userData))
+    safeLocalStorage.setItem("userInfo", JSON.stringify(userData))
     setToken(newToken)
     setUser(userData)
     setIsAuthenticated(true)
@@ -167,8 +173,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = () => {
     handleLogout()
-    // 登出后不强制跳转到登录页
-    // router.push("/login")
   }
 
   // 用于刷新 token 的方法

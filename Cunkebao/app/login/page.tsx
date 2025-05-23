@@ -155,10 +155,19 @@ export default function LoginPage() {
 
   useEffect(() => {
     // 检查是否已登录，如果已登录且不在登录页面，则跳转到首页
-    if (isAuthenticated && window.location.pathname === '/login') {
-      router.push("/")
+    if (isAuthenticated) {
+      // 获取重定向URL
+      const params = new URLSearchParams(window.location.search)
+      const returnUrl = params.get('returnUrl')
+      
+      // 如果有重定向URL，则跳转到该URL，否则跳转到首页
+      if (returnUrl) {
+        window.location.href = decodeURIComponent(returnUrl)
+      } else {
+        window.location.href = "/"
+      }
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated])
 
   return (
     <div className="min-h-screen bg-white text-gray-900 flex flex-col px-4 py-8">
