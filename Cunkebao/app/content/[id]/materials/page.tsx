@@ -208,7 +208,18 @@ export default function MaterialsPage({ params }: { params: Promise<{ id: string
     }
     // 图片类型
     if (type === 1) {
-      return renderImageResources(material);
+      return (
+        <div className="mb-3">
+          {/* 内容字段（如有） */}
+          {material.content && (
+            <div className="mb-2 text-base font-medium text-gray-800 whitespace-pre-line">
+              {material.content}
+            </div>
+          )}
+          {/* 图片资源 */}
+          {renderImageResources(material)}
+        </div>
+      );
     }
     // 其它类型
     return null;
@@ -228,16 +239,14 @@ export default function MaterialsPage({ params }: { params: Promise<{ id: string
     if (imageUrls.length === 1) {
       // 单张图片：大图显示
       return (
-        <div className="mb-3">
-          <div className="relative rounded-md overflow-hidden">
-            <Image
-              src={imageUrls[0]}
-              alt="图片内容"
-              width={600}
-              height={400}
-              className="object-cover w-full h-auto"
-            />
-          </div>
+        <div className="relative rounded-md overflow-hidden">
+          <Image
+            src={imageUrls[0]}
+            alt="图片内容"
+            width={600}
+            height={400}
+            className="object-cover w-full h-auto"
+          />
         </div>
       )
     } else if (imageUrls.length === 2) {

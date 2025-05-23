@@ -41,8 +41,8 @@ interface LikeRecordsResponse {
   data: {
     list: LikeRecord[]
     total: number
+    }
   }
-}
 
 export default function LikeRecordsPage() {
   const router = useRouter()
@@ -72,7 +72,7 @@ export default function LikeRecordsPage() {
         limit: pageSize.toString()
       })
       
-      if (searchTerm) {
+    if (searchTerm) {
         queryParams.append('keyword', searchTerm)
       }
       
@@ -83,19 +83,19 @@ export default function LikeRecordsPage() {
         setTotal(response.data.total)
       } else {
         showToast(response.msg || "获取点赞记录失败", "error")
-      }
+    }
     } catch (error: any) {
       console.error("获取点赞记录失败:", error)
       showToast(error?.message || "请检查网络连接", "error")
     } finally {
       loadingToast.remove();
-      setLoading(false)
+    setLoading(false)
     }
   }
 
   useEffect(() => {
     if (workbenchId) {
-      fetchRecords(currentPage, searchTerm)
+    fetchRecords(currentPage, searchTerm)
     }
   }, [currentPage, workbenchId])
 

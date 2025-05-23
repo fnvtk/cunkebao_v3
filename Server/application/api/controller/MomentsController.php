@@ -83,19 +83,12 @@ class MomentsController extends BaseController
 
             // 发送请求发布朋友圈
             $result = requestCurl($this->baseUrl . 'api/JobPublishWechatMoments/addJob', $params, 'POST', $header, 'json');
-            
             // 处理响应
-            if (is_numeric($result)) {
-                return successJson(['jobId' => $result], '朋友圈任务创建成功');
+            if (empty($result)) {
+                return successJson([], '朋友圈任务创建成功');
             } else {
-                // 尝试解析JSON
-                $response = json_decode($result, true);
-                if (json_last_error() === JSON_ERROR_NONE && isset($response['id'])) {
-                    return successJson(['jobId' => $response['id']], '朋友圈任务创建成功');
-                }
-                
                 // 如果返回的是错误信息
-                return errorJson(is_string($result) ? $result : '创建朋友圈任务失败');
+                return errorJson($result);
             }
         } catch (\Exception $e) {
             return errorJson('发布朋友圈失败：' . $e->getMessage());

@@ -125,6 +125,35 @@ class WorkbenchMomentsJob
         // 转换内容类型
         $momentContentType = self::CONTENT_TYPE_MAP[$contentLibrary['contentType']] ?? 1;
         $sendTime = !empty($contentLibrary['sendTime']) ? $contentLibrary['sendTime'] : time();
+
+        // 图片url
+        if($momentContentType == 2){
+            $picUrlList = json_decode($contentLibrary['resUrls'], true);
+        }else{
+            $picUrlList = [];
+        }
+
+        // 视频url
+        if($momentContentType == 3){
+            $videoUrl = json_decode($contentLibrary['urls'], true);
+            $videoUrl = $videoUrl[0] ?? '';
+        }else{
+            $videoUrl = '';
+        }
+
+        // 链接url
+        if($momentContentType == 4){
+            $urls = json_decode($contentLibrary['urls'],true);
+            $url = $urls[0] ?? [];
+            $link = [
+                'desc' => $url['desc'] ?? '',
+                'image' => $url['image'] ?? '',
+                'url' => $url['url'] ?? ''
+            ];
+        }else{
+            $link = ['image' => ''];
+        }
+
         // 准备发送参数
         $data = [
             'altList' => '',
@@ -133,26 +162,21 @@ class WorkbenchMomentsJob
             'jobPublishWechatMomentsItems' => $jobPublishWechatMomentsItems,
             'lat' => 0,
             'lng' => 0,
-            'link' => ['image' => ''],
+            'link' => $link,
             'momentContentType' => $momentContentType,
-            'picUrlList' => json_decode($contentLibrary['resUrls'], true),
+            'picUrlList' => $picUrlList,
             'poiAddress' => '',
             'poiName' => '',
             'publicMode' => '',
             'text' => $contentLibrary['content'],
             'timingTime' => date('Y-m-d H:i:s', $sendTime),
             'beginTime' => date('Y-m-d H:i:s', $sendTime),
-            'endTime' => date('Y-m-d H:i:s', $sendTime + 60),
-            'videoUrl' => '',
+            'endTime' => date('Y-m-d H:i:s', $sendTime + 600),
+            'videoUrl' => $videoUrl,
         ];
-
-        print_r($data);
-        exit;
-
         // 发送朋友圈
         $moments = new Moments();
         $moments->addJob($data);
-
         // 记录发送记录
         $this->recordSendHistory($workbench, $devices, $contentLibrary);
     }
@@ -168,16 +192,16 @@ class WorkbenchMomentsJob
         $now = time();
         $data = [];
         foreach ($devices as $device) {
-            $data[] = [
+            $data = [
                 'workbenchId' => $workbench->id,
                 'deviceId' => $device['deviceId'],
                 'contentId' => $contentLibrary['id'],
-                'libraryId' => $contentLibrary['libraryId'],
+                'wechatAccountId' => $device['wechatAccountId'],
                 'createTime' => $now,
-                'updateTime' => $now
             ];
+            Db::name('workbench_moments_sync_item')->insert($data);
         }
-        Db::name('workbench_moments_sync_item')->insertAll($data);
+       
     }
 
     /**
