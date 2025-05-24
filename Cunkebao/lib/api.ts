@@ -97,7 +97,7 @@ export const request = async <T>(
         localStorage.removeItem('token');
         localStorage.removeItem('userInfo');
         // 使用 window.location 进行一次性重定向
-        window.location.href = '/login';
+          window.location.href = '/login';
       }
       throw new Error(result.msg || '登录已过期，请重新登录');
     }

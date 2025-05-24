@@ -1,324 +1,279 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, Settings, Users, BarChart3, Download, Clock } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { ChevronLeft, Users, Database, TrendingUp, Calendar, Clock } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import BottomNav from "@/app/components/BottomNav"
 
-// 模拟数据
-const planDetails = {
-  id: "1",
-  name: "抖音直播引流计划",
-  description: "从抖音直播间获取的潜在客户流量分发",
-  status: "active",
-  source: "douyin",
-  sourceIcon: "🎬",
-  distributionMethod: "even",
-  targetGroups: ["新客户", "潜在客户"],
-  devices: ["iPhone 13", "华为 P40", "小米 11"],
-  totalUsers: 1250,
-  dailyAverage: 85,
-  weeklyData: [42, 56, 78, 64, 85, 92, 76],
-  createdAt: "2024-03-10T08:30:00Z",
-  lastUpdated: "2024-03-18T10:30:00Z",
-  rules: {
-    maxPerDay: 50,
-    timeRestriction: "custom",
-    customTimeStart: "09:00",
-    customTimeEnd: "21:00",
-  },
+interface DistributionPlan {
+  id: string
+  name: string
+  status: "active" | "paused"
+  source: string
+  sourceIcon: string
+  targetGroups: string[]
+  totalUsers: number
+  dailyAverage: number
+  deviceCount: number
+  poolCount: number
+  lastUpdated: string
+  createTime: string
+  creator: string
+  devices: {
+    id: string
+    name: string
+    status: "online" | "offline"
+  }[]
+  pools: {
+    id: string
+    name: string
+    count: number
+    keywords: string[]
+  }[]
+  dailyStats: {
+    date: string
+    distributed: number
+  }[]
 }
 
-// 模拟流量数据
-const trafficData = [
-  { id: "1", name: "张三", source: "抖音直播", time: "2024-03-20 09:45", target: "新客户", device: "iPhone 13" },
-  { id: "2", name: "李四", source: "抖音评论", time: "2024-03-20 10:12", target: "潜在客户", device: "华为 P40" },
-  { id: "3", name: "王五", source: "抖音私信", time: "2024-03-20 11:30", target: "新客户", device: "小米 11" },
-  { id: "4", name: "赵六", source: "抖音直播", time: "2024-03-20 13:15", target: "潜在客户", device: "iPhone 13" },
-  { id: "5", name: "孙七", source: "抖音评论", time: "2024-03-20 14:22", target: "新客户", device: "华为 P40" },
-]
-
-export default function TrafficDistributionDetailPage({ params }: { params: { id: string } }) {
+export default function DistributionPlanDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState("overview")
-  const [isActive, setIsActive] = useState(planDetails.status === "active")
-  const [timeRange, setTimeRange] = useState("7days")
+  const [plan, setPlan] = useState<DistributionPlan | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // 模拟API请求
+    setTimeout(() => {
+      setPlan({
+        id: id,
+        name: "抖音直播引流计划",
+        status: "active",
+        source: "douyin",
+        sourceIcon: "🎬",
+        targetGroups: ["新客户", "潜在客户"],
+        totalUsers: 1250,
+        dailyAverage: 85,
+        deviceCount: 3,
+        poolCount: 2,
+        lastUpdated: "2024-03-18 10:30:00",
+        createTime: "2024-03-10 08:30:00",
+        creator: "admin",
+        devices: [
+          { id: "dev1", name: "iPhone 13", status: "online" },
+          { id: "dev2", name: "Xiaomi 12", status: "online" },
+          { id: "dev3", name: "Huawei P40", status: "offline" },
+        ],
+        pools: [
+          { id: "pool1", name: "抖音流量池", count: 850, keywords: ["抖音直播", "短视频", "网红"] },
+          { id: "pool2", name: "通用流量池", count: 400, keywords: ["电商", "购物", "促销"] },
+        ],
+        dailyStats: [
+          { date: "03-15", distributed: 78 },
+          { date: "03-16", distributed: 92 },
+          { date: "03-17", distributed: 85 },
+          { date: "03-18", distributed: 103 },
+          { date: "03-19", distributed: 67 },
+          { date: "03-20", distributed: 89 },
+          { date: "03-21", distributed: 95 },
+        ],
+      })
+      setLoading(false)
+    }, 500)
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="flex-1 bg-gray-50 min-h-screen p-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-500">加载中...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!plan) {
+    return (
+      <div className="flex-1 bg-gray-50 min-h-screen p-4">
+        <div className="text-center py-12">
+          <h2 className="text-xl font-medium text-gray-700">未找到计划</h2>
+          <p className="text-gray-500 mt-2">无法找到ID为 {id} 的分发计划</p>
+          <Button className="mt-4" onClick={() => router.push("/workspace/traffic-distribution")}>
+            返回列表
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="flex-1 bg-white min-h-screen">
+    <div className="flex-1 bg-gray-50 min-h-screen pb-16">
       <header className="sticky top-0 z-10 bg-white border-b">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-3">
             <Button variant="ghost" size="icon" onClick={() => router.back()}>
               <ChevronLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-lg font-medium">{planDetails.name}</h1>
+            <h1 className="text-lg font-medium">计划详情</h1>
           </div>
-          <div className="flex items-center space-x-2">
-            <div className="flex items-center mr-4">
-              <span className="mr-2 text-sm">状态:</span>
-              <Switch checked={isActive} onCheckedChange={setIsActive} />
-              <span className="ml-2 text-sm">{isActive ? "进行中" : "已暂停"}</span>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push(`/workspace/traffic-distribution/${params.id}/edit`)}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              编辑
-            </Button>
-          </div>
+          <Button variant="outline" onClick={() => router.push(`/workspace/traffic-distribution/${id}/edit`)}>
+            编辑计划
+          </Button>
         </div>
       </header>
 
-      <div className="p-4">
-        <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="overview">概览</TabsTrigger>
-            <TabsTrigger value="traffic">流量记录</TabsTrigger>
-            <TabsTrigger value="rules">分发规则</TabsTrigger>
+      <div className="p-4 space-y-4">
+        {/* 计划概览 */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="text-2xl">{plan.sourceIcon}</div>
+                <CardTitle>{plan.name}</CardTitle>
+              </div>
+              <Badge variant={plan.status === "active" ? "success" : "secondary"}>
+                {plan.status === "active" ? "进行中" : "已暂停"}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4 mt-2">
+              <div className="flex items-center space-x-2">
+                <Users className="h-4 w-4 text-gray-500" />
+                <span className="text-sm text-gray-500">创建人: {plan.creator}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Calendar className="h-4 w-4 text-gray-500" />
+                <span className="text-sm text-gray-500">创建时间: {plan.createTime.split(" ")[0]}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Clock className="h-4 w-4 text-gray-500" />
+                <span className="text-sm text-gray-500">最近更新: {plan.lastUpdated.split(" ")[0]}</span>
+              </div>
+            </div>
+
+            {/* 统计数据区域：上3下2布局，单元格加分隔线 */}
+            <div className="grid grid-cols-3 bg-white rounded-t-lg overflow-hidden border-t border-l border-r mt-6">
+              <div className="flex flex-col items-center justify-center py-4 border-r border-gray-200">
+                <div className="text-2xl font-bold text-gray-900 mb-1">{plan.dailyAverage}</div>
+                <div className="text-xs text-gray-500 mt-1">日均分发人数</div>
+              </div>
+              <div className="flex flex-col items-center justify-center py-4 border-r border-gray-200">
+                <div className="text-2xl font-bold text-gray-900 mb-1">{plan.deviceCount}</div>
+                <div className="text-xs text-gray-500 mt-1">分发设备</div>
+              </div>
+              <div className="flex flex-col items-center justify-center py-4">
+                <div className="text-2xl font-bold text-gray-900 mb-1">{plan.poolCount}</div>
+                <div className="text-xs text-gray-500 mt-1">流量池</div>
+              </div>
+            </div>
+            {/* 横向分隔线 */}
+            <div className="border-t border-gray-200 mx-auto w-full" style={{height: 0}} />
+            <div className="grid grid-cols-2 bg-white rounded-b-lg overflow-hidden border-b border-l border-r">
+              <div className="flex flex-col items-center justify-center py-4 border-r border-gray-200">
+                <div className="text-2xl font-bold text-gray-900 mb-1">{plan.dailyAverage}</div>
+                <div className="text-xs text-gray-500 mt-1">日均分发量</div>
+              </div>
+              <div className="flex flex-col items-center justify-center py-4">
+                <div className="text-2xl font-bold text-gray-900 mb-1">{plan.totalUsers}</div>
+                <div className="text-xs text-gray-500 mt-1">总流量池数量</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 详细信息标签页 */}
+        <Tabs defaultValue="devices" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="devices">设备</TabsTrigger>
+            <TabsTrigger value="pools">流量池</TabsTrigger>
+            <TabsTrigger value="stats">分发统计</TabsTrigger>
           </TabsList>
 
-          {/* 概览标签页 */}
-          <TabsContent value="overview" className="space-y-6">
-            {/* 数据卡片 */}
-            <div className="grid grid-cols-2 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-500">总流量</p>
-                      <p className="text-2xl font-bold text-blue-600">{planDetails.totalUsers.toLocaleString()}</p>
-                    </div>
-                    <Users className="h-8 w-8 text-blue-500" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-500">日均获取</p>
-                      <p className="text-2xl font-bold text-green-600">{planDetails.dailyAverage}</p>
-                    </div>
-                    <BarChart3 className="h-8 w-8 text-green-500" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* 图表 */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle>流量趋势</CardTitle>
-                  <Select value={timeRange} onValueChange={setTimeRange}>
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue placeholder="选择时间范围" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="7days">近7天</SelectItem>
-                      <SelectItem value="30days">近30天</SelectItem>
-                      <SelectItem value="90days">近90天</SelectItem>
-                      <SelectItem value="custom">自定义</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardHeader>
-              <CardContent className="p-4">
-                <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-                  {/* 这里可以放置实际的图表组件 */}
-                  <div className="text-center">
-                    <BarChart3 className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-gray-500">流量趋势图表</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* 基本信息 */}
+          <TabsContent value="devices" className="mt-4">
             <Card>
               <CardHeader>
-                <CardTitle>基本信息</CardTitle>
+                <CardTitle className="text-base">分发设备 ({plan.devices.length})</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">流量来源</p>
-                    <p className="font-medium">{planDetails.sourceIcon} 抖音</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">分发方式</p>
-                    <p className="font-medium">
-                      {planDetails.distributionMethod === "even"
-                        ? "均匀分发"
-                        : planDetails.distributionMethod === "priority"
-                          ? "优先级分发"
-                          : "比例分发"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">创建时间</p>
-                    <p className="font-medium">{new Date(planDetails.createdAt).toLocaleDateString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">最近更新</p>
-                    <p className="font-medium">{new Date(planDetails.lastUpdated).toLocaleDateString()}</p>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-sm text-gray-500 mb-2">目标人群</p>
-                  <div className="flex flex-wrap gap-2">
-                    {planDetails.targetGroups.map((group) => (
-                      <Badge key={group} variant="outline">
-                        {group}
+              <CardContent>
+                <div className="space-y-3">
+                  {plan.devices.map((device) => (
+                    <div key={device.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <div className="font-medium">{device.name}</div>
+                        <div className="text-sm text-gray-500">ID: {device.id}</div>
+                      </div>
+                      <Badge variant={device.status === "online" ? "success" : "secondary"}>
+                        {device.status === "online" ? "在线" : "离线"}
                       </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-sm text-gray-500 mb-2">目标设备</p>
-                  <div className="flex flex-wrap gap-2">
-                    {planDetails.devices.map((device) => (
-                      <Badge key={device} variant="outline">
-                        {device}
-                      </Badge>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* 流量记录标签页 */}
-          <TabsContent value="traffic" className="space-y-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-medium">流量记录</h2>
-              <Button variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                导出数据
-              </Button>
-            </div>
-
-            <Card>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-3">用户</th>
-                        <th className="text-left p-3">来源</th>
-                        <th className="text-left p-3">时间</th>
-                        <th className="text-left p-3">目标</th>
-                        <th className="text-left p-3">设备</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {trafficData.map((item) => (
-                        <tr key={item.id} className="border-b hover:bg-gray-50">
-                          <td className="p-3">{item.name}</td>
-                          <td className="p-3">{item.source}</td>
-                          <td className="p-3">{item.time}</td>
-                          <td className="p-3">{item.target}</td>
-                          <td className="p-3">{item.device}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex justify-center">
-              <Button variant="outline">加载更多</Button>
-            </div>
-          </TabsContent>
-
-          {/* 分发规则标签页 */}
-          <TabsContent value="rules" className="space-y-6">
+          <TabsContent value="pools" className="mt-4">
             <Card>
               <CardHeader>
-                <CardTitle>分发规则</CardTitle>
+                <CardTitle className="text-base">流量池 ({plan.pools.length})</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">分发方式</p>
-                    <p className="font-medium">
-                      {planDetails.distributionMethod === "even"
-                        ? "均匀分发"
-                        : planDetails.distributionMethod === "priority"
-                          ? "优先级分发"
-                          : "比例分发"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">每日最大分发量</p>
-                    <p className="font-medium">{planDetails.rules.maxPerDay} 人/天</p>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-sm text-gray-500">时间限制</p>
-                  <div className="flex items-center mt-1">
-                    <Clock className="h-4 w-4 mr-2 text-gray-400" />
-                    {planDetails.rules.timeRestriction === "all" ? (
-                      <p className="font-medium">全天分发</p>
-                    ) : (
-                      <p className="font-medium">
-                        {planDetails.rules.customTimeStart} - {planDetails.rules.customTimeEnd}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="border-t pt-4">
-                  <p className="text-sm text-gray-500 mb-2">目标人群优先级</p>
-                  {planDetails.distributionMethod === "priority" ? (
-                    <div className="space-y-2">
-                      {planDetails.targetGroups.map((group, index) => (
-                        <div key={group} className="flex items-center">
-                          <Badge variant="outline" className="mr-2">
-                            {index + 1}
+              <CardContent>
+                <div className="space-y-4">
+                  {plan.pools.map((pool) => (
+                    <div key={pool.id} className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-medium">{pool.name}</div>
+                        <Badge variant="outline">{pool.count} 人</Badge>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {pool.keywords.map((keyword, idx) => (
+                          <Badge key={idx} variant="secondary" className="bg-white">
+                            {keyword}
                           </Badge>
-                          <span>{group}</span>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  ) : (
-                    <p className="text-gray-500">当前分发方式不使用优先级</p>
-                  )}
+                  ))}
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-                <div className="border-t pt-4">
-                  <p className="text-sm text-gray-500 mb-2">分发比例设置</p>
-                  {planDetails.distributionMethod === "ratio" ? (
-                    <div className="space-y-2">
-                      {planDetails.targetGroups.map((group) => (
-                        <div key={group} className="flex items-center justify-between">
-                          <span>{group}</span>
-                          <Badge>{Math.floor(100 / planDetails.targetGroups.length)}%</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500">当前分发方式不使用比例设置</p>
-                  )}
+          <TabsContent value="stats" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">分发统计</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64 w-full">
+                  {/* 这里可以放置图表组件，例如使用 recharts 或其他图表库 */}
+                  <div className="h-full flex items-end justify-between gap-2">
+                    {plan.dailyStats.map((stat, idx) => (
+                      <div key={idx} className="flex flex-col items-center">
+                        <div
+                          className="bg-blue-500 rounded-t-sm w-10"
+                          style={{ height: `${(stat.distributed / 120) * 100}%` }}
+                        ></div>
+                        <div className="text-xs mt-1">{stat.date}</div>
+                        <div className="text-xs font-medium">{stat.distributed}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+                <div className="text-center mt-4 text-sm text-gray-500">最近7天分发数据统计</div>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
+
+      <BottomNav />
     </div>
   )
 }
-

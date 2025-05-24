@@ -51,6 +51,19 @@ interface SyncHistory {
   errorMessage?: string
 }
 
+// 新增朋友圈发布记录类型
+type MomentRecord = {
+  id: number
+  workbenchId: number
+  publishTime: number
+  contentType: number // 1文本 2视频 3图片
+  content: string
+  resUrls: string[]
+  urls: string[]
+  operatorName: string
+  operatorAvatar: string
+}
+
 export default function MomentsSyncDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [taskDetail, setTaskDetail] = useState<TaskDetail | null>(null)
@@ -58,13 +71,15 @@ export default function MomentsSyncDetailPage({ params }: { params: { id: string
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("overview")
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
+  const [momentRecords, setMomentRecords] = useState<MomentRecord[]>([])
+  const [isMomentLoading, setIsMomentLoading] = useState(false)
   
   // 获取任务详情
   useEffect(() => {
     const fetchTaskDetail = async () => {
       setIsLoading(true)
       try {
-        const response = await api.get<ApiResponse>(`/v1/workbench/detail?id=${params.id}`)
+        const response = await api.get<ApiResponse>(`/v1/workbench/moments-records?workbenchId=${params.id}`)
         if (response.code === 200 && response.data) {
           setTaskDetail(response.data)
           
@@ -103,11 +118,32 @@ export default function MomentsSyncDetailPage({ params }: { params: { id: string
     }
   }
 
+  // 获取朋友圈发布记录
+  type MomentsApiResponse = { code: number; msg: string; data: { list: MomentRecord[] } }
+  const fetchMomentRecords = async () => {
+    setIsMomentLoading(true)
+    try {
+      const response = await api.get<MomentsApiResponse>(`/v1/workbench/moments-records?workbenchId=${params.id}`)
+      if (response.code === 200 && response.data) {
+        setMomentRecords(response.data.list || [])
+      } else {
+        setMomentRecords([])
+      }
+    } catch (error) {
+      setMomentRecords([])
+    } finally {
+      setIsMomentLoading(false)
+    }
+  }
+
   // 切换Tab时加载数据
   const handleTabChange = (value: string) => {
     setActiveTab(value)
     if (value === "history" && syncHistory.length === 0) {
       fetchSyncHistory()
+    }
+    if (value === "moments" && momentRecords.length === 0) {
+      fetchMomentRecords()
     }
   }
 
@@ -275,10 +311,11 @@ export default function MomentsSyncDetailPage({ params }: { params: { id: string
         </Card>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-4">
-          <TabsList className="grid grid-cols-3">
+          <TabsList className="grid grid-cols-4">
             <TabsTrigger value="overview">基本信息</TabsTrigger>
             <TabsTrigger value="devices">设备列表</TabsTrigger>
             <TabsTrigger value="history">同步历史</TabsTrigger>
+            <TabsTrigger value="moments">发布记录</TabsTrigger>
           </TabsList>
           
           <TabsContent value="overview" className="mt-4">
@@ -379,6 +416,65 @@ export default function MomentsSyncDetailPage({ params }: { params: { id: string
                           错误信息: {record.errorMessage}
                         </div>
                       )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="moments" className="mt-4">
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-medium">朋友圈发布记录</h3>
+                <Button variant="outline" size="sm" onClick={fetchMomentRecords} disabled={isMomentLoading}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  刷新
+                </Button>
+              </div>
+              {isMomentLoading ? (
+                <div className="text-center py-8 text-gray-500">加载中...</div>
+              ) : momentRecords.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">暂无发布记录</div>
+              ) : (
+                <div className="space-y-4">
+                  {momentRecords.map((rec) => (
+                    <div key={rec.id} className="border rounded-lg p-3 flex gap-3">
+                      <Avatar className="h-10 w-10">
+                        {rec.operatorAvatar ? (
+                          <img src={rec.operatorAvatar} alt={rec.operatorName} />
+                        ) : (
+                          <div className="bg-blue-100 text-blue-600 h-full w-full flex items-center justify-center">
+                            {rec.operatorName?.charAt(0) || "?"}
+                          </div>
+                        )}
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-sm">{rec.operatorName}</span>
+                          <span className="text-xs text-gray-400">{rec.publishTime ? new Date(rec.publishTime * 1000).toLocaleString() : "-"}</span>
+                        </div>
+                        <div className="mb-1 text-gray-800 text-sm">
+                          {rec.contentType === 1 && rec.content}
+                          {rec.contentType === 3 && rec.content}
+                        </div>
+                        {/* 图片展示 */}
+                        {rec.contentType === 3 && rec.resUrls && rec.resUrls.length > 0 && (
+                          <div className="flex gap-2 flex-wrap mt-1">
+                            {rec.resUrls.map((url, idx) => (
+                              <img key={idx} src={url} alt="图片" className="h-20 w-20 object-cover rounded" />
+                            ))}
+                          </div>
+                        )}
+                        {/* 视频展示 */}
+                        {rec.contentType === 2 && rec.urls && rec.urls.length > 0 && (
+                          <div className="mt-1">
+                            {rec.urls.map((url, idx) => (
+                              <video key={idx} src={url} controls className="h-32 w-48 rounded" />
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

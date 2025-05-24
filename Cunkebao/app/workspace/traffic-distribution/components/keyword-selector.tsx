@@ -177,4 +177,3 @@ export default function KeywordSelector({ onSelect, initialSelected = [] }: Keyw
     </div>
   )
 }
-
