@@ -141,6 +141,70 @@ class Adapter implements WeChatServiceInterface
         return true;
     }
 
+    // checkIfIsWeChatFriend
+    public function checkIfIsWeChatFriendByPhone(string $wxId, string $phone): bool
+    {
+        if (empty($wxId) || empty($phone)) {
+            // Avoid queries with empty essential parameters.
+            return false;
+        }
+
+        try {
+            // The SQL hint provided is:
+            // SELECT ownerWechatId, phone, passTime, createTime
+            // FROM `s2_wechat_friend`
+            // WHERE ownerWechatId = '您的微信ID'  -- Corresponds to $wxId
+            //   AND phone LIKE 'phone%'        -- Corresponds to $phone . '%'
+            // ORDER BY createTime DESC;
+
+            // $friendRecord = Db::table('s2_wechat_friend')
+            //     ->where('ownerWechatId', $wxId)
+            //     ->where('phone', 'like', $phone . '%') // Match phone numbers starting with $phone
+            //     ->order('createTime', 'desc')          // Order by creation time as hinted
+            //     ->find(); // Fetches the first matching record or null
+            $friendRecord = Db::table('s2_wechat_friend')
+                ->where('ownerWechatId', $wxId)
+                ->where('phone', 'like', $phone . '%') // Match phone numbers starting with $phone
+                ->order('createTime', 'desc')          // Order by creation time as hinted
+                // ->column('id');
+                ->value('id');
+
+            // If a record is found, $friendRecord will not be empty.
+            return !empty($friendRecord);
+        } catch (\Exception $e) {
+            // Log the exception for diagnostics.
+            Log::error("Error in checkIfIsWeChatFriendByPhone (wxId: {$wxId}, phone: {$phone}): " . $e->getMessage());
+            // Return false in case of an error, indicating not a friend or unable to determine.
+            return false;
+        }
+    }
+
+    // getWeChatFriendPassTimeByPhone
+    public function getWeChatFriendPassTimeByPhone(string $wxId, string $phone): int
+    {
+        if (empty($wxId) || empty($phone)) {
+            return 0;
+        }
+
+        try {
+            // $passTime = Db::table('s2_wechat_friend')
+            //     ->where('ownerWechatId', $wxId)
+            //     ->where('phone', 'like', $phone . '%') // Match phone numbers starting with $phone
+            //     ->order('createTime', 'desc')          // Order by creation time as hinted
+            //     ->value('passTime');
+            $record = Db::table('s2_wechat_friend')
+                ->where('ownerWechatId', $wxId)
+                ->where('phone', 'like', $phone . '%') // Match phone numbers starting with $phone
+                ->field('id,createTime,passTime')         // Order by creation time as hinted
+                ->find();
+
+            return $record['passTime'] ?? $record['createTime'] ?? 0;
+        } catch (\Exception $e) {
+            Log::error("Error in getWeChatFriendPassTimeByPhone (wxId: {$wxId}, phone: {$phone}): " . $e->getMessage());
+            return 0;
+        }
+    }
+
 
     /* todo 以上方法待实现，基于/参考 application/api/controller/WebSocketController.php 去实现 */
 
@@ -274,7 +338,7 @@ class Adapter implements WeChatServiceInterface
 
             foreach ($cursor as $item) {
 
-                if (empty($item['deviceId']) || empty($item['wechatId'])) {
+                if (empty($item['deviceId']) || empty($item['wechatId']) || empty($item['companyId'])) {
                     continue;
                 }
 
@@ -282,6 +346,7 @@ class Adapter implements WeChatServiceInterface
                 $exists = Db::table('ck_device_wechat_login')
                     ->where('deviceId', $item['deviceId'])
                     ->where('wechatId', $item['wechatId'])
+                    ->where('companyId', $item['companyId'])
                     // ->where('createTime', $item['createTime'])
                     ->find();
 
@@ -289,6 +354,7 @@ class Adapter implements WeChatServiceInterface
                     Db::table('ck_device_wechat_login')
                         ->where('deviceId', $item['deviceId'])
                         ->where('wechatId', $item['wechatId'])
+                        ->where('companyId', $item['companyId'])
                         ->update(['alive' => $item['alive'], 'updateTime' => $item['updateTime']]);
                 } else {
                     $item['createTime'] = $item['updateTime'];
@@ -602,7 +668,7 @@ class Adapter implements WeChatServiceInterface
                 `updateTime` = VALUES(`updateTime`),
                 `deleteTime` = VALUES(`deleteTime`),
                 `companyId` = VALUES(`companyId`)";
-                
+
             $affected = Db::execute($sql);
             return $affected;
         } catch (\Exception $e) {
