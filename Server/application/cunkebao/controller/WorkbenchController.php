@@ -10,6 +10,7 @@ use app\cunkebao\model\WorkbenchGroupCreate;
 use app\cunkebao\validate\Workbench as WorkbenchValidate;
 use think\Controller;
 use think\Db;
+use app\cunkebao\model\WorkbenchTrafficConfig;
 
 /**
  * 工作台控制器
@@ -23,6 +24,7 @@ class WorkbenchController extends Controller
     const TYPE_MOMENTS_SYNC = 2;    // 朋友圈同步
     const TYPE_GROUP_PUSH = 3;      // 群消息推送
     const TYPE_GROUP_CREATE = 4;    // 自动建群
+    const TYPE_TRAFFIC_DISTRIBUTION = 5;    // 流量分发
 
     /**
      * 创建工作台
@@ -81,7 +83,6 @@ class WorkbenchController extends Controller
                     $config->updateTime = time();
                     $config->save();
                     break;
-
                 case self::TYPE_MOMENTS_SYNC: // 朋友圈同步
                     $config = new WorkbenchMomentsSync;
                     $config->workbenchId = $workbench->id;
@@ -97,7 +98,6 @@ class WorkbenchController extends Controller
                     $config->updateTime = time();
                     $config->save();
                     break;
-
                 case self::TYPE_GROUP_PUSH: // 群消息推送
                     $config = new WorkbenchGroupPush;
                     $config->workbenchId = $workbench->id;
@@ -108,7 +108,6 @@ class WorkbenchController extends Controller
                     $config->targetGroups = json_encode($param['targetGroups']);
                     $config->save();
                     break;
-
                 case self::TYPE_GROUP_CREATE: // 自动建群
                     $config = new WorkbenchGroupCreate;
                     $config->workbenchId = $workbench->id;
@@ -117,6 +116,19 @@ class WorkbenchController extends Controller
                     $config->membersPerGroup = $param['membersPerGroup'];
                     $config->devices = json_encode($param['devices']);
                     $config->targetGroups = json_encode($param['targetGroups']);
+                    $config->createTime = time();
+                    $config->updateTime = time();
+                    $config->save();
+                    break;
+                case self::TYPE_TRAFFIC_DISTRIBUTION: // 流量分发
+                    $config = new WorkbenchTrafficConfig;
+                    $config->workbenchId = $workbench->id;
+                    $config->distributeType = $param['distributeType'];
+                    $config->maxPerDay = $param['maxPerDay'];
+                    $config->timeType = $param['timeType'];
+                    $config->startTime = $param['startTime'];
+                    $config->endTime = $param['endTime'];
+                    $config->devices = json_encode($param['devices'], JSON_UNESCAPED_UNICODE);
                     $config->createTime = time();
                     $config->updateTime = time();
                     $config->save();
@@ -165,6 +177,9 @@ class WorkbenchController extends Controller
             'momentsSync' => function($query) {
                 $query->field('workbenchId,syncInterval,syncCount,syncType,startTime,endTime,accountType,devices,contentLibraries');
             },
+            'trafficConfig' => function($query) {
+                $query->field('workbenchId,distributeType,maxPerDay,timeType,startTime,endTime,devices,pools');
+            },
             'user' => function($query) {
                 $query->field('id,username');
             }
@@ -183,7 +198,6 @@ class WorkbenchController extends Controller
                         if (!empty($item->autoLike)) {
                             $item->config = $item->autoLike;
                             $item->config->devices = json_decode($item->config->devices, true);
-                            //$item->config->targetGroups = json_decode($item->config->targetGroups, true);
                             $item->config->contentTypes =  json_decode($item->config->contentTypes, true);
                             $item->config->friends = json_decode($item->config->friends, true);
                             
@@ -239,6 +253,14 @@ class WorkbenchController extends Controller
                             $item->config->targetGroups = json_decode($item->config->targetGroups, true);
                         }
                         unset($item->groupCreate,$item->group_create);
+                        break;
+                    case self::TYPE_TRAFFIC_DISTRIBUTION:
+                        if (!empty($item->trafficConfig)) {
+                            $item->config = $item->trafficConfig;
+                            $item->config->devices = json_decode($item->config->devices, true);
+                            $item->config->pools = json_decode($item->config->pools, true);
+                        }
+                        unset($item->trafficConfig,$item->traffic_config);
                         break;
                 }
                 // 添加创建人名称
@@ -712,5 +734,357 @@ class WorkbenchController extends Controller
                 'limit' => $limit
             ]
         ]);
+    }
+
+    /**
+     * 获取朋友圈发布记录列表
+     * @return \think\response\Json
+     */
+    public function getMomentsRecords()
+    {
+        $page = $this->request->param('page', 1);
+        $limit = $this->request->param('limit', 10);
+        $workbenchId = $this->request->param('workbenchId', 0);
+
+        $where = [
+            ['wmsi.workbenchId', '=', $workbenchId]
+        ];
+
+        // 查询发布记录
+        $list = Db::name('workbench_moments_sync_item')->alias('wmsi')
+            ->join('content_item ci', 'ci.id = wmsi.contentId', 'left')
+            ->join(['s2_wechat_account' => 'wa'], 'wa.id = wmsi.wechatAccountId', 'left')
+            ->field([
+                'wmsi.id',
+                'wmsi.workbenchId',
+                'wmsi.createTime as publishTime',
+                'ci.contentType',
+                'ci.content',
+                'ci.resUrls',
+                'ci.urls',
+                'wa.nickName as operatorName',
+                'wa.avatar as operatorAvatar'
+            ])
+            ->where($where)
+            ->order('wmsi.createTime', 'desc')
+            ->page($page, $limit)
+            ->select();
+
+            foreach ($list as &$item) {
+                $item['resUrls'] = json_decode($item['resUrls'], true);
+                $item['urls'] = json_decode($item['urls'], true);
+            }
+            
+
+
+        // 获取总记录数
+        $total = Db::name('workbench_moments_sync_item')->alias('wmsi')
+            ->where($where)
+            ->count();
+
+        return json([
+            'code' => 200,
+            'msg' => '获取成功',
+            'data' => [
+                'list' => $list,
+                'total' => $total,
+                'page' => $page,
+                'limit' => $limit
+            ]
+        ]);
+    }
+
+    /**
+     * 获取朋友圈发布统计
+     * @return \think\response\Json
+     */
+    public function getMomentsStats()
+    {
+        $workbenchId = $this->request->param('workbenchId', 0);
+        if (empty($workbenchId)) {
+            return json(['code' => 400, 'msg' => '参数错误']);
+        }
+
+        // 获取今日数据
+        $todayStart = strtotime(date('Y-m-d') . ' 00:00:00');
+        $todayEnd = strtotime(date('Y-m-d') . ' 23:59:59');
+        
+        $todayStats = Db::name('workbench_moments_sync_item')
+            ->where([
+                ['workbenchId', '=', $workbenchId],
+                ['createTime', 'between', [$todayStart, $todayEnd]]
+            ])
+            ->field([
+                'COUNT(*) as total',
+                'SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as success',
+                'SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) as failed'
+            ])
+            ->find();
+
+        // 获取总数据
+        $totalStats = Db::name('workbench_moments_sync_item')
+            ->where('workbenchId', $workbenchId)
+            ->field([
+                'COUNT(*) as total',
+                'SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as success',
+                'SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) as failed'
+            ])
+            ->find();
+
+        return json([
+            'code' => 200,
+            'msg' => '获取成功',
+            'data' => [
+                'today' => [
+                    'total' => intval($todayStats['total']),
+                    'success' => intval($todayStats['success']),
+                    'failed' => intval($todayStats['failed'])
+                ],
+                'total' => [
+                    'total' => intval($totalStats['total']),
+                    'success' => intval($totalStats['success']),
+                    'failed' => intval($totalStats['failed'])
+                ]
+            ]
+        ]);
+    }
+
+    /**
+     * 获取流量分发记录列表
+     * @return \think\response\Json
+     */
+    public function getTrafficDistributionRecords()
+    {
+        $page = $this->request->param('page', 1);
+        $limit = $this->request->param('limit', 10);
+        $workbenchId = $this->request->param('workbenchId', 0);
+
+        $where = [
+            ['wtdi.workbenchId', '=', $workbenchId]
+        ];
+
+        // 查询分发记录
+        $list = Db::name('workbench_traffic_distribution_item')->alias('wtdi')
+            ->join(['s2_wechat_account' => 'wa'], 'wa.id = wtdi.wechatAccountId', 'left')
+            ->join(['s2_wechat_friend' => 'wf'], 'wf.id = wtdi.wechatFriendId', 'left')
+            ->field([
+                'wtdi.id',
+                'wtdi.workbenchId',
+                'wtdi.wechatAccountId',
+                'wtdi.wechatFriendId',
+                'wtdi.createTime as distributeTime',
+                'wtdi.status',
+                'wtdi.errorMsg',
+                'wa.nickName as operatorName',
+                'wa.avatar as operatorAvatar',
+                'wf.nickName as friendName',
+                'wf.avatar as friendAvatar',
+                'wf.gender',
+                'wf.province',
+                'wf.city'
+            ])
+            ->where($where)
+            ->order('wtdi.createTime', 'desc')
+            ->page($page, $limit)
+            ->select();
+
+        // 处理数据
+        foreach ($list as &$item) {
+            // 处理时间格式
+            $item['distributeTime'] = date('Y-m-d H:i:s', $item['distributeTime']);
+            
+            // 处理性别
+            $genderMap = [
+                0 => '未知',
+                1 => '男',
+                2 => '女'
+            ];
+            $item['genderText'] = $genderMap[$item['gender']] ?? '未知';
+
+            // 处理状态文字
+            $statusMap = [
+                0 => '待分发',
+                1 => '分发成功',
+                2 => '分发失败'
+            ];
+            $item['statusText'] = $statusMap[$item['status']] ?? '未知状态';
+        }
+
+        // 获取总记录数
+        $total = Db::name('workbench_traffic_distribution_item')->alias('wtdi')
+            ->where($where)
+            ->count();
+
+        return json([
+            'code' => 200,
+            'msg' => '获取成功',
+            'data' => [
+                'list' => $list,
+                'total' => $total,
+                'page' => $page,
+                'limit' => $limit
+            ]
+        ]);
+    }
+
+    /**
+     * 获取流量分发统计
+     * @return \think\response\Json
+     */
+    public function getTrafficDistributionStats()
+    {
+        $workbenchId = $this->request->param('workbenchId', 0);
+        if (empty($workbenchId)) {
+            return json(['code' => 400, 'msg' => '参数错误']);
+        }
+
+        // 获取今日数据
+        $todayStart = strtotime(date('Y-m-d') . ' 00:00:00');
+        $todayEnd = strtotime(date('Y-m-d') . ' 23:59:59');
+        
+        $todayStats = Db::name('workbench_traffic_distribution_item')
+            ->where([
+                ['workbenchId', '=', $workbenchId],
+                ['createTime', 'between', [$todayStart, $todayEnd]]
+            ])
+            ->field([
+                'COUNT(*) as total',
+                'SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as success',
+                'SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) as failed'
+            ])
+            ->find();
+
+        // 获取总数据
+        $totalStats = Db::name('workbench_traffic_distribution_item')
+            ->where('workbenchId', $workbenchId)
+            ->field([
+                'COUNT(*) as total',
+                'SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as success',
+                'SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) as failed'
+            ])
+            ->find();
+
+        return json([
+            'code' => 200,
+            'msg' => '获取成功',
+            'data' => [
+                'today' => [
+                    'total' => intval($todayStats['total']),
+                    'success' => intval($todayStats['success']),
+                    'failed' => intval($todayStats['failed'])
+                ],
+                'total' => [
+                    'total' => intval($totalStats['total']),
+                    'success' => intval($totalStats['success']),
+                    'failed' => intval($totalStats['failed'])
+                ]
+            ]
+        ]);
+    }
+
+    /**
+     * 获取流量分发详情
+     * @return \think\response\Json
+     */
+    public function getTrafficDistributionDetail()
+    {
+        $id = $this->request->param('id', 0);
+        if (empty($id)) {
+            return json(['code' => 400, 'msg' => '参数错误']);
+        }
+
+        $detail = Db::name('workbench_traffic_distribution_item')->alias('wtdi')
+            ->join(['s2_wechat_account' => 'wa'], 'wa.id = wtdi.wechatAccountId', 'left')
+            ->join(['s2_wechat_friend' => 'wf'], 'wf.id = wtdi.wechatFriendId', 'left')
+            ->field([
+                'wtdi.id',
+                'wtdi.workbenchId',
+                'wtdi.wechatAccountId',
+                'wtdi.wechatFriendId',
+                'wtdi.createTime as distributeTime',
+                'wtdi.status',
+                'wtdi.errorMsg',
+                'wa.nickName as operatorName',
+                'wa.avatar as operatorAvatar',
+                'wf.nickName as friendName',
+                'wf.avatar as friendAvatar',
+                'wf.gender',
+                'wf.province',
+                'wf.city',
+                'wf.signature',
+                'wf.remark'
+            ])
+            ->where('wtdi.id', $id)
+            ->find();
+
+        if (empty($detail)) {
+            return json(['code' => 404, 'msg' => '记录不存在']);
+        }
+
+        // 处理数据
+        $detail['distributeTime'] = date('Y-m-d H:i:s', $detail['distributeTime']);
+        
+        // 处理性别
+        $genderMap = [
+            0 => '未知',
+            1 => '男',
+            2 => '女'
+        ];
+        $detail['genderText'] = $genderMap[$detail['gender']] ?? '未知';
+
+        // 处理状态文字
+        $statusMap = [
+            0 => '待分发',
+            1 => '分发成功',
+            2 => '分发失败'
+        ];
+        $detail['statusText'] = $statusMap[$detail['status']] ?? '未知状态';
+
+        return json([
+            'code' => 200,
+            'msg' => '获取成功',
+            'data' => $detail
+        ]);
+    }
+
+    /**
+     * 创建流量分发计划
+     * @return \think\response\Json
+     */
+    public function createTrafficPlan()
+    {
+        $param = $this->request->post();
+        Db::startTrans();
+        try {
+            // 1. 创建主表
+            $planId = Db::name('ck_workbench')->insertGetId([
+                'name' => $param['name'],
+                'type' => self::TYPE_TRAFFIC_DISTRIBUTION,
+                'status' => 1,
+                'autoStart' => $param['autoStart'] ?? 0,
+                'userId' => $this->request->userInfo['id'],
+                'companyId' => $this->request->userInfo['companyId'],
+                'createTime' => time(),
+                'updateTime' => time()
+            ]);
+            // 2. 创建扩展表
+            Db::name('ck_workbench_traffic_config')->insert([
+                'workbenchId' => $planId,
+                'distributeType' => $param['distributeType'],
+                'maxPerDay' => $param['maxPerDay'],
+                'timeType' => $param['timeType'],
+                'startTime' => $param['startTime'],
+                'endTime' => $param['endTime'],
+                'targets' => json_encode($param['targets'], JSON_UNESCAPED_UNICODE),
+                'pools' => json_encode($param['pools'], JSON_UNESCAPED_UNICODE),
+                'createTime' => time(),
+                'updateTime' => time()
+            ]);
+            Db::commit();
+            return json(['code'=>200, 'msg'=>'创建成功']);
+        } catch (\Exception $e) {
+            Db::rollback();
+            return json(['code'=>500, 'msg'=>'创建失败:'.$e->getMessage()]);
+        }
     }
 } 

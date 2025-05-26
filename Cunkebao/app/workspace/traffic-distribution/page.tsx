@@ -69,6 +69,7 @@ export default function TrafficDistributionPage() {
     try {
       setLoading(true)
       const queryParams = new URLSearchParams({
+        type: "5",
         page: page.toString(),
         limit: pageSize.toString()
       })
@@ -77,7 +78,7 @@ export default function TrafficDistributionPage() {
         queryParams.append('keyword', searchTerm)
       }
       
-      const response = await api.get<ApiResponse>(`/v1/traffic-distribution/list?${queryParams.toString()}`)
+      const response = await api.get<ApiResponse>(`/v1/workbench/list?${queryParams.toString()}`)
       
       if (response.code === 200) {
         setPlans(response.data.list)
@@ -242,7 +243,7 @@ export default function TrafficDistributionPage() {
                         <Badge variant={plan.status === "active" ? "success" : "secondary"}>
                           {plan.status === "active" ? "进行中" : "已暂停"}
                         </Badge>
-                        {plan.targetGroups.map((group, index) => (
+                        {plan.config.pools.map((group, index) => (
                           <Badge key={index} variant="outline">
                             {group}
                           </Badge>
@@ -321,9 +322,9 @@ export default function TrafficDistributionPage() {
                 <div className="p-3 bg-gray-50 text-sm text-gray-500 flex items-center justify-between">
                   <div className="flex items-center">
                     <Clock className="h-4 w-4 mr-1" />
-                    <span>上次执行: {plan.lastUpdated.split(" ")[0]}</span>
+                    <span>上次执行: {plan.lastUpdated}</span>
                   </div>
-                  <div>创建人: {plan.creator}</div>
+                  <div>创建人: {plan.creatorName}</div>
                 </div>
               </Card>
             ))}

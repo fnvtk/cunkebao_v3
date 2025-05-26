@@ -63,6 +63,7 @@ Route::group('v1/', function () {
         Route::get('detail', 'app\cunkebao\controller\WorkbenchController@detail'); // 获取工作台详情
         Route::post('update', 'app\cunkebao\controller\WorkbenchController@update'); // 更新工作台
         Route::get('like-records', 'app\cunkebao\controller\WorkbenchController@getLikeRecords'); // 获取点赞记录列表
+        Route::get('moments-records', 'app\cunkebao\controller\WorkbenchController@getMomentsRecords'); // 获取朋友圈发布记录列表
     });
 
     // 内容库相关

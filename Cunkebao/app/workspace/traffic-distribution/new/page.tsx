@@ -99,7 +99,7 @@ export default function NewTrafficDistribution() {
     const loadingToast = showToast("正在创建分发计划...", "loading", true);
     try {
       const response = await api.post<ApiResponse>('/v1/workbench/create', {
-        type: 2, // 2表示流量分发任务
+        type: 5, // 5表示流量分发任务
         name: finalData.basicInfo.name,
         source: finalData.basicInfo.source,
         sourceIcon: finalData.basicInfo.sourceIcon,
@@ -110,7 +110,7 @@ export default function NewTrafficDistribution() {
         startTime: finalData.basicInfo.startTime,
         endTime: finalData.basicInfo.endTime,
         targetGroups: finalData.targetSettings.targetGroups,
-        targets: finalData.targetSettings.targets,
+        devices: finalData.targetSettings.devices,
         pools: finalData.trafficPool.poolIds,
         enabled: true, // 默认启用
       })

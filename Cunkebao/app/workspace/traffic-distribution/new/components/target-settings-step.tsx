@@ -55,7 +55,7 @@ export default function TargetSettingsStep({ onNext, onBack, initialData = {} }:
 
   const handleSubmit = () => {
     onNext({
-      targets: selectedDeviceIds,
+      devices: selectedDeviceIds,
     })
   }
 

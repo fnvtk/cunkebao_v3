@@ -56,6 +56,13 @@ class Workbench extends Model
         return $this->hasOne('WorkbenchGroupCreate', 'workbenchId', 'id');
     }
  
+    // 流量分发配置关联
+    public function trafficConfig()
+    {
+        return $this->hasOne('WorkbenchTrafficConfig', 'workbenchId', 'id');
+    }
+
+
     /**
      * 用户关联
      */

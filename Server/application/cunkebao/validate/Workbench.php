@@ -11,13 +11,14 @@ class Workbench extends Validate
     const TYPE_MOMENTS_SYNC = 2;    // 朋友圈同步
     const TYPE_GROUP_PUSH = 3;      // 群消息推送
     const TYPE_GROUP_CREATE = 4;    // 自动建群
+    const TYPE_TRAFFIC_DISTRIBUTION = 5;    // 流量分发
 
     /**
      * 验证规则
      */
     protected $rule = [
         'name' => 'require|max:100',
-        'type' => 'require|in:1,2,3,4',
+        'type' => 'require|in:1,2,3,4,5',
         //'autoStart' => 'require|boolean',
         // 自动点赞特有参数
         'interval' => 'requireIf:type,1|number|min:1',
@@ -44,6 +45,12 @@ class Workbench extends Validate
         'membersPerGroup' => 'requireIf:type,4|number|min:1',
         // 通用参数
         'devices' => 'require|array',
+        // 流量分发特有参数
+        'distributeType' => 'requireIf:type,5|in:1,2',
+        'maxPerDay' => 'requireIf:type,5|number|min:1',
+        'timeType' => 'requireIf:type,5|in:1,2',
+        'startTime' => 'requireIf:type,5|dateFormat:H:i',
+        'endTime' => 'requireIf:type,5|dateFormat:H:i',
     ];
 
     /**
@@ -104,6 +111,14 @@ class Workbench extends Validate
         'membersPerGroup.requireIf' => '请设置每个群的人数',
         'membersPerGroup.number' => '每个群的人数必须为数字',
         'membersPerGroup.min' => '每个群的人数必须大于0',
+        // 流量分发相关提示
+        'distributeType.requireIf' => '请选择流量分发类型',
+        'distributeType.in' => '流量分发类型错误',
+        'maxPerDay.requireIf' => '请设置每日最大流量',
+        'maxPerDay.number' => '每日最大流量必须为数字',
+        'maxPerDay.min' => '每日最大流量必须大于0',
+        'timeType.requireIf' => '请选择时间类型',
+
         // 通用提示
         'devices.require' => '请选择设备',
         'devices.array' => '设备格式错误',
