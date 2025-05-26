@@ -301,7 +301,7 @@ class WorkbenchAutoLikeJob
                 ['wm.wechatFriendId', '=', $friendId],
                 ['wali.id', 'null', null]
             ])
-            ->where('wm.createTime', '>=', time() - 86400 * 3)
+            ->where('wm.create_time', '>=', time() - 86400 * 3)
             ->field('wm.id, wm.snsId')
             ->group('wali.wechatFriendId')
             ->order('wm.createTime DESC')
