@@ -171,7 +171,7 @@ export default function DistributionPlanDetailPage({ params }: { params: { id: s
                 <div className="text-2xl font-bold text-gray-900 mb-1">{plan.poolCount}</div>
                 <div className="text-xs text-gray-500 mt-1">流量池</div>
               </div>
-            </div>
+                </div>
             {/* 横向分隔线 */}
             <div className="border-t border-gray-200 mx-auto w-full" style={{height: 0}} />
             <div className="grid grid-cols-2 bg-white rounded-b-lg overflow-hidden border-b border-l border-r">

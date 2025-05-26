@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import {
   ChevronLeft,
@@ -15,13 +15,19 @@ import {
   Users,
   Database,
   Clock,
+  Search,
+  Filter,
+  RefreshCw,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
 import BottomNav from "@/app/components/BottomNav"
+import { api } from "@/lib/api"
+import { showToast } from "@/lib/toast"
 
 interface DistributionPlan {
   id: string
@@ -39,61 +45,86 @@ interface DistributionPlan {
   creator: string
 }
 
+interface ApiResponse {
+  code: number
+  msg: string
+  data: {
+    list: DistributionPlan[]
+    total: number
+  }
+}
+
 export default function TrafficDistributionPage() {
   const router = useRouter()
-  const [plans, setPlans] = useState<DistributionPlan[]>([
-    {
-      id: "1",
-      name: "抖音直播引流计划",
-      status: "active",
-      source: "douyin",
-      sourceIcon: "🎬",
-      targetGroups: ["新客户", "潜在客户"],
-      totalUsers: 1250,
-      dailyAverage: 85,
-      deviceCount: 3,
-      poolCount: 2,
-      lastUpdated: "2024-03-18 10:30:00",
-      createTime: "2024-03-10 08:30:00",
-      creator: "admin",
-    },
-    {
-      id: "2",
-      name: "小红书种草计划",
-      status: "active",
-      source: "xiaohongshu",
-      sourceIcon: "📱",
-      targetGroups: ["女性用户", "美妆爱好者"],
-      totalUsers: 980,
-      dailyAverage: 65,
-      deviceCount: 2,
-      poolCount: 1,
-      lastUpdated: "2024-03-17 14:20:00",
-      createTime: "2024-03-12 09:15:00",
-      creator: "marketing",
-    },
-    {
-      id: "3",
-      name: "微信社群活动",
-      status: "paused",
-      source: "wechat",
-      sourceIcon: "💬",
-      targetGroups: ["老客户", "会员"],
-      totalUsers: 2340,
-      dailyAverage: 0,
-      deviceCount: 5,
-      poolCount: 3,
-      lastUpdated: "2024-03-15 09:45:00",
-      createTime: "2024-02-28 11:20:00",
-      creator: "social",
-    },
-  ])
+  const [loading, setLoading] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [plans, setPlans] = useState<DistributionPlan[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const pageSize = 10
 
-  // 直接使用plans而不是filteredPlans
-  const plansList = plans
+  // 加载分发计划数据
+  const fetchPlans = async (page: number, searchTerm?: string) => {
+    const loadingToast = showToast("正在加载分发计划...", "loading", true);
+    try {
+      setLoading(true)
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: pageSize.toString()
+      })
+      
+      if (searchTerm) {
+        queryParams.append('keyword', searchTerm)
+      }
+      
+      const response = await api.get<ApiResponse>(`/v1/traffic-distribution/list?${queryParams.toString()}`)
+      
+      if (response.code === 200) {
+        setPlans(response.data.list)
+        setTotal(response.data.total)
+      } else {
+        showToast(response.msg || "获取分发计划失败", "error")
+      }
+    } catch (error: any) {
+      console.error("获取分发计划失败:", error)
+      showToast(error?.message || "请检查网络连接", "error")
+    } finally {
+      loadingToast.remove();
+      setLoading(false)
+    }
+  }
 
-  const handleDelete = (planId: string) => {
-    setPlans(plans.filter((plan) => plan.id !== planId))
+  useEffect(() => {
+    fetchPlans(currentPage, searchTerm)
+  }, [currentPage])
+
+  const handleSearch = () => {
+    setCurrentPage(1)
+    fetchPlans(1, searchTerm)
+  }
+
+  const handleRefresh = () => {
+    fetchPlans(currentPage, searchTerm)
+  }
+
+  const handleDelete = async (planId: string) => {
+    const loadingToast = showToast("正在删除计划...", "loading", true);
+    try {
+      const response = await api.delete<ApiResponse>(`/v1/traffic-distribution/delete?id=${planId}`)
+
+      if (response.code === 200) {
+        loadingToast.remove();
+        fetchPlans(currentPage, searchTerm)
+        showToast(response.msg || "已成功删除分发计划", "success")
+      } else {
+        loadingToast.remove();
+        showToast(response.msg || "请稍后再试", "error")
+      }
+    } catch (error: any) {
+      console.error("删除计划失败:", error)
+      loadingToast.remove();
+      showToast(error?.message || "请检查网络连接", "error")
+    }
   }
 
   const handleEdit = (planId: string) => {
@@ -104,12 +135,33 @@ export default function TrafficDistributionPage() {
     router.push(`/workspace/traffic-distribution/${planId}`)
   }
 
-  const togglePlanStatus = (planId: string) => {
-    setPlans(
-      plans.map((plan) =>
-        plan.id === planId ? { ...plan, status: plan.status === "active" ? "paused" : "active" } : plan,
-      ),
-    )
+  const togglePlanStatus = async (planId: string, currentStatus: "active" | "paused") => {
+    const loadingToast = showToast("正在更新计划状态...", "loading", true);
+    try {
+      const response = await api.post<ApiResponse>('/v1/traffic-distribution/update-status', {
+        id: planId,
+        status: currentStatus === "active" ? "paused" : "active"
+      })
+
+      if (response.code === 200) {
+        setPlans(plans.map(plan => 
+          plan.id === planId 
+            ? { ...plan, status: currentStatus === "active" ? "paused" : "active" }
+            : plan
+        ))
+        
+        const newStatus = currentStatus === "active" ? "paused" : "active"
+        loadingToast.remove();
+        showToast(response.msg || `计划${newStatus === "active" ? "已启动" : "已暂停"}`, "success")
+      } else {
+        loadingToast.remove();
+        showToast(response.msg || "请稍后再试", "error")
+      }
+    } catch (error: any) {
+      console.error("更新计划状态失败:", error)
+      loadingToast.remove();
+      showToast(error?.message || "请检查网络连接", "error")
+    }
   }
 
   return (
@@ -132,7 +184,40 @@ export default function TrafficDistributionPage() {
       </header>
 
       <div className="p-4">
-        {plansList.length === 0 ? (
+        <Card className="p-4 mb-4">
+          <div className="flex items-center space-x-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              <Input 
+                placeholder="搜索计划名称" 
+                className="pl-9" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              />
+            </div>
+            <Button variant="outline" size="icon" onClick={handleSearch}>
+              <Filter className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon" onClick={handleRefresh} disabled={loading}>
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        </Card>
+
+        {loading ? (
+          <div className="space-y-4">
+            {[...Array(3)].map((_, index) => (
+              <Card key={index} className="p-4 animate-pulse">
+                <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
+                <div className="space-y-3">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : plans.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg border mt-4">
             <div className="text-gray-500">暂无数据</div>
             <Button
@@ -145,7 +230,7 @@ export default function TrafficDistributionPage() {
           </div>
         ) : (
           <div className="space-y-4 mt-2">
-            {plansList.map((plan) => (
+            {plans.map((plan) => (
               <Card key={plan.id} className="overflow-hidden">
                 {/* 卡片头部 */}
                 <div className="p-4 bg-white border-b flex items-center justify-between">
@@ -181,7 +266,7 @@ export default function TrafficDistributionPage() {
                         <Edit className="mr-2 h-4 w-4" />
                         编辑计划
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => togglePlanStatus(plan.id)}>
+                      <DropdownMenuItem onClick={() => togglePlanStatus(plan.id, plan.status)}>
                         {plan.status === "active" ? (
                           <>
                             <Pause className="mr-2 h-4 w-4" />
@@ -242,6 +327,32 @@ export default function TrafficDistributionPage() {
                 </div>
               </Card>
             ))}
+          </div>
+        )}
+
+        {/* 分页 */}
+        {!loading && total > pageSize && (
+          <div className="flex justify-center mt-6 space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1 || loading}
+            >
+              上一页
+            </Button>
+            <div className="flex items-center space-x-1">
+              <span className="text-sm text-gray-500">第 {currentPage} 页</span>
+              <span className="text-sm text-gray-500">共 {Math.ceil(total / pageSize)} 页</span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(Math.ceil(total / pageSize), prev + 1))}
+              disabled={currentPage >= Math.ceil(total / pageSize) || loading}
+            >
+              下一页
+            </Button>
           </div>
         )}
       </div>

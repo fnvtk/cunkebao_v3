@@ -15,12 +15,12 @@ interface BasicInfoStepProps {
 
 export default function BasicInfoStep({ onNext, initialData = {} }: BasicInfoStepProps) {
   const [formData, setFormData] = useState({
-    name: initialData.name || `流量分发 ${format(new Date(), "yyyyMMdd HHmm")}`,
-    distributionMethod: initialData.distributionMethod || "equal",
-    dailyLimit: initialData.dailyLimit || 50,
-    timeRestriction: initialData.timeRestriction || "custom",
-    startTime: initialData.startTime || "09:00",
-    endTime: initialData.endTime || "18:00",
+    name: initialData.name ?? `流量分发 ${format(new Date(), "yyyyMMdd HHmm")}`,
+    distributeType: initialData.distributeType ?? "1",
+    maxPerDay: initialData.maxPerDay ?? 50,
+    timeType: initialData.timeType ?? "2",
+    startTime: initialData.startTime ?? "09:00",
+    endTime: initialData.endTime ?? "18:00",
   })
 
   const handleChange = (field: string, value: any) => {
@@ -28,7 +28,14 @@ export default function BasicInfoStep({ onNext, initialData = {} }: BasicInfoSte
   }
 
   const handleSubmit = () => {
-    onNext(formData)
+    onNext({
+      name: formData.name,
+      distributeType: Number(formData.distributeType),
+      maxPerDay: formData.maxPerDay,
+      timeType: Number(formData.timeType),
+      startTime: formData.timeType == "2" ? formData.startTime : "09:00",
+      endTime: formData.timeType == "2" ? formData.endTime : "21:00",
+    })
   }
 
   return (
@@ -52,24 +59,24 @@ export default function BasicInfoStep({ onNext, initialData = {} }: BasicInfoSte
         <div className="space-y-2">
           <Label>分配方式</Label>
           <RadioGroup
-            value={formData.distributionMethod}
-            onValueChange={(value) => handleChange("distributionMethod", value)}
+            value={String(formData.distributeType)}
+            onValueChange={(value) => handleChange("distributeType", value)}
             className="space-y-2"
           >
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="equal" id="equal" />
+              <RadioGroupItem value="1" id="equal" />
               <Label htmlFor="equal" className="cursor-pointer">
                 均分配 <span className="text-gray-500 text-sm">(流量将均分配给所有客服)</span>
               </Label>
             </div>
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="priority" id="priority" />
+              <RadioGroupItem value="2" id="priority" />
               <Label htmlFor="priority" className="cursor-pointer">
                 优先级分配 <span className="text-gray-500 text-sm">(按客服优先级顺序分配)</span>
               </Label>
             </div>
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="ratio" id="ratio" />
+              <RadioGroupItem value="3" id="ratio" />
               <Label htmlFor="ratio" className="cursor-pointer">
                 比例分配 <span className="text-gray-500 text-sm">(按设定比例分配流量)</span>
               </Label>
@@ -83,14 +90,14 @@ export default function BasicInfoStep({ onNext, initialData = {} }: BasicInfoSte
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <span>每日最大分配量</span>
-              <span className="font-medium">{formData.dailyLimit} 人/天</span>
+              <span className="font-medium">{formData.maxPerDay} 人/天</span>
             </div>
             <Slider
-              value={[formData.dailyLimit]}
+              value={[formData.maxPerDay]}
               min={1}
               max={200}
               step={1}
-              onValueChange={(value) => handleChange("dailyLimit", value[0])}
+              onValueChange={(value) => handleChange("maxPerDay", value[0])}
               className="py-4"
             />
             <p className="text-sm text-gray-500">限制每天最多分配的流量数量</p>
@@ -99,25 +106,25 @@ export default function BasicInfoStep({ onNext, initialData = {} }: BasicInfoSte
           <div className="space-y-4 pt-4">
             <Label>时间限制</Label>
             <RadioGroup
-              value={formData.timeRestriction}
-              onValueChange={(value) => handleChange("timeRestriction", value)}
+              value={String(formData.timeType)}
+              onValueChange={(value) => handleChange("timeType", value)}
               className="space-y-4"
             >
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="allDay" id="allDay" />
+                <RadioGroupItem value="1" id="allDay" />
                 <Label htmlFor="allDay" className="cursor-pointer">
                   全天分配
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="custom" id="custom" />
+                <RadioGroupItem value="2" id="custom" />
                 <Label htmlFor="custom" className="cursor-pointer">
                   自定义时间段
                 </Label>
               </div>
             </RadioGroup>
 
-            {formData.timeRestriction === "custom" && (
+            {formData.timeType == "2" && (
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <div>
                   <Label htmlFor="startTime" className="mb-2 block">

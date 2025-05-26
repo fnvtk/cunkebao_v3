@@ -86,4 +86,4 @@ export default function EditTrafficDistributionPage({ params }: { params: { id: 
   const handleDeviceSelection = (selectedDevices: string[]) => {
     setFormData((prev) => ({ ...prev, deviceIds: selectedDevices }))
   }
-}
+  }

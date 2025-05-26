@@ -53,7 +53,7 @@ export default function TrafficPoolStep({ onSubmit, onBack, initialData = {} }: 
       await new Promise((resolve) => setTimeout(resolve, 1000)) // 模拟API请求
 
       onSubmit({
-        selectedPools,
+        poolIds: selectedPools,
         // 可以添加其他需要提交的数据
       })
     } catch (error) {

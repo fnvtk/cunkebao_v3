@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar } from "@/components/ui/avatar"
 import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { api } from "@/lib/api"
 
 interface Device {
   id: string
@@ -30,150 +31,64 @@ interface TargetSettingsStepProps {
 }
 
 export default function TargetSettingsStep({ onNext, onBack, initialData = {} }: TargetSettingsStepProps) {
-  const [selectedDevices, setSelectedDevices] = useState<string[]>(initialData.selectedDevices || [])
-  const [selectedCustomerServices, setSelectedCustomerServices] = useState<string[]>(
-    initialData.selectedCustomerServices || [],
-  )
-  const [searchTerm, setSearchTerm] = useState("")
+  const [deviceList, setDeviceList] = useState<any[]>([])
+  const [selectedDeviceIds, setSelectedDeviceIds] = useState<string[]>(initialData.devices || [])
+  const [search, setSearch] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  // 模拟设备数据
-  const devices: Device[] = [
-    { id: "1", name: "设备 1", status: "online" },
-    { id: "2", name: "设备 2", status: "online" },
-    { id: "3", name: "设备 3", status: "offline" },
-    { id: "4", name: "设备 4", status: "online" },
-    { id: "5", name: "设备 5", status: "offline" },
-  ]
+  useEffect(() => {
+    setLoading(true)
+    api.get('/v1/devices?page=1&limit=100').then(res => {
+      setDeviceList(res.data?.list || [])
+    }).finally(() => setLoading(false))
+  }, [])
 
-  // 模拟客服数据
-  const customerServices: CustomerService[] = [
-    { id: "1", name: "客服 A", status: "online" },
-    { id: "2", name: "客服 B", status: "online" },
-    { id: "3", name: "客服 C", status: "offline" },
-    { id: "4", name: "客服 D", status: "online" },
-  ]
-
-  const filteredDevices = devices.filter((device) => device.name.toLowerCase().includes(searchTerm.toLowerCase()))
-
-  const filteredCustomerServices = customerServices.filter((cs) =>
-    cs.name.toLowerCase().includes(searchTerm.toLowerCase()),
+  const filteredDevices = deviceList.filter(device =>
+    (device.memo || device.nickname || "").toLowerCase().includes(search.toLowerCase())
   )
 
   const toggleDevice = (id: string) => {
-    setSelectedDevices((prev) => (prev.includes(id) ? prev.filter((deviceId) => deviceId !== id) : [...prev, id]))
-  }
-
-  const toggleCustomerService = (id: string) => {
-    setSelectedCustomerServices((prev) => (prev.includes(id) ? prev.filter((csId) => csId !== id) : [...prev, id]))
+    setSelectedDeviceIds(prev =>
+      prev.includes(id) ? prev.filter(did => did !== id) : [...prev, id]
+    )
   }
 
   const handleSubmit = () => {
     onNext({
-      selectedDevices,
-      selectedCustomerServices,
+      targets: selectedDeviceIds,
     })
   }
 
   return (
     <div className="bg-white rounded-lg p-6 shadow-sm">
       <h2 className="text-xl font-bold mb-6">目标设置</h2>
-
       <div className="mb-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-          <Input
-            placeholder="搜索设备或客服"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+        <Input placeholder="搜索设备" value={search} onChange={e => setSearch(e.target.value)} />
       </div>
-
-      <Tabs defaultValue="devices" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger value="devices">设备选择</TabsTrigger>
-          <TabsTrigger value="customerService">客服选择</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="devices" className="space-y-4">
-          <div className="grid grid-cols-1 gap-3">
-            {filteredDevices.map((device) => (
-              <Card
-                key={device.id}
-                className={`cursor-pointer border ${selectedDevices.includes(device.id) ? "border-blue-500" : "border-gray-200"}`}
-              >
-                <CardContent className="p-3 flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Avatar>
-                      <div
-                        className={`w-full h-full flex items-center justify-center ${device.status === "online" ? "bg-green-100" : "bg-gray-100"}`}
-                      >
-                        <span className={`text-sm ${device.status === "online" ? "text-green-600" : "text-gray-600"}`}>
-                          {device.name.substring(0, 1)}
-                        </span>
-                      </div>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">{device.name}</p>
-                      <p className={`text-xs ${device.status === "online" ? "text-green-600" : "text-gray-500"}`}>
-                        {device.status === "online" ? "在线" : "离线"}
-                      </p>
-                    </div>
-                  </div>
-                  <Checkbox
-                    checked={selectedDevices.includes(device.id)}
-                    onCheckedChange={() => toggleDevice(device.id)}
-                  />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="customerService" className="space-y-4">
-          <div className="grid grid-cols-1 gap-3">
-            {filteredCustomerServices.map((cs) => (
-              <Card
-                key={cs.id}
-                className={`cursor-pointer border ${selectedCustomerServices.includes(cs.id) ? "border-blue-500" : "border-gray-200"}`}
-              >
-                <CardContent className="p-3 flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Avatar>
-                      <div
-                        className={`w-full h-full flex items-center justify-center ${cs.status === "online" ? "bg-green-100" : "bg-gray-100"}`}
-                      >
-                        <span className={`text-sm ${cs.status === "online" ? "text-green-600" : "text-gray-600"}`}>
-                          {cs.name.substring(0, 1)}
-                        </span>
-                      </div>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">{cs.name}</p>
-                      <p className={`text-xs ${cs.status === "online" ? "text-green-600" : "text-gray-500"}`}>
-                        {cs.status === "online" ? "在线" : "离线"}
-                      </p>
-                    </div>
-                  </div>
-                  <Checkbox
-                    checked={selectedCustomerServices.includes(cs.id)}
-                    onCheckedChange={() => toggleCustomerService(cs.id)}
-                  />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
-
+      <div className="space-y-3 mt-4 max-h-80 overflow-y-auto">
+        {loading ? <div className="text-center text-gray-400 py-8">加载中...</div> :
+          filteredDevices.map(device => (
+            <div key={device.id} className="flex items-center border rounded-lg px-4 py-2 mb-2 justify-between">
+              <div className="flex items-center gap-3">
+                <span className={`w-8 h-8 flex items-center justify-center rounded-full ${device.alive === 1 ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"}`}>设</span>
+                <div>
+                  <div className="font-medium">{device.memo }</div>
+                  <div className="text-xs text-gray-400">IMEI:{device.imei}</div>
+                  <div className="text-xs text-gray-400">微信号:{device.wechatId || "--"}（{device.nickname || "--"}）</div>
+                  <div className={`text-xs ${device.alive === 1 ? "text-green-600" : "text-gray-400"}`}>{device.alive === 1 ? "在线" : "离线"}</div>
+                </div>
+              </div>
+              <Checkbox
+                checked={selectedDeviceIds.includes(device.id)}
+                onCheckedChange={() => toggleDevice(device.id)}
+              />
+            </div>
+          ))
+        }
+      </div>
       <div className="mt-8 flex justify-between">
-        <Button variant="outline" onClick={onBack}>
-          ← 上一步
-        </Button>
-        <Button onClick={handleSubmit} disabled={selectedDevices.length === 0 && selectedCustomerServices.length === 0}>
-          下一步 →
-        </Button>
+        <Button variant="outline" onClick={onBack}>← 上一步</Button>
+        <Button onClick={handleSubmit} disabled={selectedDeviceIds.length === 0}>下一步 →</Button>
       </div>
     </div>
   )

@@ -9,15 +9,61 @@ import StepIndicator from "./components/step-indicator"
 import BasicInfoStep from "./components/basic-info-step"
 import TargetSettingsStep from "./components/target-settings-step"
 import TrafficPoolStep from "./components/traffic-pool-step"
+import { api } from "@/lib/api"
+import { showToast } from "@/lib/toast"
+
+interface FormData {
+  basicInfo: {
+    name: string
+    source?: string
+    sourceIcon?: string
+    description?: string
+    distributeType: number
+    maxPerDay: number
+    timeType: number
+    startTime: string
+    endTime: string
+  }
+  targetSettings: {
+    targetGroups: string[]
+    targets: string[]
+  }
+  trafficPool: {
+    deviceIds: number[]
+    poolIds: number[]
+  }
+}
+
+interface ApiResponse {
+  code: number
+  msg: string
+  data: any
+}
 
 export default function NewTrafficDistribution() {
   const router = useRouter()
   const { toast } = useToast()
   const [currentStep, setCurrentStep] = useState(0)
-  const [formData, setFormData] = useState({
-    basicInfo: {},
-    targetSettings: {},
-    trafficPool: {},
+  const [formData, setFormData] = useState<FormData>({
+    basicInfo: {
+      name: "",
+      distributeType: 1,
+      maxPerDay: 100,
+      timeType: 2,
+      startTime: "08:00",
+      endTime: "22:00",
+      source: "",
+      sourceIcon: "",
+      description: "",
+    },
+    targetSettings: {
+      targetGroups: [],
+      targets: [],
+    },
+    trafficPool: {
+      deviceIds: [],
+      poolIds: [],
+    },
   })
 
   const steps = [
@@ -26,12 +72,12 @@ export default function NewTrafficDistribution() {
     { id: 3, title: "流量池选择", icon: <Database className="h-6 w-6" /> },
   ]
 
-  const handleBasicInfoNext = (data: any) => {
+  const handleBasicInfoNext = (data: FormData["basicInfo"]) => {
     setFormData((prev) => ({ ...prev, basicInfo: data }))
     setCurrentStep(1)
   }
 
-  const handleTargetSettingsNext = (data: any) => {
+  const handleTargetSettingsNext = (data: FormData["targetSettings"]) => {
     setFormData((prev) => ({ ...prev, targetSettings: data }))
     setCurrentStep(2)
   }
@@ -44,30 +90,43 @@ export default function NewTrafficDistribution() {
     setCurrentStep(1)
   }
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: FormData["trafficPool"]) => {
     const finalData = {
       ...formData,
       trafficPool: data,
     }
 
+    const loadingToast = showToast("正在创建分发计划...", "loading", true);
     try {
-      // 这里可以添加实际的API调用
-      console.log("提交的数据:", finalData)
-
-      toast({
-        title: "创建成功",
-        description: "流量分发规则已成功创建",
+      const response = await api.post<ApiResponse>('/v1/workbench/create', {
+        type: 2, // 2表示流量分发任务
+        name: finalData.basicInfo.name,
+        source: finalData.basicInfo.source,
+        sourceIcon: finalData.basicInfo.sourceIcon,
+        description: finalData.basicInfo.description,
+        distributeType: finalData.basicInfo.distributeType,
+        maxPerDay: finalData.basicInfo.maxPerDay,
+        timeType: finalData.basicInfo.timeType,
+        startTime: finalData.basicInfo.startTime,
+        endTime: finalData.basicInfo.endTime,
+        targetGroups: finalData.targetSettings.targetGroups,
+        targets: finalData.targetSettings.targets,
+        pools: finalData.trafficPool.poolIds,
+        enabled: true, // 默认启用
       })
 
-      // 跳转到列表页
-      router.push("/workspace/traffic-distribution")
-    } catch (error) {
-      console.error("提交失败:", error)
-      toast({
-        title: "创建失败",
-        description: "请稍后重试",
-        variant: "destructive",
-      })
+      if (response.code === 200) {
+        loadingToast.remove();
+        showToast(response.msg || "创建成功", "success")
+        router.push("/workspace/traffic-distribution")
+      } else {
+        loadingToast.remove();
+        showToast(response.msg || "创建失败，请稍后重试", "error")
+      }
+    } catch (error: any) {
+      console.error("创建分发计划失败:", error)
+      loadingToast.remove();
+      showToast(error?.message || "请检查网络连接", "error")
     }
   }
 
