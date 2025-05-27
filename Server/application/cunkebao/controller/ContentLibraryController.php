@@ -862,7 +862,6 @@ class ContentLibraryController extends Controller
                 'message' => '没有指定要采集的好友'
             ];
         }
-        
         try {
             $toAccountId = '';
             $username = Env::get('api.username', '');
@@ -870,14 +869,15 @@ class ContentLibraryController extends Controller
             if (!empty($username) || !empty($password)) {
                 $toAccountId = Db::name('users')->where('account',$username)->value('s2_accountId');
             }
-   
+
+
             // 查询好友信息
             $friends = Db::table('s2_wechat_friend')
                 ->field('id, wechatAccountId, wechatId,accountId')
                 ->whereIn('id', $friendIds)
                 ->where('isDeleted', 0)
                 ->select();
-            
+
             if (empty($friends)) {
                 return [
                     'status' => 'failed',
@@ -911,6 +911,7 @@ class ContentLibraryController extends Controller
                         'wechatAccountId' => $friend['wechatAccountId']
                     ])
                     ->order('createTime', 'desc')
+                    ->where('createTime', '>=', time() - 86400)
                     ->select();
 
                 if (empty($moments)) {

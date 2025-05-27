@@ -255,7 +255,7 @@ class WorkbenchAutoLikeJob
      
             // 查询未点赞的朋友圈
             $moments = $this->getUnlikedMoments($friend['friendId']);
-            if (empty($moments)) {
+            if (empty($moments) || count($moments) == 0) {
                  // 处理完毕切换回原账号
                 $automaticAssign->allotWechatFriend(['wechatFriendId' => $friend['friendId'], 'toAccountId' => $friend['accountId']], true);
                 Log::info("好友 {$friend['friendId']} 没有需要点赞的朋友圈");
@@ -272,9 +272,6 @@ class WorkbenchAutoLikeJob
                     $labels[] = $config['friendTags'];
                     $webSocket->modifyFriendLabel(['wechatFriendId' => $friend['friendId'], 'wechatAccountId' => $friend['wechatAccountId'], 'labels' => $labels]);
                 }
-
-                // 每个好友只点赞一条朋友圈，然后退出
-                break;
             }
 
             // 处理完毕切换回原账号
@@ -301,10 +298,11 @@ class WorkbenchAutoLikeJob
                 ['wm.wechatFriendId', '=', $friendId],
                 ['wali.id', 'null', null]
             ])
-            ->where('wm.create_time', '>=', time() - 86400 * 3)
+            ->where('wm.create_time', '>=', time() - 86400 * 2)
             ->field('wm.id, wm.snsId')
             ->group('wali.wechatFriendId')
             ->order('wm.createTime DESC')
+            ->page(1,1)
             ->select();
     }
 
