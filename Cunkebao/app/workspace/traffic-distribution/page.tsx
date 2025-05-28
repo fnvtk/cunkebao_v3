@@ -292,15 +292,15 @@ export default function TrafficDistributionPage() {
                 <div className="bg-white">
                   <div className="grid grid-cols-3">
                     <div className="p-3 text-center border-r border-gray-200">
-                      <div className="text-lg font-semibold">{plan.dailyAverage}</div>
+                      <div className="text-lg font-semibold">{plan.config.total.dailyAverage}</div>
                       <div className="text-xs text-gray-500 mt-1">日均分发人数</div>
                     </div>
                     <div className="p-3 text-center border-r border-gray-200">
-                      <div className="text-lg font-semibold">{plan.deviceCount}</div>
+                      <div className="text-lg font-semibold">{plan.config.total.deviceCount}</div>
                       <div className="text-xs text-gray-500 mt-1">分发设备</div>
                     </div>
                     <div className="p-3 text-center">
-                      <div className="text-lg font-semibold">{plan.poolCount}</div>
+                      <div className="text-lg font-semibold">{plan.config.total.poolCount}</div>
                       <div className="text-xs text-gray-500 mt-1">流量池</div>
                     </div>
                   </div>
@@ -308,11 +308,11 @@ export default function TrafficDistributionPage() {
                   <div className="border-t border-gray-200 mx-auto w-full" style={{height: 0}} />
                   <div className="grid grid-cols-2">
                     <div className="p-3 text-center border-r border-gray-200">
-                      <div className="text-lg font-semibold">{plan.dailyAverage}</div>
+                      <div className="text-lg font-semibold">{plan.config.total.dailyAverage}</div>
                       <div className="text-xs text-gray-500 mt-1">日均分发量</div>
                     </div>
                     <div className="p-3 text-center">
-                      <div className="text-lg font-semibold">{plan.totalUsers}</div>
+                      <div className="text-lg font-semibold">{plan.config.total.totalUsers}</div>
                       <div className="text-xs text-gray-500 mt-1">总流量池数量</div>
                     </div>
                   </div>

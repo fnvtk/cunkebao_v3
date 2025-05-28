@@ -121,58 +121,29 @@ class WorkbenchAutoLikeJob
     protected function processAllFriends($workbench, $config, $page = 1, $pageSize = 100)
     {
         $friendList = $this->getFriendList($config, $page, $pageSize);
+        
         if (empty($friendList)) {
             return;
         }
 
-        // 将好友列表分成20组
-        $friendGroups = array_chunk($friendList, 20);
-        $processes = [];
-
-        foreach ($friendGroups as $groupIndex => $friendGroup) {
-            // 创建子进程
-            $pid = pcntl_fork();
-            
-            if ($pid == -1) {
-                // 创建进程失败
-                Log::error("工作台 {$workbench->id} 创建进程失败");
+        // 直接顺序处理所有好友
+        foreach ($friendList as $friend) {
+            // 验证是否达到点赞次数上限
+            $likeCount = $this->getTodayLikeCount($workbench, $config, $friend['deviceId']);
+            if ($likeCount >= $config['maxLikes']) {
+                Log::info("工作台 {$workbench->id} 点赞次数已达上限");
                 continue;
-            } else if ($pid) {
-                // 父进程
-                $processes[] = $pid;
-            } else {
-                // 子进程
-                try {
-                    foreach ($friendGroup as $friend) {
-                        // 验证是否达到点赞次数上限
-                        $likeCount = $this->getTodayLikeCount($workbench, $config, $friend['deviceId']);
-                        if ($likeCount >= $config['maxLikes']) {
-                            Log::info("工作台 {$workbench->id} 点赞次数已达上限");
-                            continue;
-                        }
-
-                        // 验证是否达到好友点赞次数上限
-                        $friendMaxLikes = Db::name('workbench_auto_like_item')
-                            ->where('workbenchId', $workbench->id)
-                            ->where('wechatFriendId', $friend['friendId'])
-                            ->count();
-                        
-                        if ($friendMaxLikes < $config['friendMaxLikes']) {
-                            $this->processFriendMoments($workbench, $config, $friend);
-                        }
-                    }
-                } catch (\Exception $e) {
-                    Log::error("工作台 {$workbench->id} 子进程异常: " . $e->getMessage());
-                }
-                
-                // 子进程执行完毕后退出
-                exit(0);
             }
-        }
 
-        // 等待所有子进程完成
-        foreach ($processes as $pid) {
-            pcntl_waitpid($pid, $status);
+            // 验证是否达到好友点赞次数上限
+            $friendMaxLikes = Db::name('workbench_auto_like_item')
+                ->where('workbenchId', $workbench->id)
+                ->where('wechatFriendId', $friend['friendId'])
+                ->count();
+            
+            if ($friendMaxLikes < $config['friendMaxLikes']) {
+                $this->processFriendMoments($workbench, $config, $friend);
+            }
         }
 
         // 如果当前页数据量等于页大小，说明可能还有更多数据，继续处理下一页
@@ -251,16 +222,25 @@ class WorkbenchAutoLikeJob
             
             // 执行采集朋友圈命令
             $webSocket = new WebSocketController(['userName' => $username, 'password' => $password, 'accountId' => $toAccountId]);
-            $webSocket->getMoments(['wechatFriendId' => $friend['friendId'], 'wechatAccountId' => $friend['wechatAccountId']]);
-     
+            
             // 查询未点赞的朋友圈
             $moments = $this->getUnlikedMoments($friend['friendId']);
+            if (empty($moments) || count($moments) == 0) {
+                //采集最新朋友圈
+                $webSocket->getMoments(['wechatFriendId' => $friend['friendId'], 'wechatAccountId' => $friend['wechatAccountId']]);
+                $moments = $this->getUnlikedMoments($friend['friendId']);
+            }
+            
+            
+         
+           
             if (empty($moments) || count($moments) == 0) {
                  // 处理完毕切换回原账号
                 $automaticAssign->allotWechatFriend(['wechatFriendId' => $friend['friendId'], 'toAccountId' => $friend['accountId']], true);
                 Log::info("好友 {$friend['friendId']} 没有需要点赞的朋友圈");
                 return;
             }
+
 
             foreach ($moments as $moment) {
                 // 点赞朋友圈
@@ -298,7 +278,7 @@ class WorkbenchAutoLikeJob
                 ['wm.wechatFriendId', '=', $friendId],
                 ['wali.id', 'null', null]
             ])
-            ->where('wm.create_time', '>=', time() - 86400 * 2)
+            ->where('wm.update_time', '>=', time() - 86400)
             ->field('wm.id, wm.snsId')
             ->group('wali.wechatFriendId')
             ->order('wm.createTime DESC')

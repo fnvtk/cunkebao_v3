@@ -129,6 +129,7 @@ class WorkbenchController extends Controller
                     $config->startTime = $param['startTime'];
                     $config->endTime = $param['endTime'];
                     $config->devices = json_encode($param['devices'], JSON_UNESCAPED_UNICODE);
+                    $config->pools = json_encode($param['pools'], JSON_UNESCAPED_UNICODE);
                     $config->createTime = time();
                     $config->updateTime = time();
                     $config->save();
@@ -259,6 +260,13 @@ class WorkbenchController extends Controller
                             $item->config = $item->trafficConfig;
                             $item->config->devices = json_decode($item->config->devices, true);
                             $item->config->pools = json_decode($item->config->pools, true);
+                            $item->config->total = [
+                                'dailyAverage' => 0,
+                                'deviceCount' => count($item->config->devices),
+                                'poolCount' => count($item->config->pools),
+                                'dailyAverage' => $item->config->maxPerDay,
+                                'totalUsers' => $item->config->maxPerDay * count($item->config->devices) * count($item->config->pools)
+                            ];
                         }
                         unset($item->trafficConfig,$item->traffic_config);
                         break;
@@ -303,6 +311,9 @@ class WorkbenchController extends Controller
             },
             'momentsSync' => function($query) {
                 $query->field('workbenchId,syncInterval,syncCount,syncType,startTime,endTime,accountType,devices,contentLibraries');
+            },
+            'trafficConfig' => function($query) {
+                $query->field('workbenchId,distributeType,maxPerDay,timeType,startTime,endTime,devices,pools');
             },
             // 'groupPush' => function($query) {
             //     $query->field('workbenchId,pushInterval,pushContent,pushTime,devices,targetGroups');
@@ -378,6 +389,22 @@ class WorkbenchController extends Controller
                     $workbench->config->targetGroups = json_decode($workbench->config->targetGroups, true);
                 }
                 break;
+            case self::TYPE_TRAFFIC_DISTRIBUTION:
+                if (!empty($workbench->trafficConfig)) {
+                    $workbench->config = $workbench->trafficConfig;
+                    $workbench->config->devices = json_decode($workbench->config->devices, true);
+                    $workbench->config->pools = json_decode($workbench->config->pools, true);
+                    $workbench->config->total = [
+                        'dailyAverage' => 0,
+                        'deviceCount' => count($workbench->config->devices),
+                        'poolCount' => count($workbench->config->pools ),
+                        'dailyAverage' => $workbench->config->maxPerDay,
+                        'totalUsers' => $workbench->config->maxPerDay * count($workbench->config->devices) * count($workbench->config->pools)
+                   
+                    ];
+                    unset($workbench->trafficConfig,$workbench->traffic_config);
+                }
+                break;
         }
         unset($workbench->autoLike, $workbench->momentsSync, $workbench->groupPush, $workbench->groupCreate);
 
@@ -409,7 +436,6 @@ class WorkbenchController extends Controller
             ['userId', '=', $this->request->userInfo['id']],
             ['isDel', '=', 0]
         ])->find();
-
         if (!$workbench) {
             return json(['code' => 404, 'msg' => '工作台不存在']);
         }
@@ -480,6 +506,20 @@ class WorkbenchController extends Controller
                         $config->membersPerGroup = $param['membersPerGroup'];
                         $config->devices = json_encode($param['devices']);
                         $config->targetGroups = json_encode($param['targetGroups']);
+                        $config->updateTime = time();
+                        $config->save();
+                    }
+                    break;
+                case self::TYPE_TRAFFIC_DISTRIBUTION:
+                    $config = WorkbenchTrafficDistribution::where('workbenchId', $param['id'])->find();
+                    if ($config) {
+                        $config->distributeType = $param['distributeType'];
+                        $config->maxPerDay = $param['maxPerDay'];
+                        $config->timeType = $param['timeType'];
+                        $config->startTime = $param['startTime'];
+                        $config->endTime = $param['endTime'];
+                        $config->devices = json_encode($param['devices']);
+                        $config->pools = json_encode($param['pools']);
                         $config->updateTime = time();
                         $config->save();
                     }
