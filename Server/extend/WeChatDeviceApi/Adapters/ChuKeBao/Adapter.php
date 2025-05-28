@@ -6,10 +6,16 @@ use WeChatDeviceApi\Contracts\WeChatServiceInterface;
 use WeChatDeviceApi\Exceptions\ApiException;
 // 如果有 Client.php
 // use WeChatDeviceApi\Adapters\ChuKeBao\Client as ChuKeBaoApiClient;
-
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Psr7\Request;
 use think\Db;
 use think\facade\Config;
 use think\facade\Log;
+use app\api\controller\FriendTaskController;
+use app\common\service\AuthService;
+use app\api\controller\WebSocketController;
 
 class Adapter implements WeChatServiceInterface
 {
@@ -141,7 +147,52 @@ class Adapter implements WeChatServiceInterface
         return true;
     }
 
-    // checkIfIsWeChatFriend
+    // sendMsgToFriend 要处理计划任务
+    public function sendMsgToFriend(int $friendId, int $wechatAccountId, array $msgConf)
+    {
+        // todo 直接发消息，同时更新状态为 4（已通过-已发消息） application/api/controller/WebSocketController.php sendPersonal
+        // 消息拼接  msgType(1:文本 3:图片 43:视频 47:动图表情包（gif、其他表情包） 49:小程序/其他：图文、文件)
+        // 当前，type 为文本、图片、动图表情包的时候，content为string, 其他情况为对象 {type: 'file/link/...', url: '', title: '', thunmbPath: '', desc: ''}
+        // $result = [
+        //     "content" => $dataArray['content'],
+        //     "msgSubType" => 0,
+        //     "msgType" => $dataArray['msgType'],
+        //     "seq" => time(),
+        //     "wechatAccountId" => $dataArray['wechatAccountId'],
+        //     "wechatChatroomId" => 0,
+        //     "wechatFriendId" => $dataArray['wechatFriendId'],
+        // ];
+        $wsController = new WebSocketController();
+        $wsController->sendPersonal([
+            'wechatFriendId' => $friendId,
+            'wechatAccountId' => $wechatAccountId,
+            'msgConf' => $msgConf,
+        ]);
+
+
+    }
+
+    // getCustomerAcquisitionTask
+    public function getCustomerAcquisitionTask($id) {
+
+        // 先读取缓存
+        $task_info = cache('task_info_' . $id);
+        if (!$task_info) {
+            $task_info = Db::name('customer_acquisition_task')
+                ->where('id', $id)
+                ->find();
+
+            if ($task_info) {
+                cache('task_info_' . $id, $task_info);
+            } else {
+                return [];
+            }
+        }
+
+        return $task_info;
+    }
+
+    // 检查是否是好友关系
     public function checkIfIsWeChatFriendByPhone(string $wxId, string $phone): bool
     {
         if (empty($wxId) || empty($phone)) {
@@ -162,7 +213,8 @@ class Adapter implements WeChatServiceInterface
             //     ->where('phone', 'like', $phone . '%') // Match phone numbers starting with $phone
             //     ->order('createTime', 'desc')          // Order by creation time as hinted
             //     ->find(); // Fetches the first matching record or null
-            $friendRecord = Db::table('s2_wechat_friend')
+            // $friendRecord = Db::table('s2_wechat_friend')
+            $id = Db::table('s2_wechat_friend')
                 ->where('ownerWechatId', $wxId)
                 ->where('phone', 'like', $phone . '%') // Match phone numbers starting with $phone
                 ->order('createTime', 'desc')          // Order by creation time as hinted
@@ -170,7 +222,8 @@ class Adapter implements WeChatServiceInterface
                 ->value('id');
 
             // If a record is found, $friendRecord will not be empty.
-            return !empty($friendRecord);
+            // return !empty($friendRecord);
+            return (bool)$id;
         } catch (\Exception $e) {
             // Log the exception for diagnostics.
             Log::error("Error in checkIfIsWeChatFriendByPhone (wxId: {$wxId}, phone: {$phone}): " . $e->getMessage());
@@ -179,7 +232,22 @@ class Adapter implements WeChatServiceInterface
         }
     }
 
-    // getWeChatFriendPassTimeByPhone
+    // getWeChatAccoutIdAndFriendIdByWeChatId
+    public function getWeChatAccoutIdAndFriendIdByWeChatIdAndFriendPhone(string $wechatId, string $phone): array
+    {
+        if (empty($wechatId) || empty($phone)) {
+            return [];
+        }
+
+        return Db::table('s2_wechat_friend')
+        ->where('ownerWechatId', $wechatId)
+        ->where('phone', 'like', $phone . '%')
+        ->field('id,wechatAccountId,passTime,createTime')
+        ->find();
+
+    }
+
+    // 判断是否已添加某手机号为好友并返回添加时间
     public function getWeChatFriendPassTimeByPhone(string $wxId, string $phone): int
     {
         if (empty($wxId) || empty($phone)) {
@@ -205,8 +273,353 @@ class Adapter implements WeChatServiceInterface
         }
     }
 
+    /**
+     * 查询某个微信今天添加了多少个好友
+     * @param string $wechatId 微信ID
+     * @return int 好友数量
+     */
+    public function getTodayAddedFriendsCount(string $wechatId): int
+    {
+        if (empty($wechatId)) {
+            return 0;
+        }
+        try {
+            $count = Db::table('s2_friend_task')
+                ->where('wechatId', $wechatId)
+                ->whereRaw("FROM_UNIXTIME(createTime, '%Y-%m-%d') = CURDATE()")
+                ->count();
+            return (int)$count;
+        } catch (\Exception $e) {
+            Log::error("Error in getTodayAddedFriendsCount (wechatId: {$wechatId}): " . $e->getMessage());
+            return 0;
+        }
+    }
 
-    /* todo 以上方法待实现，基于/参考 application/api/controller/WebSocketController.php 去实现 */
+    /**
+     * 查询某个微信24小时内添加了多少个好友
+     * @param string $wechatId 微信ID
+     * @return int 好友数量
+     */
+    public function getLast24hAddedFriendsCount(string $wechatId): int
+    {
+        if (empty($wechatId)) {
+            return 0;
+        }
+        try {
+            $twentyFourHoursAgo = time() - (24 * 60 * 60);
+            $count = Db::table('s2_friend_task')
+                ->where('wechatId', $wechatId)
+                ->where('createTime', '>=', $twentyFourHoursAgo)
+                ->count();
+            return (int)$count;
+        } catch (\Exception $e) {
+            Log::error("Error in getLast24hAddedFriendsCount (wechatId: {$wechatId}): " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * 查询某个微信最新的一条添加好友任务记录
+     * @param string $wechatId 微信ID
+     * @return array|null 任务记录或null
+     */
+    public function getLatestFriendTask(string $wechatId): ?array
+    {
+        if (empty($wechatId)) {
+            return null;
+        }
+        try {
+            $task = Db::table('s2_friend_task')
+                ->where('wechatId', $wechatId)
+                ->order('createTime', 'desc')
+                ->find();
+            return $task;
+        } catch (\Exception $e) {
+            Log::error("Error in getLatestFriendTask (wechatId: {$wechatId}): " . $e->getMessage());
+            return null;
+        }
+    }
+
+    // getLatestFriendTaskByPhoneAndWeChatId
+    public function getLatestFriendTaskByPhoneAndWeChatId(string $phone, string $wechatId): array
+    {
+        if (empty($phone) || empty($wechatId)) {
+            return [];
+        }
+
+        $record = Db::table('s2_friend_task')
+            ->where('phone', $phone)
+            ->where('wechatId', $wechatId)
+            ->order('createTime', 'desc')
+            ->find();
+        return $record;
+    }
+
+    // 获取最新的一条添加好友任务记录的创建时间
+    public function getLastCreateFriendTaskTime(string $wechatId): int
+    {
+        if (empty($wechatId)) {
+            return 0;
+        }
+        $record = Db::table('s2_friend_task')
+            ->where('wechatId', $wechatId)
+            ->order('createTime', 'desc')
+            ->find();
+        return $record['createTime'] ?? 0;
+    }
+
+    // 判断是否能够加好友
+    public function checkIfCanCreateFriendAddTask(string $wechatId, $conf = []): bool
+    {
+        if (empty($wechatId)) {
+            return false;
+        }
+
+        $record = $this->getLatestFriendTask($wechatId);
+        if (empty($record)) {
+            return true;
+        }
+
+        if (!empty($conf['add_gap']) && isset($record['createTime']) && $record['createTime'] > time() - $conf['add_gap'] * 60) {
+            return false;
+        }
+
+        // conf['allow_add_time_between']
+        if (!empty($conf['allow_add_time_between']) && count($conf['allow_add_time_between']) == 2) {
+            $currentTime = date('H:i');
+            $startTime = $conf['allow_add_time_between'][0];
+            $endTime = $conf['allow_add_time_between'][1];
+            
+            // If current time is NOT between start and end time, return false
+            if ($currentTime >= $startTime && $currentTime <= $endTime) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        if (isset($record['status'])) {
+            // if ($record['status'] == 1) {
+            //     return true;
+            // }
+
+            if ($record['status'] == 2) {
+
+                // todo 判断$record['extra'] 是否包含文字： 操作过于频繁；如果包含判断 updateTime 是否已经超过72min，updateTime是10位时间戳；如果包含指定文字且时间未超过72min，return false
+                if (isset($record['extra']) && strpos($record['extra'], '操作过于频繁') !== false) {
+                    $updateTime = isset($record['updateTime']) ? (int)$record['updateTime'] : 0;
+                    $now = time();
+                    $diff = $now - $updateTime;
+                    
+                    // Check if less than 72 minutes (72 * 60 = 4320 seconds) have passed
+                    // if ($diff < 72 * 60) {
+                    if ($diff < 24 * 60 * 60) {
+                        return false;
+                    }
+                }
+
+            }
+        }
+
+        // $createTime = $record['createTime'];
+        // $now = time();
+        // $diff = $now - $createTime;
+        // if ($diff > 10 * 60) {
+        //     return true;
+        // }
+
+        return true;   
+    }
+
+    // 获取触客宝系统的客服微信账号id，用于后续微信相关操作
+    public function getWeChatAccountIdByWechatId(string $wechatId): string
+    {
+        if (empty($wechatId)) {
+            return '';
+        }
+        $record = Db::table('s2_wechat_account')
+            ->where('wechatId', $wechatId)
+            ->field('id')
+            ->find();
+        return $record['id'] ?? '';
+    }
+
+    // 获取在线的客服微信账号id列表
+    public function getOnlineWeChatAccountIdsByWechatIds(array $wechatIds): array
+    {
+        if (empty($wechatIds)) {
+            return [];
+        }
+        $records = Db::table('s2_wechat_account')
+            ->where('deviceAlive', 1)
+            ->where('wechatAlive', 1)
+            ->where('wechatId', 'in', $wechatIds)
+            // ->field('id')
+            ->field('id,wechatId')
+            // ->select();
+            ->column('id', 'wechatId');
+
+        return $records;
+    }
+
+    // getWeChatIdsByDeviceIds
+    // public function getWeChatIdsByDeviceIds(array $deviceIds): array
+    public function getWeChatIdsAccountIdsMapByDeviceIds(array $deviceIds): array
+    {
+        if (empty($deviceIds)) {
+            return [];
+        }
+        $records = Db::table('s2_wechat_account')
+            ->where('deviceAlive', 1)
+            ->where('currentDeviceId', 'in', $deviceIds)
+            // ->field('id,wechatId,currentDeviceId')
+            ->field('id,wechatId')
+            // ->select();
+            ->column('id,wechatId');
+        return $records;
+    }
+
+    // addFriendTaskApi
+    public function addFriendTaskApi(int $wechatAccountId, string $phone, string $message, string $remark, array $labels, $authorization = '') {
+        
+        $authorization = $authorization ?: AuthService::getSystemAuthorization();
+
+        if (empty($authorization)) {
+            return [
+                'status_code' => 0,
+                'body' => null,
+                'error' => true,
+            ];
+        }
+
+        // $friendTaskController = new FriendTaskController();
+        // $friendTaskController->addFriendTask($wechatAccountId, $phone, $reqConf);
+
+        // todo 调用 application/api/controller/FriendTaskController.php: addFriendTask()
+        $params = [
+            'phone' => $phone,
+            'message' => $message,
+            'remark' => $remark,
+            // 'labels' => is_array($labels) ? $labels : [$labels],
+            'labels' => $labels,
+            'wechatAccountId' => $wechatAccountId
+        ];
+        $client = new Client([
+            'base_uri' => $this->config['base_url'],
+            'timeout' => 30, // 设置超时时间，可以根据需要调整
+        ]);
+        // 准备请求头
+        $headers = [
+            'Content-Type' => 'application/json',
+            'client' => 'system'
+        ];
+        // 如果有授权信息，添加到请求头
+        // if (!empty($authorization)) {
+        //     $headers['Authorization'] = 'bearer ' . $authorization;
+        // }
+        $headers['Authorization'] = 'bearer ' . $authorization;
+        try {
+            // 发送请求
+            $response = $client->request('POST', 'api/AddFriendByPhoneTask/add', [
+                'headers' => $headers,
+                'json' => $params, // Guzzle 会自动将数组转换为 JSON
+            ]);
+            
+            // 获取状态码
+            $statusCode = $response->getStatusCode();
+            
+            // 获取响应体并解析 JSON
+            $body = $response->getBody()->getContents();
+            $result = json_decode($body, true);
+            
+            // 返回结果，包含状态码和响应体
+            return [
+                'status_code' => $statusCode,
+                'body' => $result
+            ];
+            
+        } catch (RequestException $e) {
+            // 处理请求异常，可以获取错误响应
+            if ($e->hasResponse()) {
+                $statusCode = $e->getResponse()->getStatusCode();
+
+                if ($statusCode == 401) {
+                    $authorization = AuthService::getSystemAuthorization(false);
+                    return $this->addFriendTaskApi($wechatAccountId, $phone, $message, $remark, $labels, $authorization);
+                }
+
+                $body = $e->getResponse()->getBody()->getContents();
+                $result = json_decode($body, true);
+                
+                return [
+                    'status_code' => $statusCode,
+                    'body' => $result,
+                    'error' => true
+                ];
+            }
+
+            Log::error("Error in addFriendTaskApi (wechatAccountId: {$wechatAccountId}, phone: {$phone}, message: {$message}, remark: {$remark}, labels: " . json_encode($labels) . "): " . $e->getMessage());
+            
+            // 没有响应的异常
+            return [
+                'status_code' => 0,
+                'body' => null,
+                'error' => true,
+                'message' => $e->getMessage()
+            ];
+        } catch (GuzzleException $e) {
+            // 处理其他 Guzzle 异常
+            return [
+                'status_code' => 0,
+                'body' => null,
+                'error' => true,
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+
+    // createFriendAddTask $accountId, $task['phone'], $task_info['reqConf'] -hello_msg，remark_type
+    // public function createFriendAddTask(int $wechatAccountId, string $phone, array $conf): bool
+    public function createFriendAddTask(int $wechatAccountId, string $phone, array $conf)
+    {
+        if (empty($wechatAccountId) || empty($phone) || empty($conf)) {
+            // return false;
+            return;
+        }
+
+        // $remark = '';
+        // if (isset($conf['remark_type']) && $conf['remark_type'] == 'phone') {
+        //     $remark = $phone . '-' . $conf['task_name'] ?? '获客';
+        // } else {
+
+        // }
+        $remark = $phone . '-' . $conf['task_name'] ?? '获客';
+
+        $tags = [];
+        if  (!empty($conf['tags'])) {
+            if (is_array($conf['tags'])) {
+                $tags = $conf['tags'];
+            } 
+
+            if (strpos($conf['tags'], ',') !== false) {
+                $tags = explode(',', $conf['tags']);
+            }
+        }
+
+        // $res = $this->addFriendTaskApi($wechatAccountId, $phone, $conf['hello_msg'] ?? '你好', $remark, $conf['tags'] ?? []);
+        $this->addFriendTaskApi($wechatAccountId, $phone, $conf['hello_msg'] ?? '你好', $remark, $tags);
+
+        // if ($res['status_code']) {
+        
+        // }
+       
+
+        
+        // return true;
+        
+    }
+
+    /* TODO: 以上方法待实现，基于/参考 application/api/controller/WebSocketController.php 去实现；以下同步脚本用的方法转移到其他类 */
 
 
     // NOTE: run in background; 5min 同步一次

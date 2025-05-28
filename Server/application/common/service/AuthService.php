@@ -187,9 +187,10 @@ class AuthService
     /**
      * 获取系统授权信息，使用缓存存储10分钟
      *
+     * @param bool $useCache 是否使用缓存
      * @return string
      */
-    public static function getSystemAuthorization()
+    public static function getSystemAuthorization($useCache = true)
     {
         // 定义缓存键名
         $cacheKey = 'system_authorization_token';
@@ -198,7 +199,7 @@ class AuthService
         $authorization = Cache::get($cacheKey);
         //$authorization = '';
         // 如果缓存中没有或已过期，则重新获取
-        if (empty($authorization)) {
+        if (empty($authorization) || !$useCache) {
             try {
                 // 从环境变量中获取API用户名和密码
                 $username = Env::get('api.username', '');

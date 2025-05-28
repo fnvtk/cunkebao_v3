@@ -630,59 +630,44 @@ class WebSocketController extends BaseController
      * 个人消息发送
      * @return \think\response\Json
      */
-    public function sendPersonal()
+    public function sendPersonal(array $dataArray)
     {
-        if ($this->request->isPost()) {
-            $data = $this->request->param();
-
-            if (empty($data)) {
-                return json_encode(['code'=>400,'msg'=>'参数缺失']);
-            }
-            $dataArray = $data;
-            if (!is_array($dataArray)) {
-                return json_encode(['code'=>400,'msg'=>'数据格式错误']);
-            }
-
-            //过滤消息
-            if (empty($dataArray['content'])) {
-                return json_encode(['code'=>400,'msg'=>'内容缺失']);
-            }
-            if (empty($dataArray['wechatAccountId'])) {
-                return json_encode(['code'=>400,'msg'=>'微信id不能为空']);
-            }
-            if (empty($dataArray['wechatFriendId'])) {
-                return json_encode(['code'=>400,'msg'=>'接收人不能为空']);
-            }
-
-            if (empty($dataArray['msgType'])) {
-                return json_encode(['code'=>400,'msg'=>'类型缺失']);
-            }
-
-            //消息拼接  msgType(1:文本 3:图片 43:视频 47:动图表情包 49:小程序)
-            $result = [
-                "cmdType" => "CmdSendMessage",
-                "content" => $dataArray['content'],
-                "msgSubType" => 0,
-                "msgType" => $dataArray['msgType'],
-                "seq" => time(),
-                "wechatAccountId" => $dataArray['wechatAccountId'],
-                "wechatChatroomId" => 0,
-                "wechatFriendId" => $dataArray['wechatFriendId'],
-            ];
-
-            $result = json_encode($result);
-            $this->client->send($result);
-            $message = $this->client->receive();
-            $message = json_decode($message, 1);
-            //关闭WS链接
-            $this->client->close();
-            //Log::write('WS个人消息发送');
-            return json_encode(['code'=>200,'msg'=>'消息成功发送','data'=>$message]);
-            //return successJson($message, '消息成功发送');
-        } else {
-            return json_encode(['code'=>400,'msg'=>'非法请求']);
-            //return errorJson('非法请求');
+        //过滤消息
+        if (empty($dataArray['content'])) {
+            return json_encode(['code' => 400, 'msg' => '内容缺失']);
         }
+        if (empty($dataArray['wechatAccountId'])) {
+            return json_encode(['code' => 400, 'msg' => '微信id不能为空']);
+        }
+        if (empty($dataArray['wechatFriendId'])) {
+            return json_encode(['code' => 400, 'msg' => '接收人不能为空']);
+        }
+
+        if (empty($dataArray['msgType'])) {
+            return json_encode(['code' => 400, 'msg' => '类型缺失']);
+        }
+
+        // 消息拼接  msgType(1:文本 3:图片 43:视频 47:动图表情包（gif、其他表情包） 49:小程序/其他：图文、文件)
+        // 当前，type 为文本、图片、动图表情包的时候，content为string, 其他情况为对象 {type: 'file/link/...', url: '', title: '', thunmbPath: '', desc: ''}
+        $result = [
+            "cmdType" => "CmdSendMessage",
+            "content" => $dataArray['content'],
+            "msgSubType" => 0,
+            "msgType" => $dataArray['msgType'],
+            "seq" => time(),
+            "wechatAccountId" => $dataArray['wechatAccountId'],
+            "wechatChatroomId" => 0,
+            "wechatFriendId" => $dataArray['wechatFriendId'],
+        ];
+
+        $result = json_encode($result);
+        $this->client->send($result);
+        $message = $this->client->receive();
+        $message = json_decode($message, 1);
+        //关闭WS链接
+        $this->client->close();
+        //Log::write('WS个人消息发送');
+        return $message;
     }
 
     /**
