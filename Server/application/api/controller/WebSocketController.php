@@ -57,25 +57,25 @@ class WebSocketController extends BaseController
                 $this->authorized = $cachedToken;
                 $this->accountId = $userData['accountId'];
             } else {
-                $params = [
-                    'grant_type' => 'password',
-                    'username' => $userData['userName'],
-                    'password' => $userData['password']
-                ];
-                
-                // 调用登录接口获取token
+            $params = [
+                'grant_type' => 'password',
+                'username' => $userData['userName'],
+                'password' => $userData['password']
+            ];
+            
+            // 调用登录接口获取token
                 $headerData = ['client:kefu-client'];
-                $header = setHeader($headerData, '', 'plain');
+            $header = setHeader($headerData, '', 'plain');
                 $result = requestCurl('https://kf.quwanzhi.com:9991/token', $params, 'POST', $header);
-                $result_array = handleApiResponse($result);
+            $result_array = handleApiResponse($result);
 
-                if (isset($result_array['access_token']) && !empty($result_array['access_token'])) {
+            if (isset($result_array['access_token']) && !empty($result_array['access_token'])) {
                     $this->authorized = $result_array['access_token'];
-                    $this->accountId = $userData['accountId'];
-                    
+                $this->accountId = $userData['accountId'];
+               
                     // 将token存入缓存，有效期5分钟
                     Cache::set($cacheKey, $this->authorized, 300);
-                } else {
+            } else {
                     return json_encode(['code'=>400,'msg'=>'获取系统授权信息失败']);
                 }
             }

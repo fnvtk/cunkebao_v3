@@ -30,4 +30,5 @@ return [
     'workbench:autoLike' => 'app\command\WorkbenchAutoLikeCommand', // 工作台自动点赞任务
     'workbench:moments' => 'app\command\WorkbenchMomentsCommand', // 工作台朋友圈同步任务
     'sync:wechatData' => 'app\command\SyncWechatDataToCkbTask', // 同步微信数据到存客宝
+    'sync:allFriends' => 'app\command\SyncAllFriendsCommand', // 同步所有在线好友
 ];
