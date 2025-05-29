@@ -1,89 +1,219 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
+import { ChevronLeft, Plus, Users, Database, Settings } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
+import StepIndicator from "../../new/components/step-indicator"
+import BasicInfoStep from "../../new/components/basic-info-step"
+import TargetSettingsStep from "../../new/components/target-settings-step"
+import TrafficPoolStep from "../../new/components/traffic-pool-step"
+import { api } from "@/lib/api"
+import { showToast } from "@/lib/toast"
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 
-// 模拟数据
-const mockDistributionRule = {
-  id: "1",
-  name: "抖音直播引流计划",
-  description: "从抖音直播间获取的潜在客户流量分发",
-  status: "active",
-  dailyDistributionLimit: 85,
-  deviceIds: ["dev1", "dev2", "dev3"],
-  trafficPoolIds: ["pool1", "pool2"],
-  distributionStrategy: "even",
-  autoAdjust: true,
+interface FormData {
+  basicInfo: {
+    name: string
+    source?: string
+    sourceIcon?: string
+    description?: string
+    distributeType: number
+    maxPerDay: number
+    timeType: number
+    startTime: string
+    endTime: string
+  }
+  targetSettings: {
+    targetGroups: string[]
+    devices: string[]
+  }
+  trafficPool: {
+    poolIds: string[]
+  }
 }
 
-export default function EditTrafficDistributionPage({ params }: { params: { id: string } }) {
+interface ApiResponse {
+  code: number
+  msg: string
+  data: any
+}
+
+export default function EditTrafficDistributionPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const router = useRouter()
   const { toast } = useToast()
+  const [currentStep, setCurrentStep] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [isDeviceDialogOpen, setIsDeviceDialogOpen] = useState(false)
-  const [isPoolDialogOpen, setIsPoolDialogOpen] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const [formData, setFormData] = useState({
-    id: "",
-    name: "",
-    description: "",
-    status: "active",
-    dailyDistributionLimit: 100,
-    deviceIds: [] as string[],
-    trafficPoolIds: [] as string[],
-    distributionStrategy: "even", // even, weighted, priority
-    autoAdjust: true,
+  const [formData, setFormData] = useState<FormData>({
+    basicInfo: {
+      name: "",
+      distributeType: 1,
+      maxPerDay: 100,
+      timeType: 2,
+      startTime: "08:00",
+      endTime: "22:00",
+      source: "",
+      sourceIcon: "",
+      description: "",
+    },
+    targetSettings: {
+      targetGroups: [],
+      devices: [],
+    },
+    trafficPool: {
+      poolIds: [],
+    },
   })
+  const [devices, setDevices] = useState<string[]>([])
 
   useEffect(() => {
-    // 模拟API请求获取计划详情
-    const fetchData = async () => {
-      try {
-        // 实际项目中应从API获取数据
-        // const response = await fetch(`/api/traffic-distribution/${params.id}`)
-        // const data = await response.json()
-        // setFormData(data)
+    setDevices(formData.targetSettings.devices || [])
+  }, [formData.targetSettings.devices])
 
-        // 使用模拟数据
-        setTimeout(() => {
+  const steps = [
+    { id: 1, title: "基本信息", icon: <Plus className="h-6 w-6" /> },
+    { id: 2, title: "目标设置", icon: <Users className="h-6 w-6" /> },
+    { id: 3, title: "流量池选择", icon: <Database className="h-6 w-6" /> },
+  ]
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!id) {
+        showToast("任务ID无效", "error")
+        return
+      }
+      setLoading(true)
+      const loadingToast = showToast("正在加载分发规则...", "loading", true)
+      try {
+        const response = await api.get<ApiResponse>(`/v1/workbench/detail?id=${id}`)
+        if (response.code === 200 && response.data) {
+          const data = response.data
           setFormData({
-            ...mockDistributionRule,
-            id: params.id,
+            basicInfo: {
+              name: data.name || "",
+              distributeType: data.config?.distributeType || 1,
+              maxPerDay: data.config?.maxPerDay || 100,
+              timeType: data.config?.timeType || 2,
+              startTime: data.config?.startTime || "08:00",
+              endTime: data.config?.endTime || "22:00",
+              source: data.source || "",
+              sourceIcon: data.sourceIcon || "",
+              description: data.description || "",
+            },
+            targetSettings: {
+              targetGroups: data.config?.targetGroups || [],
+              devices: (data.config?.devices || []).map(String),
+            },
+            trafficPool: {
+              poolIds: (data.config?.pools || []).map(String),
+            },
           })
-          setLoading(false)
-        }, 500)
-      } catch (error) {
+        } else {
+          showToast(response.msg || "获取分发规则失败", "error")
+        }
+      } catch (error: any) {
         console.error("获取分发规则失败:", error)
-        toast({
-          title: "加载失败",
-          description: "无法加载分发规则详情",
-          variant: "destructive",
-        })
+        showToast(error?.message || "请检查网络连接", "error")
+      } finally {
+        loadingToast.remove()
         setLoading(false)
       }
     }
-
     fetchData()
-  }, [params.id, toast])
+  }, [id])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleSwitchChange = (checked: boolean, name: string) => {
-    setFormData((prev) => ({ ...prev, [name]: checked }))
+  const handleBasicInfoNext = (data: FormData["basicInfo"]) => {
+    setFormData((prev) => ({ ...prev, basicInfo: data }))
+    setCurrentStep(1)
   }
 
-  const handleSelectChange = (value: string, name: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }))
+  const handleTargetSettingsNext = (data: FormData["targetSettings"]) => {
+    setFormData((prev) => ({ ...prev, targetSettings: data }))
+    setDevices(data.devices || [])
+    setCurrentStep(2)
   }
 
-  const handleDeviceSelection = (selectedDevices: string[]) => {
-    setFormData((prev) => ({ ...prev, deviceIds: selectedDevices }))
+  const handleTargetSettingsBack = () => {
+    setCurrentStep(0)
   }
+
+  const handleTrafficPoolBack = () => {
+    setCurrentStep(1)
   }
+
+  const handleSubmit = async (data: FormData["trafficPool"]) => {
+    const finalData = {
+      ...formData,
+      trafficPool: data,
+    }
+    const loadingToast = showToast("正在保存分发计划...", "loading", true)
+    try {
+      const response = await api.post<ApiResponse>("/v1/workbench/update", {
+        id: id,
+        type: 5,
+        name: finalData.basicInfo.name,
+        source: finalData.basicInfo.source,
+        sourceIcon: finalData.basicInfo.sourceIcon,
+        description: finalData.basicInfo.description,
+        distributeType: finalData.basicInfo.distributeType,
+        maxPerDay: finalData.basicInfo.maxPerDay,
+        timeType: finalData.basicInfo.timeType,
+        startTime: finalData.basicInfo.startTime,
+        endTime: finalData.basicInfo.endTime,
+        targetGroups: finalData.targetSettings.targetGroups,
+        devices: finalData.targetSettings.devices,
+        pools: finalData.trafficPool.poolIds,
+        enabled: true,
+      })
+      if (response.code === 200) {
+        loadingToast.remove()
+        showToast(response.msg || "保存成功", "success")
+        router.push("/workspace/traffic-distribution")
+      } else {
+        loadingToast.remove()
+        showToast(response.msg || "保存失败，请稍后重试", "error")
+      }
+    } catch (error: any) {
+      console.error("保存分发计划失败:", error)
+      loadingToast.remove()
+      showToast(error?.message || "请检查网络连接", "error")
+    }
+  }
+
+  if (loading) {
+    return <div className="text-center py-20 text-gray-400">加载中...</div>
+  }
+
+  return (
+    <div className="container max-w-md mx-auto pb-20">
+      <div className="sticky top-0 bg-white z-10 pb-2">
+        <div className="flex items-center py-4 border-b">
+          <Button variant="ghost" size="icon" onClick={() => router.back()} className="mr-2">
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-bold">编辑流量分发</h1>
+          <Button variant="ghost" size="icon" className="ml-auto">
+            <Settings className="h-5 w-5" />
+          </Button>
+        </div>
+        <StepIndicator currentStep={currentStep} steps={steps} />
+      </div>
+      <div className="mt-4">
+        {currentStep === 0 && <BasicInfoStep onNext={handleBasicInfoNext} initialData={formData.basicInfo} />}
+        {currentStep === 1 && (
+          <TargetSettingsStep
+            onNext={handleTargetSettingsNext}
+            onBack={handleTargetSettingsBack}
+            initialData={{ ...formData.targetSettings, devices }}
+            setDevices={setDevices}
+          />
+        )}
+        {currentStep === 2 && (
+          <TrafficPoolStep onSubmit={handleSubmit} onBack={handleTrafficPoolBack} initialData={formData.trafficPool} devices={devices} />
+        )}
+      </div>
+    </div>
+  )
+}
