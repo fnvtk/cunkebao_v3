@@ -511,7 +511,7 @@ class WorkbenchController extends Controller
                     }
                     break;
                 case self::TYPE_TRAFFIC_DISTRIBUTION:
-                    $config = WorkbenchTrafficDistribution::where('workbenchId', $param['id'])->find();
+                    $config = WorkbenchTrafficConfig::where('workbenchId', $param['id'])->find();
                     if ($config) {
                         $config->distributeType = $param['distributeType'];
                         $config->maxPerDay = $param['maxPerDay'];
@@ -1126,5 +1126,64 @@ class WorkbenchController extends Controller
             Db::rollback();
             return json(['code'=>500, 'msg'=>'创建失败:'.$e->getMessage()]);
         }
+    }
+
+    /**
+     * 获取所有微信好友标签及数量统计
+     * @return \think\response\Json
+     */
+    public function getDeviceLabels()
+    {
+        $deviceIds = $this->request->param('deviceIds', '');
+        $companyId = $this->request->userInfo['companyId'];
+
+        $where = [
+            ['wc.companyId', '=', $companyId],
+        ];
+
+        if (!empty($deviceIds)) {
+            $deviceIds = explode(',', $deviceIds);
+            $where[] = ['dwl.deviceId', 'in', $deviceIds];
+        }
+
+        $wechatAccounts = Db::name('wechat_customer')->alias('wc')
+            ->join('device_wechat_login dwl', 'dwl.wechatId = wc.wechatId AND dwl.companyId = wc.companyId AND dwl.alive = 1')
+            ->join(['s2_wechat_account' => 'wa'], 'wa.wechatId = wc.wechatId')
+            ->where($where)
+            ->field('wa.id,wa.wechatId,wa.nickName,wa.labels')
+            ->select();
+
+        $labels = [];
+        $wechatIds = [];
+        foreach ($wechatAccounts as $account) {
+            $labelArr = json_decode($account['labels'], true);
+            if (is_array($labelArr)) {
+                foreach ($labelArr as $label) {
+                    if ($label !== '' && $label !== null) {
+                        $labels[] = $label;
+                    }
+                }
+            }
+            $wechatIds[] = $account['wechatId'];
+        }
+        // 去重（只保留一个）
+        $labels = array_values(array_unique($labels));
+        $wechatIds = array_unique($wechatIds);
+        
+        // 统计数量
+        $newLabel = [];
+        foreach ($labels as $label) {
+            $friendCount = Db::table('s2_wechat_friend')
+                ->whereIn('ownerWechatId',$wechatIds)
+                ->where('labels', 'like', '%'.$label.'%')
+                ->count();
+            $newLabel[] = [
+                'label' => $label,
+                'count' => $friendCount
+            ];
+        }
+
+        // 返回结果
+        return json(['code' => 200, 'msg' => '获取成功', 'data' => $newLabel,'total'=> count($newLabel)]);
     }
 } 
