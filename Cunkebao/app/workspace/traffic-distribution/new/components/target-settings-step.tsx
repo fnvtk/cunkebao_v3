@@ -40,13 +40,11 @@ export default function TargetSettingsStep({ onNext, onBack, initialData = {}, s
   const [deviceDialogOpen, setDeviceDialogOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState("all")
 
-  // 每次弹窗打开时，同步主表单的 devices（转为字符串数组）
+  // 每次 initialData.devices 变化时，同步 selectedDeviceIds
   useEffect(() => {
-    if (deviceDialogOpen) {
-      const ids = Array.isArray(initialData.devices) ? initialData.devices.map(String) : [];
-      setSelectedDeviceIds(ids);
-    }
-  }, [deviceDialogOpen, initialData.devices])
+    const ids = Array.isArray(initialData.devices) ? initialData.devices.map(String) : [];
+    setSelectedDeviceIds(ids);
+  }, [initialData.devices])
 
   useEffect(() => {
     setLoading(true)
@@ -66,7 +64,7 @@ export default function TargetSettingsStep({ onNext, onBack, initialData = {}, s
   })
 
   const handleSubmit = () => {
-    onNext({ devices: Array.isArray(initialData.devices) ? initialData.devices : [] })
+    onNext({ devices: selectedDeviceIds })
   }
 
   // 弹窗内确认选择
@@ -85,7 +83,7 @@ export default function TargetSettingsStep({ onNext, onBack, initialData = {}, s
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <Input
             placeholder="选择设备"
-            value={Array.isArray(initialData.devices) && initialData.devices.length > 0 ? `已选择${initialData.devices.length}个设备` : ''}
+            value={selectedDeviceIds.length > 0 ? `已选择${selectedDeviceIds.length}个设备` : ''}
             readOnly
             className="pl-10 cursor-pointer"
             onClick={() => setDeviceDialogOpen(true)}
@@ -93,10 +91,10 @@ export default function TargetSettingsStep({ onNext, onBack, initialData = {}, s
         </div>
       </div>
       <div className="space-y-3 mt-4 max-h-80 overflow-y-auto">
-        {Array.isArray(initialData.devices) && initialData.devices.length === 0 ? (
+        {selectedDeviceIds.length === 0 ? (
           <div className="text-gray-400">未选择设备</div>
         ) : (
-          <div className="text-base text-gray-500">已选设备：{Array.isArray(initialData.devices) ? initialData.devices.length : 0} 个</div>
+          <div className="text-base text-gray-500">已选设备：{selectedDeviceIds.length} 个</div>
         )}
       </div>
       <div className="mt-8 flex justify-between">

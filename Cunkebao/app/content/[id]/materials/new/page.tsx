@@ -106,7 +106,7 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
       const response = await api.post<ApiResponse>('/v1/content/library/create-item', payload)
       if (response.code === 200) {
         showToast("创建成功", "success")
-        router.push(`/content/${params.id}/materials`)
+      router.push(`/content/${params.id}/materials`)
       } else {
         showToast(response.msg || "创建失败", "error")
       }
@@ -152,7 +152,7 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
                   <CalendarDays className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
                 </div>
               </div>
-              <div>
+            <div>
                 <Label className="font-bold flex items-center mb-2">
                   <span className="text-red-500 mr-1">*</span>类型
                 </Label>
@@ -252,7 +252,7 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
                     <Label htmlFor="url" className="font-bold flex items-center mb-2">
                       <span className="text-red-500 mr-1">*</span>链接地址
                     </Label>
-                    <Input
+                <Input
                       id="url"
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
@@ -286,7 +286,7 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
                             <span className="text-sm text-gray-500">上传视频</span>
                           </>
                         )}
-                      </Button>
+                </Button>
                       {videoUrl && (
                         <Button type="button" variant="destructive" size="sm" className="h-8 px-2 rounded-lg" onClick={() => setVideoUrl("")}>删除</Button>
                       )}
@@ -329,19 +329,19 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
                                   className="object-cover"
                                 />
                               </div>
-                              <Button
-                                type="button"
+                    <Button
+                      type="button"
                                 variant="destructive"
-                                size="sm"
+                      size="sm"
                                 className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0 rounded-full"
                                 onClick={() => handleRemoveImage(index)}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
                             </div>
-                          ))}
-                        </div>
-                      </div>
+                ))}
+              </div>
+            </div>
                     )}
                   </>
                 )}

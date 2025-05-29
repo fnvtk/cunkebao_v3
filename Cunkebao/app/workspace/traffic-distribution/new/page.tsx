@@ -27,6 +27,7 @@ interface FormData {
   targetSettings: {
     targetGroups: string[]
     targets: string[]
+    devices?: string[]
   }
   trafficPool: {
     deviceIds: number[]
@@ -65,6 +66,7 @@ export default function NewTrafficDistribution() {
       poolIds: [],
     },
   })
+  const [devices, setDevices] = useState<string[]>([])
 
   const steps = [
     { id: 1, title: "基本信息", icon: <Plus className="h-6 w-6" /> },
@@ -78,7 +80,8 @@ export default function NewTrafficDistribution() {
   }
 
   const handleTargetSettingsNext = (data: FormData["targetSettings"]) => {
-    setFormData((prev) => ({ ...prev, targetSettings: data }))
+    setFormData((prev) => ({ ...prev, targetSettings: { ...data } }))
+    setDevices(data.devices || [])
     setCurrentStep(2)
   }
 
@@ -154,11 +157,17 @@ export default function NewTrafficDistribution() {
             onNext={handleTargetSettingsNext}
             onBack={handleTargetSettingsBack}
             initialData={formData.targetSettings}
+            setDevices={setDevices}
           />
         )}
 
         {currentStep === 2 && (
-          <TrafficPoolStep onSubmit={handleSubmit} onBack={handleTrafficPoolBack} initialData={formData.trafficPool} />
+          <TrafficPoolStep
+            onSubmit={handleSubmit}
+            onBack={handleTrafficPoolBack}
+            initialData={formData.trafficPool}
+            devices={devices}
+          />
         )}
       </div>
     </div>
