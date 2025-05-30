@@ -64,56 +64,35 @@ class WorkbenchTrafficDistributeJob
             return;
         }
 
-         // 验证是否在流量分发时间范围内
-         if (!$this->isTimeRange($config) && $config['timeType'] == 2) {
+        // 验证是否在流量分发时间范围内
+        if (!$this->isTimeRange($config) && $config['timeType'] == 2) {
             return;
-        }   
+        }
 
         // 获取账号，userName不包含offline和delete
-        $account = Db::table('s2_company_account')
+        $accounts = Db::table('s2_company_account')
             ->where(['departmentId' => $workbench->companyId, 'status' => 0])
             ->whereNotLike('userName', '%_offline%')
             ->whereNotLike('userName', '%_delete%')
             ->field('id,userName,realName')
             ->select();
-        $accountNum = count($account);
-        if($accountNum < 2){
+        $accountNum = count($accounts);
+        if ($accountNum < 2) {
             Log::info("流量分发工作台 {$workbench->id} 账号少于3个");
             return;
         }
-     
-        // 默认第一页，每页20条
-        $friends = $this->getFriendsByLabels($workbench,$config, $page, $pageSize);
-        if(empty($friends) || count($friends) == 0){
+
+        // 获取可分配好友
+        $friends = $this->getFriendsByLabels($workbench, $config, $page, $pageSize);
+        if (empty($friends) || count($friends) == 0) {
             Log::info("流量分发工作台 {$workbench->id} 没有可分配的好友");
             return;
         }
 
-
+        // TODO: 在这里实现分发逻辑
         print_r($friends);
         exit;
-
-        switch ($config->distributeType) {
-            case 1:
-                // 平均分配
-                break;
-            case 2:
-                // 按客服优先等级
-                break;
-            case 3:
-                // 比例分配
-                break;
-        }
-
-
-
-
-        print_r($accountNum);
-        exit;
-        // 例如：分配好友/客户到设备、客服、流量池等
-        Log::info("流量分发工作台 {$workbench->id} 执行分发逻辑");
     }
-
 
     /**
      * 检查是否在流量分发时间范围内
@@ -130,40 +109,44 @@ class WorkbenchTrafficDistributeJob
         return true;
     }
 
-    
     /**
      * 一次性查出所有包含指定标签数组的好友（支持分页）
-     * @param array $workbench 标签数组 
-     * @param array $config 标签数组
+     * @param object $workbench 工作台对象
+     * @param object $config 配置对象
      * @param int $page 页码
      * @param int $pageSize 每页数量
      * @return array
      */
-    protected function getFriendsByLabels($workbench,$config, $page = 1, $pageSize = 20)
+    protected function getFriendsByLabels($workbench, $config, $page = 1, $pageSize = 20)
     {
-        $labels = json_decode($config['pools'],true);
-        $device = json_decode($config['devices'],true);
-      
-        
+        $labels = [];
+        if (!empty($config['pools'])) {
+            $labels = is_array($config['pools']) ? $config['pools'] : json_decode($config['pools'], true);
+        }
+        $devices = [];
+        if (!empty($config['devices'])) {
+            $devices = is_array($config['devices']) ? $config['devices'] : json_decode($config['devices'], true);
+        }
+        if (empty($labels) || empty($devices)) {
+            return [];
+        }
         $query = Db::table('s2_wechat_friend')->alias('wf')
-        ->join(['s2_company_account'=>'sa'],'sa.id = wf.accountId','left')
-        ->join(['s2_wechat_account'=>'wa'],'wa.id = wf.wechatAccountId','left')
-        ->join('workbench_traffic_config_item wtci', 'wtci.wechatFriendId = wf.id AND wtci.workbenchId = '. $config['workbenchId'], 'left')
-        ->where([
-            ['wf.isDeleted','=',0],
-            ['sa.departmentId' ,'=', $workbench->companyId],
-            ['wtci.id', 'null', null]
-        ])
-        ->whereIn('wa.currentDeviceId',$device)
-        ->field('wf.id,wf.wechatAccountId,wf.wechatId,wf.labels,sa.userName,wa.currentDeviceId as deviceId');
-        $query->where(function($q) use ($labels) {
+            ->join(['s2_company_account' => 'sa'], 'sa.id = wf.accountId', 'left')
+            ->join(['s2_wechat_account' => 'wa'], 'wa.id = wf.wechatAccountId', 'left')
+            ->join('workbench_traffic_config_item wtci', 'wtci.wechatFriendId = wf.id AND wtci.workbenchId = ' . $config['workbenchId'], 'left')
+            ->where([
+                ['wf.isDeleted', '=', 0],
+                ['sa.departmentId', '=', $workbench->companyId],
+                ['wtci.id', 'null', null]
+            ])
+            ->whereIn('wa.currentDeviceId', $devices)
+            ->field('wf.id,wf.wechatAccountId,wf.wechatId,wf.labels,sa.userName,wa.currentDeviceId as deviceId');
+        $query->where(function ($q) use ($labels) {
             foreach ($labels as $label) {
                 $q->whereOrRaw("JSON_CONTAINS(wf.labels, '\"{$label}\"')");
             }
         });
-
         $list = $query->page($page, $pageSize)->select();
-
         return $list;
     }
 
