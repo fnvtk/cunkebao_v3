@@ -31,4 +31,5 @@ return [
     'workbench:moments' => 'app\command\WorkbenchMomentsCommand', // 工作台朋友圈同步任务
     'sync:wechatData' => 'app\command\SyncWechatDataToCkbTask', // 同步微信数据到存客宝
     'sync:allFriends' => 'app\command\SyncAllFriendsCommand', // 同步所有在线好友
+    'workbench:trafficDistribute' => 'app\command\WorkbenchTrafficDistributeCommand', // 工作台流量分发任务
 ];

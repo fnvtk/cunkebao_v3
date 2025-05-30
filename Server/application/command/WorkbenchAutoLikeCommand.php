@@ -35,7 +35,7 @@ class WorkbenchAutoLikeCommand extends Command
             
             // 检查队列是否已经在运行
             $queueLockKey = "queue_lock:{$this->queueName}";
-            Cache::rm($queueLockKey);
+            //Cache::rm($queueLockKey);
             if (Cache::get($queueLockKey)) {
                 $output->writeln("队列 {$this->queueName} 已经在运行中，跳过执行");
                 Log::warning("队列 {$this->queueName} 已经在运行中，跳过执行");
