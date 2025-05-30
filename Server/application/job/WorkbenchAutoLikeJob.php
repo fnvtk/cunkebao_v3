@@ -220,7 +220,7 @@ class WorkbenchAutoLikeJob
             $automaticAssign = new AutomaticAssign();
             $automaticAssign->allotWechatFriend(['wechatFriendId' => $friend['friendId'], 'toAccountId' => $toAccountId], true);
             
-            // 执行采集朋友圈命令
+            // 创建WebSocket链接
             $webSocket = new WebSocketController(['userName' => $username, 'password' => $password, 'accountId' => $toAccountId]);
             
             // 查询未点赞的朋友圈
@@ -232,8 +232,6 @@ class WorkbenchAutoLikeJob
             }
             
             
-         
-           
             if (empty($moments) || count($moments) == 0) {
                  // 处理完毕切换回原账号
                 $automaticAssign->allotWechatFriend(['wechatFriendId' => $friend['friendId'], 'toAccountId' => $friend['accountId']], true);
@@ -251,16 +249,21 @@ class WorkbenchAutoLikeJob
                     $labels = $this->getFriendLabels($friend);
                     $labels[] = $config['friendTags'];
                     $webSocket->modifyFriendLabel(['wechatFriendId' => $friend['friendId'], 'wechatAccountId' => $friend['wechatAccountId'], 'labels' => $labels]);
+
+                    //更新用户标签
+                    $friendData = Db::table('s2_wechat_friend')->where('id', $friend['friendId'])->find();
+                    Db::table('s2_wechat_friend')->where('id', $friend['friendId'])->update(['labels' => json_encode($labels,256)]);
                 }
+                break;
             }
 
             // 处理完毕切换回原账号
             $automaticAssign->allotWechatFriend(['wechatFriendId' => $friend['friendId'], 'toAccountId' => $friend['accountId']], true);
         } catch (\Exception $e) {
             // 异常情况下也要确保切换回原账号
+            $automaticAssign = new AutomaticAssign();
             $automaticAssign->allotWechatFriend(['wechatFriendId' => $friend['friendId'], 'toAccountId' => $friend['accountId']], true);
-            
-            Log::error("处理好友 {$friend['friendId']} 朋友圈失败: " . $e->getMessage());
+            Log::error("处理好友 {$friend['friendId']} 朋友圈失败异常: " . $e->getMessage());
         }
     }
 
