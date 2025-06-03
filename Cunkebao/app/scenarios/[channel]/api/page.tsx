@@ -1,12 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronLeft, Copy, Plus, Trash2 } from "lucide-react"
+import { ChevronLeft, Copy, FileText, Play, Info, Link } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useRouter } from "next/navigation"
 import { toast } from "@/components/ui/use-toast"
 import {
@@ -17,7 +15,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Switch } from "@/components/ui/switch"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // 获取渠道中文名称
 const getChannelName = (channel: string) => {
@@ -32,432 +31,361 @@ const getChannelName = (channel: string) => {
   return channelMap[channel] || channel
 }
 
-interface ApiKey {
-  id: string
-  name: string
-  key: string
-  createdAt: string
-  lastUsed: string | null
-  status: "active" | "inactive"
-}
-
-interface Webhook {
-  id: string
-  name: string
-  url: string
-  events: string[]
-  createdAt: string
-  lastTriggered: string | null
-  status: "active" | "inactive"
-}
-
 export default function ApiManagementPage({ params }: { params: { channel: string } }) {
   const router = useRouter()
   const channel = params.channel
   const channelName = getChannelName(channel)
 
-  // 模拟API密钥数据
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>([
-    {
-      id: "1",
-      name: `${channelName}获客API密钥`,
-      key: `api_${channel}_${Math.random().toString(36).substring(2, 10)}`,
-      createdAt: "2024-03-20 14:30:00",
-      lastUsed: "2024-03-21 09:15:22",
-      status: "active",
-    },
-  ])
-
-  // 模拟Webhook数据
-  const [webhooks, setWebhooks] = useState<Webhook[]>([
-    {
-      id: "1",
-      name: `${channelName}获客回调`,
-      url: `https://api.example.com/webhooks/${channel}`,
-      events: ["customer.created", "customer.updated", "tag.added"],
-      createdAt: "2024-03-20 14:35:00",
-      lastTriggered: "2024-03-21 09:16:45",
-      status: "active",
-    },
-  ])
+  // 示例数据
+  const apiKey = `api_1_b9805j8q`
+  const apiUrl = `https://kzmoqjnwgjc9q2xbj4np.lite.vusercontent.net/api/scenarios/${channel}/1/webhook`
+  const testUrl = `${apiUrl}?name=测试客户&phone=13800138000`
 
   // 对话框状态
-  const [showNewApiKeyDialog, setShowNewApiKeyDialog] = useState(false)
-  const [showNewWebhookDialog, setShowNewWebhookDialog] = useState(false)
-  const [newApiKeyName, setNewApiKeyName] = useState("")
-  const [newWebhookData, setNewWebhookData] = useState({
-    name: "",
-    url: "",
-    events: ["customer.created", "customer.updated", "tag.added"],
-  })
-
-  // 创建新API密钥
-  const handleCreateApiKey = () => {
-    if (!newApiKeyName.trim()) {
-      toast({
-        title: "错误",
-        description: "请输入API密钥名称",
-        variant: "destructive",
-      })
-      return
-    }
-
-    const newKey: ApiKey = {
-      id: `${Date.now()}`,
-      name: newApiKeyName,
-      key: `api_${channel}_${Math.random().toString(36).substring(2, 15)}`,
-      createdAt: new Date().toLocaleString(),
-      lastUsed: null,
-      status: "active",
-    }
-
-    setApiKeys([...apiKeys, newKey])
-    setNewApiKeyName("")
-    setShowNewApiKeyDialog(false)
-
-    toast({
-      title: "创建成功",
-      description: "新的API密钥已创建",
-      variant: "success",
-    })
-  }
-
-  // 创建新Webhook
-  const handleCreateWebhook = () => {
-    if (!newWebhookData.name.trim() || !newWebhookData.url.trim()) {
-      toast({
-        title: "错误",
-        description: "请填写所有必填字段",
-        variant: "destructive",
-      })
-      return
-    }
-
-    const newWebhook: Webhook = {
-      id: `${Date.now()}`,
-      name: newWebhookData.name,
-      url: newWebhookData.url,
-      events: newWebhookData.events,
-      createdAt: new Date().toLocaleString(),
-      lastTriggered: null,
-      status: "active",
-    }
-
-    setWebhooks([...webhooks, newWebhook])
-    setNewWebhookData({
-      name: "",
-      url: "",
-      events: ["customer.created", "customer.updated", "tag.added"],
-    })
-    setShowNewWebhookDialog(false)
-
-    toast({
-      title: "创建成功",
-      description: "新的Webhook已创建",
-      variant: "success",
-    })
-  }
-
-  // 删除API密钥
-  const handleDeleteApiKey = (id: string) => {
-    setApiKeys(apiKeys.filter((key) => key.id !== id))
-    toast({
-      title: "删除成功",
-      description: "API密钥已删除",
-      variant: "success",
-    })
-  }
-
-  // 删除Webhook
-  const handleDeleteWebhook = (id: string) => {
-    setWebhooks(webhooks.filter((webhook) => webhook.id !== id))
-    toast({
-      title: "删除成功",
-      description: "Webhook已删除",
-      variant: "success",
-    })
-  }
-
-  // 切换API密钥状态
-  const toggleApiKeyStatus = (id: string) => {
-    setApiKeys(
-      apiKeys.map((key) => (key.id === id ? { ...key, status: key.status === "active" ? "inactive" : "active" } : key)),
-    )
-  }
-
-  // 切换Webhook状态
-  const toggleWebhookStatus = (id: string) => {
-    setWebhooks(
-      webhooks.map((webhook) =>
-        webhook.id === id ? { ...webhook, status: webhook.status === "active" ? "inactive" : "active" } : webhook,
-      ),
-    )
-  }
+  const [showDocDialog, setShowDocDialog] = useState(false)
+  const [showTestDialog, setShowTestDialog] = useState(false)
 
   return (
-    <div className="flex-1 bg-gradient-to-b from-blue-50 to-white min-h-screen">
-      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b">
+    <div className="flex-1 bg-white min-h-screen pb-20">
+      <header className="sticky top-0 z-10 bg-white shadow-sm">
         <div className="flex items-center p-4">
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-xl font-semibold text-blue-600 ml-2">{channelName}获客接口管理</h1>
+          <h1 className="text-lg font-medium ml-2">{channelName}获客接口</h1>
         </div>
       </header>
 
-      <div className="p-4 max-w-7xl mx-auto">
-        <Tabs defaultValue="api-keys" className="w-full">
+      <div className="p-4 max-w-md mx-auto space-y-5">
+        {/* 接口位置提示 */}
+        <div className="bg-blue-50 rounded-lg p-3 flex items-start">
+          <Info className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+          <div className="ml-2">
+            <p className="text-sm text-blue-700">
+              <span className="font-medium">接口位置：</span>场景获客 → {channelName}获客 → 选择计划 → 右上角菜单 →
+              计划接口
+            </p>
+          </div>
+        </div>
+
+        <Tabs defaultValue="api" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="api-keys">API密钥</TabsTrigger>
-            <TabsTrigger value="webhooks">Webhook</TabsTrigger>
+            <TabsTrigger value="api">接口信息</TabsTrigger>
+            <TabsTrigger value="params">参数说明</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="api-keys" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-medium">API密钥管理</h2>
-              <Button onClick={() => setShowNewApiKeyDialog(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                创建API密钥
-              </Button>
-            </div>
-
-            <div className="space-y-4">
-              {apiKeys.map((apiKey) => (
-                <Card key={apiKey.id}>
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle>{apiKey.name}</CardTitle>
-                        <CardDescription>创建于 {apiKey.createdAt}</CardDescription>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            checked={apiKey.status === "active"}
-                            onCheckedChange={() => toggleApiKeyStatus(apiKey.id)}
-                          />
-                          <span className="text-sm text-gray-500">{apiKey.status === "active" ? "启用" : "禁用"}</span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleDeleteApiKey(apiKey.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
+          <TabsContent value="api" className="space-y-4">
+            {/* API密钥部分 */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center">
+                  <h2 className="text-base font-medium">API密钥</h2>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 ml-1">
+                          <Info className="h-4 w-4 text-gray-400" />
                         </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Input value={apiKey.key} readOnly className="font-mono text-sm" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">用于接口身份验证</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <div className="flex space-x-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => {
-                            navigator.clipboard.writeText(apiKey.key)
-                            toast({
-                              title: "已复制",
-                              description: "API密钥已复制到剪贴板",
-                              variant: "success",
-                            })
-                          }}
+                          className="h-8 w-8"
+                          onClick={() => setShowDocDialog(true)}
                         >
-                          <Copy className="h-4 w-4" />
+                          <FileText className="h-4 w-4" />
                         </Button>
-                      </div>
-                      {apiKey.lastUsed && <p className="text-sm text-gray-500">上次使用: {apiKey.lastUsed}</p>}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>查看接口文档</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
 
-              {apiKeys.length === 0 && (
-                <div className="text-center py-8 bg-white rounded-lg shadow-sm">
-                  <p className="text-gray-500">暂无API密钥</p>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setShowTestDialog(true)}
+                        >
+                          <Play className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>快速测试</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
-              )}
+              </div>
+
+              <Card className="overflow-hidden border-gray-200">
+                <CardContent className="p-3">
+                  <div className="relative w-full">
+                    <Input value={apiKey} readOnly className="font-mono text-sm pr-10 border-gray-200" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full"
+                      onClick={() => {
+                        navigator.clipboard.writeText(apiKey)
+                        toast({
+                          title: "已复制",
+                          description: "API密钥已复制到剪贴板",
+                        })
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* 接口地址部分 */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center">
+                  <h2 className="text-base font-medium">接口地址</h2>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 ml-1">
+                          <Link className="h-4 w-4 text-gray-400" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">发送POST请求到此地址</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs px-2 border-blue-200 text-blue-600 hover:bg-blue-50"
+                  onClick={() => {
+                    navigator.clipboard.writeText(apiUrl)
+                    toast({
+                      title: "已复制",
+                      description: "接口地址已复制到剪贴板",
+                    })
+                  }}
+                >
+                  <Copy className="h-3 w-3 mr-1" />
+                  复制
+                </Button>
+              </div>
+
+              <Card className="overflow-hidden border-gray-200">
+                <CardContent className="p-3">
+                  <div className="w-full">
+                    <div className="font-mono text-xs bg-gray-50 p-2 rounded border border-gray-200 break-all">
+                      {apiUrl}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 
-          <TabsContent value="webhooks" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-medium">Webhook管理</h2>
-              <Button onClick={() => setShowNewWebhookDialog(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                创建Webhook
-              </Button>
+          <TabsContent value="params" className="space-y-4">
+            {/* 必要参数部分 */}
+            <div className="space-y-2">
+              <h2 className="text-base font-medium flex items-center">
+                必要参数
+                <span className="text-xs text-red-500 ml-1">*</span>
+              </h2>
+              <Card className="overflow-hidden border-gray-200">
+                <CardContent className="p-3">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-medium text-blue-600">name</span>
+                        <span className="text-sm text-gray-500 ml-2">(姓名)</span>
+                      </div>
+                      <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">字符串</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-medium text-blue-600">phone</span>
+                        <span className="text-sm text-gray-500 ml-2">(电话)</span>
+                      </div>
+                      <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">字符串</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
-            <div className="space-y-4">
-              {webhooks.map((webhook) => (
-                <Card key={webhook.id}>
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
+            {/* 可选参数部分 */}
+            <div className="space-y-2">
+              <h2 className="text-base font-medium">可选参数</h2>
+              <Card className="overflow-hidden border-gray-200">
+                <CardContent className="p-3">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
                       <div>
-                        <CardTitle>{webhook.name}</CardTitle>
-                        <CardDescription>创建于 {webhook.createdAt}</CardDescription>
+                        <span className="font-medium text-gray-600">source</span>
+                        <span className="text-sm text-gray-500 ml-2">(来源)</span>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            checked={webhook.status === "active"}
-                            onCheckedChange={() => toggleWebhookStatus(webhook.id)}
-                          />
-                          <span className="text-sm text-gray-500">{webhook.status === "active" ? "启用" : "禁用"}</span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleDeleteWebhook(webhook.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">字符串</span>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Input value={webhook.url} readOnly className="font-mono text-sm" />
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => {
-                            navigator.clipboard.writeText(webhook.url)
-                            toast({
-                              title: "已复制",
-                              description: "Webhook URL已复制到剪贴板",
-                              variant: "success",
-                            })
-                          }}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-medium text-gray-600">remark</span>
+                        <span className="text-sm text-gray-500 ml-2">(备注)</span>
                       </div>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {webhook.events.map((event) => (
-                          <span key={event} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-                            {event}
-                          </span>
-                        ))}
-                      </div>
-                      {webhook.lastTriggered && (
-                        <p className="text-sm text-gray-500">上次触发: {webhook.lastTriggered}</p>
-                      )}
+                      <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">字符串</span>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-medium text-gray-600">tags</span>
+                        <span className="text-sm text-gray-500 ml-2">(标签)</span>
+                      </div>
+                      <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">数组</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-              {webhooks.length === 0 && (
-                <div className="text-center py-8 bg-white rounded-lg shadow-sm">
-                  <p className="text-gray-500">暂无Webhook</p>
-                </div>
-              )}
+            {/* 示例代码部分 */}
+            <div className="space-y-2">
+              <h2 className="text-base font-medium">请求示例</h2>
+              <Card className="overflow-hidden border-gray-200">
+                <CardContent className="p-3">
+                  <pre className="text-xs bg-gray-50 p-2 rounded border border-gray-200 overflow-x-auto">
+                    {`POST ${apiUrl}
+Content-Type: application/json
+Authorization: Bearer ${apiKey}
+
+{
+  "name": "张三",
+  "phone": "13800138000",
+  "source": "官网",
+  "remark": "有意向",
+  "tags": ["高意向", "新客户"]
+}`}
+                  </pre>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
         </Tabs>
       </div>
 
-      {/* 创建API密钥对话框 */}
-      <Dialog open={showNewApiKeyDialog} onOpenChange={setShowNewApiKeyDialog}>
+      {/* 接口文档对话框 */}
+      <Dialog open={showDocDialog} onOpenChange={setShowDocDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>创建新API密钥</DialogTitle>
-            <DialogDescription>创建一个新的API密钥用于访问{channelName}获客接口</DialogDescription>
+            <DialogTitle>接口文档</DialogTitle>
+            <DialogDescription>查看详细的接口文档与集成指南</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="api-key-name">API密钥名称</Label>
-              <Input
-                id="api-key-name"
-                placeholder="例如：获客系统集成"
-                value={newApiKeyName}
-                onChange={(e) => setNewApiKeyName(e.target.value)}
-              />
+              <h3 className="font-medium">接口说明</h3>
+              <p className="text-sm text-gray-600">
+                本接口用于向{channelName}获客计划添加新的客户信息。通过HTTP POST请求发送客户数据。
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="font-medium">请求格式</h3>
+              <pre className="text-xs bg-gray-50 p-3 rounded border overflow-x-auto">
+                POST {apiUrl}
+                <br />
+                Content-Type: application/json
+                <br />
+                Authorization: Bearer {apiKey}
+                <br />
+                <br />
+                {`{
+  "name": "客户姓名",
+  "phone": "13800138000",
+  "source": "广告投放",
+  "remark": "有意向购买",
+  "tags": ["高意向", "新客户"]
+}`}
+              </pre>
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="font-medium">响应格式</h3>
+              <pre className="text-xs bg-gray-50 p-3 rounded border overflow-x-auto">
+                {`{
+  "success": true,
+  "message": "客户添加成功",
+  "data": {
+    "id": "cust_123456",
+    "name": "客户姓名",
+    "phone": "13800138000",
+    "created_at": "2024-03-21T09:15:22Z"
+  }
+}`}
+              </pre>
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewApiKeyDialog(false)}>
-              取消
-            </Button>
-            <Button onClick={handleCreateApiKey}>创建</Button>
+            <Button onClick={() => setShowDocDialog(false)}>关闭</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* 创建Webhook对话框 */}
-      <Dialog open={showNewWebhookDialog} onOpenChange={setShowNewWebhookDialog}>
+      {/* 快速测试对话框 */}
+      <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>创建新Webhook</DialogTitle>
-            <DialogDescription>创建一个新的Webhook用于接收{channelName}获客事件通知</DialogDescription>
+            <DialogTitle>快速测试</DialogTitle>
+            <DialogDescription>使用以下URL快速测试接口是否正常工作</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="webhook-name">Webhook名称</Label>
-              <Input
-                id="webhook-name"
-                placeholder="例如：CRM系统集成"
-                value={newWebhookData.name}
-                onChange={(e) => setNewWebhookData({ ...newWebhookData, name: e.target.value })}
-              />
+              <h3 className="font-medium">测试URL</h3>
+              <pre className="text-xs bg-gray-50 p-3 rounded border overflow-x-auto whitespace-pre-wrap break-all">
+                {testUrl}
+              </pre>
+              <p className="text-xs text-gray-500 mt-2">将上面的URL复制到浏览器中打开，测试接口是否返回成功响应。</p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="webhook-url">Webhook URL</Label>
-              <Input
-                id="webhook-url"
-                placeholder="https://example.com/webhook"
-                value={newWebhookData.url}
-                onChange={(e) => setNewWebhookData({ ...newWebhookData, url: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>事件类型</Label>
-              <div className="grid grid-cols-1 gap-2">
-                {["customer.created", "customer.updated", "tag.added", "tag.removed"].map((event) => (
-                  <div key={event} className="flex items-center space-x-2">
-                    <Switch
-                      checked={newWebhookData.events.includes(event)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setNewWebhookData({
-                            ...newWebhookData,
-                            events: [...newWebhookData.events, event],
-                          })
-                        } else {
-                          setNewWebhookData({
-                            ...newWebhookData,
-                            events: newWebhookData.events.filter((e) => e !== event),
-                          })
-                        }
-                      }}
-                    />
-                    <span>{event}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <Button
+              className="w-full"
+              onClick={() => {
+                navigator.clipboard.writeText(testUrl)
+                toast({
+                  title: "已复制",
+                  description: "测试URL已复制到剪贴板",
+                })
+              }}
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              复制测试链接
+            </Button>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewWebhookDialog(false)}>
-              取消
+            <Button variant="outline" onClick={() => setShowTestDialog(false)}>
+              关闭
             </Button>
-            <Button onClick={handleCreateWebhook}>创建</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   )
 }
-

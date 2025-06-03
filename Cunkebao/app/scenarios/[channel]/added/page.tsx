@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronLeft, Plus } from "lucide-react"
+import { ChevronLeft } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -53,17 +53,13 @@ export default function AddedCustomersPage({ params }: { params: { channel: stri
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b">
-        <div className="flex items-center justify-between p-4">
+        <div className="flex items-center p-4">
           <div className="flex items-center space-x-3">
             <Button variant="ghost" size="icon" onClick={() => router.back()}>
               <ChevronLeft className="h-5 w-5" />
             </Button>
             <h1 className="text-xl font-semibold text-blue-600">{channelName}已添加</h1>
           </div>
-          <Button variant="default" onClick={() => router.push(`/scenarios/new`)} className="flex items-center gap-1">
-            <Plus className="h-4 w-4" />
-            新建计划
-          </Button>
         </div>
       </header>
 
@@ -120,4 +116,3 @@ export default function AddedCustomersPage({ params }: { params: { channel: stri
     </div>
   )
 }
-

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Filter, Search, RefreshCw, MoreVertical, Clock, Copy, Code } from "lucide-react"
+import { Plus, Filter, Search, RefreshCw, MoreVertical, Clock, Copy, Code } from 'lucide-react'
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -130,7 +130,7 @@ export default function ApiPage() {
         <div className="flex items-center justify-between p-4">
           <h1 className="text-xl font-semibold text-violet-600">API获客</h1>
           <div className="flex items-center space-x-2">
-            <Link href="/scenarios/api/new">
+            <Link href="/scenarios/new">
               <Button className="bg-violet-600 hover:bg-violet-700">
                 <Plus className="h-4 w-4 mr-2" />
                 新建计划
@@ -371,4 +371,3 @@ export default function ApiPage() {
     </div>
   )
 }
-

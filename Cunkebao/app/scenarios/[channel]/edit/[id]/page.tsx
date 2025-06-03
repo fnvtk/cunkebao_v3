@@ -238,4 +238,3 @@ export default function EditAcquisitionPlan({ params }: { params: { channel: str
     </div>
   )
 }
-

@@ -207,4 +207,3 @@ export function TrafficChannelSettings({ formData, onChange, onNext, onPrev }: T
     </Card>
   )
 }
-

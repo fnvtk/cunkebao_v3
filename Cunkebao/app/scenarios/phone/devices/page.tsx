@@ -184,4 +184,3 @@ export default function PhoneDevicesPage() {
     </div>
   )
 }
-
