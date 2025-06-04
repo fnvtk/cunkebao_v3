@@ -17,7 +17,7 @@ export default function BasicInfoStep({ onNext, initialData = {} }: BasicInfoSte
   const [formData, setFormData] = useState({
     name: initialData.name ?? `流量分发 ${format(new Date(), "yyyyMMdd HHmm")}`,
     distributeType: initialData.distributeType ?? "1",
-    maxPerDay: initialData.maxPerDay ?? 50,
+    maxPerDay: initialData.maxPerDay ?? 100,
     timeType: initialData.timeType ?? "2",
     startTime: initialData.startTime ?? "09:00",
     endTime: initialData.endTime ?? "18:00",
@@ -69,7 +69,7 @@ export default function BasicInfoStep({ onNext, initialData = {} }: BasicInfoSte
                 均分配 <span className="text-gray-500 text-sm">(流量将均分配给所有客服)</span>
               </Label>
             </div>
-            <div className="flex items-center space-x-2">
+            {/* <div className="flex items-center space-x-2">
               <RadioGroupItem value="2" id="priority" />
               <Label htmlFor="priority" className="cursor-pointer">
                 优先级分配 <span className="text-gray-500 text-sm">(按客服优先级顺序分配)</span>
@@ -80,7 +80,7 @@ export default function BasicInfoStep({ onNext, initialData = {} }: BasicInfoSte
               <Label htmlFor="ratio" className="cursor-pointer">
                 比例分配 <span className="text-gray-500 text-sm">(按设定比例分配流量)</span>
               </Label>
-            </div>
+            </div> */}
           </RadioGroup>
         </div>
 

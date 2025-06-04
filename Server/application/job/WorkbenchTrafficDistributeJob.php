@@ -10,6 +10,7 @@ use think\facade\Cache;
 use app\cunkebao\model\Workbench;
 use app\cunkebao\model\WorkbenchTrafficConfig;
 use think\Db;
+use app\api\controller\AutomaticAssign;
 
 class WorkbenchTrafficDistributeJob
 {
@@ -69,30 +70,82 @@ class WorkbenchTrafficDistributeJob
             return;
         }
 
-        // 获取账号，userName不包含offline和delete
+        // 获取当天未超额的可用账号
+        $todayStart = strtotime(date('Y-m-d 00:00:00'));
+        $todayEnd = strtotime(date('Y-m-d 23:59:59'));
         $accounts = Db::table('s2_company_account')
-            ->where(['departmentId' => $workbench->companyId, 'status' => 0])
-            ->whereNotLike('userName', '%_offline%')
-            ->whereNotLike('userName', '%_delete%')
-            ->field('id,userName,realName')
+            ->alias('a')
+            ->where(['a.departmentId' => $workbench->companyId, 'a.status' => 0])
+            ->whereNotLike('a.userName', '%_offline%')
+            ->whereNotLike('a.userName', '%_delete%')
+            ->leftJoin('workbench_traffic_config_item wti', "wti.wechatAccountId = a.id AND wti.workbenchId = {$workbench->id} AND wti.createTime BETWEEN {$todayStart} AND {$todayEnd}")
+            ->field('a.id,a.userName,a.realName,COUNT(wti.id) as todayCount')
+            ->group('a.id')
+            ->having('todayCount <= ' . $config['maxPerDay'])
             ->select();
         $accountNum = count($accounts);
-        if ($accountNum < 2) {
-            Log::info("流量分发工作台 {$workbench->id} 账号少于3个");
+        if ($accountNum < 1) {
+            Log::info("流量分发工作台 {$workbench->id} 可分配账号少于1个");
             return;
         }
+        $automaticAssign = new AutomaticAssign();
+        do {
+            $friends = $this->getFriendsByLabels($workbench, $config, $page, $pageSize);
+            if (empty($friends) || count($friends) == 0) {
+                Log::info("流量分发工作台 {$workbench->id} 没有可分配的好友");
+                break;
+            }
+            $i = 0;
+            $accountNum = count($accounts);
+            foreach ($friends as $friend) {
+                if ($accountNum == 0) {
+                    Log::info("流量分发工作台 {$workbench->id} 所有账号今日分配已满");
+                    break 2;
+                }
+                if ($i >= $accountNum) {
+                    $i = 0;
+                }
+                $account = $accounts[$i];
 
-        // 获取可分配好友
-        $friends = $this->getFriendsByLabels($workbench, $config, $page, $pageSize);
-        if (empty($friends) || count($friends) == 0) {
-            Log::info("流量分发工作台 {$workbench->id} 没有可分配的好友");
-            return;
-        }
+                // 如果该账号今天分配的记录数加上本次分配的记录数超过最大限制
+                if (($account['todayCount'] + $pageSize) >= $config['maxPerDay']) {
+                    // 查询该客服账号当天分配记录数
+                    $todayCount = Db::name('workbench_traffic_config_item')
+                    ->where('workbenchId', $workbench->id)
+                    ->where('wechatAccountId', $account['id'])
+                    ->whereBetween('createTime', [$todayStart, $todayEnd])
+                    ->count();
+                    if ($todayCount >= $config['maxPerDay']) {
+                    unset($accounts[$i]);
+                    $accounts = array_values($accounts);
+                    $accountNum = count($accounts);
+                    $i++;
+                    continue;
+                    }
+                }
 
-        // TODO: 在这里实现分发逻辑
-        print_r($friends);
-        exit;
+                // 执行切换好友命令
+                $automaticAssign->allotWechatFriend([
+                    'wechatFriendId' => $friend['id'],
+                    'toAccountId' => $account['id']
+                ], true);
+                // 写入分配记录表
+                Db::name('workbench_traffic_config_item')->insert([
+                    'workbenchId' => $workbench->id,
+                    'deviceId' => $friend['deviceId'],
+                    'wechatFriendId' => $friend['id'],
+                    'wechatAccountId' => $account['id'],
+                    'createTime' => time()
+                ]);
+                Log::info("流量分发工作台 {$workbench->id} 好友[{$friend['id']}]分配给客服[{$account['id']}] 成功");
+                $i++;
+            }
+            break;
+            $page++;
+        } while (true);
+        Log::info("流量分发工作台 {$workbench->id} 执行分发逻辑完成");
     }
+
 
     /**
      * 检查是否在流量分发时间范围内
@@ -146,7 +199,7 @@ class WorkbenchTrafficDistributeJob
                 $q->whereOrRaw("JSON_CONTAINS(wf.labels, '\"{$label}\"')");
             }
         });
-        $list = $query->page($page, $pageSize)->select();
+        $list = $query->page($page, $pageSize)->order('wf.id DESC')->select();
         return $list;
     }
 

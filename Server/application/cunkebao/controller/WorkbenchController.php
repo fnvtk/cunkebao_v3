@@ -188,7 +188,7 @@ class WorkbenchController extends Controller
 
         $list = Workbench::where($where)
             ->with($with)
-            ->field('id,name,type,status,autoStart,userId,createTime,updateTime')
+            ->field('id,companyId,name,type,status,autoStart,userId,createTime,updateTime')
             ->order('id', 'desc')
             ->page($page, $limit)
             ->select()
@@ -260,12 +260,50 @@ class WorkbenchController extends Controller
                             $item->config = $item->trafficConfig;
                             $item->config->devices = json_decode($item->config->devices, true);
                             $item->config->pools = json_decode($item->config->pools, true);
+                            $config_item = Db::name('workbench_traffic_config_item')->where(['workbenchId' => $item->id])->order('id DESC')->find();
+                            $item->config->lastUpdated = !empty($config_item) ? date('Y-m-d H:i',$config_item['createTime']) : '--';
+
+                            //统计
+                            $labels =  $item->config->pools;
+                            $totalUsers = Db::table('s2_wechat_friend')->alias('wf')
+                                ->join(['s2_company_account' => 'sa'], 'sa.id = wf.accountId', 'left')
+                                ->join(['s2_wechat_account' => 'wa'], 'wa.id = wf.wechatAccountId', 'left')
+                                ->where([
+                                    ['wf.isDeleted', '=', 0],
+                                    ['sa.departmentId', '=', $item->companyId]
+                                ])
+                                ->whereIn('wa.currentDeviceId', $item->config->devices)
+                                ->field('wf.id,wf.wechatAccountId,wf.wechatId,wf.labels,sa.userName,wa.currentDeviceId as deviceId')
+                                ->where(function ($q) use ($labels) {
+                                foreach ($labels as $label) {
+                                    $q->whereOrRaw("JSON_CONTAINS(wf.labels, '\"{$label}\"')");
+                                }
+                            })->count();
+                            $totalAccounts = Db::table('s2_company_account')
+                            ->alias('a')
+                            ->where(['a.departmentId' => $item->companyId, 'a.status' => 0])
+                            ->whereNotLike('a.userName', '%_offline%')
+                            ->whereNotLike('a.userName', '%_delete%')
+                            ->group('a.id')
+                            ->count();
+
+                            $todayStart = strtotime(date('Y-m-d 00:00:00'));
+                            $todayEnd = strtotime(date('Y-m-d 23:59:59'));
+                            $dailyAverage = Db::name('workbench_traffic_config_item')
+                            ->where('workbenchId', $item->id)
+                            ->whereTime('createTime', 'between', [$todayStart, $todayEnd])
+                            ->count();
+
+                            if($dailyAverage > 0){
+                                $dailyAverage = $dailyAverage / $totalAccounts;
+                            }
+
                             $item->config->total = [
-                                'dailyAverage' => 0,
+                                'dailyAverage' => intval($dailyAverage),
+                                'totalAccounts' => $totalAccounts,
                                 'deviceCount' => count($item->config->devices),
                                 'poolCount' => count($item->config->pools),
-                                'dailyAverage' => $item->config->maxPerDay,
-                                'totalUsers' => $item->config->maxPerDay * count($item->config->devices) * count($item->config->pools)
+                                'totalUsers' => $totalUsers >> 0
                             ];
                         }
                         unset($item->trafficConfig,$item->traffic_config);
@@ -1175,7 +1213,7 @@ class WorkbenchController extends Controller
         foreach ($labels as $label) {
             $friendCount = Db::table('s2_wechat_friend')
                 ->whereIn('ownerWechatId',$wechatIds)
-                ->where('labels', 'like', '%'.$label.'%')
+                ->where('labels', 'like', '%"'.$label.'"%')
                 ->count();
             $newLabel[] = [
                 'label' => $label,

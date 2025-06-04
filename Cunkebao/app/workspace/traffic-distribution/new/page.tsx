@@ -141,9 +141,6 @@ export default function NewTrafficDistribution() {
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-bold">新建流量分发</h1>
-          <Button variant="ghost" size="icon" className="ml-auto">
-            <Settings className="h-5 w-5" />
-          </Button>
         </div>
 
         <StepIndicator currentStep={currentStep} steps={steps} />

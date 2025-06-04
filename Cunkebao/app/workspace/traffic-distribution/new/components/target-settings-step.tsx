@@ -103,18 +103,19 @@ export default function TargetSettingsStep({ onNext, onBack, initialData = {}, s
       </div>
       {/* 设备选择弹窗 */}
       <Dialog open={deviceDialogOpen} onOpenChange={setDeviceDialogOpen}>
-        <DialogContent className="max-w-xl w-full p-0">
-          <DialogTitle className="text-lg font-bold text-center mb-4">选择设备</DialogTitle>
-          <div className="p-6 pt-0">
+        <DialogContent className="max-w-xl w-full p-0 rounded-2xl shadow-2xl max-h-[80vh]">
+          <DialogTitle className="text-lg font-bold text-center py-3 border-b">选择设备</DialogTitle>
+          <div className="p-6 pt-4">
+            {/* 搜索和筛选 */}
             <div className="flex items-center gap-2 mb-4">
               <Input
                 placeholder="搜索设备IMEI/备注/微信号"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="flex-1"
+                className="flex-1 rounded-lg border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
               <select
-                className="border rounded px-2 py-1 text-sm"
+                className="border rounded-lg px-3 py-2 text-sm bg-gray-50 focus:border-blue-500"
                 value={statusFilter}
                 onChange={e => setStatusFilter(e.target.value)}
               >
@@ -123,7 +124,8 @@ export default function TargetSettingsStep({ onNext, onBack, initialData = {}, s
                 <option value="offline">离线</option>
               </select>
             </div>
-            <div className="max-h-72 overflow-y-auto divide-y">
+            {/* 设备列表 */}
+            <div className="max-h-[500px] overflow-y-auto space-y-2">
               {loading ? (
                 <div className="text-center text-gray-400 py-8">加载中...</div>
               ) : filteredDevices.length === 0 ? (
@@ -132,11 +134,15 @@ export default function TargetSettingsStep({ onNext, onBack, initialData = {}, s
                 filteredDevices.map(device => (
                   <label
                     key={device.id}
-                    className="flex items-center px-2 py-3 cursor-pointer hover:bg-gray-50"
+                    className={`
+                      flex items-center gap-3 p-4 rounded-xl border
+                      ${selectedDeviceIds.includes(String(device.id)) ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-white"}
+                      hover:border-blue-400 transition-colors cursor-pointer
+                    `}
                   >
                     <input
                       type="checkbox"
-                      className="mr-3 accent-blue-500"
+                      className="accent-blue-500 scale-110"
                       checked={selectedDeviceIds.includes(String(device.id))}
                       onChange={() => {
                         setSelectedDeviceIds(prev =>
@@ -147,17 +153,26 @@ export default function TargetSettingsStep({ onNext, onBack, initialData = {}, s
                       }}
                     />
                     <div className="flex-1">
-                      <div className="font-medium text-base">{device.memo || device.nickname || device.name}</div>
+                      <div className="font-semibold text-base">{device.memo || device.nickname || device.name}</div>
                       <div className="text-xs text-gray-500">IMEI: {device.imei}</div>
-                      <div className="text-xs text-gray-500">微信号: {device.wechatId || '--'}（{device.nickname || '--'}）</div>
+                      <div className="text-xs text-gray-400">微信号: {device.wechatId || '--'}（{device.nickname || '--'}）</div>
                     </div>
-                    <span className={`ml-2 text-xs ${device.alive === 1 ? 'text-green-600' : 'text-gray-400'}`}>{device.alive === 1 ? '在线' : '离线'}</span>
+                    <span className="flex items-center gap-1 text-xs font-medium">
+                      <span className={`w-2 h-2 rounded-full ${device.alive === 1 ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                      <span className={device.alive === 1 ? 'text-green-600' : 'text-gray-400'}>
+                        {device.alive === 1 ? '在线' : '离线'}
+                      </span>
+                    </span>
                   </label>
                 ))
               )}
             </div>
-            <div className="flex justify-end mt-6">
-              <Button className="w-full" onClick={handleDialogConfirm}>
+            {/* 确认按钮 */}
+            <div className="flex justify-center mt-8">
+              <Button
+                className="w-4/5 py-3 rounded-full text-base font-bold shadow-md"
+                onClick={handleDialogConfirm}
+              >
                 确认
               </Button>
             </div>

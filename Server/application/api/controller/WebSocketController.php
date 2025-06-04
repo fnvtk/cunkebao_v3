@@ -649,24 +649,24 @@ class WebSocketController extends BaseController
 
         // 消息拼接  msgType(1:文本 3:图片 43:视频 47:动图表情包（gif、其他表情包） 49:小程序/其他：图文、文件)
         // 当前，type 为文本、图片、动图表情包的时候，content为string, 其他情况为对象 {type: 'file/link/...', url: '', title: '', thunmbPath: '', desc: ''}
-        $result = [
-            "cmdType" => "CmdSendMessage",
-            "content" => $dataArray['content'],
-            "msgSubType" => 0,
-            "msgType" => $dataArray['msgType'],
-            "seq" => time(),
-            "wechatAccountId" => $dataArray['wechatAccountId'],
-            "wechatChatroomId" => 0,
-            "wechatFriendId" => $dataArray['wechatFriendId'],
-        ];
+            $result = [
+                "cmdType" => "CmdSendMessage",
+                "content" => $dataArray['content'],
+                "msgSubType" => 0,
+                "msgType" => $dataArray['msgType'],
+                "seq" => time(),
+                "wechatAccountId" => $dataArray['wechatAccountId'],
+                "wechatChatroomId" => 0,
+                "wechatFriendId" => $dataArray['wechatFriendId'],
+            ];
 
-        $result = json_encode($result);
-        $this->client->send($result);
-        $message = $this->client->receive();
-        $message = json_decode($message, 1);
-        //关闭WS链接
-        $this->client->close();
-        //Log::write('WS个人消息发送');
+            $result = json_encode($result);
+            $this->client->send($result);
+            $message = $this->client->receive();
+            $message = json_decode($message, 1);
+            //关闭WS链接
+            $this->client->close();
+            //Log::write('WS个人消息发送');
         return $message;
     }
 

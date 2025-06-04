@@ -113,25 +113,29 @@ export default function TrafficPoolStep({ onSubmit, onBack, initialData = {}, de
         </div>
       </div>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-xl w-full p-0">
-          <DialogTitle className="text-lg font-bold text-center mb-4">选择流量池</DialogTitle>
-          <div className="p-6 pt-0">
+        <DialogContent className="max-w-xl w-full p-0 rounded-2xl shadow-2xl max-h-[80vh]">
+          <DialogTitle className="text-lg font-bold text-center py-3 border-b">选择流量池</DialogTitle>
+          <div className="p-6 pt-4">
+            {/* 搜索栏 */}
             <div className="relative mb-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <Input
                 placeholder="搜索流量池"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 rounded-lg border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
             </div>
-            <div className="overflow-y-auto max-h-96">
+            {/* 流量池列表 */}
+            <div className="overflow-y-auto max-h-[400px] space-y-3">
               {pagedPools.map((pool) => (
-                <Card
+                <div
                   key={pool.label}
-                  className={`flex items-center justify-between rounded-xl shadow-sm border transition-colors duration-150 mb-4 cursor-pointer
+                  className={`
+                    flex items-center justify-between rounded-xl shadow-sm border transition-colors duration-150 cursor-pointer
                     ${selectedPools.includes(pool.label) ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-white"}
-                    hover:border-blue-400`}
+                    hover:border-blue-400
+                  `}
                   onClick={() => togglePool(pool.label)}
                 >
                   <div className="flex items-center space-x-3 p-4 flex-1">
@@ -143,27 +147,35 @@ export default function TrafficPoolStep({ onSubmit, onBack, initialData = {}, de
                       <p className="text-sm text-gray-500">{poolDescMap[pool.label] || ""}</p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-3 pr-4">
-                    <span className="text-sm text-gray-500">{pool.count} 人</span>
-                    <Checkbox
-                      checked={selectedPools.includes(pool.label)}
-                      onCheckedChange={() => togglePool(pool.label)}
-                      onClick={e => e.stopPropagation()}
-                    />
-                  </div>
-                </Card>
+                  <span className="text-sm text-gray-500 mr-4">{pool.count} 人</span>
+                  <input
+                    type="checkbox"
+                    className="accent-blue-500 scale-125 mr-6"
+                    checked={selectedPools.includes(pool.label)}
+                    onChange={e => {
+                      e.stopPropagation();
+                      togglePool(pool.label);
+                    }}
+                    onClick={e => e.stopPropagation()}
+                  />
+                </div>
               ))}
             </div>
             {/* 分页按钮 */}
             {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-4">
+              <div className="flex justify-center items-center gap-2 mt-6">
                 <Button size="sm" variant="outline" disabled={currentPage === 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>上一页</Button>
                 <span className="text-sm text-gray-500">第 {currentPage} / {totalPages} 页</span>
                 <Button size="sm" variant="outline" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>下一页</Button>
               </div>
             )}
-            <div className="flex justify-end mt-6">
-              <Button className="w-full" onClick={() => setDialogOpen(false)} disabled={selectedPools.length === 0}>
+            {/* 确认按钮 */}
+            <div className="flex justify-center mt-8">
+              <Button
+                className="w-4/5 py-3 rounded-full text-base font-bold shadow-md"
+                onClick={() => setDialogOpen(false)}
+                disabled={selectedPools.length === 0}
+              >
                 确认
               </Button>
             </div>

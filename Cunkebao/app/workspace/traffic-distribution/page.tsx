@@ -240,8 +240,8 @@ export default function TrafficDistributionPage() {
                     <div>
                       <h3 className="font-medium text-lg">{plan.name}</h3>
                       <div className="flex items-center space-x-2 mt-1">
-                        <Badge variant={plan.status === "active" ? "success" : "secondary"}>
-                          {plan.status === "active" ? "进行中" : "已暂停"}
+                        <Badge variant={plan.status == 1 ? "success" : "secondary"}>
+                          {plan.status == 1 ? "进行中" : "已暂停"}
                         </Badge>
                         {plan.config.pools.map((group, index) => (
                           <Badge key={index} variant="outline">
@@ -292,8 +292,8 @@ export default function TrafficDistributionPage() {
                 <div className="bg-white">
                   <div className="grid grid-cols-3">
                     <div className="p-3 text-center border-r border-gray-200">
-                      <div className="text-lg font-semibold">{plan.config.total.dailyAverage}</div>
-                      <div className="text-xs text-gray-500 mt-1">日均分发人数</div>
+                      <div className="text-lg font-semibold">{plan.config.total.totalAccounts}</div>
+                      <div className="text-xs text-gray-500 mt-1">分发账号</div>
                     </div>
                     <div className="p-3 text-center border-r border-gray-200">
                       <div className="text-lg font-semibold">{plan.config.total.deviceCount}</div>
@@ -322,7 +322,7 @@ export default function TrafficDistributionPage() {
                 <div className="p-3 bg-gray-50 text-sm text-gray-500 flex items-center justify-between">
                   <div className="flex items-center">
                     <Clock className="h-4 w-4 mr-1" />
-                    <span>上次执行: {plan.lastUpdated}</span>
+                    <span>上次执行: {plan.config.lastUpdated}</span>
                   </div>
                   <div>创建人: {plan.creatorName}</div>
                 </div>
