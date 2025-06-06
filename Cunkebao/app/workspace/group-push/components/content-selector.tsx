@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -8,32 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input"
 import { Search, Plus, Trash2 } from "lucide-react"
 import type { ContentLibrary } from "@/types/group-push"
-
-// 模拟数据
-const mockContentLibraries: ContentLibrary[] = [
-  {
-    id: "1",
-    name: "测试11",
-    targets: [{ id: "t1", avatar: "/placeholder.svg?height=40&width=40" }],
-  },
-  {
-    id: "2",
-    name: "测试166666",
-    targets: [
-      { id: "t2", avatar: "/placeholder.svg?height=40&width=40" },
-      { id: "t3", avatar: "/placeholder.svg?height=40&width=40" },
-      { id: "t4", avatar: "/placeholder.svg?height=40&width=40" },
-    ],
-  },
-  {
-    id: "3",
-    name: "产品介绍",
-    targets: [
-      { id: "t5", avatar: "/placeholder.svg?height=40&width=40" },
-      { id: "t6", avatar: "/placeholder.svg?height=40&width=40" },
-    ],
-  },
-]
+import { api } from "@/lib/api"
+import { showToast } from "@/lib/toast"
 
 interface ContentSelectorProps {
   selectedLibraries: ContentLibrary[]
@@ -54,6 +30,44 @@ export function ContentSelector({
 }: ContentSelectorProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
+  const [libraries, setLibraries] = useState<ContentLibrary[]>([])
+  const [loading, setLoading] = useState(false)
+
+  // 拉取内容库列表
+  const fetchLibraries = async (keyword = "") => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams({
+        page: "1",
+        limit: "100",
+        keyword: keyword.trim(),
+      })
+      const res = await api.get(`/v1/content/library/list?${params.toString()}`) as any
+      if (res.code === 200 && Array.isArray(res.data?.list)) {
+        setLibraries(res.data.list)
+      } else {
+        setLibraries([])
+        showToast(res.msg || "获取内容库失败", "error")
+      }
+    } catch (e) {
+      setLibraries([])
+      showToast((e as any)?.message || "网络错误", "error")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 弹窗打开/搜索时拉取
+  useEffect(() => {
+    if (isDialogOpen) {
+      fetchLibraries(searchTerm)
+    }
+    // eslint-disable-next-line
+  }, [isDialogOpen])
+
+  const handleSearch = () => {
+    fetchLibraries(searchTerm)
+  }
 
   const handleAddLibrary = (library: ContentLibrary) => {
     if (!selectedLibraries.some((l) => l.id === library.id)) {
@@ -66,7 +80,7 @@ export function ContentSelector({
     onLibrariesChange(selectedLibraries.filter((library) => library.id !== libraryId))
   }
 
-  const filteredLibraries = mockContentLibraries.filter((library) =>
+  const filteredLibraries = libraries.filter((library) =>
     library.name.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
@@ -104,14 +118,14 @@ export function ContentSelector({
                         <TableCell>{library.name}</TableCell>
                         <TableCell>
                           <div className="flex -space-x-2 flex-wrap">
-                            {library.targets.map((target) => (
+                            {(((library as any).sourceType === 1 ? (library as any).selectedFriends : (library as any).selectedGroups) || []).map((target: any) => (
                               <div
                                 key={target.id}
                                 className="w-10 h-10 rounded-md overflow-hidden border-2 border-white"
                               >
                                 <img
                                   src={target.avatar || "/placeholder.svg?height=40&width=40"}
-                                  alt="Target"
+                                  alt={target.nickname || target.name || "Target"}
                                   className="w-full h-full object-cover"
                                 />
                               </div>
@@ -161,17 +175,24 @@ export function ContentSelector({
             <DialogTitle>选择内容库</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="relative">
+            <div className="relative flex items-center gap-2">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
               <Input
                 placeholder="搜索内容库名称"
                 className="pl-8"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSearch()}
               />
+              <Button size="sm" variant="outline" onClick={handleSearch}>搜索</Button>
             </div>
 
             <div className="overflow-x-auto">
+              {loading ? (
+                <div className="text-center text-gray-400 py-8">加载中...</div>
+              ) : filteredLibraries.length === 0 ? (
+                <div className="text-center text-gray-400 py-8">暂无内容库</div>
+              ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -188,11 +209,14 @@ export function ContentSelector({
                       <TableCell>{library.name}</TableCell>
                       <TableCell>
                         <div className="flex -space-x-2 flex-wrap">
-                          {library.targets.map((target) => (
-                            <div key={target.id} className="w-10 h-10 rounded-md overflow-hidden border-2 border-white">
+                            {(((library as any).sourceType === 1 ? (library as any).selectedFriends : (library as any).selectedGroups) || []).map((target: any) => (
+                              <div
+                                key={target.id}
+                                className="w-10 h-10 rounded-md overflow-hidden border-2 border-white"
+                              >
                               <img
                                 src={target.avatar || "/placeholder.svg?height=40&width=40"}
-                                alt="Target"
+                                  alt={target.nickname || target.name || "Target"}
                                 className="w-full h-full object-cover"
                               />
                             </div>
@@ -201,19 +225,19 @@ export function ContentSelector({
                       </TableCell>
                       <TableCell>
                         <Button
-                          variant="outline"
+                            variant="default"
                           size="sm"
                           onClick={() => handleAddLibrary(library)}
-                          disabled={selectedLibraries.some((l) => l.id === library.id)}
-                          className="whitespace-nowrap"
+                            disabled={selectedLibraries.some((l) => String(l.id) === String(library.id))}
                         >
-                          {selectedLibraries.some((l) => l.id === library.id) ? "已选择" : "选择"}
+                            {selectedLibraries.some((l) => String(l.id) === String(library.id)) ? "已添加" : "添加"}
                         </Button>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+              )}
             </div>
           </div>
         </DialogContent>

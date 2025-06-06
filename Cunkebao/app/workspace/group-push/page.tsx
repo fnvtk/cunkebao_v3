@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -18,78 +18,121 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { PlusCircle, MoreVertical, Edit, Trash2, ArrowLeft, Clock, Search, Filter, RefreshCw } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { api } from "@/lib/api"
+import { showToast } from "@/lib/toast"
 
-// 模拟数据
-const mockTasks = [
-  {
-    id: "1",
-    name: "社群推送测试",
-    pushTimeRange: "06:00 - 23:59",
-    dailyPushCount: 20,
-    pushOrder: "latest",
-    isLoopPush: false,
-    isEnabled: true,
-    groupCount: 3,
-    contentLibraryCount: 2,
-    createdAt: "2025-03-15 14:30",
-    lastPushTime: "2025-03-20 10:25",
-    totalPushCount: 245,
-  },
-  {
-    id: "2",
-    name: "产品更新推送",
-    pushTimeRange: "09:00 - 21:00",
-    dailyPushCount: 15,
-    pushOrder: "earliest",
-    isLoopPush: true,
-    isEnabled: false,
-    groupCount: 5,
-    contentLibraryCount: 1,
-    createdAt: "2025-03-10 10:15",
-    lastPushTime: "2025-03-19 16:45",
-    totalPushCount: 128,
-  },
-  {
-    id: "3",
-    name: "新客户欢迎",
-    pushTimeRange: "08:00 - 22:00",
-    dailyPushCount: 10,
-    pushOrder: "latest",
-    isLoopPush: true,
-    isEnabled: true,
-    groupCount: 2,
-    contentLibraryCount: 1,
-    createdAt: "2025-03-05 09:20",
-    lastPushTime: "2025-03-18 11:30",
-    totalPushCount: 87,
-  },
-]
+interface GroupPushTask {
+  id: string
+  name: string
+  status: number
+  config: {
+    maxPerDay: number
+    pushOrder: number
+    isLoop: number
+    groups: any[]
+    contentLibraries: any[]
+    lastPushTime: string
+    createTime: string
+  }
+}
 
 export default function GroupPushPage() {
   const router = useRouter()
-  const [tasks, setTasks] = useState(mockTasks)
+  const [tasks, setTasks] = useState<GroupPushTask[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const pageSize = 10
+
+  // 拉取数据
+  const fetchTasks = async (page = 1, search = "") => {
+    setLoading(true)
+    const loadingToast = showToast("正在加载...", "loading", true)
+    try {
+      const params = new URLSearchParams({
+        type: "3",
+        page: page.toString(),
+        limit: pageSize.toString(),
+      })
+      if (search) params.append("keyword", search)
+      const res = await api.get(`/v1/workbench/list?${params.toString()}`) as any
+      loadingToast.remove()
+      if (res.code === 200) {
+        setTasks(res.data.list)
+        setTotal(res.data.total)
+      } else {
+        showToast(res.msg || "获取失败", "error")
+      }
+    } catch (e) {
+      loadingToast.remove()
+      showToast((e as any)?.message || "网络错误", "error")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchTasks(currentPage, searchTerm)
+    // eslint-disable-next-line
+  }, [currentPage])
 
   const handleDelete = (id: string) => {
     setTaskToDelete(id)
     setDeleteDialogOpen(true)
   }
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (taskToDelete) {
-      setTasks(tasks.filter((task) => task.id !== taskToDelete))
+      const loadingToast = showToast("正在删除...", "loading", true)
+      try {
+        const res = await api.delete(`/v1/workbench/delete?id=${taskToDelete}`) as any
+        loadingToast.remove()
+        if (res.code === 200) {
+          showToast("删除成功", "success")
+          fetchTasks(currentPage, searchTerm)
+        } else {
+          showToast(res.msg || "删除失败", "error")
+        }
+      } catch (e) {
+        loadingToast.remove()
+        showToast((e as any)?.message || "网络错误", "error")
+      }
       setTaskToDelete(null)
     }
     setDeleteDialogOpen(false)
   }
 
-  const handleToggleStatus = (id: string, isEnabled: boolean) => {
-    setTasks(tasks.map((task) => (task.id === id ? { ...task, isEnabled } : task)))
+  const handleToggleStatus = async (id: string, enabled: boolean) => {
+    const loadingToast = showToast("正在更新状态...", "loading", true)
+    try {
+      const res = await api.post('/v1/workbench/update-status', {
+        id,
+        status: enabled ? 1 : 0
+      }) as any
+      loadingToast.remove()
+      if (res.code === 200) {
+        showToast("状态已更新", "success")
+        fetchTasks(currentPage, searchTerm)
+      } else {
+        showToast(res.msg || "操作失败", "error")
+      }
+    } catch (e) {
+      loadingToast.remove()
+      showToast((e as any)?.message || "网络错误", "error")
+    }
   }
 
-  const filteredTasks = tasks.filter((task) => task.name.toLowerCase().includes(searchTerm.toLowerCase()))
+  const handleSearch = () => {
+    setCurrentPage(1)
+    fetchTasks(1, searchTerm)
+  }
+
+  const handleRefresh = () => {
+    fetchTasks(currentPage, searchTerm)
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen pb-16">
@@ -122,31 +165,59 @@ export default function GroupPushPage() {
                 className="pl-9"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSearch()}
               />
             </div>
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" onClick={handleSearch}>
               <Filter className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="icon">
-              <RefreshCw className="h-4 w-4" />
+            <Button variant="outline" size="icon" onClick={handleRefresh} disabled={loading}>
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </Card>
 
         {/* 任务列表 */}
+        {loading ? (
         <div className="space-y-4">
-          {filteredTasks.map((task) => (
+            {[...Array(3)].map((_, index) => (
+              <Card key={index} className="p-4 animate-pulse">
+                <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
+                <div className="space-y-3">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : tasks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="bg-gray-100 p-4 rounded-full mb-4">
+              <Clock className="h-10 w-10 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-1">暂无社群推送任务</h3>
+            <p className="text-gray-500 mb-4">点击"新建任务"按钮创建您的第一个社群推送任务</p>
+            <Link href="/workspace/group-push/new">
+              <Button>
+                <PlusCircle className="h-4 w-4 mr-2" />
+                新建任务
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-4 mt-2">
+            {tasks.map((task) => (
             <Card key={task.id} className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
                   <h3 className="font-medium">{task.name}</h3>
-                  <Badge variant={task.isEnabled ? "success" : "secondary"}>
-                    {task.isEnabled ? "进行中" : "已暂停"}
+                    <Badge variant={task.status === 1 ? "success" : "secondary"}>
+                      {task.status === 1 ? "进行中" : "已暂停"}
                   </Badge>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Switch
-                    checked={task.isEnabled}
+                      checked={task.status === 1}
                     onCheckedChange={(checked) => handleToggleStatus(task.id, checked)}
                   />
                   <DropdownMenu>
@@ -193,42 +264,51 @@ export default function GroupPushPage() {
 
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="text-sm text-gray-500">
-                  <div>推送设备：{task.groupCount} 个</div>
-                  <div>内容库：{task.contentLibraryCount} 个</div>
-                  <div>推送时间：{task.pushTimeRange}</div>
+                    <div>推送群数：{task.config.groups?.length || 0} 个</div>
+                    <div>内容库：{task.config.contentLibraries?.length || 0} 个</div>
                 </div>
                 <div className="text-sm text-gray-500">
-                  <div>每日推送：{task.dailyPushCount} 条</div>
-                  <div>已推送：{task.totalPushCount} 条</div>
-                  <div>推送顺序：{task.pushOrder === "latest" ? "按最新" : "按最早"}</div>
+                    <div>每日推送：{task.config.maxPerDay} 条</div>
+                    <div>推送顺序：{task.config.pushOrder === 2 ? "按最新" : "按最早"}</div>
+                    <div>循环推送：{task.config.isLoop === 1 ? "是" : "否"}</div>
                 </div>
               </div>
 
               <div className="flex items-center justify-between text-xs text-gray-500 border-t pt-4">
                 <div className="flex items-center">
                   <Clock className="w-4 h-4 mr-1" />
-                  上次推送：{task.lastPushTime}
+                    上次推送：{task.config.lastPushTime || "--"}
                 </div>
-                <div>创建时间：{task.createdAt}</div>
+                  <div>创建时间：{task.config.createTime || "--"}</div>
               </div>
             </Card>
           ))}
         </div>
+        )}
 
-        {/* 空状态 */}
-        {filteredTasks.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="bg-gray-100 p-4 rounded-full mb-4">
-              <Clock className="h-10 w-10 text-gray-400" />
+        {/* 分页 */}
+        {!loading && total > pageSize && (
+          <div className="flex justify-center mt-6 space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1 || loading}
+            >
+              上一页
+            </Button>
+            <div className="flex items-center space-x-1">
+              <span className="text-sm text-gray-500">第 {currentPage} 页</span>
+              <span className="text-sm text-gray-500">共 {Math.ceil(total / pageSize)} 页</span>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-1">暂无社群推送任务</h3>
-            <p className="text-gray-500 mb-4">点击"新建任务"按钮创建您的第一个社群推送任务</p>
-            <Link href="/workspace/group-push/new">
-              <Button>
-                <PlusCircle className="h-4 w-4 mr-2" />
-                新建任务
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(Math.ceil(total / pageSize), prev + 1))}
+              disabled={currentPage >= Math.ceil(total / pageSize) || loading}
+            >
+              下一页
               </Button>
-            </Link>
           </div>
         )}
       </div>

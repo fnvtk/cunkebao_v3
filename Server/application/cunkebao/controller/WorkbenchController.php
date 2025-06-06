@@ -11,6 +11,7 @@ use app\cunkebao\validate\Workbench as WorkbenchValidate;
 use think\Controller;
 use think\Db;
 use app\cunkebao\model\WorkbenchTrafficConfig;
+use app\cunkebao\model\ContentLibrary;
 
 /**
  * 工作台控制器
@@ -101,11 +102,17 @@ class WorkbenchController extends Controller
                 case self::TYPE_GROUP_PUSH: // 群消息推送
                     $config = new WorkbenchGroupPush;
                     $config->workbenchId = $workbench->id;
-                    $config->pushInterval = $param['pushInterval'];
-                    $config->pushContent = json_encode($param['pushContent']);
-                    $config->pushTime = json_encode($param['pushTime']);
-                    $config->devices = json_encode($param['devices']);
-                    $config->targetGroups = json_encode($param['targetGroups']);
+                    $config->pushType = !empty($param['pushType']) ? 1 : 0; // 推送方式：定时/立即
+                    $config->startTime = $param['startTime'];
+                    $config->endTime = $param['endTime'];
+                    $config->maxPerDay = intval($param['maxPerDay']); // 每日推送数
+                    $config->pushOrder = $param['pushOrder']; // 推送顺序
+                    $config->isLoop = !empty($param['isLoop']) ? 1 : 0; // 是否循环
+                    $config->status = !empty($param['status']) ? 1 : 0; // 是否启用
+                    $config->groups = json_encode($param['groups'], JSON_UNESCAPED_UNICODE); // 群组信息
+                    $config->contentLibraries = json_encode($param['contentLibraries'], JSON_UNESCAPED_UNICODE); // 内容库信息
+                    $config->createTime = time();
+                    $config->updateTime = time();
                     $config->save();
                     break;
                 case self::TYPE_GROUP_CREATE: // 自动建群
@@ -153,7 +160,7 @@ class WorkbenchController extends Controller
         $page = $this->request->param('page', 1);
         $limit = $this->request->param('limit', 10);
         $type = $this->request->param('type', '');
-        $keyword = $this->request->param('name', '');
+        $keyword = $this->request->param('keyword', '');
 
         $where = [
             ['userId', '=', $this->request->userInfo['id']],
@@ -180,6 +187,9 @@ class WorkbenchController extends Controller
             },
             'trafficConfig' => function($query) {
                 $query->field('workbenchId,distributeType,maxPerDay,timeType,startTime,endTime,devices,pools');
+            },
+            'groupPush' => function($query) {
+                $query->field('workbenchId,pushType,startTime,endTime,maxPerDay,pushOrder,isLoop,status,groups,contentLibraries');
             },
             'user' => function($query) {
                 $query->field('id,username');
@@ -228,7 +238,7 @@ class WorkbenchController extends Controller
                             
                             // 获取内容库名称
                             if (!empty($item->config->contentLibraries)) {
-                                $libraryNames = \app\cunkebao\model\ContentLibrary::where('id', 'in', $item->config->contentLibraries)
+                                $libraryNames = ContentLibrary::where('id', 'in', $item->config->contentLibraries)
                                     ->column('name');
                                 $item->config->contentLibraryNames = $libraryNames;
                             } else {
@@ -240,10 +250,16 @@ class WorkbenchController extends Controller
                     case self::TYPE_GROUP_PUSH:
                         if (!empty($item->groupPush)) {
                             $item->config = $item->groupPush;
-                            $item->config->devices = json_decode($item->config->devices, true);
-                            $item->config->targetGroups = json_decode($item->config->targetGroups, true);
-                            $item->config->pushContent = json_decode($item->config->pushContent, true);
-                            $item->config->pushTime = json_decode($item->config->pushTime, true);
+                            $item->config->pushType = $item->config->pushType;
+                            $item->config->startTime = $item->config->startTime;
+                            $item->config->endTime = $item->config->endTime;
+                            $item->config->maxPerDay = $item->config->maxPerDay;
+                            $item->config->pushOrder = $item->config->pushOrder;
+                            $item->config->isLoop = $item->config->isLoop;
+                            $item->config->status = $item->config->status;
+                            $item->config->groups = json_decode($item->config->groups, true);
+                            $item->config->contentLibraries = json_decode($item->config->contentLibraries, true);
+                            $item->config->lastPushTime = '22222';
                         }
                         unset($item->groupPush,$item->group_push);
                         break;
@@ -279,6 +295,7 @@ class WorkbenchController extends Controller
                                     $q->whereOrRaw("JSON_CONTAINS(wf.labels, '\"{$label}\"')");
                                 }
                             })->count();
+
                             $totalAccounts = Db::table('s2_company_account')
                             ->alias('a')
                             ->where(['a.departmentId' => $item->companyId, 'a.status' => 0])
@@ -287,15 +304,15 @@ class WorkbenchController extends Controller
                             ->group('a.id')
                             ->count();
 
-                            $todayStart = strtotime(date('Y-m-d 00:00:00'));
-                            $todayEnd = strtotime(date('Y-m-d 23:59:59'));
                             $dailyAverage = Db::name('workbench_traffic_config_item')
                             ->where('workbenchId', $item->id)
-                            ->whereTime('createTime', 'between', [$todayStart, $todayEnd])
                             ->count();
+                            $day = (time() - strtotime($item->createTime)) / 86400;
+                            $day = intval($day);
+
 
                             if($dailyAverage > 0){
-                                $dailyAverage = $dailyAverage / $totalAccounts;
+                                $dailyAverage = $dailyAverage / $totalAccounts / $day;
                             }
 
                             $item->config->total = [
@@ -353,9 +370,9 @@ class WorkbenchController extends Controller
             'trafficConfig' => function($query) {
                 $query->field('workbenchId,distributeType,maxPerDay,timeType,startTime,endTime,devices,pools');
             },
-            // 'groupPush' => function($query) {
-            //     $query->field('workbenchId,pushInterval,pushContent,pushTime,devices,targetGroups');
-            // },
+            'groupPush' => function($query) {
+                $query->field('workbenchId,pushType,startTime,endTime,maxPerDay,pushOrder,isLoop,status,groups,contentLibraries');
+            },
             // 'groupCreate' => function($query) {
             //     $query->field('workbenchId,groupNamePrefix,maxGroups,membersPerGroup,devices,targetGroups');
             // }
@@ -366,7 +383,7 @@ class WorkbenchController extends Controller
             ['userId', '=', $this->request->userInfo['id']],
             ['isDel', '=', 0]
         ])
-        ->field('id,name,type,status,autoStart,createTime,updateTime')
+        ->field('id,name,type,status,autoStart,createTime,updateTime,companyId')
         ->with($with)
         ->find();
 
@@ -414,10 +431,78 @@ class WorkbenchController extends Controller
             case self::TYPE_GROUP_PUSH:
                 if (!empty($workbench->groupPush)) {
                     $workbench->config = $workbench->groupPush;
-                    $workbench->config->devices = json_decode($workbench->config->devices, true);
-                    $workbench->config->targetGroups = json_decode($workbench->config->targetGroups, true);
-                    $workbench->config->pushContent = json_decode($workbench->config->pushContent, true);
-                    $workbench->config->pushTime = json_decode($workbench->config->pushTime, true);
+                    $workbench->config->groups = json_decode($workbench->config->groups, true);
+                    $workbench->config->contentLibraries = json_decode($workbench->config->contentLibraries, true);
+                    
+                    // 获取群
+                    $groupList = Db::name('wechat_group')->alias('wg')
+                    ->join('wechat_account wa', 'wa.wechatId = wg.ownerWechatId')
+                    ->where('wg.id', 'in', $workbench->config->groups)
+                    ->order('wg.id', 'desc')
+                    ->field('wg.id,wg.name as groupName,wg.ownerWechatId,wa.nickName,wa.avatar,wa.alias,wg.avatar as groupAvatar')
+                    ->select();
+                    $workbench->config->groupList = $groupList;
+                    // 获取群组内容库
+                    $contentLibraryList = ContentLibrary::where('id', 'in', $workbench->config->contentLibraries)
+                    ->field('id,name,sourceFriends,sourceGroups,keywordInclude,keywordExclude,aiEnabled,aiPrompt,timeEnabled,timeStart,timeEnd,status,sourceType,userId,createTime,updateTime')
+                    ->with(['user' => function($query) {
+                        $query->field('id,username');
+                    }])
+                    ->order('id', 'desc')
+                    ->select();
+                    
+
+
+                      // 处理JSON字段
+        foreach ($contentLibraryList as &$item) {
+            $item['sourceFriends'] = json_decode($item['sourceFriends'] ?: '[]', true);
+            $item['sourceGroups'] = json_decode($item['sourceGroups'] ?: '[]', true);
+            $item['keywordInclude'] = json_decode($item['keywordInclude'] ?: '[]', true);
+            $item['keywordExclude'] = json_decode($item['keywordExclude'] ?: '[]', true);
+            // 添加创建人名称
+            $item['creatorName'] = $item['user']['username'] ?? '';
+            $item['itemCount'] = Db::name('content_item')->where('libraryId', $item['id'])->count();
+
+            // 获取好友详细信息
+            if (!empty($item['sourceFriends'] && $item['sourceType'] == 1)) {
+                $friendIds = $item['sourceFriends'];
+                $friendsInfo = [];
+
+                if (!empty($friendIds)) {
+                    // 查询好友信息，使用wechat_friendship表
+                    $friendsInfo = Db::name('wechat_friendship')->alias('wf')
+                        ->field('wf.id,wf.wechatId, wa.nickname, wa.avatar')
+                        ->join('wechat_account wa', 'wf.wechatId = wa.wechatId')
+                        ->whereIn('wf.id', $friendIds)
+                        ->select();
+                }
+
+                // 将好友信息添加到返回数据中
+                $item['selectedFriends'] = $friendsInfo;
+            }
+
+         
+            if (!empty($item['sourceGroups']) && $item['sourceType'] == 2) {
+                $groupIds = $item['sourceGroups'];
+                $groupsInfo = [];
+
+                if (!empty($groupIds)) {
+                    // 查询群组信息
+                    $groupsInfo = Db::name('wechat_group')->alias('g')
+                        ->field('g.id, g.chatroomId, g.name, g.avatar, g.ownerWechatId')
+                        ->whereIn('g.id', $groupIds)
+                        ->select();
+                }
+
+                // 将群组信息添加到返回数据中
+                $item['selectedGroups'] = $groupsInfo;
+            }
+
+            unset($item['user']); // 移除关联数据
+        }
+                    $workbench->config->contentLibraryList = $contentLibraryList;
+
+                    unset($workbench->groupPush, $workbench->group_push);
                 }
                 break;
             case self::TYPE_GROUP_CREATE:
@@ -432,13 +517,52 @@ class WorkbenchController extends Controller
                     $workbench->config = $workbench->trafficConfig;
                     $workbench->config->devices = json_decode($workbench->config->devices, true);
                     $workbench->config->pools = json_decode($workbench->config->pools, true);
+                    $config_item = Db::name('workbench_traffic_config_item')->where(['workbenchId' => $workbench->id])->order('id DESC')->find();
+                    $workbench->config->lastUpdated = !empty($config_item) ? date('Y-m-d H:i',$config_item['createTime']) : '--';
+                    
+                    
+                    //统计
+                    $labels =  $workbench->config->pools;
+                    $totalUsers = Db::table('s2_wechat_friend')->alias('wf')
+                        ->join(['s2_company_account' => 'sa'], 'sa.id = wf.accountId', 'left')
+                        ->join(['s2_wechat_account' => 'wa'], 'wa.id = wf.wechatAccountId', 'left')
+                        ->where([
+                            ['wf.isDeleted', '=', 0],
+                            ['sa.departmentId', '=', $workbench->companyId]
+                        ])
+                        ->whereIn('wa.currentDeviceId', $workbench->config->devices)
+                        ->field('wf.id,wf.wechatAccountId,wf.wechatId,wf.labels,sa.userName,wa.currentDeviceId as deviceId')
+                        ->where(function ($q) use ($labels) {
+                        foreach ($labels as $label) {
+                            $q->whereOrRaw("JSON_CONTAINS(wf.labels, '\"{$label}\"')");
+                        }
+                    })->count();
+
+                    $totalAccounts = Db::table('s2_company_account')
+                    ->alias('a')
+                    ->where(['a.departmentId' => $workbench->companyId, 'a.status' => 0])
+                    ->whereNotLike('a.userName', '%_offline%')
+                    ->whereNotLike('a.userName', '%_delete%')
+                    ->group('a.id')
+                    ->count();
+
+                    $dailyAverage = Db::name('workbench_traffic_config_item')
+                    ->where('workbenchId', $workbench->id)
+                    ->count();
+                    $day = (time() - strtotime($workbench->createTime)) / 86400;
+                    $day = intval($day);
+
+
+                    if($dailyAverage > 0){
+                        $dailyAverage = $dailyAverage / $totalAccounts / $day;
+                    }
+
                     $workbench->config->total = [
-                        'dailyAverage' => 0,
+                        'dailyAverage' => intval($dailyAverage),
+                        'totalAccounts' => $totalAccounts,
                         'deviceCount' => count($workbench->config->devices),
-                        'poolCount' => count($workbench->config->pools ),
-                        'dailyAverage' => $workbench->config->maxPerDay,
-                        'totalUsers' => $workbench->config->maxPerDay * count($workbench->config->devices) * count($workbench->config->pools)
-                   
+                        'poolCount' => count($workbench->config->pools),
+                        'totalUsers' => $totalUsers >> 0
                     ];
                     unset($workbench->trafficConfig,$workbench->traffic_config);
                 }
@@ -527,11 +651,16 @@ class WorkbenchController extends Controller
                 case self::TYPE_GROUP_PUSH:
                     $config = WorkbenchGroupPush::where('workbenchId', $param['id'])->find();
                     if ($config) {
-                        $config->pushInterval = $param['pushInterval'];
-                        $config->pushContent = json_encode($param['pushContent']);
-                        $config->pushTime = json_encode($param['pushTime']);
-                        $config->devices = json_encode($param['devices']);
-                        $config->targetGroups = json_encode($param['targetGroups']);
+                        $config->pushType = !empty($param['pushType']) ? 1 : 0; // 推送方式：定时/立即
+                        $config->startTime = $param['startTime'];
+                        $config->endTime = $param['endTime'];
+                        $config->maxPerDay = intval($param['maxPerDay']); // 每日推送数
+                        $config->pushOrder = $param['pushOrder']; // 推送顺序
+                        $config->isLoop = !empty($param['isLoop']) ? 1 : 0; // 是否循环
+                        $config->status = !empty($param['status']) ? 1 : 0; // 是否启用
+                        $config->groups = json_encode($param['groups'], JSON_UNESCAPED_UNICODE); // 群组信息
+                        $config->contentLibraries = json_encode($param['contentLibraries'], JSON_UNESCAPED_UNICODE); // 内容库信息
+                        $config->updateTime = time();
                         $config->save();
                     }
                     break;
@@ -709,11 +838,15 @@ class WorkbenchController extends Controller
                     if ($config) {
                         $newConfig = new WorkbenchGroupPush;
                         $newConfig->workbenchId = $newWorkbench->id;
-                        $newConfig->pushInterval = $config->pushInterval;
-                        $newConfig->pushContent = $config->pushContent;
-                        $newConfig->pushTime = $config->pushTime;
-                        $newConfig->devices = $config->devices;
-                        $newConfig->targetGroups = $config->targetGroups;
+                        $newConfig->pushType = $config->pushType;
+                        $newConfig->startTime = $config->startTime;
+                        $newConfig->endTime = $config->endTime;
+                        $newConfig->maxPerDay = $config->maxPerDay;
+                        $newConfig->pushOrder = $config->pushOrder;
+                        $newConfig->isLoop = $config->isLoop;
+                        $newConfig->status = $config->status;
+                        $newConfig->groups = $config->groups;
+                        $newConfig->contentLibraries = $config->contentLibraries;
                         $newConfig->save();
                     }
                     break;
@@ -1224,4 +1357,48 @@ class WorkbenchController extends Controller
         // 返回结果
         return json(['code' => 200, 'msg' => '获取成功', 'data' => $newLabel,'total'=> count($newLabel)]);
     }
+
+
+    /**
+     * 获取群列表
+     * @return \think\response\Json
+     */
+    public function getGroupList()
+    {
+        $page = $this->request->param('page', 1);
+        $limit = $this->request->param('limit', 10);
+        $keyword = $this->request->param('keyword', '');
+
+        $where = [
+            ['wg.deleteTime', '=', 0],
+            ['wg.companyId', '=', $this->request->userInfo['companyId']],
+        ];
+
+        if (!empty($keyword)) {
+            $where[] = ['wg.name', 'like', '%' . $keyword . '%'];
+        }
+
+        $query = Db::name('wechat_group')->alias('wg')
+            ->join('wechat_account wa', 'wa.wechatId = wg.ownerWechatId')
+            ->where($where);
+
+        $total = $query->count();
+        $list = $query->order('wg.id', 'desc')
+        ->field('wg.id,wg.name as groupName,wg.ownerWechatId,wa.nickName,wg.createTime,wa.avatar,wa.alias,wg.avatar as groupAvatar')
+        ->page($page, $limit)
+        ->select();
+
+        // 优化：格式化时间，头像兜底
+        $defaultGroupAvatar = '';
+        $defaultAvatar = '';
+        foreach ($list as &$item) {
+            $item['createTime'] = $item['createTime'] ? date('Y-m-d H:i:s', $item['createTime']) : '';
+            $item['groupAvatar'] = $item['groupAvatar'] ?: $defaultGroupAvatar;
+            $item['avatar'] = $item['avatar'] ?: $defaultAvatar;
+        }
+
+        return json(['code' => 200, 'msg' => '获取成功', 'data' => ['total' => $total,'list' => $list]]);
+    }
+
+
 } 

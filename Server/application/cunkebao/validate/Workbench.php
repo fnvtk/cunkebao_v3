@@ -36,21 +36,28 @@ class Workbench extends Validate
         'accountType' => 'requireIf:type,2|in:1,2',
         'contentLibraries' => 'requireIf:type,2|array',
         // 群消息推送特有参数
-        'pushInterval' => 'requireIf:type,3|number|min:1',
-        'pushContent' => 'requireIf:type,3|array',
-        'pushTime' => 'requireIf:type,3|array',
+        'pushType' => 'requireIf:type,3|in:1,2', // 推送方式 1定时 2立即
+        'startTime' => 'requireIf:type,3|dateFormat:H:i',
+        'endTime' => 'requireIf:type,3|dateFormat:H:i',
+        'maxPerDay' => 'requireIf:type,3|number|min:1',
+        'pushOrder' => 'requireIf:type,3|in:1,2', // 1最早 2最新
+        'isLoop' => 'requireIf:type,3|in:0,1',
+        'status' => 'requireIf:type,3|in:0,1',
+        'groups' => 'requireIf:type,3|array|min:1',
+        'contentLibraries' => 'requireIf:type,3|array|min:1',
         // 自动建群特有参数
         'groupNamePrefix' => 'requireIf:type,4|max:50',
         'maxGroups' => 'requireIf:type,4|number|min:1',
         'membersPerGroup' => 'requireIf:type,4|number|min:1',
-        // 通用参数
-        'devices' => 'require|array',
         // 流量分发特有参数
         'distributeType' => 'requireIf:type,5|in:1,2',
         'maxPerDay' => 'requireIf:type,5|number|min:1',
         'timeType' => 'requireIf:type,5|in:1,2',
         'startTime' => 'requireIf:type,5|dateFormat:H:i',
         'endTime' => 'requireIf:type,5|dateFormat:H:i',
+
+         // 通用参数
+         'devices' => 'requireIf:type,1,2,5|array',
     ];
 
     /**
@@ -95,13 +102,24 @@ class Workbench extends Validate
         'contentLibraries.requireIf' => '请选择内容库',
         'contentLibraries.array' => '内容库格式错误',
         // 群消息推送相关提示
-        'pushInterval.requireIf' => '请设置推送间隔',
-        'pushInterval.number' => '推送间隔必须为数字',
-        'pushInterval.min' => '推送间隔必须大于0',
-        'pushContent.requireIf' => '请设置推送内容',
-        'pushContent.array' => '推送内容格式错误',
-        'pushTime.requireIf' => '请设置推送时间',
-        'pushTime.array' => '推送时间格式错误',
+        'pushType.requireIf' => '请选择推送方式',
+        'pushType.in' => '推送方式错误',
+        'startTime.requireIf' => '请设置推送开始时间',
+        'startTime.dateFormat' => '推送开始时间格式错误',
+        'endTime.requireIf' => '请设置推送结束时间',
+        'endTime.dateFormat' => '推送结束时间格式错误',
+        'maxPerDay.requireIf' => '请设置每日最大推送数',
+        'maxPerDay.number' => '每日最大推送数必须为数字',
+        'maxPerDay.min' => '每日最大推送数必须大于0',
+        'pushOrder.requireIf' => '请选择推送顺序',
+        'pushOrder.in' => '推送顺序错误',
+        'isLoop.requireIf' => '请选择是否循环推送',
+        'isLoop.in' => '循环推送参数错误',
+        'status.requireIf' => '请选择推送状态',
+        'status.in' => '推送状态错误',
+        'groups.requireIf' => '请选择推送群组',
+        'groups.array' => '推送群组格式错误',
+        'groups.min' => '至少选择一个推送群组',
         // 自动建群相关提示
         'groupNamePrefix.requireIf' => '请设置群名称前缀',
         'groupNamePrefix.max' => '群名称前缀最多50个字符',
@@ -133,10 +151,16 @@ class Workbench extends Validate
         'create' => ['name', 'type', 'autoStart', 'devices', 'targetGroups',
             'interval', 'maxLikes', 'startTime', 'endTime', 'contentTypes',
             'syncInterval', 'syncCount', 'syncType',
-            'pushInterval', 'pushContent', 'pushTime',
+            'pushType', 'startTime', 'endTime', 'maxPerDay', 'pushOrder', 'isLoop', 'status', 'groups', 'contentLibraries',
             'groupNamePrefix', 'maxGroups', 'membersPerGroup'
         ],
-        'update_status' => ['id', 'status']
+        'update_status' => ['id', 'status'],
+        'edit' => ['name', 'type', 'autoStart', 'devices', 'targetGroups',
+            'interval', 'maxLikes', 'startTime', 'endTime', 'contentTypes',
+            'syncInterval', 'syncCount', 'syncType',
+            'pushType', 'startTime', 'endTime', 'maxPerDay', 'pushOrder', 'isLoop', 'status', 'groups', 'contentLibraries',
+            'groupNamePrefix', 'maxGroups', 'membersPerGroup'
+        ]
     ];
 
     /**

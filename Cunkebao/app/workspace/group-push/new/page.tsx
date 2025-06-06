@@ -10,6 +10,8 @@ import { GroupSelector } from "../components/group-selector"
 import { ContentSelector } from "../components/content-selector"
 import type { WechatGroup, ContentLibrary } from "@/types/group-push"
 import { useToast } from "@/components/ui/use-toast"
+import { api } from "@/lib/api"
+import { showToast } from "@/lib/toast"
 
 const steps = [
   { id: 1, title: "步骤 1", subtitle: "基础设置" },
@@ -48,13 +50,34 @@ export default function NewGroupPushPage() {
     setFormData((prev) => ({ ...prev, contentLibraries }))
   }
 
-  const handleSave = () => {
-    // 这里可以添加保存逻辑，例如API调用
-    toast({
-      title: "保存成功",
-      description: `社群推送任务"${formData.name || "未命名任务"}"已保存`,
-    })
-    router.push("/workspace/group-push")
+  const handleSave = async () => {
+    const loadingToast = showToast("正在保存...", "loading", true)
+    try {
+      const params = {
+        name: formData.name,
+        type: 3,
+        pushType: 1,
+        startTime: formData.pushTimeStart,
+        endTime: formData.pushTimeEnd,
+        maxPerDay: formData.dailyPushCount,
+        pushOrder: formData.pushOrder === "latest" ? 2 : 1,
+        isLoop: formData.isLoopPush ? 1 : 0,
+        status: formData.isEnabled ? 1 : 0,
+        groups: formData.groups.map(g => g.id),
+        contentLibraries: formData.contentLibraries.map(c => c.id),
+      }
+      const res = await api.post("/v1/workbench/create", params)
+      loadingToast.remove()
+      if (res.code === 200) {
+        showToast("保存成功", "success")
+        router.push("/workspace/group-push")
+      } else {
+        showToast(res.msg || "保存失败", "error")
+      }
+    } catch (e) {
+      loadingToast.remove()
+      showToast(e?.message || "网络错误", "error")
+    }
   }
 
   const handleCancel = () => {

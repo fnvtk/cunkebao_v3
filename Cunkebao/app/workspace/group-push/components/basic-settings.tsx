@@ -16,7 +16,7 @@ interface BasicSettingsProps {
     dailyPushCount: number
     pushOrder: "earliest" | "latest"
     isLoopPush: boolean
-    isImmediatePush: boolean
+    pushTypePush: boolean
     isEnabled: boolean
   }
   onNext: (values: any) => void
@@ -32,7 +32,7 @@ export function BasicSettings({
     dailyPushCount: 20,
     pushOrder: "latest",
     isLoopPush: false,
-    isImmediatePush: false,
+    pushTypePush: false,
     isEnabled: false,
   },
   onNext,
@@ -164,20 +164,20 @@ export function BasicSettings({
 
             {/* 是否立即推送 */}
             <div className="flex items-center justify-between">
-              <Label htmlFor="isImmediatePush" className="flex items-center text-sm font-medium">
+              <Label htmlFor="pushTypePush" className="flex items-center text-sm font-medium">
                 <span className="text-red-500 mr-1">*</span>是否立即推送:
               </Label>
               <div className="flex items-center space-x-2">
-                <span className={values.isImmediatePush ? "text-gray-400" : "text-gray-900"}>否</span>
+                <span className={values.pushTypePush ? "text-gray-400" : "text-gray-900"}>否</span>
                 <Switch
-                  id="isImmediatePush"
-                  checked={values.isImmediatePush}
-                  onCheckedChange={(checked) => handleChange("isImmediatePush", checked)}
+                  id="pushTypePush"
+                  checked={values.pushTypePush}
+                  onCheckedChange={(checked) => handleChange("pushTypePush", checked)}
                 />
-                <span className={values.isImmediatePush ? "text-gray-900" : "text-gray-400"}>是</span>
+                <span className={values.pushTypePush ? "text-gray-900" : "text-gray-400"}>是</span>
               </div>
             </div>
-            {values.isImmediatePush && (
+            {values.pushTypePush && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 text-sm text-yellow-700">
                 如果启用，系统会把内容库里所有的内容按顺序推送到指定的社群
               </div>
