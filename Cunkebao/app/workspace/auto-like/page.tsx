@@ -98,7 +98,7 @@ export default function AutoLikePage() {
         limit: pageSize.toString(),
       })
       if (name) {
-        queryParams.append('name', name)
+        queryParams.append('keyword', name)
       }
       const response = await api.get<TaskListResponse>(`/v1/workbench/list?${queryParams.toString()}`)
 
