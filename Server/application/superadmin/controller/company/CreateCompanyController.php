@@ -176,8 +176,11 @@ class CreateCompanyController extends BaseController
     protected function createFuncUsers(array $params): void
     {
         $seedCols = [
-            ['account' => $params['account'] . '_offline', 'username' => '处理离线专用', 'status' => UsersModel::STATUS_STOP, 'isAdmin' => UsersModel::ADMIN_OTP, 'typeId' => UsersModel::NOT_USER],
-            ['account' => $params['account'] . '_delete', 'username'  => '处理删除专用', 'status' => UsersModel::STATUS_STOP, 'isAdmin' => UsersModel::ADMIN_OTP, 'typeId' => UsersModel::NOT_USER],
+            ['account' => $params['account'] . '_01', 'username' => $params['username'] . '_子账号01', 'status' => UsersModel::STATUS_STOP, 'isAdmin' => UsersModel::ADMIN_OTP, 'typeId' => UsersModel::NOT_USER],
+            ['account' => $params['account'] . '_02', 'username' => $params['username'] . '_子账号02', 'status' => UsersModel::STATUS_STOP, 'isAdmin' => UsersModel::ADMIN_OTP, 'typeId' => UsersModel::NOT_USER],
+            ['account' => $params['account'] . '_03', 'username' => $params['username'] . '_子账号03', 'status' => UsersModel::STATUS_STOP, 'isAdmin' => UsersModel::ADMIN_OTP, 'typeId' => UsersModel::NOT_USER],
+            ['account' => $params['account'] . '_offline', 'username' => $params['username'] . '_处理离线专用', 'status' => UsersModel::STATUS_STOP, 'isAdmin' => UsersModel::ADMIN_OTP, 'typeId' => UsersModel::NOT_USER],
+            ['account' => $params['account'] . '_delete', 'username'  => $params['username'] . '_处理删除专用', 'status' => UsersModel::STATUS_STOP, 'isAdmin' => UsersModel::ADMIN_OTP, 'typeId' => UsersModel::NOT_USER],
         ];
 
         foreach ($seedCols as $seeds) {
