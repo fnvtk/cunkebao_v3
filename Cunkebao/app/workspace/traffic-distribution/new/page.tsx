@@ -28,6 +28,7 @@ interface FormData {
     targetGroups: string[]
     targets: string[]
     devices?: string[]
+    accounts?: string[]
   }
   trafficPool: {
     deviceIds: number[]
@@ -114,6 +115,7 @@ export default function NewTrafficDistribution() {
         endTime: finalData.basicInfo.endTime,
         targetGroups: finalData.targetSettings.targetGroups,
         devices: finalData.targetSettings.devices,
+        account: finalData.targetSettings.accounts,
         pools: finalData.trafficPool.poolIds,
         enabled: true, // 默认启用
       })

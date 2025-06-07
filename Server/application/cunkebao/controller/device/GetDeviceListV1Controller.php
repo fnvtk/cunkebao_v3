@@ -77,7 +77,7 @@ class GetDeviceListV1Controller extends BaseController
                 'l.wechatId',
                 'a.nickname', 'a.alias', '0 totalFriend'
             ])
-            ->leftJoin('device_wechat_login l', 'd.id = l.deviceId and l.alive =' . DeviceWechatLoginModel::ALIVE_WECHAT_ACTIVE)
+            ->leftJoin('device_wechat_login l', 'd.id = l.deviceId and l.alive =' . DeviceWechatLoginModel::ALIVE_WECHAT_ACTIVE . ' and l.companyId = d.companyId')
             ->leftJoin('wechat_account a', 'l.wechatId = a.wechatId')
             ->order('d.id desc');
 

@@ -55,7 +55,7 @@ class Workbench extends Validate
         'timeType' => 'requireIf:type,5|in:1,2',
         'startTime' => 'requireIf:type,5|dateFormat:H:i',
         'endTime' => 'requireIf:type,5|dateFormat:H:i',
-
+        'account' => 'requireIf:type,5|array|min:1',
          // 通用参数
          'devices' => 'requireIf:type,1,2,5|array',
     ];
@@ -141,7 +141,10 @@ class Workbench extends Validate
         'devices.require' => '请选择设备',
         'devices.array' => '设备格式错误',
         'targetGroups.require' => '请选择目标用户组',
-        'targetGroups.array' => '目标用户组格式错误'
+        'targetGroups.array' => '目标用户组格式错误',
+        'account.requireIf' => '流量分发时必须选择分发账号',
+        'account.array' => '分发账号格式错误',
+        'account.min' => '至少选择一个分发账号',
     ];
 
     /**

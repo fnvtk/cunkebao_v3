@@ -66,6 +66,7 @@ Route::group('v1/', function () {
         Route::get('moments-records', 'app\cunkebao\controller\WorkbenchController@getMomentsRecords'); // 获取朋友圈发布记录列表
         Route::get('device-labels', 'app\cunkebao\controller\WorkbenchController@getDeviceLabels'); // 获取设备微信好友标签统计
         Route::get('group-list', 'app\cunkebao\controller\WorkbenchController@getGroupList'); // 获取群列表
+        Route::get('account-list', 'app\cunkebao\controller\WorkbenchController@getAccountList'); // 获取账号列表
     });
 
     // 内容库相关

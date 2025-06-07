@@ -27,6 +27,7 @@ interface TrafficPoolStepProps {
 
 export default function TrafficPoolStep({ onSubmit, onBack, initialData = {}, devices = [] }: TrafficPoolStepProps) {
   const [selectedPools, setSelectedPools] = useState<string[]>(initialData.selectedPools || [])
+  const [searchInput, setSearchInput] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [deviceLabels, setDeviceLabels] = useState<{ label: string; count: number }[]>([])
@@ -34,6 +35,7 @@ export default function TrafficPoolStep({ onSubmit, onBack, initialData = {}, de
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 10
   const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(false)
   const filteredPools = deviceLabels.filter(
     (pool) =>
       pool.label && pool.label.toLowerCase().includes(searchTerm.toLowerCase())
@@ -41,7 +43,7 @@ export default function TrafficPoolStep({ onSubmit, onBack, initialData = {}, de
   const totalPages = Math.ceil(total / pageSize)
   const pagedPools = filteredPools.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
-  // 监听 devices 变化，请求标签
+  // 监听 devices、currentPage、searchTerm 变化，请求标签（后端分页+搜索）
   useEffect(() => {
     if (!devices || devices.length === 0) {
       setDeviceLabels([])
@@ -49,12 +51,13 @@ export default function TrafficPoolStep({ onSubmit, onBack, initialData = {}, de
       return
     }
     const fetchLabels = async () => {
+      setLoading(true)
       try {
         const params = devices.join(",")
-        const res = await api.get<{ code: number; msg: string; data: { label: string; count: number }[]; total?: number }>(`/v1/workbench/device-labels?deviceIds=${params}`)
-        if (res.code === 200 && Array.isArray(res.data)) {
-          setDeviceLabels(res.data)
-          setTotal(res.total || res.data.length)
+        const res = await api.get<{ code: number; msg: string; data: { list: { label: string; count: number }[]; total: number } }>(`/v1/workbench/device-labels?deviceIds=${params}&page=${currentPage}&pageSize=${pageSize}&keyword=${encodeURIComponent(searchTerm)}`)
+        if (res.code === 200 && Array.isArray(res.data?.list)) {
+          setDeviceLabels(res.data.list)
+          setTotal(res.data.total || 0)
         } else {
           setDeviceLabels([])
           setTotal(0)
@@ -62,10 +65,18 @@ export default function TrafficPoolStep({ onSubmit, onBack, initialData = {}, de
       } catch (e) {
         setDeviceLabels([])
         setTotal(0)
+      } finally {
+        setLoading(false)
       }
     }
     fetchLabels()
-  }, [devices])
+  }, [devices, currentPage, searchTerm])
+
+  // 搜索时重置分页并触发搜索
+  const handleSearch = () => {
+    setCurrentPage(1)
+    setSearchTerm(searchInput)
+  }
 
   // label 到描述的映射
   const poolDescMap: Record<string, string> = {
@@ -117,49 +128,58 @@ export default function TrafficPoolStep({ onSubmit, onBack, initialData = {}, de
           <DialogTitle className="text-lg font-bold text-center py-3 border-b">选择流量池</DialogTitle>
           <div className="p-6 pt-4">
             {/* 搜索栏 */}
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <Input
-                placeholder="搜索流量池"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="pl-10 rounded-lg border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
+            <div className="relative mb-4 flex gap-2">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Input
+                  placeholder="搜索流量池"
+                  value={searchInput}
+                  onChange={e => setSearchInput(e.target.value)}
+                  className="pl-10 rounded-lg border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+              <Button onClick={handleSearch} className="px-4">搜索</Button>
             </div>
             {/* 流量池列表 */}
             <div className="overflow-y-auto max-h-[400px] space-y-3">
-              {pagedPools.map((pool) => (
-                <div
-                  key={pool.label}
-                  className={`
-                    flex items-center justify-between rounded-xl shadow-sm border transition-colors duration-150 cursor-pointer
-                    ${selectedPools.includes(pool.label) ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-white"}
-                    hover:border-blue-400
-                  `}
-                  onClick={() => togglePool(pool.label)}
-                >
-                  <div className="flex items-center space-x-3 p-4 flex-1">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                      <Database className="h-5 w-5 text-blue-600" />
+              {loading ? (
+                <div className="text-center text-gray-400 py-8">加载中...</div>
+              ) : filteredPools.length === 0 ? (
+                <div className="text-center text-gray-400 py-8">暂无流量池</div>
+              ) : (
+                filteredPools.map((pool) => (
+                  <div
+                    key={pool.label}
+                    className={
+                      `flex items-center justify-between rounded-xl shadow-sm border transition-colors duration-150 cursor-pointer
+                      ${selectedPools.includes(pool.label) ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-white"}
+                      hover:border-blue-400`
+                    }
+                    onClick={() => togglePool(pool.label)}
+                  >
+                    <div className="flex items-center space-x-3 p-4 flex-1">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                        <Database className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-base">{pool.label}</p>
+                        <p className="text-sm text-gray-500">{poolDescMap[pool.label] || ""}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-bold text-base">{pool.label}</p>
-                      <p className="text-sm text-gray-500">{poolDescMap[pool.label] || ""}</p>
-                    </div>
+                    <span className="text-sm text-gray-500 mr-4">{pool.count} 人</span>
+                    <input
+                      type="checkbox"
+                      className="accent-blue-500 scale-125 mr-6"
+                      checked={selectedPools.includes(pool.label)}
+                      onChange={e => {
+                        e.stopPropagation();
+                        togglePool(pool.label);
+                      }}
+                      onClick={e => e.stopPropagation()}
+                    />
                   </div>
-                  <span className="text-sm text-gray-500 mr-4">{pool.count} 人</span>
-                  <input
-                    type="checkbox"
-                    className="accent-blue-500 scale-125 mr-6"
-                    checked={selectedPools.includes(pool.label)}
-                    onChange={e => {
-                      e.stopPropagation();
-                      togglePool(pool.label);
-                    }}
-                    onClick={e => e.stopPropagation()}
-                  />
-                </div>
-              ))}
+                ))
+              )}
             </div>
             {/* 分页按钮 */}
             {totalPages > 1 && (

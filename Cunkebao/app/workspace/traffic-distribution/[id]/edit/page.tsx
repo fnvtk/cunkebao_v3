@@ -28,6 +28,7 @@ interface FormData {
   targetSettings: {
     targetGroups: string[]
     devices: string[]
+    accounts?: string[]
   }
   trafficPool: {
     poolIds: string[]
@@ -105,6 +106,7 @@ export default function EditTrafficDistributionPage({ params }: { params: Promis
             targetSettings: {
               targetGroups: data.config?.targetGroups || [],
               devices: (data.config?.devices || []).map(String),
+              accounts: (data.config?.account || []).map(String),
             },
             trafficPool: {
               poolIds: (data.config?.pools || []).map(String),
@@ -164,6 +166,7 @@ export default function EditTrafficDistributionPage({ params }: { params: Promis
         endTime: finalData.basicInfo.endTime,
         targetGroups: finalData.targetSettings.targetGroups,
         devices: finalData.targetSettings.devices,
+        account: finalData.targetSettings.accounts,
         pools: finalData.trafficPool.poolIds,
         enabled: true,
       })
@@ -204,7 +207,7 @@ export default function EditTrafficDistributionPage({ params }: { params: Promis
           <TargetSettingsStep
             onNext={handleTargetSettingsNext}
             onBack={handleTargetSettingsBack}
-            initialData={{ ...formData.targetSettings, devices }}
+            initialData={{ ...formData.targetSettings, devices, accounts: formData.targetSettings.accounts }}
             setDevices={setDevices}
           />
         )}

@@ -258,6 +258,19 @@ class CreateCompanyController extends BaseController
     }
 
     /**
+     * 设置部门权限
+     *
+     * @param array $params
+     * @return void
+     * @throws Exception
+     */
+    protected function setDepartmentPrivileges(array $params): void
+    {
+        $params = ArrHelper::getValue('companyId=id,companyId,name,memo,status', $params);
+        $result = CompanyModel::create($params);
+    }
+
+    /**
      * 创建新项目
      *
      * @return Json
@@ -275,6 +288,9 @@ class CreateCompanyController extends BaseController
 
             // 创建功能账号，不可登录，也非管理员，用户也不可见
             $this->createFuncUsers($params);
+
+            // 设置部门权限
+            $this->setDepartmentPrivileges($params);
 
             Db::commit();
             return ResponseHelper::success();

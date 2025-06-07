@@ -516,6 +516,59 @@ class AccountController extends BaseController
         }
     }
 
+     /**
+     * 修改部门权限
+     * @return \think\response\Json
+     */
+    public function setPrivileges($id = '')
+    {
+        // 获取授权token
+        $authorization = trim($this->request->header('authorization', $this->authorization));
+        if (empty($authorization)) {
+            return errorJson('缺少授权信息');
+        }
+
+        try {
+            // 获取并验证请求参数
+            $id = !empty($id) ? $id : $this->request->param('id', 0);
+
+            if (empty($id)) {
+                return errorJson('部门ID不能为空');
+            }
+       
+
+            // 验证部门是否存在
+            $department = CompanyModel::where('id', $id)->find();
+            if (empty($department)) {
+                return errorJson('部门不存在');
+            }
+
+            // 构建请求参数
+            $params = [
+                'departmentId' => $id,
+                'privilegeIds' => [1001,1002,1004,1023,1406,20003,20021,20022,20023,20032,20041,20049,20054,20055,20060,20100,20102,20107],
+                'syncPrivilege' => true
+            ];
+
+            // 设置请求头
+            $headerData = ['client:system'];
+            $header = setHeader($headerData, $authorization, 'json');
+
+            // 发送请求修改部门
+            $result = requestCurl($this->baseUrl . 'api/Department/privileges', $params, 'PUT', $header, 'json');
+            $response = handleApiResponse($result);
+
+
+            return successJson([], '部门权限修改成功');
+        } catch (\Exception $e) {
+            return errorJson('修改部门权限失败：' . $e->getMessage());
+        }
+    }
+
+
+
+
+
     /************************ 私有辅助方法 ************************/
 
     /**

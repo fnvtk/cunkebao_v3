@@ -69,13 +69,18 @@ class WorkbenchTrafficDistributeJob
         if (!$this->isTimeRange($config) && $config['timeType'] == 2) {
             return;
         }
-
         // 获取当天未超额的可用账号
+        if(empty($config['account'])){
+            Log::error("流量分发工作台 {$workbench->id} 未配置分发的客服");
+            return;
+        }
+        $accountIds = json_decode($config['account'],true);
         $todayStart = strtotime(date('Y-m-d 00:00:00'));
         $todayEnd = strtotime(date('Y-m-d 23:59:59'));
         $accounts = Db::table('s2_company_account')
             ->alias('a')
             ->where(['a.departmentId' => $workbench->companyId, 'a.status' => 0])
+            ->whereIn('a.id',$accountIds)
             ->whereNotLike('a.userName', '%_offline%')
             ->whereNotLike('a.userName', '%_delete%')
             ->leftJoin('workbench_traffic_config_item wti', "wti.wechatAccountId = a.id AND wti.workbenchId = {$workbench->id} AND wti.createTime BETWEEN {$todayStart} AND {$todayEnd}")
@@ -83,6 +88,11 @@ class WorkbenchTrafficDistributeJob
             ->group('a.id')
             ->having('todayCount <= ' . $config['maxPerDay'])
             ->select();
+
+
+            print_r($accounts);
+            exit;
+
         $accountNum = count($accounts);
         if ($accountNum < 1) {
             Log::info("流量分发工作台 {$workbench->id} 可分配账号少于1个");

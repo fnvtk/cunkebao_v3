@@ -137,6 +137,7 @@ class WorkbenchController extends Controller
                     $config->endTime = $param['endTime'];
                     $config->devices = json_encode($param['devices'], JSON_UNESCAPED_UNICODE);
                     $config->pools = json_encode($param['pools'], JSON_UNESCAPED_UNICODE);
+                    $config->account = json_encode($param['account'], JSON_UNESCAPED_UNICODE);
                     $config->createTime = time();
                     $config->updateTime = time();
                     $config->save();
@@ -186,7 +187,7 @@ class WorkbenchController extends Controller
                 $query->field('workbenchId,syncInterval,syncCount,syncType,startTime,endTime,accountType,devices,contentLibraries');
             },
             'trafficConfig' => function($query) {
-                $query->field('workbenchId,distributeType,maxPerDay,timeType,startTime,endTime,devices,pools');
+                $query->field('workbenchId,distributeType,maxPerDay,timeType,startTime,endTime,devices,pools,account');
             },
             'groupPush' => function($query) {
                 $query->field('workbenchId,pushType,startTime,endTime,maxPerDay,pushOrder,isLoop,status,groups,contentLibraries');
@@ -276,6 +277,7 @@ class WorkbenchController extends Controller
                             $item->config = $item->trafficConfig;
                             $item->config->devices = json_decode($item->config->devices, true);
                             $item->config->pools = json_decode($item->config->pools, true);
+                            $item->config->account = json_decode($item->config->account, true);
                             $config_item = Db::name('workbench_traffic_config_item')->where(['workbenchId' => $item->id])->order('id DESC')->find();
                             $item->config->lastUpdated = !empty($config_item) ? date('Y-m-d H:i',$config_item['createTime']) : '--';
 
@@ -296,13 +298,7 @@ class WorkbenchController extends Controller
                                 }
                             })->count();
 
-                            $totalAccounts = Db::table('s2_company_account')
-                            ->alias('a')
-                            ->where(['a.departmentId' => $item->companyId, 'a.status' => 0])
-                            ->whereNotLike('a.userName', '%_offline%')
-                            ->whereNotLike('a.userName', '%_delete%')
-                            ->group('a.id')
-                            ->count();
+                            $totalAccounts = count($item->config->account);
 
                             $dailyAverage = Db::name('workbench_traffic_config_item')
                             ->where('workbenchId', $item->id)
@@ -368,7 +364,7 @@ class WorkbenchController extends Controller
                 $query->field('workbenchId,syncInterval,syncCount,syncType,startTime,endTime,accountType,devices,contentLibraries');
             },
             'trafficConfig' => function($query) {
-                $query->field('workbenchId,distributeType,maxPerDay,timeType,startTime,endTime,devices,pools');
+                $query->field('workbenchId,distributeType,maxPerDay,timeType,startTime,endTime,devices,pools,account');
             },
             'groupPush' => function($query) {
                 $query->field('workbenchId,pushType,startTime,endTime,maxPerDay,pushOrder,isLoop,status,groups,contentLibraries');
@@ -450,56 +446,54 @@ class WorkbenchController extends Controller
                     }])
                     ->order('id', 'desc')
                     ->select();
-                    
 
+                     // 处理JSON字段
+                        foreach ($contentLibraryList as &$item) {
+                            $item['sourceFriends'] = json_decode($item['sourceFriends'] ?: '[]', true);
+                            $item['sourceGroups'] = json_decode($item['sourceGroups'] ?: '[]', true);
+                            $item['keywordInclude'] = json_decode($item['keywordInclude'] ?: '[]', true);
+                            $item['keywordExclude'] = json_decode($item['keywordExclude'] ?: '[]', true);
+                            // 添加创建人名称
+                            $item['creatorName'] = $item['user']['username'] ?? '';
+                            $item['itemCount'] = Db::name('content_item')->where('libraryId', $item['id'])->count();
 
-                      // 处理JSON字段
-        foreach ($contentLibraryList as &$item) {
-            $item['sourceFriends'] = json_decode($item['sourceFriends'] ?: '[]', true);
-            $item['sourceGroups'] = json_decode($item['sourceGroups'] ?: '[]', true);
-            $item['keywordInclude'] = json_decode($item['keywordInclude'] ?: '[]', true);
-            $item['keywordExclude'] = json_decode($item['keywordExclude'] ?: '[]', true);
-            // 添加创建人名称
-            $item['creatorName'] = $item['user']['username'] ?? '';
-            $item['itemCount'] = Db::name('content_item')->where('libraryId', $item['id'])->count();
+                            // 获取好友详细信息
+                            if (!empty($item['sourceFriends'] && $item['sourceType'] == 1)) {
+                                $friendIds = $item['sourceFriends'];
+                                $friendsInfo = [];
 
-            // 获取好友详细信息
-            if (!empty($item['sourceFriends'] && $item['sourceType'] == 1)) {
-                $friendIds = $item['sourceFriends'];
-                $friendsInfo = [];
+                                if (!empty($friendIds)) {
+                                    // 查询好友信息，使用wechat_friendship表
+                                    $friendsInfo = Db::name('wechat_friendship')->alias('wf')
+                                        ->field('wf.id,wf.wechatId, wa.nickname, wa.avatar')
+                                        ->join('wechat_account wa', 'wf.wechatId = wa.wechatId')
+                                        ->whereIn('wf.id', $friendIds)
+                                        ->select();
+                                }
 
-                if (!empty($friendIds)) {
-                    // 查询好友信息，使用wechat_friendship表
-                    $friendsInfo = Db::name('wechat_friendship')->alias('wf')
-                        ->field('wf.id,wf.wechatId, wa.nickname, wa.avatar')
-                        ->join('wechat_account wa', 'wf.wechatId = wa.wechatId')
-                        ->whereIn('wf.id', $friendIds)
-                        ->select();
-                }
+                                // 将好友信息添加到返回数据中
+                                $item['selectedFriends'] = $friendsInfo;
+                            }
 
-                // 将好友信息添加到返回数据中
-                $item['selectedFriends'] = $friendsInfo;
-            }
+                        
+                            if (!empty($item['sourceGroups']) && $item['sourceType'] == 2) {
+                                $groupIds = $item['sourceGroups'];
+                                $groupsInfo = [];
 
-         
-            if (!empty($item['sourceGroups']) && $item['sourceType'] == 2) {
-                $groupIds = $item['sourceGroups'];
-                $groupsInfo = [];
+                                if (!empty($groupIds)) {
+                                    // 查询群组信息
+                                    $groupsInfo = Db::name('wechat_group')->alias('g')
+                                        ->field('g.id, g.chatroomId, g.name, g.avatar, g.ownerWechatId')
+                                        ->whereIn('g.id', $groupIds)
+                                        ->select();
+                                }
 
-                if (!empty($groupIds)) {
-                    // 查询群组信息
-                    $groupsInfo = Db::name('wechat_group')->alias('g')
-                        ->field('g.id, g.chatroomId, g.name, g.avatar, g.ownerWechatId')
-                        ->whereIn('g.id', $groupIds)
-                        ->select();
-                }
+                                // 将群组信息添加到返回数据中
+                                $item['selectedGroups'] = $groupsInfo;
+                            }
 
-                // 将群组信息添加到返回数据中
-                $item['selectedGroups'] = $groupsInfo;
-            }
-
-            unset($item['user']); // 移除关联数据
-        }
+                            unset($item['user']); // 移除关联数据
+                        }
                     $workbench->config->contentLibraryList = $contentLibraryList;
 
                     unset($workbench->groupPush, $workbench->group_push);
@@ -517,6 +511,7 @@ class WorkbenchController extends Controller
                     $workbench->config = $workbench->trafficConfig;
                     $workbench->config->devices = json_decode($workbench->config->devices, true);
                     $workbench->config->pools = json_decode($workbench->config->pools, true);
+                    $workbench->config->account = json_decode($workbench->config->account, true);
                     $config_item = Db::name('workbench_traffic_config_item')->where(['workbenchId' => $workbench->id])->order('id DESC')->find();
                     $workbench->config->lastUpdated = !empty($config_item) ? date('Y-m-d H:i',$config_item['createTime']) : '--';
                     
@@ -860,6 +855,7 @@ class WorkbenchController extends Controller
                         $newConfig->membersPerGroup = $config->membersPerGroup;
                         $newConfig->devices = $config->devices;
                         $newConfig->targetGroups = $config->targetGroups;
+                        $newConfig->account = $config->account;
                         $newConfig->save();
                     }
                     break;
@@ -1307,6 +1303,9 @@ class WorkbenchController extends Controller
     {
         $deviceIds = $this->request->param('deviceIds', '');
         $companyId = $this->request->userInfo['companyId'];
+        $page = $this->request->param('page', 1);
+        $limit = $this->request->param('limit', 10);
+        $keyword = $this->request->param('keyword', '');
 
         $where = [
             ['wc.companyId', '=', $companyId],
@@ -1323,7 +1322,6 @@ class WorkbenchController extends Controller
             ->where($where)
             ->field('wa.id,wa.wechatId,wa.nickName,wa.labels')
             ->select();
-
         $labels = [];
         $wechatIds = [];
         foreach ($wechatAccounts as $account) {
@@ -1340,14 +1338,27 @@ class WorkbenchController extends Controller
         // 去重（只保留一个）
         $labels = array_values(array_unique($labels));
         $wechatIds = array_unique($wechatIds);
-        
+
+        // 搜索过滤
+        if (!empty($keyword)) {
+            $labels = array_filter($labels, function($label) use ($keyword) {
+                return mb_stripos($label, $keyword) !== false;
+            });
+            $labels = array_values($labels); // 重新索引数组
+        }
+
+
+
+        // 分页处理
+        $labels2 = array_slice($labels, ($page - 1) * $limit, $limit);
+
         // 统计数量
         $newLabel = [];
-        foreach ($labels as $label) {
+        foreach ($labels2 as $label) {
             $friendCount = Db::table('s2_wechat_friend')
-                ->whereIn('ownerWechatId',$wechatIds)
-                ->where('labels', 'like', '%"'.$label.'"%')
-                ->count();
+            ->whereIn('ownerWechatId',$wechatIds)
+            ->where('labels', 'like', '%"'.$label.'"%')
+            ->count();
             $newLabel[] = [
                 'label' => $label,
                 'count' => $friendCount
@@ -1355,7 +1366,14 @@ class WorkbenchController extends Controller
         }
 
         // 返回结果
-        return json(['code' => 200, 'msg' => '获取成功', 'data' => $newLabel,'total'=> count($newLabel)]);
+        return json([
+            'code' => 200, 
+            'msg' => '获取成功', 
+            'data' => [
+                'list' => $newLabel,
+                'total' => count($labels),
+            ]
+        ]);
     }
 
 
@@ -1396,6 +1414,28 @@ class WorkbenchController extends Controller
             $item['groupAvatar'] = $item['groupAvatar'] ?: $defaultGroupAvatar;
             $item['avatar'] = $item['avatar'] ?: $defaultAvatar;
         }
+
+        return json(['code' => 200, 'msg' => '获取成功', 'data' => ['total' => $total,'list' => $list]]);
+    }
+
+
+    public function getAccountList()
+    {
+        $companyId = $this->request->userInfo['companyId'];
+        $page = $this->request->param('page', 1);
+        $limit = $this->request->param('limit', 10);
+        $query = Db::table('s2_company_account')
+        ->alias('a')
+        ->where(['a.departmentId' => $companyId, 'a.status' => 0])
+        ->whereNotLike('a.userName', '%_offline%')
+        ->whereNotLike('a.userName', '%_delete%');
+
+        $total = $query->count();
+        $list = $query->field('a.id,a.userName,a.realName,a.nickname,a.memo')
+        ->page($page, $limit)
+        ->select();
+
+        
 
         return json(['code' => 200, 'msg' => '获取成功', 'data' => ['total' => $total,'list' => $list]]);
     }
