@@ -266,8 +266,9 @@ class CreateCompanyController extends BaseController
      */
     protected function setDepartmentPrivileges(array $params): void
     {
-        $params = ArrHelper::getValue('companyId=id,companyId,name,memo,status', $params);
-        $result = CompanyModel::create($params);
+        $params = ArrHelper::getValue('companyId', $params);
+        $accountController = new \app\api\controller\AccountController();
+        $accountController->setPrivileges(['id' => $params['companyId']]);
     }
 
     /**

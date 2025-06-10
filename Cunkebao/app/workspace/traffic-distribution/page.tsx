@@ -28,21 +28,44 @@ import Link from "next/link"
 import BottomNav from "@/app/components/BottomNav"
 import { api } from "@/lib/api"
 import { showToast } from "@/lib/toast"
+import { Switch } from "@/components/ui/switch"
 
 interface DistributionPlan {
-  id: string
+  id: string | number
+  companyId?: number
   name: string
-  status: "active" | "paused"
-  source: string
-  sourceIcon: string
-  targetGroups: string[]
-  totalUsers: number
-  dailyAverage: number
-  deviceCount: number
-  poolCount: number
-  lastUpdated: string
+  type?: number
+  status: number // 1: 进行中, 0: 已暂停
+  autoStart?: number
+  userId?: number
   createTime: string
-  creator: string
+  updateTime?: string
+  config: {
+    id?: number
+    workbenchId?: number
+    distributeType?: number
+    maxPerDay?: number
+    timeType?: number
+    startTime?: string
+    endTime?: string
+    account?: string[]
+    devices: string[]
+    pools: string[]
+    createTime?: string
+    updateTime?: string
+    lastUpdated?: string
+    total: {
+      dailyAverage: number
+      totalAccounts: number
+      deviceCount: number
+      poolCount: number
+      totalUsers: number
+    }
+  }
+  creatorName?: string
+  auto_like?: any
+  moments_sync?: any
+  group_push?: any
 }
 
 interface ApiResponse {
@@ -111,7 +134,7 @@ export default function TrafficDistributionPage() {
   const handleDelete = async (planId: string) => {
     const loadingToast = showToast("正在删除计划...", "loading", true);
     try {
-      const response = await api.delete<ApiResponse>(`/v1/traffic-distribution/delete?id=${planId}`)
+      const response = await api.delete<ApiResponse>(`/v1/workbench/delete?id=${planId}`)
 
       if (response.code === 200) {
         loadingToast.remove();
@@ -136,24 +159,23 @@ export default function TrafficDistributionPage() {
     router.push(`/workspace/traffic-distribution/${planId}`)
   }
 
-  const togglePlanStatus = async (planId: string, currentStatus: "active" | "paused") => {
+  const togglePlanStatus = async (planId: string, currentStatus: number) => {
     const loadingToast = showToast("正在更新计划状态...", "loading", true);
     try {
-      const response = await api.post<ApiResponse>('/v1/traffic-distribution/update-status', {
+      const response = await api.post<ApiResponse>('/v1/workbench/update-status', {
         id: planId,
-        status: currentStatus === "active" ? "paused" : "active"
+        status: currentStatus === 1 ? 0 : 1
       })
 
       if (response.code === 200) {
         setPlans(plans.map(plan => 
           plan.id === planId 
-            ? { ...plan, status: currentStatus === "active" ? "paused" : "active" }
+            ? { ...plan, status: currentStatus === 1 ? 0 : 1 }
             : plan
         ))
-        
-        const newStatus = currentStatus === "active" ? "paused" : "active"
+        const newStatus = currentStatus === 1 ? 0 : 1
         loadingToast.remove();
-        showToast(response.msg || `计划${newStatus === "active" ? "已启动" : "已暂停"}`, "success")
+        showToast(response.msg || `计划${newStatus === 1 ? "已启动" : "已暂停"}`, "success")
       } else {
         loadingToast.remove();
         showToast(response.msg || "请稍后再试", "error")
@@ -233,59 +255,52 @@ export default function TrafficDistributionPage() {
           <div className="space-y-4 mt-2">
             {plans.map((plan) => (
               <Card key={plan.id} className="overflow-hidden">
-                {/* 卡片头部 */}
+                {/* 卡片头部：全部元素一行排列，间距紧凑 */}
                 <div className="p-4 bg-white border-b flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="text-2xl">{plan.sourceIcon}</div>
-                    <div>
-                      <h3 className="font-medium text-lg">{plan.name}</h3>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <Badge variant={plan.status == 1 ? "success" : "secondary"}>
-                          {plan.status == 1 ? "进行中" : "已暂停"}
-                        </Badge>
-                        {plan.config.pools.map((group, index) => (
-                          <Badge key={index} variant="outline">
-                            {group}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
+                  <div className="flex items-center space-x-3 w-full">
+                    <span className="font-medium text-base truncate max-w-[40%]">{plan.name}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ml-2 ${plan.status === 1 ? "bg-blue-500 text-white" : "bg-gray-300 text-gray-600"}`}>{plan.status === 1 ? "进行中" : "已暂停"}</span>
+                    <Switch
+                      checked={plan.status === 1}
+                      onCheckedChange={() => togglePlanStatus(plan.id.toString(), Number(plan.status))}
+                      className="ml-2"
+                    />
+                    <div className="flex-1" />
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {/* <DropdownMenuItem onClick={() => handleView(plan.id.toString())}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          查看详情
+                        </DropdownMenuItem> */}
+                        <DropdownMenuItem onClick={() => handleEdit(plan.id.toString())}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          编辑计划
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => togglePlanStatus(plan.id.toString(), Number(plan.status))}>
+                          {plan.status === 1 ? (
+                            <>
+                              <Pause className="mr-2 h-4 w-4" />
+                              暂停计划
+                            </>
+                          ) : (
+                            <>
+                              <Play className="mr-2 h-4 w-4" />
+                              启动计划
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDelete(plan.id.toString())} className="text-red-600">
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          删除计划
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleView(plan.id)}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        查看详情
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleEdit(plan.id)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        编辑计划
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => togglePlanStatus(plan.id, plan.status)}>
-                        {plan.status === "active" ? (
-                          <>
-                            <Pause className="mr-2 h-4 w-4" />
-                            暂停计划
-                          </>
-                        ) : (
-                          <>
-                            <Play className="mr-2 h-4 w-4" />
-                            启动计划
-                          </>
-                        )}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDelete(plan.id)} className="text-red-600">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        删除计划
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
 
                 {/* 卡片内容 - 上3下2布局，图标在文字左侧 */}
@@ -312,7 +327,7 @@ export default function TrafficDistributionPage() {
                       <div className="text-xs text-gray-500 mt-1">日均分发量</div>
                     </div>
                     <div className="p-3 text-center">
-                      <div className="text-lg font-semibold">{plan.config.total.totalUsers}</div>
+                      <div className="text-lg font-semibold">{plan.config.total.totalAccounts}</div>
                       <div className="text-xs text-gray-500 mt-1">总流量池数量</div>
                     </div>
                   </div>

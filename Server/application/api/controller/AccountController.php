@@ -520,7 +520,7 @@ class AccountController extends BaseController
      * 修改部门权限
      * @return \think\response\Json
      */
-    public function setPrivileges($id = '')
+    public function setPrivileges($data = [])
     {
         // 获取授权token
         $authorization = trim($this->request->header('authorization', $this->authorization));
@@ -530,23 +530,26 @@ class AccountController extends BaseController
 
         try {
             // 获取并验证请求参数
-            $id = !empty($id) ? $id : $this->request->param('id', 0);
-
+            $id = !empty($data['id']) ? $data['id'] : $this->request->param('id', 0);
             if (empty($id)) {
                 return errorJson('部门ID不能为空');
             }
        
+            $privilegeIds = !empty($data['privilegeIds']) ? $data['privilegeIds'] : '1001,1002,1004,1023,1406,20003,20021,20022,20023,20032,20041,20049,20054,20055,20060,20100,20102,20107';
+            $privilegeIds = explode(',',$privilegeIds);
 
             // 验证部门是否存在
             $department = CompanyModel::where('id', $id)->find();
             if (empty($department)) {
                 return errorJson('部门不存在');
             }
+            
+           
 
             // 构建请求参数
             $params = [
                 'departmentId' => $id,
-                'privilegeIds' => [1001,1002,1004,1023,1406,20003,20021,20022,20023,20032,20041,20049,20054,20055,20060,20100,20102,20107],
+                'privilegeIds' => $privilegeIds,
                 'syncPrivilege' => true
             ];
 

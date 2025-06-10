@@ -15,6 +15,7 @@ Route::group('v1', function () {
             Route::get('department/list', 'app\\api\\controller\\AccountController@getDepartmentList'); // 获取部门列表 √
             Route::post('department/update', 'app\\api\\controller\\AccountController@updateDepartment'); // 更新部门 √
             Route::post('department/delete', 'app\\api\\controller\\AccountController@deleteDepartment'); // 删除部门 √
+            Route::post('department/setPrivileges', 'app\\api\\controller\\AccountController@setPrivileges'); // 设置部门权限 √
         });
 
         // Device控制器路由

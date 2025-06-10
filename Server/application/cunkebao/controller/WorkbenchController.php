@@ -307,7 +307,7 @@ class WorkbenchController extends Controller
                             $day = intval($day);
 
 
-                            if($dailyAverage > 0){
+                            if($dailyAverage > 0 && $totalAccounts > 0 && $day > 0){
                                 $dailyAverage = $dailyAverage / $totalAccounts / $day;
                             }
 
@@ -706,17 +706,15 @@ class WorkbenchController extends Controller
             return json(['code' => 400, 'msg' => '请求方式错误']);
         }
 
-        $param = $this->request->post();
+        $id = $this->request->param('id','');
 
-        // 验证数据
-        $validate = new WorkbenchValidate;
-        if (!$validate->scene('update_status')->check($param)) {
-            return json(['code' => 400, 'msg' => $validate->getError()]);
+        if(empty($id)){
+            return json(['code' => 400, 'msg' => '参数错误']);
         }
 
         $workbench = Workbench::where([
-            ['id', '=', $param['id']],
-            ['userId', '=', $this->request->userInfo['id']]
+            ['id', '=', $id],
+            ['companyId', '=', $this->request->userInfo['companyId']]
         ])->find();
 
         if (empty($workbench)) {
