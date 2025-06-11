@@ -290,13 +290,18 @@ class WorkbenchController extends Controller
                                     ['wf.isDeleted', '=', 0],
                                     ['sa.departmentId', '=', $item->companyId]
                                 ])
-                                ->whereIn('wa.currentDeviceId', $item->config->devices)
-                                ->field('wf.id,wf.wechatAccountId,wf.wechatId,wf.labels,sa.userName,wa.currentDeviceId as deviceId')
-                                ->where(function ($q) use ($labels) {
-                                foreach ($labels as $label) {
-                                    $q->whereOrRaw("JSON_CONTAINS(wf.labels, '\"{$label}\"')");
-                                }
-                            })->count();
+                                ->whereIn('wa.currentDeviceId', $item->config->devices);
+                                
+                            if(!empty($labels) && count($labels) > 0){
+                                $totalUsers = $totalUsers->where(function ($q) use ($labels) {
+                                    foreach ($labels as $label) {
+                                        $q->whereOrRaw("JSON_CONTAINS(wf.labels, '\"{$label}\"')");
+                                    }
+                                });
+                            }
+
+                            $totalUsers = $totalUsers->count();
+
 
                             $totalAccounts = count($item->config->account);
 
@@ -315,7 +320,7 @@ class WorkbenchController extends Controller
                                 'dailyAverage' => intval($dailyAverage),
                                 'totalAccounts' => $totalAccounts,
                                 'deviceCount' => count($item->config->devices),
-                                'poolCount' => count($item->config->pools),
+                                'poolCount' => !empty($item->config->pools) ? count($item->config->pools) : 'ALL',
                                 'totalUsers' => $totalUsers >> 0
                             ];
                         }

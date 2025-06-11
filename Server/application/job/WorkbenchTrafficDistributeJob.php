@@ -90,9 +90,6 @@ class WorkbenchTrafficDistributeJob
             ->select();
 
 
-            print_r($accounts);
-            exit;
-
         $accountNum = count($accounts);
         if ($accountNum < 1) {
             Log::info("流量分发工作台 {$workbench->id} 可分配账号少于1个");
@@ -101,6 +98,7 @@ class WorkbenchTrafficDistributeJob
         $automaticAssign = new AutomaticAssign();
         do {
             $friends = $this->getFriendsByLabels($workbench, $config, $page, $pageSize);
+
             if (empty($friends) || count($friends) == 0) {
                 Log::info("流量分发工作台 {$workbench->id} 没有可分配的好友");
                 break;
@@ -186,11 +184,12 @@ class WorkbenchTrafficDistributeJob
         if (!empty($config['pools'])) {
             $labels = is_array($config['pools']) ? $config['pools'] : json_decode($config['pools'], true);
         }
+
         $devices = [];
         if (!empty($config['devices'])) {
             $devices = is_array($config['devices']) ? $config['devices'] : json_decode($config['devices'], true);
         }
-        if (empty($labels) || empty($devices)) {
+        if (empty($devices)) {
             return [];
         }
         $query = Db::table('s2_wechat_friend')->alias('wf')
@@ -199,17 +198,21 @@ class WorkbenchTrafficDistributeJob
             ->join('workbench_traffic_config_item wtci', 'wtci.wechatFriendId = wf.id AND wtci.workbenchId = ' . $config['workbenchId'], 'left')
             ->where([
                 ['wf.isDeleted', '=', 0],
-                ['sa.departmentId', '=', $workbench->companyId],
+                //['sa.departmentId', '=', $workbench->companyId],
                 ['wtci.id', 'null', null]
             ])
             ->whereIn('wa.currentDeviceId', $devices)
             ->field('wf.id,wf.wechatAccountId,wf.wechatId,wf.labels,sa.userName,wa.currentDeviceId as deviceId');
-        $query->where(function ($q) use ($labels) {
-            foreach ($labels as $label) {
-                $q->whereOrRaw("JSON_CONTAINS(wf.labels, '\"{$label}\"')");
-            }
-        });
+
+        if(!empty($labels)){
+            $query->where(function ($q) use ($labels) {
+                foreach ($labels as $label) {
+                    $q->whereOrRaw("JSON_CONTAINS(wf.labels, '\"{$label}\"')");
+                }
+            });
+        }
         $list = $query->page($page, $pageSize)->order('wf.id DESC')->select();
+
         return $list;
     }
 
