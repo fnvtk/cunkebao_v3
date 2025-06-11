@@ -20,97 +20,11 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 
-// 调整场景顺序，确保API获客在最后，并且前三个是最常用的场景
-const scenarios = [
-  { id: "haibao", name: "海报获客", type: "material" },
-  { id: "order", name: "订单获客", type: "api" },
-  { id: "douyin", name: "抖音获客", type: "social" },
-  { id: "xiaohongshu", name: "小红书获客", type: "social" },
-  { id: "phone", name: "电话获客", type: "social" },
-  { id: "gongzhonghao", name: "公众号获客", type: "social" },
-  { id: "weixinqun", name: "微信群获客", type: "social" },
-  { id: "payment", name: "付款码获客", type: "material" },
-  { id: "api", name: "API获客", type: "api" }, // API获客放在最后
-]
-
-const phoneCallTags = [
-  { id: "tag-1", name: "咨询", color: "bg-blue-100 text-blue-800" },
-  { id: "tag-2", name: "投诉", color: "bg-red-100 text-red-800" },
-  { id: "tag-3", name: "合作", color: "bg-green-100 text-green-800" },
-  { id: "tag-4", name: "价格", color: "bg-orange-100 text-orange-800" },
-  { id: "tag-5", name: "售后", color: "bg-purple-100 text-purple-800" },
-  { id: "tag-6", name: "订单", color: "bg-yellow-100 text-yellow-800" },
-  { id: "tag-7", name: "物流", color: "bg-teal-100 text-teal-800" },
-]
-
-// 不同场景的预设标签
-const scenarioTags = {
-  haibao: [
-    { id: "poster-tag-1", name: "活动推广", color: "bg-blue-100 text-blue-800" },
-    { id: "poster-tag-2", name: "产品宣传", color: "bg-green-100 text-green-800" },
-    { id: "poster-tag-3", name: "品牌展示", color: "bg-purple-100 text-purple-800" },
-    { id: "poster-tag-4", name: "优惠促销", color: "bg-red-100 text-red-800" },
-    { id: "poster-tag-5", name: "新品发布", color: "bg-orange-100 text-orange-800" },
-  ],
-  order: [
-    { id: "order-tag-1", name: "新订单", color: "bg-green-100 text-green-800" },
-    { id: "order-tag-2", name: "复购客户", color: "bg-blue-100 text-blue-800" },
-    { id: "order-tag-3", name: "高价值订单", color: "bg-purple-100 text-purple-800" },
-    { id: "order-tag-4", name: "待付款", color: "bg-yellow-100 text-yellow-800" },
-    { id: "order-tag-5", name: "已完成", color: "bg-gray-100 text-gray-800" },
-  ],
-  douyin: [
-    { id: "douyin-tag-1", name: "短视频", color: "bg-pink-100 text-pink-800" },
-    { id: "douyin-tag-2", name: "直播", color: "bg-red-100 text-red-800" },
-    { id: "douyin-tag-3", name: "带货", color: "bg-orange-100 text-orange-800" },
-    { id: "douyin-tag-4", name: "粉丝互动", color: "bg-blue-100 text-blue-800" },
-    { id: "douyin-tag-5", name: "热门话题", color: "bg-purple-100 text-purple-800" },
-  ],
-  xiaohongshu: [
-    { id: "xhs-tag-1", name: "种草笔记", color: "bg-red-100 text-red-800" },
-    { id: "xhs-tag-2", name: "美妆", color: "bg-pink-100 text-pink-800" },
-    { id: "xhs-tag-3", name: "穿搭", color: "bg-purple-100 text-purple-800" },
-    { id: "xhs-tag-4", name: "生活方式", color: "bg-green-100 text-green-800" },
-    { id: "xhs-tag-5", name: "好物推荐", color: "bg-orange-100 text-orange-800" },
-  ],
-  phone: phoneCallTags,
-  gongzhonghao: [
-    { id: "gzh-tag-1", name: "文章推送", color: "bg-blue-100 text-blue-800" },
-    { id: "gzh-tag-2", name: "活动通知", color: "bg-green-100 text-green-800" },
-    { id: "gzh-tag-3", name: "产品介绍", color: "bg-purple-100 text-purple-800" },
-    { id: "gzh-tag-4", name: "用户服务", color: "bg-orange-100 text-orange-800" },
-    { id: "gzh-tag-5", name: "品牌故事", color: "bg-gray-100 text-gray-800" },
-  ],
-  weixinqun: [
-    { id: "wxq-tag-1", name: "群活动", color: "bg-green-100 text-green-800" },
-    { id: "wxq-tag-2", name: "产品分享", color: "bg-blue-100 text-blue-800" },
-    { id: "wxq-tag-3", name: "用户交流", color: "bg-purple-100 text-purple-800" },
-    { id: "wxq-tag-4", name: "优惠信息", color: "bg-pink-100 text-pink-800" },
-    { id: "wxq-tag-5", name: "答疑解惑", color: "bg-orange-100 text-orange-800" },
-    { id: "wxq-tag-6", name: "新人欢迎", color: "bg-yellow-100 text-yellow-800" },
-    { id: "wxq-tag-7", name: "群规通知", color: "bg-gray-100 text-gray-800" },
-    { id: "wxq-tag-8", name: "活跃互动", color: "bg-indigo-100 text-indigo-800" },
-  ],
-  payment: [
-    { id: "pay-tag-1", name: "扫码支付", color: "bg-green-100 text-green-800" },
-    { id: "pay-tag-2", name: "线下门店", color: "bg-blue-100 text-blue-800" },
-    { id: "pay-tag-3", name: "活动收款", color: "bg-purple-100 text-purple-800" },
-    { id: "pay-tag-4", name: "服务费用", color: "bg-orange-100 text-orange-800" },
-    { id: "pay-tag-5", name: "会员充值", color: "bg-yellow-100 text-yellow-800" },
-  ],
-  api: [
-    { id: "api-tag-1", name: "系统对接", color: "bg-blue-100 text-blue-800" },
-    { id: "api-tag-2", name: "数据同步", color: "bg-green-100 text-green-800" },
-    { id: "api-tag-3", name: "自动化", color: "bg-purple-100 text-purple-800" },
-    { id: "api-tag-4", name: "第三方平台", color: "bg-orange-100 text-orange-800" },
-    { id: "api-tag-5", name: "实时推送", color: "bg-gray-100 text-gray-800" },
-  ],
-}
-
 interface BasicSettingsProps {
   formData: any
   onChange: (data: any) => void
   onNext?: () => void
+  scenarios: any[]
 }
 
 interface Account {
@@ -182,7 +96,36 @@ const generatePosterMaterials = (): Material[] => {
   }))
 }
 
-export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps) {
+// 颜色池分为更浅的未选中和深色的选中
+const tagColorPoolLight = [
+  "bg-blue-50 text-blue-600",
+  "bg-green-50 text-green-600",
+  "bg-purple-50 text-purple-600",
+  "bg-red-50 text-red-600",
+  "bg-orange-50 text-orange-600",
+  "bg-yellow-50 text-yellow-600",
+  "bg-gray-50 text-gray-600",
+  "bg-pink-50 text-pink-600",
+];
+const tagColorPoolDark = [
+  "bg-blue-500 text-white",
+  "bg-green-500 text-white",
+  "bg-purple-500 text-white",
+  "bg-red-500 text-white",
+  "bg-orange-500 text-white",
+  "bg-yellow-400 text-white",
+  "bg-gray-700 text-white",
+  "bg-pink-500 text-white",
+];
+function getTagColorIdx(tag: string) {
+  let hash = 0;
+  for (let i = 0; i < tag.length; i++) {
+    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash) % tagColorPoolLight.length;
+}
+
+export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSettingsProps) {
   const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false)
   const [isMaterialDialogOpen, setIsMaterialDialogOpen] = useState(false)
   const [isQRCodeOpen, setIsQRCodeOpen] = useState(false)
@@ -225,11 +168,11 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
   const [selectedPhoneTags, setSelectedPhoneTags] = useState<string[]>(formData.phoneTags || [])
   const [phoneCallType, setPhoneCallType] = useState(formData.phoneCallType || "both")
 
-  // 处理标签选择
-  const handleTagToggle = (tagId: string) => {
-    const newTags = selectedPhoneTags.includes(tagId)
-      ? selectedPhoneTags.filter((id) => id !== tagId)
-      : [...selectedPhoneTags, tagId]
+  // 处理标签选择 (现在处理的是字符串标签)
+  const handleTagToggle = (tag: string) => {
+    const newTags = selectedPhoneTags.includes(tag)
+      ? selectedPhoneTags.filter((t) => t !== tag)
+      : [...selectedPhoneTags, tag]
 
     setSelectedPhoneTags(newTags)
     onChange({ ...formData, phoneTags: newTags })
@@ -267,11 +210,11 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
     }
   }
 
-  // 处理场景标签选择
-  const handleScenarioTagToggle = (tagId: string) => {
-    const newTags = selectedScenarioTags.includes(tagId)
-      ? selectedScenarioTags.filter((id) => id !== tagId)
-      : [...selectedScenarioTags, tagId]
+  // 处理场景标签选择 (现在处理的是字符串标签)
+  const handleScenarioTagToggle = (tag: string) => {
+    const newTags = selectedScenarioTags.includes(tag)
+      ? selectedScenarioTags.filter((t) => t !== tag)
+      : [...selectedScenarioTags, tag]
 
     setSelectedScenarioTags(newTags)
     onChange({ ...formData, scenarioTags: newTags })
@@ -448,19 +391,23 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
 
               {/* 预设标签 */}
               <div className="flex flex-wrap gap-2 mb-4">
-                {(scenarioTags[formData.scenario as keyof typeof scenarioTags] || []).map((tag) => (
-                  <div
-                    key={tag.id}
-                    className={`px-3 py-2 rounded-full text-sm cursor-pointer transition-all ${
-                      selectedScenarioTags.includes(tag.id)
-                        ? tag.color + " ring-2 ring-blue-400"
-                        : tag.color + " hover:ring-1 hover:ring-gray-300"
-                    }`}
-                    onClick={() => handleScenarioTagToggle(tag.id)}
-                  >
-                    {tag.name}
-                  </div>
-                ))}
+                {(scenarios.find((s) => s.id === formData.scenario)?.scenarioTags || []).map((tag: string) => {
+                  const idx = getTagColorIdx(tag);
+                  const selected = selectedScenarioTags.includes(tag);
+                  return (
+                    <div
+                      key={tag}
+                      className={`px-3 py-2 rounded-full text-sm cursor-pointer transition-all ${
+                        selected
+                          ? tagColorPoolDark[idx] + " ring-2 ring-blue-400"
+                          : tagColorPoolLight[idx] + " hover:ring-1 hover:ring-gray-300"
+                      }`}
+                      onClick={() => handleScenarioTagToggle(tag)}
+                    >
+                      {tag}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* 自定义标签 */}
@@ -663,29 +610,33 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
                     </div>
                   </div>
 
-                  {/* 添加标签功能 */}
+                  {/* 添加标签功能 - 使用从 scenarios 中获取的标签数据 */}
                   <div className="mt-6">
                     <Label className="text-base mb-2 block">通话标签（可多选）</Label>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {phoneCallTags.map((tag) => (
-                        <div
-                          key={tag.id}
-                          className={`px-3 py-1.5 rounded-full text-sm cursor-pointer ${
-                            selectedPhoneTags.includes(tag.id)
-                              ? tag.color
-                              : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                          }`}
-                          onClick={() => handleTagToggle(tag.id)}
-                        >
-                          {tag.name}
-                        </div>
-                      ))}
+                      {(scenarios.find((s: any) => s.id === formData.scenario)?.scenarioTags || []).map((tag: string) => {
+                        const idx = getTagColorIdx(tag);
+                        const selected = selectedPhoneTags.includes(tag);
+                        return (
+                          <div
+                            key={tag}
+                            className={`px-3 py-1.5 rounded-full text-sm cursor-pointer ${
+                              selected
+                                ? tagColorPoolDark[idx] + " ring-2 ring-blue-400"
+                                : tagColorPoolLight[idx] + " hover:ring-1 hover:ring-gray-300"
+                            }`}
+                            onClick={() => handleTagToggle(tag)}
+                          >
+                            {tag}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </>
               )}
 
-              {scenarios.find((s) => s.id === formData.scenario)?.type === "material" && (
+              {scenarios.find((s: any) => s.id === formData.scenario)?.type === "material" && (
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <Label>选择海报</Label>
@@ -757,7 +708,7 @@ export function BasicSettings({ formData, onChange, onNext }: BasicSettingsProps
                 </div>
               )}
 
-              {scenarios.find((s) => s.id === formData.scenario)?.id === "order" && (
+              {scenarios.find((s: any) => s.id === formData.scenario)?.id === "order" && (
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <Label>订单导入</Label>

@@ -4,87 +4,13 @@ import { Plus, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { useEffect, useState } from "react"
+import { api, ApiResponse } from "@/lib/api"
 
 export default function ScenariosPage() {
   const router = useRouter()
-
-  // 场景数据
-  const scenarios = [
-    {
-      id: "poster",
-      name: "海报获客",
-      icon: "🖼️",
-      count: 167,
-      growth: "+10.2%",
-      path: "/scenarios/poster",
-    },
-    {
-      id: "order",
-      name: "订单获客",
-      icon: "📋",
-      count: 112,
-      growth: "+7.8%",
-      path: "/scenarios/order",
-    },
-    {
-      id: "douyin",
-      name: "抖音获客",
-      icon: "📱",
-      count: 156,
-      growth: "+12.5%",
-      path: "/scenarios/douyin",
-    },
-    {
-      id: "xiaohongshu",
-      name: "小红书获客",
-      icon: "📕",
-      count: 89,
-      growth: "+8.3%",
-      path: "/scenarios/xiaohongshu",
-    },
-    {
-      id: "phone",
-      name: "电话获客",
-      icon: "📞",
-      count: 42,
-      growth: "+15.8%",
-      path: "/scenarios/phone",
-    },
-    {
-      id: "gongzhonghao",
-      name: "公众号获客",
-      icon: "📢",
-      count: 234,
-      growth: "+15.7%",
-      path: "/scenarios/gongzhonghao",
-    },
-    {
-      id: "weixinqun",
-      name: "微信群获客",
-      icon: "👥",
-      count: 145,
-      growth: "+11.2%",
-      path: "/scenarios/weixinqun",
-    },
-    {
-      id: "payment",
-      name: "付款码获客",
-      icon: "💳",
-      count: 78,
-      growth: "+9.5%",
-      path: "/scenarios/payment",
-    },
-    {
-      id: "api",
-      name: "API获客",
-      icon: "🔌",
-      count: 198,
-      growth: "+14.3%",
-      path: "/scenarios/api",
-    },
-  ]
-
-  // AI智能获客
+  const [scenarios, setScenarios] = useState<any[]>([])
+  // AI智能获客用本地 mock 数据
   const aiScenarios = [
     {
       id: "ai-friend",
@@ -114,13 +40,35 @@ export default function ScenariosPage() {
       path: "/scenarios/ai-conversion",
     },
   ]
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    setLoading(true)
+    api.get<ApiResponse>("/v1/plan/scenes")
+      .then((res) => {
+        if (res.code === 200 && Array.isArray(res.data)) {
+          setScenarios(res.data)
+        } else {
+          setError(res.msg || "接口返回异常")
+        }
+      })
+      .catch((err) => setError(err?.message || "接口请求失败"))
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-40">加载中...</div>
+  }
+  if (error) {
+    return <div className="text-red-500 text-center py-8">{error}</div>
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <header className="sticky top-0 z-10 bg-white border-b">
         <div className="flex items-center justify-between p-4">
           <h1 className="text-xl font-semibold">场景获客</h1>
-          {/* <Button onClick={() => router.push("/plans/new")} size="sm"> */}
           <Button onClick={() => router.push("/scenarios/new")} size="sm">
             <Plus className="h-4 w-4 mr-1" />
             新建计划
@@ -134,11 +82,14 @@ export default function ScenariosPage() {
             <Card
               key={scenario.id}
               className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => router.push(scenario.path)}
+              onClick={() => router.push(`/scenarios/${scenario.id}`)}
             >
               <CardContent className="p-4 flex flex-col items-center">
-                <div className="text-3xl mb-2">{scenario.icon}</div>
+                <img src={scenario.image} alt={scenario.name} className="w-12 h-12 mb-2 rounded" />
                 <h3 className="text-blue-600 font-medium text-center">{scenario.name}</h3>
+                {scenario.description && (
+                  <p className="text-xs text-gray-500 text-center mt-1 line-clamp-2">{scenario.description}</p>
+                )}
                 <div className="flex items-center mt-2 text-gray-500 text-sm">
                   <span>今日: </span>
                   <span className="font-medium ml-1">{scenario.count}</span>
@@ -152,6 +103,7 @@ export default function ScenariosPage() {
           ))}
         </div>
 
+        {/*
         <div className="mt-6">
           <div className="flex items-center mb-4">
             <h2 className="text-lg font-medium">AI智能获客</h2>
@@ -184,6 +136,7 @@ export default function ScenariosPage() {
             ))}
           </div>
         </div>
+        */}
       </div>
     </div>
   )

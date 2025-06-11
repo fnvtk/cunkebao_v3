@@ -37,6 +37,7 @@ Route::group('v1/', function () {
     // 获客场景相关
     Route::group('plan', function () {
         Route::get('scenes', 'app\cunkebao\controller\plan\GetPlanSceneListV1Controller@index');
+        Route::get('scenes-detail', 'app\cunkebao\controller\plan\GetPlanSceneListV1Controller@detail');
         Route::post('create', 'app\cunkebao\controller\plan\PostCreateAddFriendPlanV1Controller@index');
         Route::get('list', 'app\cunkebao\controller\Plan@getList');
 

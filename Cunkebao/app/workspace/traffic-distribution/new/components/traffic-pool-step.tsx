@@ -158,14 +158,14 @@ export default function TrafficPoolStep({ onSubmit, onBack, initialData = {}, de
                     onClick={() => togglePool(pool.label)}
                   >
                     <div className="flex items-center space-x-3 p-4 flex-1">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                        <Database className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Database className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
                         <p className="font-bold text-base">{pool.label}</p>
                         <p className="text-sm text-gray-500">{poolDescMap[pool.label] || ""}</p>
-                      </div>
-                    </div>
+                </div>
+              </div>
                     <span className="text-sm text-gray-500 mr-4">{pool.count} 人</span>
                     <input
                       type="checkbox"
@@ -176,7 +176,7 @@ export default function TrafficPoolStep({ onSubmit, onBack, initialData = {}, de
                         togglePool(pool.label);
                       }}
                       onClick={e => e.stopPropagation()}
-                    />
+                />
                   </div>
                 ))
               )}
@@ -199,7 +199,7 @@ export default function TrafficPoolStep({ onSubmit, onBack, initialData = {}, de
                 确认
               </Button>
             </div>
-          </div>
+      </div>
         </DialogContent>
       </Dialog>
       <div className="mt-8 flex justify-between">

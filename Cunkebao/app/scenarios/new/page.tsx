@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronLeft, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,7 @@ import { StepIndicator } from "@/app/components/ui-templates/step-indicator"
 import { BasicSettings } from "./steps/BasicSettings"
 import { FriendRequestSettings } from "./steps/FriendRequestSettings"
 import { MessageSettings } from "./steps/MessageSettings"
+import { api, ApiResponse } from "@/lib/api"
 
 // 步骤定义 - 只保留三个步骤
 const steps = [
@@ -22,7 +23,7 @@ export default function NewPlan() {
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
     planName: "",
-    scenario: "haibao",
+    scenario: "",
     posters: [],
     device: "",
     remarkType: "phone",
@@ -31,8 +32,22 @@ export default function NewPlan() {
     startTime: "09:00",
     endTime: "18:00",
     enabled: true,
-    // 移除tags字段
   })
+
+  // 场景数据
+  const [scenes, setScenes] = useState<any[]>([])
+  const [loadingScenes, setLoadingScenes] = useState(true)
+
+  useEffect(() => {
+    api.get<ApiResponse>("/v1/plan/scenes")
+      .then(res => {
+        if (res.code === 200 && Array.isArray(res.data)) {
+          setScenes(res.data)
+          setFormData(prev => ({ ...prev, scenario: prev.scenario || (res.data[0]?.id || "") }))
+        }
+      })
+      .finally(() => setLoadingScenes(false))
+  }, [])
 
   // 更新表单数据
   const onChange = (data: any) => {
@@ -78,7 +93,7 @@ export default function NewPlan() {
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
-        return <BasicSettings formData={formData} onChange={onChange} onNext={handleNext} />
+        return <BasicSettings formData={formData} onChange={onChange} onNext={handleNext} scenarios={scenes} />
       case 2:
         return <FriendRequestSettings formData={formData} onChange={onChange} onNext={handleNext} onPrev={handlePrev} />
       case 3:
@@ -86,6 +101,10 @@ export default function NewPlan() {
       default:
         return null
     }
+  }
+
+  if (loadingScenes) {
+    return <div className="flex justify-center items-center h-40">加载中...</div>
   }
 
   return (
