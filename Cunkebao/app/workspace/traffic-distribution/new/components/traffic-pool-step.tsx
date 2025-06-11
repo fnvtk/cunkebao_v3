@@ -206,7 +206,7 @@ export default function TrafficPoolStep({ onSubmit, onBack, initialData = {}, de
         <Button variant="outline" onClick={onBack}>
           ← 上一步
         </Button>
-        <Button onClick={handleSubmit} disabled={selectedPools.length === 0 || isSubmitting}>
+        <Button onClick={handleSubmit}>
           {isSubmitting ? "提交中..." : "完成"}
         </Button>
       </div>

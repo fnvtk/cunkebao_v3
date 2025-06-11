@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ChevronsUpDown } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
+import { DeviceSelectionDialog } from "../../../components/device-selection-dialog"
 
 interface FriendRequestSettingsProps {
   formData: any
@@ -49,7 +50,9 @@ export function FriendRequestSettings({ formData, onChange, onNext, onPrev }: Fr
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
   const [hasWarnings, setHasWarnings] = useState(false)
   const [isDeviceSelectorOpen, setIsDeviceSelectorOpen] = useState(false)
-  const [selectedDevices, setSelectedDevices] = useState<any[]>(formData.selectedDevices || [])
+  const [selectedDeviceIds, setSelectedDeviceIds] = useState<string[]>(
+    (formData.selectedDevices || []).map((d: any) => d.id || d)
+  )
 
   // 获取场景标题
   const getScenarioTitle = () => {
@@ -96,18 +99,11 @@ export function FriendRequestSettings({ formData, onChange, onNext, onPrev }: Fr
     onNext()
   }
 
-  const toggleDeviceSelection = (device: any) => {
-    const isSelected = selectedDevices.some((d) => d.id === device.id)
-    let newSelectedDevices
-
-    if (isSelected) {
-      newSelectedDevices = selectedDevices.filter((d) => d.id !== device.id)
-    } else {
-      newSelectedDevices = [...selectedDevices, device]
-    }
-
-    setSelectedDevices(newSelectedDevices)
-    onChange({ ...formData, selectedDevices: newSelectedDevices })
+  // 设备选择回填
+  const handleDeviceSelect = (deviceIds: string[]) => {
+    setSelectedDeviceIds(deviceIds)
+    // 只存id，或如需完整对象可自行扩展
+    onChange({ ...formData, selectedDevices: deviceIds })
   }
 
   return (
@@ -119,40 +115,18 @@ export function FriendRequestSettings({ formData, onChange, onNext, onPrev }: Fr
             <Button
               variant="outline"
               className="w-full justify-between"
-              onClick={() => setIsDeviceSelectorOpen(!isDeviceSelectorOpen)}
+              onClick={() => setIsDeviceSelectorOpen(true)}
             >
-              {selectedDevices.length ? `已选择 ${selectedDevices.length} 个设备` : "选择设备"}
+              {selectedDeviceIds.length ? `已选择 ${selectedDeviceIds.length} 个设备` : "选择设备"}
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
-
-            {isDeviceSelectorOpen && (
-              <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg">
-                <div className="p-2">
-                  <Input placeholder="搜索设备..." className="mb-2" />
-                  <div className="max-h-60 overflow-auto">
-                    {mockDevices.map((device) => (
-                      <div
-                        key={device.id}
-                        className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer"
-                        onClick={() => toggleDeviceSelection(device)}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            checked={selectedDevices.some((d) => d.id === device.id)}
-                            onCheckedChange={() => toggleDeviceSelection(device)}
-                          />
-                          <span>{device.name}</span>
-                        </div>
-                        <span className={`text-xs ${device.status === "online" ? "text-green-500" : "text-gray-400"}`}>
-                          {device.status === "online" ? "在线" : "离线"}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
+          <DeviceSelectionDialog
+            open={isDeviceSelectorOpen}
+            onOpenChange={setIsDeviceSelectorOpen}
+            selectedDevices={selectedDeviceIds}
+            onSelect={handleDeviceSelect}
+          />
         </div>
 
         <div>
@@ -239,7 +213,7 @@ export function FriendRequestSettings({ formData, onChange, onNext, onPrev }: Fr
         </div>
 
         {hasWarnings && (
-          <Alert variant="warning" className="bg-amber-50 border-amber-200">
+          <Alert variant="destructive" className="bg-amber-50 border-amber-200">
             <AlertCircle className="h-4 w-4 text-amber-500" />
             <AlertDescription>您有未完成的设置项，建议完善后再进入下一步。</AlertDescription>
           </Alert>

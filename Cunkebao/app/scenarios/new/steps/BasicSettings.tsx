@@ -113,8 +113,8 @@ const tagColorPoolDark = [
   "bg-purple-500 text-white",
   "bg-red-500 text-white",
   "bg-orange-500 text-white",
-  "bg-yellow-400 text-white",
-  "bg-gray-700 text-white",
+  "bg-yellow-500 text-white",
+  "bg-gray-500 text-white",
   "bg-pink-500 text-white",
 ];
 function getTagColorIdx(tag: string) {
