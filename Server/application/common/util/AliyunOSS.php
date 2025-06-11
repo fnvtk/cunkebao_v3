@@ -3,14 +3,15 @@ namespace app\common\util;
 
 use OSS\OssClient;
 use OSS\Core\OssException;
+use think\facade\Env;
 
 class AliyunOSS
 {
     // OSS配置信息
-    const ACCESS_KEY_ID = 'your_access_key_id';
-    const ACCESS_KEY_SECRET = 'your_access_key_secret';
-    const ENDPOINT = 'oss-cn-hangzhou.aliyuncs.com';
-    const BUCKET = 'your_bucket_name';
+    const ACCESS_KEY_ID =  'LTAIxvJUmlt2gLiY';
+    const ACCESS_KEY_SECRET = '0WUo8r6BT4I8ZVUQxflmD8rLHrFNHO';
+    const ENDPOINT = 'oss-cn-shenzhen.aliyuncs.com';
+    const BUCKET = 'karuosiyujzk';
     
     /**
      * 获取OSS客户端实例
