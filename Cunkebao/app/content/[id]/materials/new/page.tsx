@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronLeft, Plus, X, Image as ImageIcon, UploadCloud, Link, Video, FileText, Layers, CalendarDays, ChevronDown } from "lucide-react"
 import { Card } from "@/components/ui/card"
@@ -44,21 +44,64 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
   const [publishTime, setPublishTime] = useState("")
   const [comment, setComment] = useState("")
   const [loading, setLoading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 图片上传
   const handleUploadImage = () => {
-    const mockImageUrls = [
-      "https://picsum.photos/id/237/200/300",
-      "https://picsum.photos/id/238/200/300",
-      "https://picsum.photos/id/239/200/300"
-    ]
-    const randomIndex = Math.floor(Math.random() * mockImageUrls.length)
-    const newImage = mockImageUrls[randomIndex]
-    if (!images.includes(newImage)) {
-      setImages([...images, newImage])
-      setPreviewUrls([...previewUrls, newImage])
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      showToast("请选择图片文件", "error")
+      return
+    }
+
+    const loadingToast = showToast("正在上传图片...", "loading", true)
+    setLoading(true)
+
+    const formData = new FormData()
+    formData.append("file", file)
+
+    try {
+      const token = localStorage.getItem('token');
+      const headers: HeadersInit = {
+        // 浏览器会自动为 FormData 设置 Content-Type 为 multipart/form-data，无需手动设置
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/attachment/upload`, {
+        method: 'POST',
+        headers: headers,
+        body: formData,
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (result.code === 200 && result.data?.url) {
+        setImages((prev) => [...prev, result.data.url]);
+        setPreviewUrls((prev) => [...prev, result.data.url]);
+        showToast("图片上传成功", "success");
+      } else {
+        showToast(result.msg || "图片上传失败", "error");
+      }
+    } catch (error: any) {
+      showToast(error?.message || "图片上传失败", "error")
+    } finally {
+      loadingToast.remove && loadingToast.remove()
+      setLoading(false)
+      // 清空文件输入框，以便再次上传同一文件
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   }
+
   const handleRemoveImage = (indexToRemove: number) => {
     setImages(images.filter((_, index) => index !== indexToRemove))
     setPreviewUrls(previewUrls.filter((_, index) => index !== indexToRemove))
@@ -309,11 +352,19 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
                         variant="outline" 
                         onClick={handleUploadImage} 
                         className="w-full py-8 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-blue-300 bg-white hover:bg-blue-50"
+                        disabled={loading}
                       >
                         <UploadCloud className="h-8 w-8 mb-2 text-gray-400" />
                         <span>点击上传图片</span>
                         <span className="text-xs text-gray-500 mt-1">支持 JPG、PNG 格式</span>
                       </Button>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        className="hidden"
+                        accept="image/*"
+                      />
                     </div>
                     {previewUrls.length > 0 && (
                       <div className="mt-2">
@@ -369,7 +420,13 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
                         <Button 
                           type="button" 
                           variant="outline" 
-                          onClick={handleUploadImage} 
+                          onClick={() => {
+                            const input = document.createElement('input');
+                            input.type = 'file';
+                            input.accept = 'image/*';
+                            input.onchange = handleUploadImage;
+                            input.click();
+                          }}
                           className="w-full py-4 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-blue-300 bg-white hover:bg-blue-50"
                         >
                           <UploadCloud className="h-6 w-6 mb-2 text-gray-400" />

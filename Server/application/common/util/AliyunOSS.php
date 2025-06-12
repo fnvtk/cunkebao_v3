@@ -12,6 +12,7 @@ class AliyunOSS
     const ACCESS_KEY_SECRET = '0WUo8r6BT4I8ZVUQxflmD8rLHrFNHO';
     const ENDPOINT = 'oss-cn-shenzhen.aliyuncs.com';
     const BUCKET = 'karuosiyujzk';
+    const ossUrl = 'https://res.quwanzhi.com';
     
     /**
      * 获取OSS客户端实例

@@ -14,4 +14,10 @@ class Attachment extends Model
     protected $createTime = 'createTime';
     protected $updateTime = 'updateTime';
     protected $defaultSoftDelete = 0;
+
+
+    public static function addAttachment($attachmentData)
+    {
+        return self::create($attachmentData);
+    }
 } 
