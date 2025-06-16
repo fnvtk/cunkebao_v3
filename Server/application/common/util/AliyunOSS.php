@@ -48,7 +48,7 @@ class AliyunOSS
             $result = $client->uploadFile(self::BUCKET, $objectName, $filePath);
             
             // 获取文件访问URL
-            $url = $client->signUrl(self::BUCKET, $objectName, 3600);
+            $url = !empty($result['oss-request-url']) ? $result['oss-request-url'] : $client->signUrl(self::BUCKET, $objectName, 3600);
             
             return [
                 'success' => true,
