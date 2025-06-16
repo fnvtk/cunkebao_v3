@@ -77,7 +77,7 @@ class GetWechatsOnDevicesV1Controller extends BaseController
         return WechatFriendShipModel::where(
             [
                 'ownerWechatId' => $ownerWechatId,
-                'companyId'     => $this->getUserInfo('companyId'),
+                //'companyId'     => $this->getUserInfo('companyId'),
             ]
         )
             ->count();
@@ -95,10 +95,12 @@ class GetWechatsOnDevicesV1Controller extends BaseController
             ->where(
                 [
                     'l.wechatId' => $wechatId,
-                    'l.alive'    => DeviceWechatLoginModel::ALIVE_WECHAT_ACTIVE
+                    'l.alive'    => DeviceWechatLoginModel::ALIVE_WECHAT_ACTIVE,
+                    'l.companyId' => $this->getUserInfo('companyId')
                 ]
             )
-            ->join('device_wechat_login l', 'd.id = l.deviceId')
+            ->join('device_wechat_login l', 'd.id = l.deviceId AND l.companyId = '. $this->getUserInfo('companyId'))
+            ->order('l.id desc')
             ->value('d.memo');
     }
 
@@ -218,8 +220,9 @@ class GetWechatsOnDevicesV1Controller extends BaseController
                     'l.deviceId'
                 ]
             )
-            ->join('device_wechat_login l', 'w.wechatId = l.wechatId')
-            ->order('w.id desc');
+            ->join('device_wechat_login l', 'w.wechatId = l.wechatId AND l.companyId = '. $this->getUserInfo('companyId'))
+            ->order('w.id desc')
+            ->group('w.wechatId');
 
         foreach ($where as $key => $value) {
             if (is_numeric($key) && is_array($value) && isset($value[0]) && $value[0] === 'exp') {
