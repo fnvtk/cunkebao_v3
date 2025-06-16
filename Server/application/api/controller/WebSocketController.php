@@ -401,8 +401,8 @@ class WebSocketController extends BaseController
                 "cmdType" => "CmdMomentCancelInteract",
                 "optType" => 1,
                 "seq" => time(),
-                    "snsId" => $data['snsId'],
-                    "wechatAccountId" => $data['wechatAccountId'],
+                "snsId" => $data['snsId'],
+                "wechatAccountId" => $data['wechatAccountId'],
                 "wechatFriendId" => 0,
             ];
 
@@ -793,5 +793,58 @@ class WebSocketController extends BaseController
         }
 
         return json_encode(['code'=>200,'msg'=>$msg,'data'=>$message]);
+    }
+
+
+
+    /**
+     * 邀请好友入群
+     * @param array $data 请求参数
+     * @return string JSON响应
+     */
+    public function CmdChatroomInvite($data = [])
+    {
+        try {
+            // 参数验证
+            if (empty($data)) {
+                return json_encode(['code' => 400, 'msg' => '参数缺失']);
+            }
+
+            // 验证必要参数
+            if (empty($data['wechatChatroomId'])) {
+                return json_encode(['code' => 400, 'msg' => '群ID不能为空']);
+            }
+            if (empty($data['wechatFriendId'])) {
+                return json_encode(['code' => 400, 'msg' => '好友ID不能为空']);
+            }
+
+            if (!is_array($data['wechatFriendId'])) {
+                return json_encode(['code' => 400, 'msg' => '好友数据格式必须为数组']);
+            }
+
+            if (empty($data['wechatAccountId'])) {
+                return json_encode(['code' => 400, 'msg' => '微信账号ID不能为空']);
+            }
+
+            // 构建请求参数
+            $params = [
+                "cmdType" => "CmdChatroomInvite",
+                "seq" => time(),
+                "wechatChatroomId" => $data['wechatChatroomId'],
+                "wechatFriendId" => $data['wechatFriendId'],
+                "wechatAccountId" => $data['wechatAccountId']
+            ];
+
+            // 记录请求日志
+            Log::info('邀请好友入群请求：' . json_encode($params, 256));
+
+            $message = $this->sendMessage($params);
+            return json_encode(['code'=>200,'msg'=>'邀请成功','data'=>$message]);
+        } catch (\Exception $e) {
+            // 记录错误日志
+            Log::error('邀请好友入群异常：' . $e->getMessage());
+             // 返回错误响应
+            return json_encode(['code' => 500, 'msg' => '邀请好友入群异常：' . $e->getMessage()]);
+        }
     }
 }

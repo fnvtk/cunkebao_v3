@@ -23,9 +23,8 @@ export default function NewPlan() {
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
     planName: "",
-    scenario: "",
     posters: [],
-    device: "",
+    device: [],
     remarkType: "phone",
     greeting: "你好，请通过",
     addInterval: 1,
@@ -43,7 +42,6 @@ export default function NewPlan() {
       .then(res => {
         if (res.code === 200 && Array.isArray(res.data)) {
           setScenes(res.data)
-          setFormData(prev => ({ ...prev, scenario: prev.scenario || (res.data[0]?.id || "") }))
         }
       })
       .finally(() => setLoadingScenes(false))
@@ -57,19 +55,31 @@ export default function NewPlan() {
   // 处理保存
   const handleSave = async () => {
     try {
-      // 这里应该是实际的API调用
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      toast({
-        title: "创建成功",
-        description: "获客计划已创建",
-      })
-      // router.push("/plans")
-      router.push("/scenarios")
-    } catch (error) {
+      // 先赋值再去除多余字段
+      const submitData = {
+        ...formData,
+        device: formData.selectedDevices || formData.device,
+        posters: formData.materials || formData.posters,
+      };
+      const { selectedDevices, materials, ...finalData } = submitData;
+      const res = await api.post<ApiResponse>("/v1/plan/create", finalData);
+      if (res.code === 200) {
+        toast({
+          title: "创建成功",
+          description: "获客计划已创建",
+        })
+        router.push("/scenarios")
+      } else {
+        toast({
+          title: "创建失败",
+          description: res.msg || "创建计划失败，请重试",
+          variant: "destructive",
+        })
+      }
+    } catch (error: any) {
       toast({
         title: "创建失败",
-        description: "创建计划失败，请重试",
+        description: error?.message || "创建计划失败，请重试",
         variant: "destructive",
       })
     }
@@ -113,7 +123,7 @@ export default function NewPlan() {
         <header className="sticky top-0 z-10 bg-white border-b">
           <div className="flex items-center justify-between h-14 px-4">
             <div className="flex items-center">
-              <Button variant="ghost" size="icon" onClick={() => router.push("/plans")}>
+              <Button variant="ghost" size="icon" onClick={() => router.push("/scenarios")}>
                 <ChevronLeft className="h-5 w-5" />
               </Button>
               <h1 className="ml-2 text-lg font-medium">新建获客计划</h1>

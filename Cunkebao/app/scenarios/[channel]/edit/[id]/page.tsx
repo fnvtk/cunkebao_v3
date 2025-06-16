@@ -4,12 +4,13 @@ import { useState, useEffect } from "react"
 import { ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { BasicSettings } from "@/plans/new/steps/BasicSettings"
-import { FriendRequestSettings } from "@/plans/new/steps/FriendRequestSettings"
-import { MessageSettings } from "@/plans/new/steps/MessageSettings"
-import { TagSettings } from "@/plans/new/steps/TagSettings"
+import { BasicSettings } from "../../../new/steps/BasicSettings"
+import { FriendRequestSettings } from "../../../new/steps/FriendRequestSettings"
+import { MessageSettings } from "../../../new/steps/MessageSettings"
+import { TagSettings } from "@/scenarios/new/steps/TagSettings"
 import { useRouter } from "next/navigation"
 import { toast } from "@/components/ui/use-toast"
+import { api, ApiResponse } from "@/lib/api"
 
 const steps = [
   { id: 1, title: "步骤一", subtitle: "基础设置" },
@@ -22,6 +23,7 @@ export default function EditAcquisitionPlan({ params }: { params: { channel: str
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [scenes, setScenes] = useState<any[]>([])
   const [formData, setFormData] = useState({
     planName: "",
     accounts: [],
@@ -39,26 +41,21 @@ export default function EditAcquisitionPlan({ params }: { params: { channel: str
   })
 
   useEffect(() => {
-    // 模拟从API获取计划数据
     const fetchPlanData = async () => {
       try {
-        // 这里应该是实际的API调用
-        const mockData = {
-          planName: "测试计划",
-          accounts: ["account1"],
-          dailyLimit: 15,
-          enabled: true,
-          remarkType: "phone",
-          remarkKeyword: "测试",
-          greeting: "你好",
-          addFriendTimeStart: "09:00",
-          addFriendTimeEnd: "18:00",
-          addFriendInterval: 2,
-          maxDailyFriends: 25,
-          messageInterval: 2,
-          messageContent: "欢迎",
+        const [planRes, scenesRes] = await Promise.all([
+          api.get<ApiResponse>(`/v1/plan/detail?id=${params.id}`),
+          api.get<ApiResponse>("/v1/plan/scenes")
+        ])
+
+        if (planRes.code === 200 && planRes.data) {
+          setFormData(planRes.data)
         }
-        setFormData(mockData)
+
+        if (scenesRes.code === 200 && Array.isArray(scenesRes.data)) {
+          setScenes(scenesRes.data)
+        }
+
         setLoading(false)
       } catch (error) {
         toast({
@@ -71,18 +68,25 @@ export default function EditAcquisitionPlan({ params }: { params: { channel: str
     }
 
     fetchPlanData()
-  }, [])
+  }, [params.id])
 
   const handleSave = async () => {
     try {
-      // 这里应该是实际的API调用
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const res = await api.put<ApiResponse>(`/v1/plan/update?id=${params.id}`, formData)
 
-      toast({
-        title: "保存成功",
-        description: "获客计划已更新",
-      })
-      router.push(`/scenarios/${params.channel}`)
+      if (res.code === 200) {
+        toast({
+          title: "保存成功",
+          description: "获客计划已更新",
+        })
+        router.push(`/scenarios/${params.channel}`)
+      } else {
+        toast({
+          title: "保存失败",
+          description: res.msg || "更新计划失败，请重试",
+          variant: "destructive",
+        })
+      }
     } catch (error) {
       toast({
         title: "保存失败",
@@ -159,7 +163,7 @@ export default function EditAcquisitionPlan({ params }: { params: { channel: str
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
-        return <BasicSettings formData={formData} onChange={setFormData} onNext={handleNext} isEdit />
+        return <BasicSettings formData={formData} onChange={setFormData} onNext={handleNext} scenarios={scenes} isEdit />
       case 2:
         return (
           <FriendRequestSettings formData={formData} onChange={setFormData} onNext={handleNext} onPrev={handlePrev} />
@@ -178,7 +182,7 @@ export default function EditAcquisitionPlan({ params }: { params: { channel: str
       <div className="max-w-[390px] mx-auto bg-white min-h-screen flex flex-col">
         <header className="sticky top-0 z-10 bg-white border-b">
           <div className="flex items-center h-14 px-4">
-            <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <Button variant="ghost" size="icon" onClick={() => router.push(`/scenarios/${params.channel}`)}>
               <ChevronLeft className="h-5 w-5" />
             </Button>
             <h1 className="ml-2 text-lg font-medium">编辑获客计划</h1>

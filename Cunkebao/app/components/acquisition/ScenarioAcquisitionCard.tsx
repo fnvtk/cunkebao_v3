@@ -19,6 +19,10 @@ interface Task {
   executionTime: string
   nextExecutionTime: string
   trend: { date: string; customers: number }[]
+  reqConf?: {
+    device?: string[]
+    selectedDevices?: string[]
+  }
 }
 
 interface ScenarioAcquisitionCardProps {
@@ -40,10 +44,20 @@ export function ScenarioAcquisitionCard({
   onOpenSettings,
   onStatusChange,
 }: ScenarioAcquisitionCardProps) {
-  const { devices: deviceCount, acquired: acquiredCount, added: addedCount } = task.stats
+  // 兼容后端真实数据结构
+  const deviceCount = Array.isArray(task.reqConf?.device)
+    ? task.reqConf.device.length
+    : Array.isArray(task.reqConf?.selectedDevices)
+      ? task.reqConf.selectedDevices.length
+      : 0
+  // 获客数和已添加数可根据 msgConf 或其它字段自定义
+  const acquiredCount = task.stats?.acquired ?? 0
+  const addedCount = task.stats?.added ?? 0
   const passRate = calculatePassRate(acquiredCount, addedCount)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  const isActive = task.status === 1;
 
   const handleStatusChange = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -103,11 +117,11 @@ export function ScenarioAcquisitionCard({
         <div className="flex items-center space-x-3">
           <h3 className="font-medium text-lg">{task.name}</h3>
           <Badge
-            variant={task.status === "running" ? "success" : "secondary"}
+            variant={isActive ? "success" : "secondary"}
             className="cursor-pointer hover:opacity-80"
             onClick={handleStatusChange}
           >
-            {task.status === "running" ? "进行中" : "已暂停"}
+            {isActive ? "进行中" : "已暂停"}
           </Badge>
         </div>
         <div className="relative z-20" ref={menuRef}>

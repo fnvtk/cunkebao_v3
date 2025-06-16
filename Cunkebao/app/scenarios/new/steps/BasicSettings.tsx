@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,6 +19,8 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog"
+import { toast } from "@/components/ui/use-toast"
+import { useSearchParams } from "next/navigation"
 
 interface BasicSettingsProps {
   formData: any
@@ -98,24 +100,24 @@ const generatePosterMaterials = (): Material[] => {
 
 // 颜色池分为更浅的未选中和深色的选中
 const tagColorPoolLight = [
-  "bg-blue-50 text-blue-600",
-  "bg-green-50 text-green-600",
-  "bg-purple-50 text-purple-600",
-  "bg-red-50 text-red-600",
-  "bg-orange-50 text-orange-600",
-  "bg-yellow-50 text-yellow-600",
-  "bg-gray-50 text-gray-600",
-  "bg-pink-50 text-pink-600",
+  "bg-blue-100 text-blue-600",
+  "bg-green-100 text-green-600",
+  "bg-purple-100 text-purple-600",
+  "bg-red-100 text-red-600",
+  "bg-orange-100 text-orange-600",
+  "bg-yellow-100 text-yellow-600",
+  "bg-gray-100 text-gray-600",
+  "bg-pink-100 text-pink-600",
 ];
 const tagColorPoolDark = [
-  "bg-blue-500 text-white",
-  "bg-green-500 text-white",
-  "bg-purple-500 text-white",
-  "bg-red-500 text-white",
-  "bg-orange-500 text-white",
-  "bg-yellow-500 text-white",
-  "bg-gray-500 text-white",
-  "bg-pink-500 text-white",
+  "bg-blue-100 text-blue-600",
+  "bg-green-100 text-green-600",
+  "bg-purple-100 text-purple-600",
+  "bg-red-100 text-red-600",
+  "bg-orange-100 text-orange-600",
+  "bg-yellow-100 text-yellow-600",
+  "bg-gray-100 text-gray-600",
+  "bg-pink-100 text-pink-600",
 ];
 function getTagColorIdx(tag: string) {
   let hash = 0;
@@ -125,6 +127,141 @@ function getTagColorIdx(tag: string) {
   return Math.abs(hash) % tagColorPoolLight.length;
 }
 
+// Section组件示例
+const PosterSection = ({ materials, selectedMaterials, onUpload, onSelect, uploading, fileInputRef, onFileChange, onPreview, onRemove }) => (
+  <div>
+    <div className="flex items-center justify-between mb-4">
+      <Label>选择海报</Label>
+      <Button variant="outline" onClick={onUpload} disabled={uploading} className="w-10 h-10 p-0 flex items-center justify-center rounded-xl">
+        <Plus className="h-5 w-5" />
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={onFileChange}
+          className="hidden"
+          accept="image/*"
+        />
+      </Button>
+    </div>
+    <div className="grid grid-cols-3 gap-4">
+      {materials.map((material) => (
+        <div
+          key={material.id}
+          className={`relative cursor-pointer rounded-lg overflow-hidden group ${
+            selectedMaterials.find((m) => m.id === material.id)
+              ? "ring-2 ring-blue-600"
+              : "hover:ring-2 hover:ring-blue-600"
+          }`}
+          onClick={() => onSelect(material)}
+        >
+          <img
+            src={material.preview || "/placeholder.svg"}
+            alt={material.name}
+            className="w-full aspect-[9/16] object-cover"
+          />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation()
+                onPreview(material.preview)
+              }}
+            >
+              <Maximize2 className="h-4 w-4 text-white" />
+            </Button>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-white">
+            <div className="text-sm truncate">{material.name}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+    {selectedMaterials.length > 0 && (
+      <div className="mt-4">
+        <Label>已选择的海报</Label>
+        <div className="relative w-full max-w-[120px]">
+          <img
+            src={selectedMaterials[0].preview || "/placeholder.svg"}
+            alt={selectedMaterials[0].name}
+            className="w-full aspect-[9/16] object-cover rounded-lg cursor-pointer"
+            onClick={() => onPreview(selectedMaterials[0].preview)}
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            className="absolute top-2 right-2"
+            onClick={() => onRemove(selectedMaterials[0].id)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    )}
+  </div>
+)
+
+const OrderSection = ({ materials, onUpload, uploading, fileInputRef, onFileChange }) => (
+  <div>
+    <div className="flex items-center justify-between mb-4">
+      <Label>选择订单模板</Label>
+      <Button variant="outline" onClick={onUpload} disabled={uploading} className="w-10 h-10 p-0 flex items-center justify-center rounded-xl">
+        <Plus className="h-5 w-5" />
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={onFileChange}
+          className="hidden"
+          accept="image/*"
+        />
+      </Button>
+    </div>
+    <div className="grid grid-cols-3 gap-4">
+      {materials.map((item) => (
+        <div key={item.id} className="relative cursor-pointer rounded-lg overflow-hidden group">
+          <img src={item.preview || "/placeholder.svg"} alt={item.name} className="w-full aspect-[9/16] object-cover" />
+          <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-white">
+            <div className="text-sm truncate">{item.name}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+)
+
+const DouyinSection = ({ materials, onUpload, uploading, fileInputRef, onFileChange }) => (
+  <div>
+    <div className="flex items-center justify-between mb-4">
+      <Label>选择抖音内容</Label>
+      <Button variant="outline" onClick={onUpload} disabled={uploading} className="w-10 h-10 p-0 flex items-center justify-center rounded-xl">
+        <Plus className="h-5 w-5" />
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={onFileChange}
+          className="hidden"
+          accept="image/*"
+        />
+      </Button>
+    </div>
+    <div className="grid grid-cols-3 gap-4">
+      {materials.map((item) => (
+        <div key={item.id} className="relative cursor-pointer rounded-lg overflow-hidden group">
+          <img src={item.preview || "/placeholder.svg"} alt={item.name} className="w-full aspect-[9/16] object-cover" />
+          <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-white">
+            <div className="text-sm truncate">{item.name}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+)
+
+const PlaceholderSection = ({ title }) => (
+  <div className="p-8 text-center text-gray-400 border rounded-lg mt-4">{title}功能区待开发</div>
+)
+
 export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSettingsProps) {
   const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false)
   const [isMaterialDialogOpen, setIsMaterialDialogOpen] = useState(false)
@@ -133,7 +270,7 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
   const [isPhoneSettingsOpen, setIsPhoneSettingsOpen] = useState(false)
   const [previewImage, setPreviewImage] = useState("")
   const [accounts] = useState<Account[]>(generateRandomAccounts(50))
-  const [materials] = useState<Material[]>(generatePosterMaterials())
+  const [materials, setMaterials] = useState<Material[]>(generatePosterMaterials())
   const [selectedAccounts, setSelectedAccounts] = useState<Account[]>(
     formData.accounts?.length > 0 ? formData.accounts : [],
   )
@@ -154,9 +291,7 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
 
   const [selectedScenarioTags, setSelectedScenarioTags] = useState<string[]>(formData.scenarioTags || [])
   const [customTagInput, setCustomTagInput] = useState("")
-  const [customTags, setCustomTags] = useState<Array<{ id: string; name: string; color: string }>>(
-    formData.customTags || [],
-  )
+  const [customTags, setCustomTags] = useState<string[]>(formData.customTags || [])
 
   // 初始化电话获客设置
   const [phoneSettings, setPhoneSettings] = useState({
@@ -168,7 +303,55 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
   const [selectedPhoneTags, setSelectedPhoneTags] = useState<string[]>(formData.phoneTags || [])
   const [phoneCallType, setPhoneCallType] = useState(formData.phoneCallType || "both")
 
-  // 处理标签选择 (现在处理的是字符串标签)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploadingPoster, setUploadingPoster] = useState(false)
+
+  // 新增不同场景的materials和上传逻辑
+  const [orderMaterials, setOrderMaterials] = useState<any[]>([])
+  const [douyinMaterials, setDouyinMaterials] = useState<any[]>([])
+  const orderFileInputRef = useRef<HTMLInputElement>(null)
+  const douyinFileInputRef = useRef<HTMLInputElement>(null)
+  const [uploadingOrder, setUploadingOrder] = useState(false)
+  const [uploadingDouyin, setUploadingDouyin] = useState(false)
+
+  // 新增小程序和链接封面上传相关state和ref
+  const [miniAppCover, setMiniAppCover] = useState(formData.miniAppCover || "")
+  const [uploadingMiniAppCover, setUploadingMiniAppCover] = useState(false)
+  const miniAppFileInputRef = useRef<HTMLInputElement>(null)
+
+  const [linkCover, setLinkCover] = useState(formData.linkCover || "")
+  const [uploadingLinkCover, setUploadingLinkCover] = useState(false)
+  const linkFileInputRef = useRef<HTMLInputElement>(null)
+
+  const searchParams = useSearchParams()
+  const type = searchParams.get("type")
+  // 类型映射表
+  const typeMap: Record<string, string> = {
+    haibao: "poster",
+    douyin: "douyin",
+    kuaishou: "kuaishou",
+    xiaohongshu: "xiaohongshu",
+    weibo: "weibo",
+    phone: "phone",
+    gongzhonghao: "gongzhonghao",
+    weixinqun: "weixinqun",
+    payment: "payment",
+    api: "api",
+    order: "order"
+  }
+  const realType = typeMap[type] || type
+  const filteredScenarios = scenarios.filter(scene => scene.type === realType)
+
+  // 只在有唯一匹配时自动选中，否则不自动选中
+  useEffect(() => {
+    if (filteredScenarios.length === 1 && formData.sceneId !== filteredScenarios[0].id) {
+      onChange({ sceneId: filteredScenarios[0].id })
+    }
+  }, [filteredScenarios, formData.sceneId, onChange])
+
+  // 展示所有场景
+  const displayedScenarios = scenarios
+
   const handleTagToggle = (tag: string) => {
     const newTags = selectedPhoneTags.includes(tag)
       ? selectedPhoneTags.filter((t) => t !== tag)
@@ -178,13 +361,11 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
     onChange({ ...formData, phoneTags: newTags })
   }
 
-  // 处理通话类型选择
   const handleCallTypeChange = (type: string) => {
     setPhoneCallType(type)
     onChange({ ...formData, phoneCallType: type })
   }
 
-  // 初始化时，如果没有选择场景，默认选择海报获客
   useEffect(() => {
     if (!formData.scenario) {
       onChange({ ...formData, scenario: "haibao" })
@@ -201,7 +382,6 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
   }, [formData, onChange])
 
   const handleScenarioSelect = (scenarioId: string) => {
-    // 如果选择了电话获客，更新计划名称
     if (scenarioId === "phone") {
       const today = new Date().toLocaleDateString("zh-CN").replace(/\//g, "")
       onChange({ ...formData, scenario: scenarioId, planName: `电话获客${today}` })
@@ -210,7 +390,6 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
     }
   }
 
-  // 处理场景标签选择 (现在处理的是字符串标签)
   const handleScenarioTagToggle = (tag: string) => {
     const newTags = selectedScenarioTags.includes(tag)
       ? selectedScenarioTags.filter((t) => t !== tag)
@@ -220,41 +399,22 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
     onChange({ ...formData, scenarioTags: newTags })
   }
 
-  // 添加自定义标签
   const handleAddCustomTag = () => {
     if (!customTagInput.trim()) return
-
-    const colors = [
-      "bg-blue-100 text-blue-800",
-      "bg-green-100 text-green-800",
-      "bg-purple-100 text-purple-800",
-      "bg-red-100 text-red-800",
-      "bg-orange-100 text-orange-800",
-      "bg-yellow-100 text-yellow-800",
-      "bg-gray-100 text-gray-800",
-      "bg-pink-100 text-pink-800",
-    ]
-
-    const newTag = {
-      id: `custom-${Date.now()}`,
-      name: customTagInput.trim(),
-      color: colors[Math.floor(Math.random() * colors.length)],
-    }
-
+    const newTag = customTagInput.trim()
+    if (customTags.includes(newTag)) return
     const updatedCustomTags = [...customTags, newTag]
     setCustomTags(updatedCustomTags)
     setCustomTagInput("")
     onChange({ ...formData, customTags: updatedCustomTags })
   }
 
-  // 删除自定义标签
-  const handleRemoveCustomTag = (tagId: string) => {
-    const updatedCustomTags = customTags.filter((tag) => tag.id !== tagId)
+  const handleRemoveCustomTag = (tag: string) => {
+    const updatedCustomTags = customTags.filter((t) => t !== tag)
     setCustomTags(updatedCustomTags)
     onChange({ ...formData, customTags: updatedCustomTags })
-
     // 同时从选中标签中移除
-    const updatedSelectedTags = selectedScenarioTags.filter((id) => id !== tagId)
+    const updatedSelectedTags = selectedScenarioTags.filter((t) => t !== tag)
     setSelectedScenarioTags(updatedSelectedTags)
     onChange({ ...formData, scenarioTags: updatedSelectedTags, customTags: updatedCustomTags })
   }
@@ -271,7 +431,6 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
     onChange({ ...formData, materials: updatedMaterials })
     setIsMaterialDialogOpen(false)
 
-    // 更新计划名称
     const today = new Date().toLocaleDateString("zh-CN").replace(/\//g, "")
     onChange({ ...formData, planName: `海报${today}`, materials: updatedMaterials })
   }
@@ -292,9 +451,6 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
     setPreviewImage(imageUrl)
     setIsPreviewOpen(true)
   }
-
-  // 只显示前三个场景，其他的需要点击展开
-  const displayedScenarios = showAllScenarios ? scenarios : scenarios.slice(0, 3)
 
   const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -337,11 +493,277 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
     window.URL.revokeObjectURL(url)
   }
 
-  // 处理电话获客设置更新
   const handlePhoneSettingsUpdate = () => {
     onChange({ ...formData, phoneSettings })
     setIsPhoneSettingsOpen(false)
   }
+
+  const currentScenario = scenarios.find((s: any) => s.id === formData.scenario);
+
+  const handleUploadPoster = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handlePosterFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast({ title: '请选择图片文件', variant: 'destructive' })
+      return
+    }
+    setUploadingPoster(true)
+    const formData = new FormData()
+    formData.append('file', file)
+    try {
+      const token = localStorage.getItem('token')
+      const headers: HeadersInit = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/attachment/upload`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      })
+      const result = await response.json()
+      if (result.code === 200 && result.data?.url) {
+        const newPoster = {
+          id: `custom_${Date.now()}`,
+          name: result.data.name || '自定义海报',
+          preview: result.data.url,
+        }
+        setMaterials(prev => [newPoster, ...prev])
+        toast({ title: '上传成功', description: '海报已添加' })
+      } else {
+        toast({ title: '上传失败', description: result.msg || '请重试', variant: 'destructive' })
+      }
+    } catch (e: any) {
+      toast({ title: '上传失败', description: e?.message || '请重试', variant: 'destructive' })
+    } finally {
+      setUploadingPoster(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleUploadOrder = () => { orderFileInputRef.current?.click() }
+  const handleUploadDouyin = () => { douyinFileInputRef.current?.click() }
+
+  const handleOrderFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setUploadingOrder(true)
+    const formData = new FormData()
+    formData.append('file', file)
+    try {
+      const token = localStorage.getItem('token')
+      const headers: HeadersInit = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/attachment/upload`, {
+        method: 'POST', headers, body: formData,
+      })
+      const result = await response.json()
+      if (result.code === 200 && result.data?.url) {
+        const newItem = { id: `order_${Date.now()}`, name: result.data.name || '自定义订单', preview: result.data.url }
+        setOrderMaterials(prev => [newItem, ...prev])
+        toast({ title: '上传成功', description: '订单模板已添加' })
+      } else {
+        toast({ title: '上传失败', description: result.msg || '请重试', variant: 'destructive' })
+      }
+    } catch (e: any) {
+      toast({ title: '上传失败', description: e?.message || '请重试', variant: 'destructive' })
+    } finally {
+      setUploadingOrder(false)
+      if (orderFileInputRef.current) orderFileInputRef.current.value = ''
+    }
+  }
+  const handleDouyinFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setUploadingDouyin(true)
+    const formData = new FormData()
+    formData.append('file', file)
+    try {
+      const token = localStorage.getItem('token')
+      const headers: HeadersInit = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/attachment/upload`, {
+        method: 'POST', headers, body: formData,
+      })
+      const result = await response.json()
+      if (result.code === 200 && result.data?.url) {
+        const newItem = { id: `douyin_${Date.now()}`, name: result.data.name || '自定义抖音内容', preview: result.data.url }
+        setDouyinMaterials(prev => [newItem, ...prev])
+        toast({ title: '上传成功', description: '抖音内容已添加' })
+      } else {
+        toast({ title: '上传失败', description: result.msg || '请重试', variant: 'destructive' })
+      }
+    } catch (e: any) {
+      toast({ title: '上传失败', description: e?.message || '请重试', variant: 'destructive' })
+    } finally {
+      setUploadingDouyin(false)
+      if (douyinFileInputRef.current) douyinFileInputRef.current.value = ''
+    }
+  }
+
+  // 上传小程序封面
+  const handleUploadMiniAppCover = () => {
+    miniAppFileInputRef.current?.click()
+  }
+  const handleMiniAppFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setUploadingMiniAppCover(true)
+    const formDataObj = new FormData()
+    formDataObj.append('file', file)
+    try {
+      const token = localStorage.getItem('token')
+      const headers: HeadersInit = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/attachment/upload`, {
+        method: 'POST', headers, body: formDataObj,
+      })
+      const result = await response.json()
+      if (result.code === 200 && result.data?.url) {
+        setMiniAppCover(result.data.url)
+        onChange({ ...formData, miniAppCover: result.data.url })
+        toast({ title: '上传成功', description: '小程序封面已添加' })
+      } else {
+        toast({ title: '上传失败', description: result.msg || '请重试', variant: 'destructive' })
+      }
+    } catch (e: any) {
+      toast({ title: '上传失败', description: e?.message || '请重试', variant: 'destructive' })
+    } finally {
+      setUploadingMiniAppCover(false)
+      if (miniAppFileInputRef.current) miniAppFileInputRef.current.value = ''
+    }
+  }
+
+  // 上传链接封面
+  const handleUploadLinkCover = () => {
+    linkFileInputRef.current?.click()
+  }
+  const handleLinkFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setUploadingLinkCover(true)
+    const formDataObj = new FormData()
+    formDataObj.append('file', file)
+    try {
+      const token = localStorage.getItem('token')
+      const headers: HeadersInit = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/attachment/upload`, {
+        method: 'POST', headers, body: formDataObj,
+      })
+      const result = await response.json()
+      if (result.code === 200 && result.data?.url) {
+        setLinkCover(result.data.url)
+        onChange({ ...formData, linkCover: result.data.url })
+        toast({ title: '上传成功', description: '链接封面已添加' })
+      } else {
+        toast({ title: '上传失败', description: result.msg || '请重试', variant: 'destructive' })
+      }
+    } catch (e: any) {
+      toast({ title: '上传失败', description: e?.message || '请重试', variant: 'destructive' })
+    } finally {
+      setUploadingLinkCover(false)
+      if (linkFileInputRef.current) linkFileInputRef.current.value = ''
+    }
+  }
+
+  const renderSceneExtra = () => {
+    switch (currentScenario?.name) {
+      case "海报获客":
+        return (
+          <PosterSection
+            materials={materials}
+            selectedMaterials={selectedMaterials}
+            onUpload={handleUploadPoster}
+            onSelect={handleMaterialSelect}
+            uploading={uploadingPoster}
+            fileInputRef={fileInputRef}
+            onFileChange={handlePosterFileChange}
+            onPreview={handlePreviewImage}
+            onRemove={handleRemoveMaterial}
+          />
+        )
+      case "订单获客":
+        return (
+          <OrderSection
+            materials={orderMaterials}
+            onUpload={handleUploadOrder}
+            uploading={uploadingOrder}
+            fileInputRef={orderFileInputRef}
+            onFileChange={handleOrderFileChange}
+          />
+        )
+      case "抖音获客":
+        return (
+          <DouyinSection
+            materials={douyinMaterials}
+            onUpload={handleUploadDouyin}
+            uploading={uploadingDouyin}
+            fileInputRef={douyinFileInputRef}
+            onFileChange={handleDouyinFileChange}
+          />
+        )
+      case "小红书获客":
+        return <PlaceholderSection title="小红书内容选择" />
+      case "电话获客":
+        return <PlaceholderSection title="电话获客专属设置" />
+      case "公众号获客":
+        return <PlaceholderSection title="公众号相关设置" />
+      case "微信群获客":
+        return <PlaceholderSection title="微信群管理设置" />
+      case "付款码获客":
+        return <PlaceholderSection title="付款码上传与选择" />
+      case "API获客":
+        return <PlaceholderSection title="API对接说明或配置" />
+      case "小程序获客":
+        return <MiniAppSection />
+      case "链接获客":
+        return <LinkSection />
+      default:
+        return null
+    }
+  }
+
+  // 新增小程序和链接场景的功能区
+  const MiniAppSection = () => (
+    <div>
+      <Label>上传小程序封面</Label>
+      <div className="flex items-center gap-4 mt-2">
+        <Button variant="outline" onClick={handleUploadMiniAppCover} disabled={uploadingMiniAppCover}>
+          上传图片
+          <input
+            type="file"
+            ref={miniAppFileInputRef}
+            onChange={handleMiniAppFileChange}
+            className="hidden"
+            accept="image/*"
+          />
+        </Button>
+        {miniAppCover && <img src={miniAppCover} alt="小程序封面" className="h-16 rounded" />}
+      </div>
+    </div>
+  )
+
+  const LinkSection = () => (
+    <div>
+      <Label>上传链接封面</Label>
+      <div className="flex items-center gap-4 mt-2">
+        <Button variant="outline" onClick={handleUploadLinkCover} disabled={uploadingLinkCover}>
+          上传图片
+          <input
+            type="file"
+            ref={linkFileInputRef}
+            onChange={handleLinkFileChange}
+            className="hidden"
+            accept="image/*"
+          />
+        </Button>
+        {linkCover && <img src={linkCover} alt="链接封面" className="h-16 rounded" />}
+      </div>
+    </div>
+  )
 
   return (
     <TooltipProvider>
@@ -349,15 +771,18 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
         <div className="space-y-6">
           <div>
             <Label className="text-base mb-4 block">获客场景</Label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="mt-2 grid grid-cols-3 gap-3">
               {displayedScenarios.map((scenario) => (
                 <button
                   key={scenario.id}
-                  className={`p-2 rounded-lg text-center transition-all ${
-                    formData.scenario === scenario.id
-                      ? "bg-blue-100 text-blue-600 font-medium"
-                      : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                  }`}
+                  type="button"
+                  className={
+                    "h-10 rounded-lg text-base transition-all w-full " +
+                    (formData.sceneId === scenario.id
+                      ? "bg-blue-100 font-bold"
+                      : "bg-gray-50 text-gray-800 font-medium hover:bg-blue-50")
+                  }
+                  style={formData.sceneId === scenario.id ? { color: "#1677ff" } : {}}
                   onClick={() => handleScenarioSelect(scenario.id)}
                 >
                   {scenario.name.replace("获客", "")}
@@ -372,24 +797,24 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
           </div>
 
           <div>
-            <Label htmlFor="planName">计划名称</Label>
+            <Label htmlFor="name" className="text-sm text-gray-600 mb-2 block">
+              计划名称
+            </Label>
             <Input
-              id="planName"
-              value={formData.planName}
-              onChange={(e) => onChange({ ...formData, planName: e.target.value })}
+              id="name"
+              value={formData.name}
+              onChange={(e) => onChange({ ...formData, name: e.target.value })}
               placeholder="请输入计划名称"
-              className="mt-2"
+              className="w-full"
             />
           </div>
 
-          {/* 场景标签选择 */}
           {formData.scenario && (
             <div className="mt-6">
               <Label className="text-base mb-3 block">
                 {scenarios.find((s) => s.id === formData.scenario)?.name}标签（可多选）
               </Label>
 
-              {/* 预设标签 */}
               <div className="flex flex-wrap gap-2 mb-4">
                 {(scenarios.find((s) => s.id === formData.scenario)?.scenarioTags || []).map((tag: string) => {
                   const idx = getTagColorIdx(tag);
@@ -410,29 +835,28 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
                 })}
               </div>
 
-              {/* 自定义标签 */}
               {customTags.length > 0 && (
                 <div className="mb-4">
                   <Label className="text-sm text-gray-600 mb-2 block">自定义标签</Label>
                   <div className="flex flex-wrap gap-2">
                     {customTags.map((tag) => (
                       <div
-                        key={tag.id}
+                        key={tag}
                         className={`px-3 py-2 rounded-full text-sm cursor-pointer transition-all relative group ${
-                          selectedScenarioTags.includes(tag.id)
-                            ? tag.color + " ring-2 ring-blue-400"
-                            : tag.color + " hover:ring-1 hover:ring-gray-300"
+                          selectedScenarioTags.includes(tag)
+                            ? "bg-blue-500 text-white ring-2 ring-blue-400"
+                            : "bg-blue-50 text-blue-600 hover:ring-1 hover:ring-gray-300"
                         }`}
-                        onClick={() => handleScenarioTagToggle(tag.id)}
+                        onClick={() => handleScenarioTagToggle(tag)}
                       >
-                        {tag.name}
+                        {tag}
                         <Button
                           variant="ghost"
                           size="sm"
                           className="absolute -top-1 -right-1 h-5 w-5 p-0 opacity-0 group-hover:opacity-100 bg-red-500 hover:bg-red-600 text-white rounded-full"
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleRemoveCustomTag(tag.id)
+                            handleRemoveCustomTag(tag)
                           }}
                         >
                           <X className="h-3 w-3" />
@@ -443,7 +867,6 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
                 </div>
               )}
 
-              {/* 添加自定义标签 */}
               <div className="flex gap-2">
                 <Input
                   value={customTagInput}
@@ -517,7 +940,6 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
                   </div>
                 )}
 
-              {/* 电话获客特殊设置 */}
               {formData.scenario === "phone" && (
                 <Card className="p-4 border-blue-100 bg-blue-50/50 mt-4">
                   <div className="flex items-center justify-between mb-3">
@@ -581,7 +1003,6 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
 
               {formData.scenario === "phone" && (
                 <>
-                  {/* 添加电话通话类型选择 */}
                   <div className="mt-6">
                     <Label className="text-base mb-2 block">通话类型</Label>
                     <div className="grid grid-cols-2 gap-2 mt-2">
@@ -610,7 +1031,6 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
                     </div>
                   </div>
 
-                  {/* 添加标签功能 - 使用从 scenarios 中获取的标签数据 */}
                   <div className="mt-6">
                     <Label className="text-base mb-2 block">通话标签（可多选）</Label>
                     <div className="flex flex-wrap gap-2 mt-2">
@@ -636,77 +1056,11 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
                 </>
               )}
 
-              {scenarios.find((s: any) => s.id === formData.scenario)?.type === "material" && (
+              {((currentScenario?.type === "material" || currentScenario?.name === "海报获客" || currentScenario?.id === 1) && (
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <Label>选择海报</Label>
-                    <Button variant="outline" onClick={() => setIsMaterialDialogOpen(true)}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  {/* 海报展示区域 */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {materials.map((material) => (
-                      <div
-                        key={material.id}
-                        className={`relative cursor-pointer rounded-lg overflow-hidden group ${
-                          selectedMaterials.find((m) => m.id === material.id)
-                            ? "ring-2 ring-blue-600"
-                            : "hover:ring-2 hover:ring-blue-600"
-                        }`}
-                        onClick={() => handleMaterialSelect(material)}
-                      >
-                        <img
-                          src={material.preview || "/placeholder.svg"}
-                          alt={material.name}
-                          className="w-full aspect-[9/16] object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handlePreviewImage(material.preview)
-                            }}
-                          >
-                            <Maximize2 className="h-4 w-4 text-white" />
-                          </Button>
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-white">
-                          <div className="text-sm truncate">{material.name}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {selectedMaterials.length > 0 && (
-                    <div className="mt-4">
-                      <Label>已选择的海报</Label>
-                      <div className="mt-2">
-                        <div className="relative w-full max-w-[200px]">
-                          <img
-                            src={selectedMaterials[0].preview || "/placeholder.svg"}
-                            alt={selectedMaterials[0].name}
-                            className="w-full aspect-[9/16] object-cover rounded-lg cursor-pointer"
-                            onClick={() => handlePreviewImage(selectedMaterials[0].preview)}
-                          />
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="absolute top-2 right-2"
-                            onClick={() => handleRemoveMaterial(selectedMaterials[0].id)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  {renderSceneExtra()}
                 </div>
-              )}
+              ))}
 
               {scenarios.find((s: any) => s.id === formData.scenario)?.id === "order" && (
                 <div>
@@ -857,7 +1211,6 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
         </div>
       </Card>
 
-      {/* 账号选择对话框 */}
       <Dialog open={isAccountDialogOpen} onOpenChange={setIsAccountDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -883,7 +1236,6 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
         </DialogContent>
       </Dialog>
 
-      {/* 二维码对话框 */}
       <Dialog open={isQRCodeOpen} onOpenChange={setIsQRCodeOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -898,7 +1250,6 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
         </DialogContent>
       </Dialog>
 
-      {/* 图片预览对话框 */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
@@ -910,7 +1261,6 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
         </DialogContent>
       </Dialog>
 
-      {/* 电话获客设置对话框 */}
       <Dialog open={isPhoneSettingsOpen} onOpenChange={setIsPhoneSettingsOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -977,7 +1327,6 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
         </DialogContent>
       </Dialog>
 
-      {/* 订单导入对话框 */}
       <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,6 +18,7 @@ import {
   X,
   Upload,
   Clock,
+  UploadCloud,
 } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -26,7 +27,7 @@ import { toast } from "@/components/ui/use-toast"
 interface MessageContent {
   id: string
   type: "text" | "image" | "video" | "file" | "miniprogram" | "link" | "group"
-  content: string
+  content: string | { url: string, name: string }[]
   sendInterval?: number
   intervalUnit?: "seconds" | "minutes"
   scheduledTime?: {
@@ -40,6 +41,7 @@ interface MessageContent {
   coverImage?: string
   groupId?: string
   linkUrl?: string
+  cover?: string
 }
 
 interface DayPlan {
@@ -90,6 +92,12 @@ export function MessageSettings({ formData, onChange, onNext, onPrev }: MessageS
   const [isAddDayPlanOpen, setIsAddDayPlanOpen] = useState(false)
   const [isGroupSelectOpen, setIsGroupSelectOpen] = useState(false)
   const [selectedGroupId, setSelectedGroupId] = useState("")
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadTarget, setUploadTarget] = useState<{dayIndex: number, messageIndex: number, type: string} | null>(null)
+  const coverInputRef = useRef<HTMLInputElement>(null)
+  const [uploadingCover, setUploadingCover] = useState(false)
+  const [coverTarget, setCoverTarget] = useState<{dayIndex: number, messageIndex: number} | null>(null)
 
   // 添加新消息
   const handleAddMessage = (dayIndex: number, type = "text") => {
@@ -184,11 +192,90 @@ export function MessageSettings({ formData, onChange, onNext, onPrev }: MessageS
 
   // 处理文件上传
   const handleFileUpload = (dayIndex: number, messageIndex: number, type: "image" | "video" | "file") => {
-    // 模拟文件上传
-    toast({
-      title: "上传成功",
-      description: `${type === "image" ? "图片" : type === "video" ? "视频" : "文件"}上传成功`,
-    })
+    setUploadTarget({ dayIndex, messageIndex, type })
+    fileInputRef.current?.setAttribute('accept', type === 'image' ? 'image/*' : type === 'video' ? 'video/*' : '*')
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !uploadTarget) return
+    setUploading(true)
+    const formData = new FormData()
+    formData.append("file", file)
+    try {
+      const token = localStorage.getItem('token');
+      const headers: HeadersInit = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/attachment/upload`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      })
+      const result = await response.json()
+      if (result.code === 200 && result.data?.url) {
+        if (uploadTarget.type === 'file') {
+          // 多文件，存对象
+          const prevFiles = Array.isArray(dayPlans[uploadTarget.dayIndex].messages[uploadTarget.messageIndex].content)
+            ? dayPlans[uploadTarget.dayIndex].messages[uploadTarget.messageIndex].content
+            : []
+          handleUpdateMessage(uploadTarget.dayIndex, uploadTarget.messageIndex, { content: [...prevFiles, { url: result.data.url, name: result.data.name || result.data.url.split('/').pop() }] })
+        } else {
+          handleUpdateMessage(uploadTarget.dayIndex, uploadTarget.messageIndex, { content: result.data.url })
+        }
+        toast({ title: '上传成功', description: `${uploadTarget.type === 'image' ? '图片' : uploadTarget.type === 'video' ? '视频' : '文件'}上传成功` })
+      } else {
+        toast({ title: '上传失败', description: result.msg || '请重试', variant: 'destructive' })
+      }
+    } catch (e: any) {
+      toast({ title: '上传失败', description: e?.message || '请重试', variant: 'destructive' })
+    } finally {
+      setUploading(false)
+      setUploadTarget(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleUploadCover = (dayIndex: number, messageIndex: number) => {
+    setCoverTarget({ dayIndex, messageIndex })
+    coverInputRef.current?.click()
+  }
+
+  const handleCoverFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    dayIndex?: number,
+    messageIndex?: number
+  ) => {
+    const file = event.target.files?.[0]
+    if (!file || !coverTarget) return
+    setUploadingCover(true)
+    const formData = new FormData()
+    formData.append("file", file)
+    try {
+      const token = localStorage.getItem('token')
+      const headers: HeadersInit = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/attachment/upload`, {
+        method: 'POST', headers, body: formData,
+      })
+      const result = await response.json()
+      if (result.code === 200 && result.data?.url) {
+        handleUpdateMessage(coverTarget.dayIndex, coverTarget.messageIndex, { cover: result.data.url })
+        toast({ title: '上传成功', description: '封面已添加' })
+      } else {
+        toast({ title: '上传失败', description: result.msg || '请重试', variant: 'destructive' })
+      }
+    } catch (e: any) {
+      toast({ title: '上传失败', description: e?.message || '请重试', variant: 'destructive' })
+    } finally {
+      setUploadingCover(false)
+      setCoverTarget(null)
+      if (coverInputRef.current) coverInputRef.current.value = ''
+    }
+  }
+
+  const handleRemoveCover = (dayIndex: number, messageIndex: number) => {
+    handleUpdateMessage(dayIndex, messageIndex, { cover: "" })
   }
 
   return (
@@ -353,39 +440,6 @@ export function MessageSettings({ formData, onChange, onNext, onPrev }: MessageS
                             placeholder="请输入小程序路径"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label>
-                            封面<span className="text-red-500">*</span>
-                          </Label>
-                          <div className="border-2 border-dashed rounded-lg p-4 text-center">
-                            {message.coverImage ? (
-                              <div className="relative">
-                                <img
-                                  src={message.coverImage || "/placeholder.svg"}
-                                  alt="封面"
-                                  className="max-w-[200px] mx-auto rounded-lg"
-                                />
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  className="absolute top-2 right-2"
-                                  onClick={() => handleUpdateMessage(dayIndex, messageIndex, { coverImage: undefined })}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                className="w-full h-[120px]"
-                                onClick={() => handleFileUpload(dayIndex, messageIndex, "image")}
-                              >
-                                <Upload className="h-4 w-4 mr-2" />
-                                上传封面
-                              </Button>
-                            )}
-                          </div>
-                        </div>
                       </div>
                     )}
 
@@ -421,39 +475,6 @@ export function MessageSettings({ formData, onChange, onNext, onPrev }: MessageS
                             placeholder="请输入链接地址"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label>
-                            封面<span className="text-red-500">*</span>
-                          </Label>
-                          <div className="border-2 border-dashed rounded-lg p-4 text-center">
-                            {message.coverImage ? (
-                              <div className="relative">
-                                <img
-                                  src={message.coverImage || "/placeholder.svg"}
-                                  alt="封面"
-                                  className="max-w-[200px] mx-auto rounded-lg"
-                                />
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  className="absolute top-2 right-2"
-                                  onClick={() => handleUpdateMessage(dayIndex, messageIndex, { coverImage: undefined })}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                className="w-full h-[120px]"
-                                onClick={() => handleFileUpload(dayIndex, messageIndex, "image")}
-                              >
-                                <Upload className="h-4 w-4 mr-2" />
-                                上传封面
-                              </Button>
-                            )}
-                          </div>
-                        </div>
                       </div>
                     )}
 
@@ -478,10 +499,72 @@ export function MessageSettings({ formData, onChange, onNext, onPrev }: MessageS
                           variant="outline"
                           className="w-full h-[120px]"
                           onClick={() => handleFileUpload(dayIndex, messageIndex, message.type as any)}
+                          disabled={uploading}
                         >
                           <Upload className="h-4 w-4 mr-2" />
-                          上传{message.type === "image" ? "图片" : message.type === "video" ? "视频" : "文件"}
+                          {uploading && uploadTarget && uploadTarget.dayIndex === dayIndex && uploadTarget.messageIndex === messageIndex ? '上传中...' : `上传${message.type === "image" ? "图片" : message.type === "video" ? "视频" : "文件"}`}
                         </Button>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                        {/* 文件预览 */}
+                        {message.type === 'image' && message.content && (
+                          <div className="mt-4">
+                            <img src={message.content} alt="图片预览" className="max-h-32 mx-auto rounded-lg border" />
+                          </div>
+                        )}
+                        {message.type === 'video' && message.content && (
+                          <div className="mt-4">
+                            <video src={message.content} controls className="max-h-32 mx-auto rounded-lg border" />
+                          </div>
+                        )}
+                        {message.type === 'file' && Array.isArray(message.content) && message.content.length > 0 && (
+                          <ul className="mt-4 space-y-2 text-left">
+                            {message.content.map((fileObj: {url: string, name: string}, idx: number) => (
+                              <li key={fileObj.url} className="flex items-center gap-2">
+                                <a href={fileObj.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-all flex-1">{fileObj.name || fileObj.url.split('/').pop()}</a>
+                                <Button size="icon" variant="ghost" onClick={() => {
+                                  const newFiles = message.content.filter((_: any, i: number) => i !== idx)
+                                  handleUpdateMessage(dayIndex, messageIndex, { content: newFiles })
+                                }}><X className="h-4 w-4" /></Button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+
+                    {(message.type === "miniprogram" || message.type === "link") && (
+                      <div className="mt-4">
+                        <Label>封面</Label>
+                        <div className="border-2 border-dashed rounded-lg p-4 text-center">
+                          {message.cover ? (
+                            <div className="flex flex-col items-center">
+                              <img src={message.cover} alt="封面" className="h-24 rounded mb-2" />
+                              <Button size="sm" onClick={() => handleRemoveCover(dayIndex, messageIndex)}>移除封面</Button>
+                            </div>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              className="w-full h-[100px] flex flex-col items-center justify-center"
+                              onClick={() => handleUploadCover(dayIndex, messageIndex)}
+                              disabled={uploadingCover}
+                            >
+                              <UploadCloud className="h-8 w-8 mb-2" />
+                              上传封面
+                            </Button>
+                          )}
+                          <input
+                            type="file"
+                            ref={coverInputRef}
+                            onChange={(e) => handleCoverFileChange(e, dayIndex, messageIndex)}
+                            className="hidden"
+                            accept="image/*"
+                          />
+                        </div>
                       </div>
                     )}
                   </div>

@@ -39,10 +39,10 @@ Route::group('v1/', function () {
         Route::get('scenes', 'app\cunkebao\controller\plan\GetPlanSceneListV1Controller@index');
         Route::get('scenes-detail', 'app\cunkebao\controller\plan\GetPlanSceneListV1Controller@detail');
         Route::post('create', 'app\cunkebao\controller\plan\PostCreateAddFriendPlanV1Controller@index');
-        Route::get('list', 'app\cunkebao\controller\Plan@getList');
-
-
-
+        Route::get('list', 'app\cunkebao\controller\plan\PlanSceneV1Controller@index');
+        Route::get('copy', 'app\cunkebao\controller\plan\PlanSceneV1Controller@copy');
+        Route::delete('delete', 'app\cunkebao\controller\plan\PlanSceneV1Controller@delete');
+        Route::post('updateStatus', 'app\cunkebao\controller\plan\PlanSceneV1Controller@updateStatus');
     });
 
     // 流量池相关
