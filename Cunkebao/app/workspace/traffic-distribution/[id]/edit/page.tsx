@@ -13,6 +13,21 @@ import { api } from "@/lib/api"
 import { showToast } from "@/lib/toast"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 
+interface BasicInfoData {
+  name: string
+  distributeType: number
+  maxPerDay: number
+  timeType: number
+  startTime: string
+  endTime: string
+  account?: string[]
+  accounts?: string[]
+}
+
+interface TargetSettingsData extends Omit<FormData['targetSettings'], 'account'> {
+  accounts?: string[]
+}
+
 interface FormData {
   basicInfo: {
     name: string
@@ -28,7 +43,7 @@ interface FormData {
   targetSettings: {
     targetGroups: string[]
     devices: string[]
-    accounts?: string[]
+    account?: string[]
   }
   trafficPool: {
     poolIds: string[]
@@ -106,7 +121,7 @@ export default function EditTrafficDistributionPage({ params }: { params: Promis
             targetSettings: {
               targetGroups: data.config?.targetGroups || [],
               devices: (data.config?.devices || []).map(String),
-              accounts: (data.config?.account || []).map(String),
+              account: (data.config?.account || []).map(String),
             },
             trafficPool: {
               poolIds: (data.config?.pools || []).map(String),
@@ -126,13 +141,36 @@ export default function EditTrafficDistributionPage({ params }: { params: Promis
     fetchData()
   }, [id])
 
-  const handleBasicInfoNext = (data: FormData["basicInfo"]) => {
-    setFormData((prev) => ({ ...prev, basicInfo: data }))
+  const handleBasicInfoNext = (data: BasicInfoData) => {
+    setFormData((prev) => ({ 
+      ...prev, 
+      basicInfo: {
+        name: data.name,
+        distributeType: data.distributeType,
+        maxPerDay: data.maxPerDay,
+        timeType: data.timeType,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        source: prev.basicInfo.source,
+        sourceIcon: prev.basicInfo.sourceIcon,
+        description: prev.basicInfo.description,
+      },
+      targetSettings: {
+        ...prev.targetSettings,
+        account: data.account || data.accounts
+      }
+    }))
     setCurrentStep(1)
   }
 
-  const handleTargetSettingsNext = (data: FormData["targetSettings"]) => {
-    setFormData((prev) => ({ ...prev, targetSettings: data }))
+  const handleTargetSettingsNext = (data: TargetSettingsData) => {
+    setFormData((prev) => ({ 
+      ...prev, 
+      targetSettings: {
+        ...data,
+        account: data.accounts || prev.targetSettings.account
+      }
+    }))
     setDevices(data.devices || [])
     setCurrentStep(2)
   }
@@ -166,7 +204,7 @@ export default function EditTrafficDistributionPage({ params }: { params: Promis
         endTime: finalData.basicInfo.endTime,
         targetGroups: finalData.targetSettings.targetGroups,
         devices: finalData.targetSettings.devices,
-        account: finalData.targetSettings.accounts,
+        account: finalData.targetSettings.account,
         pools: finalData.trafficPool.poolIds,
         enabled: true,
       })
@@ -202,12 +240,25 @@ export default function EditTrafficDistributionPage({ params }: { params: Promis
         <StepIndicator currentStep={currentStep} steps={steps} />
       </div>
       <div className="mt-4">
-        {currentStep === 0 && <BasicInfoStep onNext={handleBasicInfoNext} initialData={formData.basicInfo} />}
+        {currentStep === 0 && (
+          <BasicInfoStep 
+            onNext={handleBasicInfoNext} 
+            initialData={{ 
+              ...formData.basicInfo,
+              accounts: formData.targetSettings.account,
+              account: formData.targetSettings.account
+            }} 
+          />
+        )}
         {currentStep === 1 && (
           <TargetSettingsStep
             onNext={handleTargetSettingsNext}
             onBack={handleTargetSettingsBack}
-            initialData={{ ...formData.targetSettings, devices, accounts: formData.targetSettings.accounts }}
+            initialData={{ 
+              ...formData.targetSettings, 
+              devices,
+              accounts: formData.targetSettings.account
+            }}
             setDevices={setDevices}
           />
         )}

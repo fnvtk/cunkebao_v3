@@ -6,20 +6,13 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar } from "@/components/ui/avatar"
-import { Search, Users, Smartphone } from "lucide-react"
+import { Search, Smartphone } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { api } from "@/lib/api"
 import { DeviceSelectionDialog } from "@/app/components/device-selection-dialog"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 
 interface Device {
-  id: string
-  name: string
-  status: "online" | "offline"
-  avatar?: string
-}
-
-interface CustomerService {
   id: string
   name: string
   status: "online" | "offline"
@@ -40,14 +33,6 @@ export default function TargetSettingsStep({ onNext, onBack, initialData = {}, s
   const [deviceDialogOpen, setDeviceDialogOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState("all")
 
-  // 账号选择相关状态
-  const [accountDialogOpen, setAccountDialogOpen] = useState(false)
-  const [accountList, setAccountList] = useState<any[]>([])
-  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([])
-  const [accountPage, setAccountPage] = useState(1)
-  const [accountTotal, setAccountTotal] = useState(0)
-  const [accountLoading, setAccountLoading] = useState(false)
-
   // 每次 initialData.devices 变化时，同步 selectedDeviceIds
   useEffect(() => {
     const ids = Array.isArray(initialData.devices) ? initialData.devices.map(String) : [];
@@ -61,29 +46,6 @@ export default function TargetSettingsStep({ onNext, onBack, initialData = {}, s
     }).finally(() => setLoading(false))
   }, [])
 
-  // 同步初始账号
-  useEffect(() => {
-    const ids = Array.isArray(initialData.accounts) ? initialData.accounts.map(String) : [];
-    setSelectedAccountIds(ids);
-  }, [initialData.accounts])
-
-  // 拉取账号列表
-  useEffect(() => {
-    setAccountLoading(true)
-    api.get(`/v1/workbench/account-list?page=${accountPage}&size=10`).then((res: any) => {
-      setAccountList(res.data?.list || [])
-      setAccountTotal(res.data?.total || 0)
-    }).finally(() => setAccountLoading(false))
-  }, [accountPage])
-
-  // 账号弹窗每次打开时同步反选
-  useEffect(() => {
-    if (accountDialogOpen) {
-      const ids = Array.isArray(initialData.accounts) ? initialData.accounts.map(String) : [];
-      setSelectedAccountIds(ids);
-    }
-  }, [accountDialogOpen, initialData.accounts])
-
   const filteredDevices = deviceList.filter(device => {
     const matchesSearch =
       search === "" ||
@@ -95,7 +57,7 @@ export default function TargetSettingsStep({ onNext, onBack, initialData = {}, s
   })
 
   const handleSubmit = () => {
-    onNext({ devices: selectedDeviceIds, accounts: selectedAccountIds })
+    onNext({ devices: selectedDeviceIds })
   }
 
   // 弹窗内确认选择
@@ -104,11 +66,6 @@ export default function TargetSettingsStep({ onNext, onBack, initialData = {}, s
       setDevices(selectedDeviceIds)
     }
     setDeviceDialogOpen(false)
-  }
-
-  // 账号弹窗确认
-  const handleAccountDialogConfirm = () => {
-    setAccountDialogOpen(false)
   }
 
   return (
@@ -127,30 +84,8 @@ export default function TargetSettingsStep({ onNext, onBack, initialData = {}, s
           />
         </div>
       </div>
-      {/* 账号选择 */}
-      <div className="mb-4">
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <Input
-            placeholder="选择账号"
-            value={selectedAccountIds.length > 0 ? `已选择${selectedAccountIds.length}个账号` : ''}
-            readOnly
-            className="pl-10 cursor-pointer"
-            onClick={() => setAccountDialogOpen(true)}
-          />
-        </div>
-      </div>
-      {/* 已选账号/设备展示优化 */}
+      {/* 已选设备展示优化 */}
       <div className="flex flex-col gap-2 mb-6">
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <Users className="w-4 h-4 text-blue-500" />
-          <span>已选账号：</span>
-          {selectedAccountIds.length === 0 ? (
-            <span className="text-gray-400">未选择</span>
-          ) : (
-            <span className="bg-blue-50 text-blue-600 rounded px-2 py-0.5 font-semibold">{selectedAccountIds.length} 个</span>
-          )}
-        </div>
         <div className="flex items-center gap-2 text-sm text-gray-500">
           <Smartphone className="w-4 h-4 text-green-500" />
           <span>已选设备：</span>
@@ -236,66 +171,6 @@ export default function TargetSettingsStep({ onNext, onBack, initialData = {}, s
               <Button
                 className="w-4/5 py-3 rounded-full text-base font-bold shadow-md"
                 onClick={handleDialogConfirm}
-              >
-                确认
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-      {/* 账号选择弹窗 */}
-      <Dialog open={accountDialogOpen} onOpenChange={setAccountDialogOpen}>
-        <DialogContent className="max-w-xl w-full p-0 rounded-2xl shadow-2xl max-h-[80vh]">
-          <DialogTitle className="text-lg font-bold text-center py-3 border-b">选择账号</DialogTitle>
-          <div className="p-6 pt-4">
-            {/* 账号列表 */}
-            <div className="max-h-[400px] overflow-y-auto space-y-2">
-              {accountLoading ? (
-                <div className="text-center text-gray-400 py-8">加载中...</div>
-              ) : accountList.length === 0 ? (
-                <div className="text-center text-gray-400 py-8">暂无账号</div>
-              ) : (
-                accountList.map(account => (
-                  <label
-                    key={account.id}
-                    className={`
-                      flex items-center gap-3 p-4 rounded-xl border
-                      ${selectedAccountIds.includes(String(account.id)) ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-white"}
-                      hover:border-blue-400 transition-colors cursor-pointer
-                    `}
-                  >
-                    <input
-                      type="checkbox"
-                      className="accent-blue-500 scale-110"
-                      checked={selectedAccountIds.includes(String(account.id))}
-                      onChange={() => {
-                        setSelectedAccountIds(prev =>
-                          prev.includes(String(account.id))
-                            ? prev.filter(id => id !== String(account.id))
-                            : [...prev, String(account.id)]
-                        )
-                      }}
-                    />
-                    <div className="flex-1">
-                      <div className="font-semibold text-base">{account.realName || account.nickname || account.userName}</div>
-                      <div className="text-xs text-gray-500">账号: {account.userName}</div>
-                      <div className="text-xs text-gray-400">昵称: {account.nickname || '--'} 备注: {account.memo || '--'}</div>
-                    </div>
-                  </label>
-                ))
-              )}
-            </div>
-            {/* 分页 */}
-            <div className="flex justify-center items-center gap-4 mt-4">
-              <Button size="sm" variant="outline" disabled={accountPage === 1} onClick={() => setAccountPage(p => Math.max(1, p - 1))}>上一页</Button>
-              <span className="text-sm">第 {accountPage} 页 / 共 {Math.ceil(accountTotal / 10) || 1} 页</span>
-              <Button size="sm" variant="outline" disabled={accountPage >= Math.ceil(accountTotal / 10)} onClick={() => setAccountPage(p => p + 1)}>下一页</Button>
-            </div>
-            {/* 确认按钮 */}
-            <div className="flex justify-center mt-8">
-              <Button
-                className="w-4/5 py-3 rounded-full text-base font-bold shadow-md"
-                onClick={handleAccountDialogConfirm}
               >
                 确认
               </Button>

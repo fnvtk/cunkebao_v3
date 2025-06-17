@@ -23,6 +23,7 @@ interface FormData {
     timeType: number
     startTime: string
     endTime: string
+    accounts?: string[]
   }
   targetSettings: {
     targetGroups: string[]
@@ -76,12 +77,25 @@ export default function NewTrafficDistribution() {
   ]
 
   const handleBasicInfoNext = (data: FormData["basicInfo"]) => {
-    setFormData((prev) => ({ ...prev, basicInfo: data }))
+    setFormData((prev) => ({ 
+      ...prev, 
+      basicInfo: data,
+      targetSettings: {
+        ...prev.targetSettings,
+        accounts: data.accounts
+      }
+    }))
     setCurrentStep(1)
   }
 
   const handleTargetSettingsNext = (data: FormData["targetSettings"]) => {
-    setFormData((prev) => ({ ...prev, targetSettings: { ...data } }))
+    setFormData((prev) => ({ 
+      ...prev, 
+      targetSettings: {
+        ...data,
+        accounts: prev.targetSettings.accounts
+      }
+    }))
     setDevices(data.devices || [])
     setCurrentStep(2)
   }
