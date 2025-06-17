@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,10 +24,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/use-toast"
 
+interface FileContent {
+  url: string
+  name: string
+}
+
 interface MessageContent {
   id: string
   type: "text" | "image" | "video" | "file" | "miniprogram" | "link" | "group"
-  content: string | { url: string, name: string }[]
+  content: any // 暂时使用 any 类型来解决类型问题
   sendInterval?: number
   intervalUnit?: "seconds" | "minutes"
   scheduledTime?: {
@@ -84,11 +89,19 @@ export function MessageSettings({ formData, onChange, onNext, onPrev }: MessageS
           type: "text",
           content: "",
           sendInterval: 5,
-          intervalUnit: "seconds", // 默认改为秒
+          intervalUnit: "seconds",
         },
       ],
     },
   ])
+
+  // 添加 useEffect 来初始化消息计划数据
+  useEffect(() => {
+    if (formData.messagePlans && Array.isArray(formData.messagePlans)) {
+      setDayPlans(formData.messagePlans)
+    }
+  }, [formData.messagePlans])
+
   const [isAddDayPlanOpen, setIsAddDayPlanOpen] = useState(false)
   const [isGroupSelectOpen, setIsGroupSelectOpen] = useState(false)
   const [selectedGroupId, setSelectedGroupId] = useState("")

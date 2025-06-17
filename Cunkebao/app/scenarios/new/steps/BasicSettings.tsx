@@ -42,6 +42,38 @@ interface Material {
   preview: string
 }
 
+interface PosterSectionProps {
+  materials: Material[]
+  selectedMaterials: Material[]
+  onUpload: () => void
+  onSelect: (material: Material) => void
+  uploading: boolean
+  fileInputRef: React.RefObject<HTMLInputElement>
+  onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void
+  onPreview: (url: string) => void
+  onRemove: (id: string) => void
+}
+
+interface OrderSectionProps {
+  materials: Material[]
+  onUpload: () => void
+  uploading: boolean
+  fileInputRef: React.RefObject<HTMLInputElement>
+  onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void
+}
+
+interface DouyinSectionProps {
+  materials: Material[]
+  onUpload: () => void
+  uploading: boolean
+  fileInputRef: React.RefObject<HTMLInputElement>
+  onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void
+}
+
+interface PlaceholderSectionProps {
+  title: string
+}
+
 const posterTemplates = [
   {
     id: "poster-1",
@@ -128,7 +160,17 @@ function getTagColorIdx(tag: string) {
 }
 
 // Section组件示例
-const PosterSection = ({ materials, selectedMaterials, onUpload, onSelect, uploading, fileInputRef, onFileChange, onPreview, onRemove }) => (
+const PosterSection = ({ 
+  materials, 
+  selectedMaterials, 
+  onUpload, 
+  onSelect, 
+  uploading, 
+  fileInputRef, 
+  onFileChange, 
+  onPreview, 
+  onRemove 
+}: PosterSectionProps) => (
   <div>
     <div className="flex items-center justify-between mb-4">
       <Label>选择海报</Label>
@@ -202,7 +244,7 @@ const PosterSection = ({ materials, selectedMaterials, onUpload, onSelect, uploa
   </div>
 )
 
-const OrderSection = ({ materials, onUpload, uploading, fileInputRef, onFileChange }) => (
+const OrderSection = ({ materials, onUpload, uploading, fileInputRef, onFileChange }: OrderSectionProps) => (
   <div>
     <div className="flex items-center justify-between mb-4">
       <Label>选择订单模板</Label>
@@ -218,7 +260,7 @@ const OrderSection = ({ materials, onUpload, uploading, fileInputRef, onFileChan
       </Button>
     </div>
     <div className="grid grid-cols-3 gap-4">
-      {materials.map((item) => (
+      {materials.map((item: Material) => (
         <div key={item.id} className="relative cursor-pointer rounded-lg overflow-hidden group">
           <img src={item.preview || "/placeholder.svg"} alt={item.name} className="w-full aspect-[9/16] object-cover" />
           <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-white">
@@ -230,7 +272,7 @@ const OrderSection = ({ materials, onUpload, uploading, fileInputRef, onFileChan
   </div>
 )
 
-const DouyinSection = ({ materials, onUpload, uploading, fileInputRef, onFileChange }) => (
+const DouyinSection = ({ materials, onUpload, uploading, fileInputRef, onFileChange }: DouyinSectionProps) => (
   <div>
     <div className="flex items-center justify-between mb-4">
       <Label>选择抖音内容</Label>
@@ -246,7 +288,7 @@ const DouyinSection = ({ materials, onUpload, uploading, fileInputRef, onFileCha
       </Button>
     </div>
     <div className="grid grid-cols-3 gap-4">
-      {materials.map((item) => (
+      {materials.map((item: Material) => (
         <div key={item.id} className="relative cursor-pointer rounded-lg overflow-hidden group">
           <img src={item.preview || "/placeholder.svg"} alt={item.name} className="w-full aspect-[9/16] object-cover" />
           <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-white">
@@ -258,8 +300,15 @@ const DouyinSection = ({ materials, onUpload, uploading, fileInputRef, onFileCha
   </div>
 )
 
-const PlaceholderSection = ({ title }) => (
-  <div className="p-8 text-center text-gray-400 border rounded-lg mt-4">{title}功能区待开发</div>
+const PlaceholderSection = ({ title }: PlaceholderSectionProps) => (
+  <div>
+    <div className="flex items-center justify-between mb-4">
+      <Label>{title}</Label>
+    </div>
+    <div className="h-40 flex items-center justify-center border-2 border-dashed rounded-lg">
+      <p className="text-gray-500">暂无内容</p>
+    </div>
+  </div>
 )
 
 export function BasicSettings({ formData, onChange, onNext, scenarios, loadingScenes, planNameEdited }: BasicSettingsProps & { loadingScenes?: boolean, planNameEdited?: boolean }) {
@@ -340,6 +389,25 @@ export function BasicSettings({ formData, onChange, onNext, scenarios, loadingSc
       }
     }
   }, [loadingScenes, scenarios, type, planNameEdited]);
+
+  // 添加 useEffect 来处理初始化的海报数据
+  useEffect(() => {
+    if (formData.posters && Array.isArray(formData.posters)) {
+      const validPosters = formData.posters.filter((poster: any) => 
+        poster && typeof poster === 'object' && 
+        'id' in poster && 
+        'name' in poster && 
+        'type' in poster && 
+        'preview' in poster
+      )
+      setSelectedMaterials(validPosters.map((poster: any) => ({
+        id: poster.id,
+        name: poster.name,
+        type: poster.type || 'poster', // 确保有 type 字段
+        preview: poster.preview
+      })))
+    }
+  }, [formData.posters])
 
   // 展示所有场景
   const displayedScenarios = scenarios
@@ -1055,10 +1123,10 @@ export function BasicSettings({ formData, onChange, onNext, scenarios, loadingSc
                               selected
                                 ? tagColorPoolDark[idx] + " ring-2 ring-blue-400"
                                 : tagColorPoolLight[idx] + " hover:ring-1 hover:ring-gray-300"
-                            }`}
-                            onClick={() => handleTagToggle(tag)}
-                          >
-                            {tag}
+                          }`}
+                          onClick={() => handleTagToggle(tag)}
+                        >
+                          {tag}
                         </div>
                         );
                       })}

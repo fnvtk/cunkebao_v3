@@ -193,15 +193,32 @@ function ApiDocumentationTooltip() {
     })
   }
 
-  const handleOpenApiSettings = (taskId: string) => {
+  const handleOpenApiSettings = async (taskId: string) => {
     const task = tasks.find((t) => t.id === taskId)
     if (task) {
-      setCurrentApiSettings({
-        apiKey: `api_${taskId}_${Math.random().toString(36).substring(2, 10)}`,
-        webhookUrl: `${window.location.origin}/api/scenarios/${channel}/${taskId}/webhook`,
-        taskId,
-      })
-      setShowApiDialog(true)
+      try {
+        const res = await api.get<ApiResponse>(`/v1/plan/detail?planId=${taskId}`)
+        if (res.code === 200 && res.data) {
+          setCurrentApiSettings({
+            apiKey: res.data.apiKey || '', // 使用接口返回的 API 密钥
+            webhookUrl: `${window.location.origin}/api/scenarios/${channel}/${taskId}/webhook`,
+            taskId,
+          })
+          setShowApiDialog(true)
+        } else {
+          toast({
+            title: "获取 API 密钥失败",
+            description: res.msg || "请重试",
+            variant: "destructive",
+          })
+        }
+      } catch (err: any) {
+        toast({
+          title: "获取 API 密钥失败",
+          description: err?.message || "请重试",
+          variant: "destructive",
+        })
+      }
     }
   }
 

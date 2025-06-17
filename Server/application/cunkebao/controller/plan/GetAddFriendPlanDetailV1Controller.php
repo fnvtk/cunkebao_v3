@@ -51,7 +51,6 @@ class GetAddFriendPlanDetailV1Controller extends Controller
                 $newData['createTime'],
                 $newData['updateTime'],
                 $newData['deleteTime'],
-                $newData['apiKey']
             );
 
         
