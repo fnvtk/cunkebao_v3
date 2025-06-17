@@ -6,6 +6,7 @@ interface CallMap
 {
     /**
      * 创建并返回一个对象。
+     * 
      * 如果需要获取需要初始化参数的对象实例，请使用此方法。
      *
      * @param object|string $class
