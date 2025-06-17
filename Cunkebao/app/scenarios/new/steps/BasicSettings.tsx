@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -262,7 +262,7 @@ const PlaceholderSection = ({ title }) => (
   <div className="p-8 text-center text-gray-400 border rounded-lg mt-4">{title}功能区待开发</div>
 )
 
-export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSettingsProps) {
+export function BasicSettings({ formData, onChange, onNext, scenarios, loadingScenes, planNameEdited }: BasicSettingsProps & { loadingScenes?: boolean, planNameEdited?: boolean }) {
   const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false)
   const [isMaterialDialogOpen, setIsMaterialDialogOpen] = useState(false)
   const [isQRCodeOpen, setIsQRCodeOpen] = useState(false)
@@ -325,29 +325,21 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
 
   const searchParams = useSearchParams()
   const type = searchParams.get("type")
-  // 类型映射表
-  const typeMap: Record<string, string> = {
-    haibao: "poster",
-    douyin: "douyin",
-    kuaishou: "kuaishou",
-    xiaohongshu: "xiaohongshu",
-    weibo: "weibo",
-    phone: "phone",
-    gongzhonghao: "gongzhonghao",
-    weixinqun: "weixinqun",
-    payment: "payment",
-    api: "api",
-    order: "order"
-  }
-  const realType = typeMap[type] || type
-  const filteredScenarios = scenarios.filter(scene => scene.type === realType)
-
-  // 只在有唯一匹配时自动选中，否则不自动选中
+  // 初始化时，如果有type参数且scenarios已加载，立即设置选中状态
   useEffect(() => {
-    if (filteredScenarios.length === 1 && formData.sceneId !== filteredScenarios[0].id) {
-      onChange({ sceneId: filteredScenarios[0].id })
+    if (!loadingScenes && scenarios.length > 0 && type && !planNameEdited) {
+      const targetScenario = scenarios.find(scene => String(scene.id) === String(type));
+      if (targetScenario) {
+        onChange({
+          sceneId: String(type),
+          scenario: String(type),
+          planName: targetScenario.name.includes('电话') 
+            ? `电话获客${new Date().toLocaleDateString("zh-CN").replace(/\//g, "")}` 
+            : targetScenario.name + new Date().toLocaleDateString("zh-CN").replace(/\//g, "")
+        });
+      }
     }
-  }, [filteredScenarios, formData.sceneId, onChange])
+  }, [loadingScenes, scenarios, type, planNameEdited]);
 
   // 展示所有场景
   const displayedScenarios = scenarios
@@ -382,11 +374,22 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
   }, [formData, onChange])
 
   const handleScenarioSelect = (scenarioId: string) => {
+    const targetScenario = scenarios.find(s => String(s.id) === String(scenarioId));
+    if (targetScenario) {
     if (scenarioId === "phone") {
-      const today = new Date().toLocaleDateString("zh-CN").replace(/\//g, "")
-      onChange({ ...formData, scenario: scenarioId, planName: `电话获客${today}` })
+        const today = new Date().toLocaleDateString("zh-CN").replace(/\//g, "");
+        onChange({ 
+          sceneId: String(scenarioId), 
+          scenario: String(scenarioId), 
+          planName: `电话获客${today}` 
+        });
     } else {
-      onChange({ ...formData, scenario: scenarioId })
+        onChange({
+          sceneId: String(scenarioId),
+          scenario: String(scenarioId),
+          planName: targetScenario.name + new Date().toLocaleDateString("zh-CN").replace(/\//g, "")
+        });
+      }
     }
   }
 
@@ -498,7 +501,15 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
     setIsPhoneSettingsOpen(false)
   }
 
-  const currentScenario = scenarios.find((s: any) => s.id === formData.scenario);
+  const currentScenario = useMemo(
+    () => scenarios.find((s: any) => String(s.id) === String(formData.scenario)),
+    [scenarios, formData.scenario]
+  )
+
+  // 调试日志
+  useEffect(() => {
+    console.log('formData:', formData, 'currentScenario:', currentScenario);
+  }, [formData, currentScenario]);
 
   const handleUploadPoster = () => {
     fileInputRef.current?.click()
@@ -778,12 +789,12 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
                   type="button"
                   className={
                     "h-10 rounded-lg text-base transition-all w-full " +
-                    (formData.sceneId === scenario.id
+                    (String(formData.sceneId) === String(scenario.id)
                       ? "bg-blue-100 font-bold"
                       : "bg-gray-50 text-gray-800 font-medium hover:bg-blue-50")
                   }
-                  style={formData.sceneId === scenario.id ? { color: "#1677ff" } : {}}
-                  onClick={() => handleScenarioSelect(scenario.id)}
+                  style={String(formData.sceneId) === String(scenario.id) ? { color: "#1677ff" } : {}}
+                  onClick={() => handleScenarioSelect(String(scenario.id))}
                 >
                   {scenario.name.replace("获客", "")}
                 </button>
@@ -809,20 +820,20 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
             />
           </div>
 
-          {formData.scenario && (
+          {currentScenario && (
             <div className="mt-6">
               <Label className="text-base mb-3 block">
-                {scenarios.find((s) => s.id === formData.scenario)?.name}标签（可多选）
+                {currentScenario.name}标签（可多选）
               </Label>
 
               <div className="flex flex-wrap gap-2 mb-4">
-                {(scenarios.find((s) => s.id === formData.scenario)?.scenarioTags || []).map((tag: string) => {
+                {(currentScenario.scenarioTags || []).map((tag: string) => {
                   const idx = getTagColorIdx(tag);
                   const selected = selectedScenarioTags.includes(tag);
                   return (
-                    <div
+                  <div
                       key={tag}
-                      className={`px-3 py-2 rounded-full text-sm cursor-pointer transition-all ${
+                    className={`px-3 py-2 rounded-full text-sm cursor-pointer transition-all ${
                         selected
                           ? tagColorPoolDark[idx] + " ring-2 ring-blue-400"
                           : tagColorPoolLight[idx] + " hover:ring-1 hover:ring-gray-300"
@@ -830,7 +841,7 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
                       onClick={() => handleScenarioTagToggle(tag)}
                     >
                       {tag}
-                    </div>
+                  </div>
                   );
                 })}
               </div>
@@ -897,10 +908,10 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
             </div>
           )}
 
-          {formData.scenario && (
+          {currentScenario && (
             <>
-              {scenarios.find((s) => s.id === formData.scenario)?.type === "social" &&
-                formData.scenario !== "phone" && (
+              {currentScenario.type === "social" &&
+                currentScenario.id !== "phone" && (
                   <div>
                     <Label>绑定账号</Label>
                     <div className="flex gap-2 mt-2">
@@ -940,7 +951,7 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
                   </div>
                 )}
 
-              {formData.scenario === "phone" && (
+              {String(formData.scenario) === "phone" && (
                 <Card className="p-4 border-blue-100 bg-blue-50/50 mt-4">
                   <div className="flex items-center justify-between mb-3">
                     <Label className="text-base font-medium text-blue-700">电话获客设置</Label>
@@ -1001,7 +1012,7 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
                 </Card>
               )}
 
-              {formData.scenario === "phone" && (
+              {String(formData.scenario) === "phone" && (
                 <>
                   <div className="mt-6">
                     <Label className="text-base mb-2 block">通话类型</Label>
@@ -1034,13 +1045,13 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
                   <div className="mt-6">
                     <Label className="text-base mb-2 block">通话标签（可多选）</Label>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {(scenarios.find((s: any) => s.id === formData.scenario)?.scenarioTags || []).map((tag: string) => {
+                      {(currentScenario.scenarioTags || []).map((tag: string) => {
                         const idx = getTagColorIdx(tag);
                         const selected = selectedPhoneTags.includes(tag);
                         return (
-                          <div
+                        <div
                             key={tag}
-                            className={`px-3 py-1.5 rounded-full text-sm cursor-pointer ${
+                          className={`px-3 py-1.5 rounded-full text-sm cursor-pointer ${
                               selected
                                 ? tagColorPoolDark[idx] + " ring-2 ring-blue-400"
                                 : tagColorPoolLight[idx] + " hover:ring-1 hover:ring-gray-300"
@@ -1048,7 +1059,7 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
                             onClick={() => handleTagToggle(tag)}
                           >
                             {tag}
-                          </div>
+                        </div>
                         );
                       })}
                     </div>
@@ -1056,13 +1067,13 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
                 </>
               )}
 
-              {((currentScenario?.type === "material" || currentScenario?.name === "海报获客" || currentScenario?.id === 1) && (
+              {((currentScenario?.type === "material" || currentScenario?.name === "海报获客" || String(currentScenario?.id) === "1") && (
                 <div>
                   {renderSceneExtra()}
-                </div>
-              ))}
+                      </div>
+                    ))}
 
-              {scenarios.find((s: any) => s.id === formData.scenario)?.id === "order" && (
+              {String(currentScenario?.id) === "order" && (
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <Label>订单导入</Label>
@@ -1114,7 +1125,7 @@ export function BasicSettings({ formData, onChange, onNext, scenarios }: BasicSe
                   )}
                 </div>
               )}
-              {formData.scenario === "weixinqun" && (
+              {String(formData.scenario) === "weixinqun" && (
                 <>
                   <div>
                     <Label>群管理设置</Label>

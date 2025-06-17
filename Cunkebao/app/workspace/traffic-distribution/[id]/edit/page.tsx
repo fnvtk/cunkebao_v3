@@ -49,7 +49,7 @@ export default function EditTrafficDistributionPage({ params }: { params: Promis
   const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState<FormData>({
     basicInfo: {
-      name: "",
+    name: "",
       distributeType: 1,
       maxPerDay: 100,
       timeType: 2,
@@ -57,7 +57,7 @@ export default function EditTrafficDistributionPage({ params }: { params: Promis
       endTime: "22:00",
       source: "",
       sourceIcon: "",
-      description: "",
+    description: "",
     },
     targetSettings: {
       targetGroups: [],
@@ -217,4 +217,4 @@ export default function EditTrafficDistributionPage({ params }: { params: Promis
       </div>
     </div>
   )
-}
+  }

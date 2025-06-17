@@ -123,9 +123,9 @@ export function DeviceSelectionDialog({ open, onOpenChange, selectedDevices, onS
         <div className="p-6 pt-4">
           {/* 搜索和筛选 */}
           <div className="flex items-center gap-2 mb-4">
-            <Input
-              placeholder="搜索设备IMEI/备注/微信号"
-              value={searchQuery}
+                <Input
+                  placeholder="搜索设备IMEI/备注/微信号"
+                  value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="flex-1 rounded-lg border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />

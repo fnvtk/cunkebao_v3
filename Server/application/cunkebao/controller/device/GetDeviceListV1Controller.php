@@ -79,7 +79,6 @@ class GetDeviceListV1Controller extends BaseController
             ])
             ->leftJoin('device_wechat_login l', 'd.id = l.deviceId and l.alive =' . DeviceWechatLoginModel::ALIVE_WECHAT_ACTIVE . ' and l.companyId = d.companyId')
             ->leftJoin('wechat_account a', 'l.wechatId = a.wechatId')
-            ->group('l.wechatId')
             ->order('d.id desc');
 
         foreach ($where as $key => $value) {

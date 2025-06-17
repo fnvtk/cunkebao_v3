@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ChevronLeft, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/use-toast"
@@ -20,17 +20,21 @@ const steps = [
 
 export default function NewPlan() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
     planName: "",
     posters: [],
     device: [],
-    remarkType: "phone",
-    greeting: "你好，请通过",
-    addInterval: 1,
+    remarkType: "default",
+    greeting: "",
+    addInterval: 60,
     startTime: "09:00",
     endTime: "18:00",
     enabled: true,
+    sceneId: searchParams.get("type") || "",
+    scenario: searchParams.get("type") || "",
+    planNameEdited: false
   })
 
   // 场景数据
@@ -49,7 +53,8 @@ export default function NewPlan() {
 
   // 更新表单数据
   const onChange = (data: any) => {
-    setFormData((prev) => ({ ...prev, ...data }))
+    if ('planName' in data) setFormData(prev => ({ ...prev, planNameEdited: true }))
+    setFormData(prev => ({ ...prev, ...data }))
   }
 
   // 处理保存
@@ -103,7 +108,7 @@ export default function NewPlan() {
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
-        return <BasicSettings formData={formData} onChange={onChange} onNext={handleNext} scenarios={scenes} />
+        return <BasicSettings formData={formData} onChange={onChange} onNext={handleNext} scenarios={scenes} loadingScenes={loadingScenes} planNameEdited={formData.planNameEdited} />
       case 2:
         return <FriendRequestSettings formData={formData} onChange={onChange} onNext={handleNext} onPrev={handlePrev} />
       case 3:

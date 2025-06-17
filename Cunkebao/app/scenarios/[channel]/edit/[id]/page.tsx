@@ -1,13 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { BasicSettings } from "../../../new/steps/BasicSettings"
 import { FriendRequestSettings } from "../../../new/steps/FriendRequestSettings"
 import { MessageSettings } from "../../../new/steps/MessageSettings"
-import { TagSettings } from "@/scenarios/new/steps/TagSettings"
 import { useRouter } from "next/navigation"
 import { toast } from "@/components/ui/use-toast"
 import { api, ApiResponse } from "@/lib/api"
@@ -16,40 +15,47 @@ const steps = [
   { id: 1, title: "步骤一", subtitle: "基础设置" },
   { id: 2, title: "步骤二", subtitle: "好友申请设置" },
   { id: 3, title: "步骤三", subtitle: "消息设置" },
-  { id: 4, title: "步骤四", subtitle: "流量标签设置" },
 ]
 
-export default function EditAcquisitionPlan({ params }: { params: { channel: string; id: string } }) {
+export default function EditAcquisitionPlan({ params }: { params: Promise<{ channel: string; id: string }> }) {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(true)
   const [scenes, setScenes] = useState<any[]>([])
   const [formData, setFormData] = useState({
     planName: "",
-    accounts: [],
-    dailyLimit: 10,
-    enabled: true,
-    remarkType: "phone",
-    remarkKeyword: "",
+    posters: [],
+    device: [],
+    remarkType: "default",
     greeting: "",
-    addFriendTimeStart: "09:00",
-    addFriendTimeEnd: "18:00",
-    addFriendInterval: 1,
-    maxDailyFriends: 20,
-    messageInterval: 1,
-    messageContent: "",
+    addInterval: 60,
+    startTime: "09:00",
+    endTime: "18:00",
+    enabled: true,
+    sceneId: "",
+    scenario: "",
+    planNameEdited: false
   })
+  const [planNameEdited, setPlanNameEdited] = useState(false);
+
+  const resolvedParams = use(params);
+  const { id, channel } = resolvedParams;
 
   useEffect(() => {
     const fetchPlanData = async () => {
       try {
         const [planRes, scenesRes] = await Promise.all([
-          api.get<ApiResponse>(`/v1/plan/detail?id=${params.id}`),
+          api.get<ApiResponse>(`/v1/plan/detail?planId=${id}`),
           api.get<ApiResponse>("/v1/plan/scenes")
         ])
 
         if (planRes.code === 200 && planRes.data) {
-          setFormData(planRes.data)
+          setFormData({
+            ...planRes.data,
+            device: planRes.data.device || [],
+            selectedDevices: planRes.data.device || [],
+            planNameEdited: false
+          })
         }
 
         if (scenesRes.code === 200 && Array.isArray(scenesRes.data)) {
@@ -68,18 +74,23 @@ export default function EditAcquisitionPlan({ params }: { params: { channel: str
     }
 
     fetchPlanData()
-  }, [params.id])
+  }, [id])
 
   const handleSave = async () => {
     try {
-      const res = await api.put<ApiResponse>(`/v1/plan/update?id=${params.id}`, formData)
-
+      const submitData = {
+        ...formData,
+        device: formData.selectedDevices || formData.device,
+        posters: formData.materials || formData.posters,
+      };
+      const { selectedDevices, materials, ...finalData } = submitData;
+      const res = await api.put<ApiResponse>(`/v1/plan/update?planId=${id}`, finalData);
       if (res.code === 200) {
-        toast({
-          title: "保存成功",
-          description: "获客计划已更新",
-        })
-        router.push(`/scenarios/${params.channel}`)
+      toast({
+        title: "保存成功",
+        description: "获客计划已更新",
+      })
+        router.push(`/scenarios/${channel}`)
       } else {
         toast({
           title: "保存失败",
@@ -113,7 +124,7 @@ export default function EditAcquisitionPlan({ params }: { params: { channel: str
   const isStepValid = () => {
     switch (currentStep) {
       case 1:
-        if (!formData.planName.trim() || formData.accounts.length === 0) {
+        if (!formData.planName.trim() || formData.posters.length === 0) {
           toast({
             title: "请完善信息",
             description: "请填写计划名称并选择至少一个账号",
@@ -133,7 +144,7 @@ export default function EditAcquisitionPlan({ params }: { params: { channel: str
         }
         return true
       case 3:
-        if (!formData.messageContent.trim()) {
+        if (!formData.messageContent || !formData.messageContent.trim()) {
           toast({
             title: "请完善信息",
             description: "请填写消息内容",
@@ -142,11 +153,14 @@ export default function EditAcquisitionPlan({ params }: { params: { channel: str
           return false
         }
         return true
-      case 4:
-        return true
       default:
         return true
     }
+  }
+
+  const onChange = (data: any) => {
+    if ('planName' in data) setPlanNameEdited(true);
+    setFormData(prev => ({ ...prev, ...data }))
   }
 
   if (loading) {
@@ -163,15 +177,11 @@ export default function EditAcquisitionPlan({ params }: { params: { channel: str
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
-        return <BasicSettings formData={formData} onChange={setFormData} onNext={handleNext} scenarios={scenes} isEdit />
+        return <BasicSettings formData={formData} onChange={onChange} onNext={handleNext} scenarios={scenes} loadingScenes={loading} planNameEdited={planNameEdited} />
       case 2:
-        return (
-          <FriendRequestSettings formData={formData} onChange={setFormData} onNext={handleNext} onPrev={handlePrev} />
-        )
+        return <FriendRequestSettings formData={formData} onChange={onChange} onNext={handleNext} onPrev={handlePrev} />
       case 3:
-        return <MessageSettings formData={formData} onChange={setFormData} onNext={handleNext} onPrev={handlePrev} />
-      case 4:
-        return <TagSettings formData={formData} onChange={setFormData} onNext={handleSave} onPrev={handlePrev} />
+        return <MessageSettings formData={formData} onChange={onChange} onNext={handleSave} onPrev={handlePrev} />
       default:
         return null
     }
@@ -182,7 +192,7 @@ export default function EditAcquisitionPlan({ params }: { params: { channel: str
       <div className="max-w-[390px] mx-auto bg-white min-h-screen flex flex-col">
         <header className="sticky top-0 z-10 bg-white border-b">
           <div className="flex items-center h-14 px-4">
-            <Button variant="ghost" size="icon" onClick={() => router.push(`/scenarios/${params.channel}`)}>
+            <Button variant="ghost" size="icon" onClick={() => router.push(`/scenarios/${channel}`)}>
               <ChevronLeft className="h-5 w-5" />
             </Button>
             <h1 className="ml-2 text-lg font-medium">编辑获客计划</h1>
@@ -225,18 +235,7 @@ export default function EditAcquisitionPlan({ params }: { params: { channel: str
 
           <div className="flex-1 px-4 pb-20">{renderStepContent()}</div>
 
-          <div className="sticky bottom-0 left-0 right-0 bg-white border-t p-4">
-            <div className="flex justify-between max-w-[390px] mx-auto">
-              {currentStep > 1 && (
-                <Button variant="outline" onClick={handlePrev}>
-                  上一步
-                </Button>
-              )}
-              <Button className={cn("min-w-[120px]", currentStep === 1 ? "w-full" : "ml-auto")} onClick={handleNext}>
-                {currentStep === steps.length ? "保存" : "下一步"}
-              </Button>
-            </div>
-          </div>
+      
         </div>
       </div>
     </div>

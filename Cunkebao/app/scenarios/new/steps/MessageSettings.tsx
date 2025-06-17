@@ -583,7 +583,7 @@ export function MessageSettings({ formData, onChange, onNext, onPrev }: MessageS
           <Button variant="outline" onClick={onPrev}>
             上一步
           </Button>
-          <Button onClick={onNext}>下一步</Button>
+          <Button onClick={onNext}>提交</Button>
         </div>
       </div>
 

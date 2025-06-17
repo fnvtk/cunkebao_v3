@@ -102,8 +102,8 @@ export function FriendRequestSettings({ formData, onChange, onNext, onPrev }: Fr
   // 设备选择回填
   const handleDeviceSelect = (deviceIds: string[]) => {
     setSelectedDeviceIds(deviceIds)
-    // 只存id，或如需完整对象可自行扩展
-    onChange({ ...formData, selectedDevices: deviceIds })
+    // 同步 device 和 selectedDevices 字段
+    onChange({ ...formData, selectedDevices: deviceIds, device: deviceIds })
   }
 
   return (

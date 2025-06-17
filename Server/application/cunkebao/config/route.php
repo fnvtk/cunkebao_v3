@@ -43,6 +43,8 @@ Route::group('v1/', function () {
         Route::get('copy', 'app\cunkebao\controller\plan\PlanSceneV1Controller@copy');
         Route::delete('delete', 'app\cunkebao\controller\plan\PlanSceneV1Controller@delete');
         Route::post('updateStatus', 'app\cunkebao\controller\plan\PlanSceneV1Controller@updateStatus');
+        Route::get('detail', 'app\cunkebao\controller\plan\GetAddFriendPlanDetailV1Controller@index');
+        Route::PUT('update', 'app\cunkebao\controller\plan\PostUpdateAddFriendPlanV1Controller@index');
     });
 
     // 流量池相关
