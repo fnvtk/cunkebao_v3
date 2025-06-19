@@ -1,0 +1,125 @@
+<?php
+
+namespace app\cunkebao\controller\plan;
+
+use library\ResponseHelper;
+use think\Controller;
+use think\Db;
+
+/**
+ * 对外API接口控制器
+ */
+class PostExternalApiV1Controller extends Controller
+{
+    /**
+     * 验证签名
+     *
+     * @param array $params 请求参数
+     * @param string $apiKey API密钥
+     * @param string $sign 签名
+     * @return bool
+     */
+    private function validateSign($params, $apiKey, $sign)
+    {
+        // 1. 从参数中移除sign和apiKey
+        unset($params['sign'], $params['apiKey']);
+        
+        // 2. 移除空值
+        $params = array_filter($params, function($value) {
+            return !is_null($value) && $value !== '';
+        });
+        
+        // 3. 参数按键名升序排序
+        ksort($params);
+        
+        // 4. 直接拼接参数值
+        $stringToSign = implode('', array_values($params));
+        
+        // 5. 第一次MD5加密
+        $firstMd5 = md5($stringToSign);
+        
+        // 6. 拼接apiKey并第二次MD5加密
+        $expectedSign = md5($firstMd5 . $apiKey);
+        
+        // 7. 比对签名
+        return $expectedSign === $sign;
+    }
+
+    /**
+     * 对外API接口入口
+     *
+     * @return \think\response\Json
+     */
+    public function index()
+    {
+        try {
+            $params = $this->request->param();
+            
+            // 验证必填参数
+            if (empty($params['apiKey'])) {
+                return ResponseHelper::error('apiKey不能为空', 400);
+            }
+            
+            if (empty($params['sign'])) {
+                return ResponseHelper::error('sign不能为空', 400);
+            }
+            
+            if (empty($params['timestamp'])) {
+                return ResponseHelper::error('timestamp不能为空', 400);
+            }
+
+            // 验证时间戳（允许5分钟误差）
+            if (abs(time() - intval($params['timestamp'])) > 300) {
+                return ResponseHelper::error('请求已过期', 400);
+            }
+
+            // 查询API密钥是否存在
+            $plan = Db::name('customer_acquisition_task')
+                ->where('apiKey', $params['apiKey'])
+                ->where('status', 1)
+                ->find();
+
+            if (!$plan) {
+                return ResponseHelper::error('无效的apiKey', 401);
+            }
+
+            // 验证签名
+            if (!$this->validateSign($params,$params['apiKey'], $params['sign'])) {
+                return ResponseHelper::error('签名验证失败', 401);
+            }
+
+            $identifier = !empty($params['wechatId']) ? $params['wechatId'] : $params['phone'];
+
+
+            $trafficPool = Db::name('traffic_pool')->where('identifier', $identifier)->find();
+            if (!$trafficPool) {
+                Db::name('traffic_pool')->insert([
+                    'identifier' => $identifier,
+                    'mobile' => $params['phone']
+                ]);
+            }
+          
+            $taskCustomer = Db::name('task_customer')->where('task_id', $plan['id'])->where('phone', $identifier)->find();
+            if (!$taskCustomer) {
+                Db::name('task_customer')->insert([
+                    'task_id' => $plan['id'],
+                    'phone' => $identifier
+                ]);
+
+                return json([
+                    'code' => 200,
+                    'message' => '新增成功',
+                    'data' => $identifier
+                ]);
+            }else{
+                return json([
+                    'code' => 200,
+                    'message' => '已存在',
+                    'data' => $identifier
+                ]);
+            }
+        } catch (\Exception $e) {
+            return ResponseHelper::error('系统错误: ' . $e->getMessage(), 500);
+        }
+    }
+} 

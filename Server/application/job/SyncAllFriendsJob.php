@@ -12,7 +12,7 @@ class SyncAllFriendsJob
     public function fire(Job $job, $data)
     {
         try {
-            $wechatId = $data['wechatId'];
+            $wechatId = 'Lytiao1';
             $pageIndex = $data['pageIndex'];
             $pageSize = $data['pageSize'];
             $preFriendId = isset($data['preFriendId']) ? $data['preFriendId'] : '';

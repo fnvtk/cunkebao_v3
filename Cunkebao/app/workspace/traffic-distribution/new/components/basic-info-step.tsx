@@ -11,6 +11,8 @@ import { Search, Users } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { api } from "@/lib/api"
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://yishi.com'
+
 interface BasicInfoStepProps {
   onNext: (data: any) => void
   initialData?: {
@@ -44,6 +46,11 @@ export default function BasicInfoStep({ onNext, initialData = {} }: BasicInfoSte
   const [accountPage, setAccountPage] = useState(1)
   const [accountTotal, setAccountTotal] = useState(0)
   const [accountLoading, setAccountLoading] = useState(false)
+
+  // API配置弹窗状态
+  const [apiDialogOpen, setApiDialogOpen] = useState(false)
+  const [apiKey] = useState("naxf1-82h2f-vdwcm-rrhpm-q9hd1") // 这里可以从后端获取或生成
+  const [apiUrl] = useState(`${API_BASE_URL}/v1/plan/api/scenariosz`)
 
   // 拉取账号列表
   useEffect(() => {

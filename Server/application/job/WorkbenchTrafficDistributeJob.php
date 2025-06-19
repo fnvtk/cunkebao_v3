@@ -204,6 +204,13 @@ class WorkbenchTrafficDistributeJob
             ->whereIn('wa.currentDeviceId', $devices)
             ->field('wf.id,wf.wechatAccountId,wf.wechatId,wf.labels,sa.userName,wa.currentDeviceId as deviceId');
 
+            //lllll
+            if($workbench->id == 65){
+                $query->where('wf.accountId',1602);
+            } 
+
+
+
         if(!empty($labels)){
             $query->where(function ($q) use ($labels) {
                 foreach ($labels as $label) {
@@ -212,7 +219,7 @@ class WorkbenchTrafficDistributeJob
             });
         }
         $list = $query->page($page, $pageSize)->order('wf.id DESC')->select();
-
+        
         return $list;
     }
 

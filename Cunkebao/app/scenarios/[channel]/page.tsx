@@ -38,6 +38,8 @@ interface DeviceStats {
   active: number
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://yishi.com'
+
 // API文档提示组件
 function ApiDocumentationTooltip() {
   return (
@@ -118,6 +120,7 @@ function ApiDocumentationTooltip() {
     apiKey: "",
     webhookUrl: "",
     taskId: "",
+    fullUrl: ""
   })
 
   const handleEditPlan = (taskId: string) => {
@@ -201,7 +204,8 @@ function ApiDocumentationTooltip() {
         if (res.code === 200 && res.data) {
           setCurrentApiSettings({
             apiKey: res.data.apiKey || '', // 使用接口返回的 API 密钥
-            webhookUrl: `${window.location.origin}/api/scenarios/${channel}/${taskId}/webhook`,
+            webhookUrl: `${API_BASE_URL}/v1/api/scenarios`,
+            fullUrl: res.data.textUrl.fullUrl || '',
             taskId,
           })
           setShowApiDialog(true)
@@ -404,7 +408,7 @@ function ApiDocumentationTooltip() {
                     variant="outline"
                     className="w-full flex items-center justify-center gap-2 bg-white"
                     onClick={() => {
-                      window.open(`/api/docs/scenarios/${channel}/${currentApiSettings.taskId}`, "_blank")
+                      window.open(`/api/docs/scenarios?planId=${currentApiSettings.taskId}`, "_blank")
                     }}
                   >
                     <Link className="h-4 w-4" />
@@ -417,7 +421,7 @@ function ApiDocumentationTooltip() {
                       size="sm"
                       className="text-xs"
                       onClick={() => {
-                        window.open(`/api/docs/scenarios/${channel}/${currentApiSettings.taskId}#examples`, "_blank")
+                        window.open(`/api/docs/scenarios?planId=${currentApiSettings.taskId}#examples`, "_blank")
                       }}
                     >
                       <span className="text-blue-600">查看代码示例</span>
@@ -428,7 +432,7 @@ function ApiDocumentationTooltip() {
                       size="sm"
                       className="text-xs"
                       onClick={() => {
-                        window.open(`/api/docs/scenarios/${channel}/${currentApiSettings.taskId}#integration`, "_blank")
+                        window.open(`/api/docs/scenarios?planId=${currentApiSettings.taskId}#integration`, "_blank")
                       }}
                     >
                       <span className="text-blue-600">查看集成指南</span>
@@ -446,7 +450,7 @@ function ApiDocumentationTooltip() {
               <div className="bg-gray-50 p-3 rounded-md border border-gray-100">
                 <p className="text-xs text-gray-600 mb-2">使用以下URL可以快速测试接口是否正常工作：</p>
                 <div className="text-xs font-mono bg-white p-2 rounded border border-gray-200 overflow-x-auto">
-                  {`${currentApiSettings.webhookUrl}?name=测试客户&phone=13800138000`}
+                  {`${currentApiSettings.webhookUrl}?${currentApiSettings.fullUrl}`}
                 </div>
               </div>
             </div>
