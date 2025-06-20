@@ -106,8 +106,8 @@ class PostExternalApiV1Controller extends Controller
                     'task_id' => $plan['id'],
                     'phone' => $identifier,
                     'name' => $plan['id'],
-                    'source' => $plan['source'],
-                    'remark' => $plan['remark'],
+                    'source' => !empty($params['source']) ? $params['source'] : '',
+                    'remark' => !empty($params['remark']) ? $params['remark'] : '',
                     'tags' => json_encode($tags,256),
                 ]);
 
