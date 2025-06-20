@@ -101,9 +101,14 @@ class PostExternalApiV1Controller extends Controller
           
             $taskCustomer = Db::name('task_customer')->where('task_id', $plan['id'])->where('phone', $identifier)->find();
             if (!$taskCustomer) {
+                $tags = !empty($plan['tags']) ? is_array($plan['tags']) ? $plan['tags'] : [] :[];
                 Db::name('task_customer')->insert([
                     'task_id' => $plan['id'],
-                    'phone' => $identifier
+                    'phone' => $identifier,
+                    'name' => $plan['id'],
+                    'source' => $plan['source'],
+                    'remark' => $plan['remark'],
+                    'tags' => json_encode($tags,256),
                 ]);
 
                 return json([
