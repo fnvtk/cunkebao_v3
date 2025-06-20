@@ -105,7 +105,7 @@ class PostExternalApiV1Controller extends Controller
                 Db::name('task_customer')->insert([
                     'task_id' => $plan['id'],
                     'phone' => $identifier,
-                    'name' => $plan['id'],
+                    'name' =>  !empty($params['name']) ? $params['name'] : '',
                     'source' => !empty($params['source']) ? $params['source'] : '',
                     'remark' => !empty($params['remark']) ? $params['remark'] : '',
                     'tags' => json_encode($tags,256),
