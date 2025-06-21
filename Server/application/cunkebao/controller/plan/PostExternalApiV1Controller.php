@@ -22,7 +22,7 @@ class PostExternalApiV1Controller extends Controller
     private function validateSign($params, $apiKey, $sign)
     {
         // 1. 从参数中移除sign和apiKey
-        unset($params['sign'], $params['apiKey']);
+        unset($params['sign'], $params['apiKey'],$params['portrait']);
         
         // 2. 移除空值
         $params = array_filter($params, function($value) {
@@ -93,13 +93,20 @@ class PostExternalApiV1Controller extends Controller
 
             $trafficPool = Db::name('traffic_pool')->where('identifier', $identifier)->find();
             if (!$trafficPool) {
-                Db::name('traffic_pool')->insert([
+                $trafficPoolId =Db::name('traffic_pool')->insertGetId([
                     'identifier' => $identifier,
                     'mobile' => $params['phone']
                 ]);
+            }else{
+                $trafficPoolId = $trafficPool['id'];
             }
           
             $taskCustomer = Db::name('task_customer')->where('task_id', $plan['id'])->where('phone', $identifier)->find();
+           
+            // 处理用户画像
+            if(!empty($params['portrait']) && is_array($params['portrait'])){
+              $this->updatePortrait($params['portrait'],$trafficPoolId);
+            }
             if (!$taskCustomer) {
                 $tags = !empty($params['tags']) ?  explode(',',$params['tags']) : [];
                 Db::name('task_customer')->insert([
@@ -126,5 +133,47 @@ class PostExternalApiV1Controller extends Controller
         } catch (\Exception $e) {
             return ResponseHelper::error('系统错误: ' . $e->getMessage(), 500);
         }
+    }
+
+
+
+    /**
+     * 用户画像
+     * @param array $data 用户画像数据
+     * @param int $trafficPoolId 流量池id
+     */
+    public function updatePortrait($data,$trafficPoolId)
+    {
+        if(empty($data) || empty($trafficPoolId) || !is_array($data)){
+            return;
+        }
+
+        $type = !empty($data['type']) ? $data['type'] : 0;
+        $source = !empty($data['source']) ? $data['source'] : 0;
+        $sourceId = !empty($data['sourceId']) ? $data['sourceId'] : 0;
+        $remark = !empty($data['remark']) ? $data['remark'] : '';
+
+        $data = [
+            'trafficPoolId' => $trafficPoolId,
+            'type' => $type,
+            'source' => $source,
+            'sourceId' => $sourceId,
+            'remark' => $remark,
+            'count' => 1,
+            'createTime' => time(),
+            'updateTime' => time(),
+        ];
+
+        $res= Db::name('user_portrait')
+        ->where(['trafficPoolId'=>$trafficPoolId,'type'=>$type,'source'=>$source,'sourceId'=>$sourceId])
+        ->where('createTime','>',time()-1800)
+        ->find();
+        if($res){
+            $count = $res['count'] + 1;
+            Db::name('user_portrait')->where(['id'=>$res['id']])->update(['count'=>$count,'updateTime'=>time()]);
+        }else{
+            Db::name('user_portrait')->insert($data);
+        }
+
     }
 } 
