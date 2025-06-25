@@ -112,49 +112,10 @@ export default function EditAcquisitionPlan({ params }: { params: Promise<{ chan
   }
 
   const handleNext = () => {
-    if (isStepValid()) {
-      if (currentStep === steps.length) {
-        handleSave()
-      } else {
-        setCurrentStep((prevStep) => Math.min(prevStep + 1, steps.length))
-      }
-    }
-  }
-
-  const isStepValid = () => {
-    switch (currentStep) {
-      case 1:
-        if (!formData.planName.trim() || formData.posters.length === 0) {
-          toast({
-            title: "请完善信息",
-            description: "请填写计划名称并选择至少一个账号",
-            variant: "destructive",
-          })
-          return false
-        }
-        return true
-      case 2:
-        if (!formData.greeting.trim()) {
-          toast({
-            title: "请完善信息",
-            description: "请填写好友申请信息",
-            variant: "destructive",
-          })
-          return false
-        }
-        return true
-      case 3:
-        if (!formData.messageContent || !formData.messageContent.trim()) {
-          toast({
-            title: "请完善信息",
-            description: "请填写消息内容",
-            variant: "destructive",
-          })
-          return false
-        }
-        return true
-      default:
-        return true
+    if (currentStep === steps.length) {
+      handleSave()
+    } else {
+      setCurrentStep((prevStep) => Math.min(prevStep + 1, steps.length))
     }
   }
 
