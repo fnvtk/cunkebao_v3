@@ -19,7 +19,7 @@ class FriendTaskController extends BaseController
     public function getlist($pageIndex, $pageSize, $isInner = false)
     {
         // 获取授权token
-        $authorization = trim($this->request->header('authorization', $this->authorization));
+        $authorization = $this->authorization;
         if (empty($authorization)) {
             if($isInner){
                 return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
@@ -70,29 +70,29 @@ class FriendTaskController extends BaseController
      * 添加好友任务
      * @return \think\response\Json
      */
-    public function addFriendTask()
+    public function addFriendTask($data = [])
     {
         // 获取授权token
-        $authorization = trim($this->request->header('authorization', $this->authorization));
+        $authorization =$this->authorization;
         if (empty($authorization)) {
-            return errorJson('缺少授权信息');
+            return json_encode(['code'=>500,'msg'=>'缺少授权信息']);
         }
 
         try {
             // 获取请求参数
-            $phone = $this->request->param('phone', '');
-            $message = $this->request->param('message', '');
-            $remark = $this->request->param('remark', '');
-            $labels = $this->request->param('labels', []);
-            $wechatAccountId = $this->request->param('wechatAccountId', 0);
+            $phone = !empty($data['phone']) ? $data['phone'] : '';
+            $message = !empty($data['message']) ? $data['message'] : '';
+            $remark = !empty($data['remark']) ? $data['remark'] : '';
+            $labels = !empty($data['labels']) ? $data['labels'] : '';
+            $wechatAccountId = !empty($data['wechatAccountId']) ? $data['wechatAccountId'] : '';
 
             // 参数验证
             if (empty($phone)) {
-                return errorJson('手机号不能为空');
+                return json_encode(['code'=>500,'msg'=>'手机号不能为空']);
             }
             
             if (empty($wechatAccountId)) {
-                return errorJson('微信号不能为空');
+                return json_encode(['code'=>500,'msg'=>'微信号不能为空']);
             }
 
             // 构建请求参数
@@ -110,11 +110,11 @@ class FriendTaskController extends BaseController
 
             // 发送请求添加好友任务
             $result = requestCurl($this->baseUrl . 'api/AddFriendByPhoneTask/add', $params, 'POST', $header, 'json');
-            
+
             // 处理响应
-            return successJson([], '添加好友任务创建成功');
+            return json_encode(['code'=>200,'msg'=>'添加好友任务创建成功']);
         } catch (\Exception $e) {
-            return errorJson('添加好友任务失败：' . $e->getMessage());
+            return json_encode(['code'=>500,'msg'=> '添加好友任务失败：' . $e->getMessage()]);
         }
     }
 
