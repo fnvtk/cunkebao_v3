@@ -70,11 +70,11 @@ class WebSocketController extends BaseController
             $result_array = handleApiResponse($result);
 
             if (isset($result_array['access_token']) && !empty($result_array['access_token'])) {
-                    $this->authorized = $result_array['access_token'];
+                $this->authorized = $result_array['access_token'];
                 $this->accountId = $userData['accountId'];
                
-                    // 将token存入缓存，有效期5分钟
-                    Cache::set($cacheKey, $this->authorized, 300);
+                // 将token存入缓存，有效期5分钟
+                Cache::set($cacheKey, $this->authorized, 300);
             } else {
                     return json_encode(['code'=>400,'msg'=>'获取系统授权信息失败']);
                 }
@@ -649,7 +649,7 @@ class WebSocketController extends BaseController
 
         // 消息拼接  msgType(1:文本 3:图片 43:视频 47:动图表情包（gif、其他表情包） 49:小程序/其他：图文、文件)
         // 当前，type 为文本、图片、动图表情包的时候，content为string, 其他情况为对象 {type: 'file/link/...', url: '', title: '', thunmbPath: '', desc: ''}
-            $result = [
+        $params = [
                 "cmdType" => "CmdSendMessage",
                 "content" => $dataArray['content'],
                 "msgSubType" => 0,
@@ -660,14 +660,15 @@ class WebSocketController extends BaseController
                 "wechatFriendId" => $dataArray['wechatFriendId'],
             ];
 
-            $result = json_encode($result);
-            $this->client->send($result);
-            $message = $this->client->receive();
-            $message = json_decode($message, 1);
-            //关闭WS链接
-            $this->client->close();
-            //Log::write('WS个人消息发送');
-        return $message;
+        // 发送请求
+        $this->client->send(json_encode($params));
+        // 接收响应
+        $response = $this->client->receive();
+        $message = json_decode($response, true);
+
+        if(!empty($message)){
+            return json_encode(['code'=>500,'msg'=>'信息发送成功','data'=>$message]);
+        }
     }
 
     /**
