@@ -152,6 +152,7 @@ class PostExternalApiV1Controller extends Controller
         $source = !empty($data['source']) ? $data['source'] : 0;
         $sourceData = !empty($data['sourceData']) ? $data['sourceData'] : [];
         $remark = !empty($data['remark']) ? $data['remark'] : '';
+        $uniqueId = !empty($data['uniqueId']) ? $data['uniqueId'] : 0;
         ksort($sourceData);
         $sourceData = json_encode($sourceData,256);
 
@@ -162,13 +163,14 @@ class PostExternalApiV1Controller extends Controller
             'source' => $source,
             'sourceData' => $sourceData,
             'remark' => $remark,
+            'uniqueId' => $uniqueId,
             'count' => 1,
             'createTime' => time(),
             'updateTime' => time(),
         ];
 
         $res= Db::name('user_portrait')
-        ->where(['trafficPoolId'=>$trafficPoolId,'type'=>$type,'source'=>$source,'sourceData'=>$sourceData])
+        ->where(['trafficPoolId'=>$trafficPoolId,'type'=>$type,'source'=>$source,'uniqueId'=>$uniqueId])
         ->where('createTime','>',time()-1800)
         ->find();
         if($res){
