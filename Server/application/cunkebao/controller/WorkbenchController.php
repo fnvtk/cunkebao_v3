@@ -754,7 +754,7 @@ class WorkbenchController extends Controller
 
         // 软删除
         $workbench->isDel = 1;
-        $workbench->deleteTime = date('Y-m-d H:i:s');
+        $workbench->deleteTime = time();
         $workbench->save();
 
         return json(['code' => 200, 'msg' => '删除成功']);
