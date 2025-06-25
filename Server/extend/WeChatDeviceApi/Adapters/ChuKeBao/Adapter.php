@@ -2,6 +2,7 @@
 
 namespace WeChatDeviceApi\Adapters\ChuKeBao;
 
+use think\facade\Env;
 use WeChatDeviceApi\Contracts\WeChatServiceInterface;
 use WeChatDeviceApi\Exceptions\ApiException;
 // 如果有 Client.php
@@ -156,6 +157,7 @@ class Adapter implements WeChatServiceInterface
             ->whereRaw("id % $process_count_for_status_0 = {$current_worker_id}")
             ->limit(50)
             ->select();
+
         if ($tasks) {
 
             foreach ($tasks as $task) {
@@ -164,23 +166,22 @@ class Adapter implements WeChatServiceInterface
 
                 $task_info = $this->getCustomerAcquisitionTask($task_id);
 
-                if (empty($task_info['status']) || empty($task_info['reqConf']) || empty($task_info['reqConf']['devices'])) {
+                if (empty($task_info['status']) || empty($task_info['reqConf']) || empty($task_info['reqConf']['device'])) {
                     continue;
                 }
 
+                $wechatIdAccountIdMap = $this->getWeChatIdsAccountIdsMapByDeviceIds($task_info['reqConf']['device']);
 
-                $wechatIdAccountIdMap = $this->getWeChatIdsAccountIdsMapByDeviceIds($task_info['reqConf']['devices']);
                 if (empty($wechatIdAccountIdMap)) {
                     continue;
                 }
 
                 $friendAddTaskCreated = false;
-
-                foreach ($wechatIdAccountIdMap as $wechatId => $accountId) {
-
+                foreach ($wechatIdAccountIdMap as $accountId => $wechatId) {
 
                     // 是否已经是好友的判断，如果已经是好友，直接break; 但状态还是维持1，让另外一个进程处理发消息的逻辑
-                    if ($this->checkIfIsWeChatFriendByPhone($wechatId, $task['phone'])) {
+                    $isFriend = $this->checkIfIsWeChatFriendByPhone($wechatId, $task['phone']);
+                    if ($isFriend) {
                         $task['processed_wechat_ids'] = $task['processed_wechat_ids'] . ',' . $wechatId; // 处理失败任务用，用于过滤已处理的微信号
                         break;
                     }
@@ -191,6 +192,8 @@ class Adapter implements WeChatServiceInterface
                         continue;
                     }
 
+
+
                     // 判断24h内加的好友数量，friend_task  先固定10个人 getLast24hAddedFriendsCount
                     $last24hAddedFriendsCount = $this->getLast24hAddedFriendsCount($wechatId);
                     if ($last24hAddedFriendsCount >= 10) {
@@ -200,17 +203,23 @@ class Adapter implements WeChatServiceInterface
                     // 采取乐观尝试的策略，假设第一个可以添加的人可以添加成功的; 回头再另外一个任务进程去判断
 
                     // 创建好友添加任务， 对接触客宝
-                    $conf = array_merge($task_info['reqConf'], ['task_name' => $task_info['name']]);
+
+                    $tags = array_merge($task_info['tagConf']['customTags'],$task_info['tagConf']['scenarioTags']);
+                    $conf = array_merge($task_info['reqConf'], ['task_name' => $task_info['name'],'tags' => $tags]);
+
                     $this->createFriendAddTask($accountId, $task['phone'], $conf);
                     $friendAddTaskCreated = true;
                     $task['processed_wechat_ids'] = $task['processed_wechat_ids'] . ',' . $wechatId; // 处理失败任务用，用于过滤已处理的微信号
-
                     break;
                 }
-
                 Db::name('task_customer')
                     ->where('id', $task['id'])
-                    ->update(['status' => $friendAddTaskCreated ? 1 : 3, 'fail_reason' => $friendAddTaskCreated ? '' : '所有账号不可添加', 'updated_at' => time()]); // ~~不用管，回头再添加再判断即可~~
+                    ->update([
+                        'status' => $friendAddTaskCreated ? 1 : 3,
+                        'fail_reason' => $friendAddTaskCreated ? '' : '所有账号不可添加',
+                        'processed_wechat_ids' => $task['processed_wechat_ids'],
+                        'updated_at' => time()
+                    ]); // ~~不用管，回头再添加再判断即可~~
                 // 失败一定是另一个进程/定时器在检查的
 
             }
@@ -232,12 +241,11 @@ class Adapter implements WeChatServiceInterface
         }
 
         foreach ($tasks as $task) {
-
             $task_id = $task['task_id'];
-
             $task_info = $this->getCustomerAcquisitionTask($task_id);
 
-            if (empty($task_info['status']) || empty($task_info['reqConf']) || empty($task_info['reqConf']['devices'])) {
+
+            if (empty($task_info['status']) || empty($task_info['reqConf']) || empty($task_info['reqConf']['device'])) {
                 continue;
             }
 
@@ -246,27 +254,28 @@ class Adapter implements WeChatServiceInterface
             }
 
             $weChatIds = explode(',', $task['processed_wechat_ids']);
-
             $passedWeChatId = '';
 
             foreach ($weChatIds as $wechatId) {
 
                 // 先是否是好友，如果不是好友，先查询执行状态，看是否还能以及需要换账号继续添加，还是直接更新状态为3
                 // 如果添加成功，先更新为2，然后去发消息（先判断有无消息设置，发消息的log记录？）
-                if ($this->checkIfIsWeChatFriendByPhone($wechatId, $task['phone'])) {
+                $isFriend = $this->checkIfIsWeChatFriendByPhone($wechatId, $task['phone']);
+                if ($isFriend) {
                     $passedWeChatId = $wechatId;
                     break;
                 }
             }
 
-            if ($passedWeChatId && !empty($task_info['msgConf'])) {
 
+
+
+            if ($passedWeChatId && !empty($task_info['msgConf'])) {
                 Db::name('task_customer')
                     ->where('id', $task['id'])
                     ->update(['status' => 4, 'updated_at' => time()]);
 
                 $wechatFriendRecord = $this->getWeChatAccoutIdAndFriendIdByWeChatIdAndFriendPhone($passedWeChatId, $task['phone']);
-
                 $msgConf = is_string($task_info['msgConf']) ? json_decode($task_info['msgConf'], 1) : $task_info['msgConf'];
 
                 $wechatFriendRecord && $this->sendMsgToFriend($wechatFriendRecord['id'], $wechatFriendRecord['wechatAccountId'], $msgConf);
@@ -315,51 +324,100 @@ class Adapter implements WeChatServiceInterface
         //     "wechatChatroomId" => 0,
         //     "wechatFriendId" => $dataArray['wechatFriendId'],
         // ];
-        $wsController = new WebSocketController([
-            'userName' => $this->config['username'],
-            'password' => $this->config['password']
-        ]);
+        $toAccountId = '';
+        $username = Env::get('api.username', '');
+        $password = Env::get('api.password', '');
+        if (!empty($username) || !empty($password)) {
+            $toAccountId = Db::name('users')->where('account',$username)->value('s2_accountId');
+        }
+
+        // 建立WebSocket
+        $wsController = new WebSocketController(['userName' => $username, 'password' => $password, 'accountId' => $toAccountId]);
+
 
         $gap = 0;
-        foreach ($msgConf['content'] as $content) {
-            $msgType = 0;
+        foreach ($msgConf as $messages) {
+            foreach ($messages['messages'] as $content) {
 
-            if ($content['type'] == 'text') {
-                $msgType = 1;
-            }
-            if ($content['type'] == 'image') {
-                $msgType = 3;
-            }
-            if ($content['type'] == 'sticker') {
-                $msgType = 47;
-            }
-            if ($content['type'] == 'video') {
-                $msgType = 43;
-            }
+                $msgType = 0;
+                $detail = '';
+                switch ($content['type']) {
+                    case 'text':
+                        $msgType = 1;
+                        $detail = $content['content'];
+                        break;
+                    case 'image':
+                        $msgType = 3;
+                        $detail = $content['content'];
+                        break;
+                    case 'video':
+                        $msgType = 43;
+                        $detail = $content['content'];
+                        break;
 
-            if ($msgType == 0) {
-                $msgType = 49;
-            }
+                    case 'file':
+                        $msgType = 49;
+                        
+                        $detail = [
+                            'type' => 'file',
+                            'title' => $content['content'][0]['name'],
+                            'url' => $content['content'][0]['url'],
+                        ];
+                        $detail = json_encode($detail);
+                        break;
 
-            if ($gap) {
-                Timer::add($gap, function () use ($wsController, $friendId, $wechatAccountId, $msgType, $content) {
+                    case 'miniprogram':
+                        $msgType = 49;
+                        $detail = '';
+                        break;
+
+                    case 'link':
+                        $msgType = 49;
+                        $detail = [
+                            'type' => 'link',
+                            'title' => $content['title'],
+                            'url' => $content['linkUrl'],
+                            'thumbPath' => $content['cover'],
+                            'desc' => $content['description'],
+                        ];
+                        $detail = json_encode($detail);
+                        break;
+
+                    case 'group':
+                        $msgType = 49;
+                        $detail = '';
+                        break;
+                    default :
+                        $msgType = 47;
+                        $detail = $content['content'];
+                        break;
+                }
+
+
+                if(empty($detail)){
+                    continue;
+                }
+
+                if ($gap) {
+                    Timer::add($gap, function () use ($wsController, $friendId, $wechatAccountId, $msgType, $content,$detail) {
+                        $wsController->sendPersonal([
+                            'wechatFriendId' => $friendId,
+                            'wechatAccountId' => $wechatAccountId,
+                            'msgType' => $msgType,
+                            'content' => $detail,
+                        ]);
+                    }, [], false);
+                } else {
                     $wsController->sendPersonal([
                         'wechatFriendId' => $friendId,
                         'wechatAccountId' => $wechatAccountId,
                         'msgType' => $msgType,
-                        'content' => $content['detail'],
+                        'content' => $detail,
                     ]);
-                }, [], false);
-            } else {
-                $wsController->sendPersonal([
-                    'wechatFriendId' => $friendId,
-                    'wechatAccountId' => $wechatAccountId,
-                    'msgType' => $msgType,
-                    'content' => $content['detail'],
-                ]);
-            }
+                }
 
-            !empty($msgConf['send_gap']) && $gap += $msgConf['send_gap'];
+                !empty($content['sendInterval']) && $gap += $content['sendInterval'];
+            }
         }
 
     }
@@ -370,12 +428,16 @@ class Adapter implements WeChatServiceInterface
 
         // 先读取缓存
         $task_info = cache('task_info_' . $id);
-        if (!$task_info) {
+        if (!empty($task_info)) {
             $task_info = Db::name('customer_acquisition_task')
                 ->where('id', $id)
                 ->find();
-
             if ($task_info) {
+                $task_info['sceneConf'] = json_decode($task_info['sceneConf'], true);
+                $task_info['reqConf'] = json_decode($task_info['reqConf'], true);
+                $task_info['msgConf'] = json_decode($task_info['msgConf'], true);
+                $task_info['tagConf'] = json_decode($task_info['tagConf'], true);
+
                 cache('task_info_' . $id, $task_info);
             } else {
                 return [];
@@ -395,7 +457,7 @@ class Adapter implements WeChatServiceInterface
         try {
             $id = Db::table('s2_wechat_friend')
                 ->where('ownerWechatId', $wxId)
-                ->where('phone', 'like', $phone . '%')
+                ->where('phone|alias|wechatId', 'like', $phone . '%')
                 ->order('createTime', 'desc')
                 ->value('id');
 
@@ -415,7 +477,7 @@ class Adapter implements WeChatServiceInterface
 
         return Db::table('s2_wechat_friend')
             ->where('ownerWechatId', $wechatId)
-            ->where('phone', 'like', $phone . '%')
+            ->where('phone|alias|wechatId', 'like', $phone . '%')
             ->field('id,wechatAccountId,passTime,createTime')
             ->find();
     }
@@ -430,7 +492,7 @@ class Adapter implements WeChatServiceInterface
         try {
             $record = Db::table('s2_wechat_friend')
                 ->where('ownerWechatId', $wxId)
-                ->where('phone', 'like', $phone . '%')
+                ->where('phone|alias|wechatId', 'like', $phone . '%')
                 ->field('id,createTime,passTime')
                 ->find();
 
@@ -548,14 +610,14 @@ class Adapter implements WeChatServiceInterface
             return true;
         }
 
-        if (!empty($conf['add_gap']) && isset($record['createTime']) && $record['createTime'] > time() - $conf['add_gap'] * 60) {
+        if (!empty($conf['addFriendInterval']) && isset($record['createTime']) && $record['createTime'] > time() - $conf['addFriendInterval'] * 60) {
             return false;
         }
 
-        if (!empty($conf['allow_add_time_between']) && count($conf['allow_add_time_between']) == 2) {
+        if (!empty($conf['startTime']) && !empty($conf['endTime'])) {
             $currentTime = date('H:i');
-            $startTime = $conf['allow_add_time_between'][0];
-            $endTime = $conf['allow_add_time_between'][1];
+            $startTime = $conf['startTime'];
+            $endTime = $conf['endTime'];
 
             if ($currentTime >= $startTime && $currentTime <= $endTime) {
                 return true;
@@ -644,75 +706,22 @@ class Adapter implements WeChatServiceInterface
             'phone' => $phone,
             'message' => $message,
             'remark' => $remark,
-            // 'labels' => is_array($labels) ? $labels : [$labels],
             'labels' => $labels,
             'wechatAccountId' => $wechatAccountId
         ];
-        $client = new Client([
-            'base_uri' => $this->config['base_url'],
-            'timeout' => 30, // 设置超时时间，可以根据需要调整
-        ]);
-        // 准备请求头
-        $headers = [
-            'Content-Type' => 'application/json',
-            'client' => 'system'
-        ];
 
-        $headers['Authorization'] = 'bearer ' . $authorization;
-        try {
-            $response = $client->request('POST', 'api/AddFriendByPhoneTask/add', [
-                'headers' => $headers,
-                'json' => $params,
-            ]);
-
-            $statusCode = $response->getStatusCode();
-
-            $body = $response->getBody()->getContents();
-            $result = json_decode($body, true);
-
-            // 返回结果，包含状态码和响应体
-            return [
-                'status_code' => $statusCode,
-                'body' => $result
-            ];
-        } catch (RequestException $e) {
-            // 处理请求异常，可以获取错误响应
-            if ($e->hasResponse()) {
-                $statusCode = $e->getResponse()->getStatusCode();
-
-                if ($statusCode == 401) {
-                    $authorization = AuthService::getSystemAuthorization(false);
-                    return $this->addFriendTaskApi($wechatAccountId, $phone, $message, $remark, $labels, $authorization);
-                }
-
-                $body = $e->getResponse()->getBody()->getContents();
-                $result = json_decode($body, true);
-
-                return [
-                    'status_code' => $statusCode,
-                    'body' => $result,
-                    'error' => true
-                ];
-            }
-
-            Log::error("Error in addFriendTaskApi (wechatAccountId: {$wechatAccountId}, phone: {$phone}, message: {$message}, remark: {$remark}, labels: " . json_encode($labels) . "): " . $e->getMessage());
-
-            // 没有响应的异常
-            return [
-                'status_code' => 0,
-                'body' => null,
-                'error' => true,
-                'message' => $e->getMessage()
-            ];
-        } catch (GuzzleException $e) {
-            // 处理其他 Guzzle 异常
-            return [
-                'status_code' => 0,
-                'body' => null,
-                'error' => true,
-                'message' => $e->getMessage()
-            ];
+        //准备发起添加请求
+        $friendController = new FriendTaskController();
+        $result = $friendController->addFriendTask($params);
+        $result = json_decode($result, true);
+        if ($result['code'] == 200){
+            return $result;
+        }else{
+            $authorization = AuthService::getSystemAuthorization(false);
+            return $this->addFriendTaskApi($wechatAccountId, $phone, $message, $remark, $labels, $authorization);
         }
+
+
     }
 
     // 创建添加好友任务/执行添加
@@ -722,21 +731,29 @@ class Adapter implements WeChatServiceInterface
             return;
         }
 
-        $remark = $phone . '-' . $conf['task_name'] ?? '获客';
+        switch ($conf['remarkType']){
+            case 'phone':
+                $remark = $phone . '-' . $conf['task_name'];
+                break;
+            case 'nickname':
+                $remark = '';
+                break;
+            case 'source':
+                $remark =  $conf['task_name'];
+                break;
+            default:
+                $remark = '';
+                break;
+        }
+
 
         $tags = [];
         if (!empty($conf['tags'])) {
             if (is_array($conf['tags'])) {
                 $tags = $conf['tags'];
             }
-
-            if (strpos($conf['tags'], ',') !== false) {
-                $tags = explode(',', $conf['tags']);
-            }
         }
-
-        $this->addFriendTaskApi($wechatAccountId, $phone, $conf['hello_msg'] ?? '你好', $remark, $tags);
-
+        $res = $this->addFriendTaskApi($wechatAccountId, $phone, $conf['greeting'] ?? '你好', $remark, $tags);
     }
 
     /* TODO: 以上方法待实现，基于/参考 application/api/controller/WebSocketController.php 去实现；以下同步脚本用的方法转移到其他类 */

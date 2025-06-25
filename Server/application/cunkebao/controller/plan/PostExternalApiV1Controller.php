@@ -150,14 +150,17 @@ class PostExternalApiV1Controller extends Controller
 
         $type = !empty($data['type']) ? $data['type'] : 0;
         $source = !empty($data['source']) ? $data['source'] : 0;
-        $sourceId = !empty($data['sourceId']) ? $data['sourceId'] : 0;
+        $sourceData = !empty($data['sourceData']) ? $data['sourceData'] : [];
         $remark = !empty($data['remark']) ? $data['remark'] : '';
+        ksort($sourceData);
+        $sourceData = json_encode($sourceData,256);
+
 
         $data = [
             'trafficPoolId' => $trafficPoolId,
             'type' => $type,
             'source' => $source,
-            'sourceId' => $sourceId,
+            'sourceData' => $sourceData,
             'remark' => $remark,
             'count' => 1,
             'createTime' => time(),
@@ -165,7 +168,7 @@ class PostExternalApiV1Controller extends Controller
         ];
 
         $res= Db::name('user_portrait')
-        ->where(['trafficPoolId'=>$trafficPoolId,'type'=>$type,'source'=>$source,'sourceId'=>$sourceId])
+        ->where(['trafficPoolId'=>$trafficPoolId,'type'=>$type,'source'=>$source,'sourceData'=>$sourceData])
         ->where('createTime','>',time()-1800)
         ->find();
         if($res){
