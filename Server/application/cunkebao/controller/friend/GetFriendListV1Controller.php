@@ -33,10 +33,10 @@ class GetFriendListV1Controller extends BaseController
 
             $where = [];
             if ($this->getUserInfo('isAdmin') == 1) {
-                $where[] = ['wf.companyId','=',$this->getUserInfo('companyId')];
+                $where[] = ['dw.companyId','=',$this->getUserInfo('companyId')];
                 $where[] = ['wf.deleteTime','=',0];
             } else {
-                $where[] = ['wf.companyId','=',$this->getUserInfo('companyId')];
+                $where[] = ['dw.companyId','=',$this->getUserInfo('companyId')];
                 $where[] = ['wf.deleteTime','=',0];
                 //$where[] = ['wf.userId','=',$this->getUserInfo('id')];
             }
@@ -56,11 +56,11 @@ class GetFriendListV1Controller extends BaseController
                 ->field(['wa1.nickname','wa1.avatar','wa1.alias','wf.id','wf.wechatId','wa2.nickname as ownerNickname','wa2.alias as ownerAlias','wa2.wechatId as ownerWechatId','wf.createTime'])
                 ->Join('wechat_account wa1','wf.wechatId = wa1.wechatId')
                 ->Join('wechat_account wa2','wf.ownerWechatId = wa2.wechatId')
-                ->join('device_wechat_login dw','wa2.wechatId = dw.wechatId')
+                ->join('device_wechat_login dw','wa2.wechatId = dw.wechatId AND alive = 1')
                 ->where($where);
 
             $total = $data->count();
-            $list = $data->page($page, $limit)->order('wf.id DESC')->select();
+            $list = $data->page($page, $limit)->order('wf.id DESC')->group('wf.id')->select();
 
 
 

@@ -877,7 +877,6 @@ class ContentLibraryController extends Controller
                 ->whereIn('id', $friendIds)
                 ->where('isDeleted', 0)
                 ->select();
-
             if (empty($friends)) {
                 return [
                     'status' => 'failed',
@@ -902,8 +901,6 @@ class ContentLibraryController extends Controller
                 }
 
 
-
-
                 // 从s2_wechat_moments表获取朋友圈数据
                 $moments = Db::table('s2_wechat_moments')
                     ->where([
@@ -911,7 +908,7 @@ class ContentLibraryController extends Controller
                         'wechatAccountId' => $friend['wechatAccountId']
                     ])
                     ->order('createTime', 'desc')
-                    ->where('createTime', '>=', time() - 86400)
+                    //->where('create_time', '>=', time() - 86400)
                     ->select();
 
                 if (empty($moments)) {
