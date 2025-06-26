@@ -109,6 +109,7 @@ class PostExternalApiV1Controller extends Controller
             }
             if (!$taskCustomer) {
                 $tags = !empty($params['tags']) ?  explode(',',$params['tags']) : [];
+                $siteTags = !empty($params['siteTags']) ?  explode(',',$params['siteTags']) : [];
                 Db::name('task_customer')->insert([
                     'task_id' => $plan['id'],
                     'phone' => $identifier,
@@ -116,6 +117,7 @@ class PostExternalApiV1Controller extends Controller
                     'source' => !empty($params['source']) ? $params['source'] : '',
                     'remark' => !empty($params['remark']) ? $params['remark'] : '',
                     'tags' => json_encode($tags,256),
+                    'siteTags' => json_encode($siteTags,256),
                 ]);
 
                 return json([
