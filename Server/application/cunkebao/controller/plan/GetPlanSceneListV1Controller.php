@@ -117,7 +117,8 @@ class GetPlanSceneListV1Controller extends BaseController
     {
         return Db::name('customer_acquisition_task')
             ->where('sceneId', $sceneId)
-            ->where('status', 1)
+            ->where('companyId',$this->getUserInfo('companyId'))
+            ->where('deleteTime', 0)
             ->count();
     }
 

@@ -50,6 +50,17 @@ class PlanSceneV1Controller extends BaseController
                     $val['reqConf'] = json_decode($val['reqConf'],true);
                     $val['msgConf'] = json_decode($val['msgConf'],true);
                     $val['tagConf'] = json_decode($val['tagConf'],true);
+
+                    $val['acquiredCount'] = Db::name('task_customer')->where('task_id',$val['id'])->count();
+                    $val['addedCount'] = Db::name('task_customer')->where('task_id',$val['id'])->whereIn('status',[1,2,3,4])->count();
+                    $val['passCount'] = Db::name('task_customer')->where('task_id',$val['id'])->where('status',4)->count();
+
+                    $val['passRate'] = 0;
+                    if(!empty($val['passCount']) && !empty($val['addedCount'])){
+                        $passRate = ($val['addedCount'] / $val['passCount']) * 100;
+                        $val['passRate'] = number_format($passRate,2);
+                    }
+
                 }
                 unset($val);
 

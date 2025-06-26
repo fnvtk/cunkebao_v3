@@ -51,9 +51,9 @@ export function ScenarioAcquisitionCard({
       ? task.reqConf.selectedDevices.length
       : 0
   // 获客数和已添加数可根据 msgConf 或其它字段自定义
-  const acquiredCount = task.stats?.acquired ?? 0
-  const addedCount = task.stats?.added ?? 0
-  const passRate = calculatePassRate(acquiredCount, addedCount)
+  const acquiredCount = task.acquiredCount ?? 0
+  const addedCount = task.addedCount ?? 0
+  const passRate = task.passRate ?? 0
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -166,7 +166,7 @@ export function ScenarioAcquisitionCard({
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 mb-4">
+      <div className="grid grid-cols-2 gap-2 mb-4">
         <a href={`/scenarios/${channel}/devices`} className="block">
           <Card className="p-2 hover:bg-gray-50 transition-colors cursor-pointer">
             <div className="text-sm text-gray-500 mb-1">设备数</div>
@@ -198,10 +198,6 @@ export function ScenarioAcquisitionCard({
         <div className="flex items-center space-x-2">
           <Clock className="w-4 h-4" />
           <span>上次执行：{task.lastUpdated}</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Clock className="w-4 h-4" />
-          <span>下次执行：{task.nextExecutionTime}</span>
         </div>
       </div>
     </Card>
