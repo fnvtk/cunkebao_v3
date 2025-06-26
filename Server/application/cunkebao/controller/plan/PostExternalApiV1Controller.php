@@ -105,7 +105,7 @@ class PostExternalApiV1Controller extends Controller
            
             // 处理用户画像
             if(!empty($params['portrait']) && is_array($params['portrait'])){
-              $this->updatePortrait($params['portrait'],$trafficPoolId);
+              $this->updatePortrait($params['portrait'],$trafficPoolId,$plan['companyId']);
             }
             if (!$taskCustomer) {
                 $tags = !empty($params['tags']) ?  explode(',',$params['tags']) : [];
@@ -126,6 +126,11 @@ class PostExternalApiV1Controller extends Controller
                     'data' => $identifier
                 ]);
             }else{
+                $siteTags = !empty($params['siteTags']) ?  explode(',',$params['siteTags']) : [];
+                
+                // 更新新老标签数据，实现去重
+                $this->updateSiteTags($taskCustomer['id'], $siteTags);
+
                 return json([
                     'code' => 200,
                     'message' => '已存在',
@@ -137,14 +142,12 @@ class PostExternalApiV1Controller extends Controller
         }
     }
 
-
-
     /**
      * 用户画像
      * @param array $data 用户画像数据
      * @param int $trafficPoolId 流量池id
      */
-    public function updatePortrait($data,$trafficPoolId)
+    public function updatePortrait($data,$trafficPoolId,$companyId)
     {
         if(empty($data) || empty($trafficPoolId) || !is_array($data)){
             return;
@@ -160,6 +163,7 @@ class PostExternalApiV1Controller extends Controller
 
 
         $data = [
+            'companyId' => $companyId,
             'trafficPoolId' => $trafficPoolId,
             'type' => $type,
             'source' => $source,
@@ -182,5 +186,53 @@ class PostExternalApiV1Controller extends Controller
             Db::name('user_portrait')->insert($data);
         }
 
+    }
+
+    /**
+     * 更新站点标签数据，实现去重
+     * @param int $taskCustomerId 任务客户ID
+     * @param array $newSiteTags 新的站点标签数组
+     */
+    private function updateSiteTags($taskCustomerId, $newSiteTags)
+    {
+        if (empty($taskCustomerId) || empty($newSiteTags) || !is_array($newSiteTags)) {
+            return;
+        }
+
+        try {
+            // 获取当前任务客户的站点标签
+            $taskCustomer = Db::name('task_customer')->where('id', $taskCustomerId)->find();
+            if (!$taskCustomer) {
+                return;
+            }
+
+            // 解析现有的站点标签
+            $existingSiteTags = [];
+            if (!empty($taskCustomer['siteTags'])) {
+                $existingSiteTags = json_decode($taskCustomer['siteTags'], true);
+                if (!is_array($existingSiteTags)) {
+                    $existingSiteTags = [];
+                }
+            }
+
+            // 合并新老标签并去重
+            $mergedSiteTags = array_merge($existingSiteTags, $newSiteTags);
+            $uniqueSiteTags = array_unique($mergedSiteTags);
+
+            // 过滤空值并重新索引数组
+            $uniqueSiteTags = array_values(array_filter($uniqueSiteTags, function($tag) {
+                return !empty(trim($tag));
+            }));
+
+            // 更新数据库中的站点标签
+            Db::name('task_customer')->where('id', $taskCustomerId)->update([
+                'siteTags' => json_encode($uniqueSiteTags, JSON_UNESCAPED_UNICODE),
+                'updateTime' => time()
+            ]);
+
+        } catch (\Exception $e) {
+            // 记录错误日志，但不影响主流程
+            \think\facade\Log::error('更新站点标签失败: ' . $e->getMessage());
+        }
     }
 } 
