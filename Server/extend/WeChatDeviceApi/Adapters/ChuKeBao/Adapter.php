@@ -235,7 +235,7 @@ class Adapter implements WeChatServiceInterface
     {
 
         $tasks = Db::name('task_customer')
-            ->where('status', 1)
+            ->whereIn('status', [1,3])
             ->limit(50)
             ->select();
 
