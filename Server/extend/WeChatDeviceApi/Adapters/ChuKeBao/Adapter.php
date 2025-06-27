@@ -183,7 +183,7 @@ class Adapter implements WeChatServiceInterface
 
                     // 是否已经是好友的判断，如果已经是好友，直接break; 但状态还是维持1，让另外一个进程处理发消息的逻辑
                     $isFriend = $this->checkIfIsWeChatFriendByPhone($wechatId, $task['phone']);
-                    if ($isFriend) {
+                    if (!empty($isFriend)) {
                         $friendAddTaskCreated = true;
                         $task['processed_wechat_ids'] = $task['processed_wechat_ids'] . ',' . $wechatId; // 处理失败任务用，用于过滤已处理的微信号
                         break;
