@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ChevronsUpDown } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
-import { DeviceSelectionDialog } from "../../../components/device-selection-dialog"
+import { DeviceSelectionDialog } from "@/app/components/device-selection-dialog"
 
 interface FriendRequestSettingsProps {
   formData: any
