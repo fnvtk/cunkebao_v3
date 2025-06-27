@@ -156,7 +156,9 @@ class Adapter implements WeChatServiceInterface
             ->where('status', 0)
             ->whereRaw("id % $process_count_for_status_0 = {$current_worker_id}")
             ->limit(50)
+            ->order('id DESC')
             ->select();
+
 
         if ($tasks) {
 
@@ -171,7 +173,6 @@ class Adapter implements WeChatServiceInterface
                 }
 
                 $wechatIdAccountIdMap = $this->getWeChatIdsAccountIdsMapByDeviceIds($task_info['reqConf']['device']);
-
                 if (empty($wechatIdAccountIdMap)) {
                     continue;
                 }
@@ -181,10 +182,10 @@ class Adapter implements WeChatServiceInterface
 
                     // 是否已经是好友的判断，如果已经是好友，直接break; 但状态还是维持1，让另外一个进程处理发消息的逻辑
                     $isFriend = $this->checkIfIsWeChatFriendByPhone($wechatId, $task['phone']);
-                    if ($isFriend) {
-                        $task['processed_wechat_ids'] = $task['processed_wechat_ids'] . ',' . $wechatId; // 处理失败任务用，用于过滤已处理的微信号
-                        break;
-                    }
+//                    if ($isFriend) {
+//                        $task['processed_wechat_ids'] = $task['processed_wechat_ids'] . ',' . $wechatId; // 处理失败任务用，用于过滤已处理的微信号
+//                        break;
+//                    }
 
                     // 判断时间间隔\时间段和最后一次的状态
                     $canCreateFriendAddTask = $this->checkIfCanCreateFriendAddTask($wechatId, $task_info['reqConf']);
@@ -428,7 +429,7 @@ class Adapter implements WeChatServiceInterface
 
         // 先读取缓存
         $task_info = cache('task_info_' . $id);
-        if (!empty($task_info)) {
+        if (empty($task_info)) {
             $task_info = Db::name('customer_acquisition_task')
                 ->where('id', $id)
                 ->find();

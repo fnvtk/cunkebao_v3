@@ -46,6 +46,10 @@ class TaskServer extends Server
 
         $adapter = new ChuKeBaoAdapter();
 
+
+        Log::info('Workerman进程：' . $current_worker_id);
+
+
         // 在一个进程里处理获客任务添加后的相关逻辑
         if ($current_worker_id == self::PROCESS_COUNT - 1) {
             Timer::add(60, function () use($adapter) {
