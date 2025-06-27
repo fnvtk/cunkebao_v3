@@ -431,7 +431,7 @@ class Adapter implements WeChatServiceInterface
         // 先读取缓存
         $task_info = Db::name('customer_acquisition_task')
             ->where('id', $id)
-            >find();
+            ->find();
         if ($task_info) {
             $task_info['sceneConf'] = json_decode($task_info['sceneConf'], true);
             $task_info['reqConf'] = json_decode($task_info['reqConf'], true);
