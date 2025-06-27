@@ -2,6 +2,7 @@
 
 namespace WeChatDeviceApi\Adapters\ChuKeBao;
 
+use think\facade\Cache;
 use think\facade\Env;
 use WeChatDeviceApi\Contracts\WeChatServiceInterface;
 use WeChatDeviceApi\Exceptions\ApiException;
@@ -428,7 +429,8 @@ class Adapter implements WeChatServiceInterface
     {
 
         // 先读取缓存
-        $task_info = cache('task_info_' . $id);
+
+        $task_info = Cache::get('task_info_' . $id);
         if (empty($task_info)) {
             $task_info = Db::name('customer_acquisition_task')
                 ->where('id', $id)
@@ -438,8 +440,8 @@ class Adapter implements WeChatServiceInterface
                 $task_info['reqConf'] = json_decode($task_info['reqConf'], true);
                 $task_info['msgConf'] = json_decode($task_info['msgConf'], true);
                 $task_info['tagConf'] = json_decode($task_info['tagConf'], true);
-
-                cache('task_info_' . $id, $task_info);
+                Cache::set('task_info_' . $id, $task_info, 600);
+                
             } else {
                 return [];
             }
