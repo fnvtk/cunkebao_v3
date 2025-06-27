@@ -11,6 +11,7 @@ use think\Db;
  */
 class PostExternalApiV1Controller extends Controller
 {
+
     /**
      * 验证签名
      *
@@ -195,6 +196,7 @@ class PostExternalApiV1Controller extends Controller
      */
     private function updateSiteTags($taskCustomerId, $newSiteTags)
     {
+
         if (empty($taskCustomerId) || empty($newSiteTags) || !is_array($newSiteTags)) {
             return;
         }
@@ -202,6 +204,7 @@ class PostExternalApiV1Controller extends Controller
         try {
             // 获取当前任务客户的站点标签
             $taskCustomer = Db::name('task_customer')->where('id', $taskCustomerId)->find();
+
             if (!$taskCustomer) {
                 return;
             }
@@ -224,10 +227,11 @@ class PostExternalApiV1Controller extends Controller
                 return !empty(trim($tag));
             }));
 
+     
             // 更新数据库中的站点标签
             Db::name('task_customer')->where('id', $taskCustomerId)->update([
                 'siteTags' => json_encode($uniqueSiteTags, JSON_UNESCAPED_UNICODE),
-                'updateTime' => time()
+                'updated_at' => time()
             ]);
 
         } catch (\Exception $e) {
