@@ -428,26 +428,16 @@ class Adapter implements WeChatServiceInterface
     // getCustomerAcquisitionTask
     public function getCustomerAcquisitionTask($id)
     {
-
         // 先读取缓存
-
-        $task_info = Cache::get('task_info_' . $id);
-        if (empty($task_info)) {
-            $task_info = Db::name('customer_acquisition_task')
-                ->where('id', $id)
-                ->find();
-            if ($task_info) {
-                $task_info['sceneConf'] = json_decode($task_info['sceneConf'], true);
-                $task_info['reqConf'] = json_decode($task_info['reqConf'], true);
-                $task_info['msgConf'] = json_decode($task_info['msgConf'], true);
-                $task_info['tagConf'] = json_decode($task_info['tagConf'], true);
-                Cache::set('task_info_' . $id, $task_info, 600);
-
-            } else {
-                return [];
-            }
+        $task_info = Db::name('customer_acquisition_task')
+            ->where('id', $id)
+            >find();
+        if ($task_info) {
+            $task_info['sceneConf'] = json_decode($task_info['sceneConf'], true);
+            $task_info['reqConf'] = json_decode($task_info['reqConf'], true);
+            $task_info['msgConf'] = json_decode($task_info['msgConf'], true);
+            $task_info['tagConf'] = json_decode($task_info['tagConf'], true);
         }
-
         return $task_info;
     }
 
