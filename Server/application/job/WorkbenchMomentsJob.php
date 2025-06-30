@@ -68,7 +68,8 @@ class WorkbenchMomentsJob
     {
         try {
             // 获取所有工作台
-            $workbenches = Workbench::where(['status' => 1, 'type' => 2, 'isDel' => 0])->select();
+            $workbenches = Workbench::where(['status' => 1, 'type' => 2, 'isDel' => 0])->order('id desc')->select();
+
             foreach ($workbenches as $workbench) {
                 // 获取工作台配置
                 $config = WorkbenchMoments::where('workbenchId', $workbench->id)->find();
