@@ -58,7 +58,8 @@ class WorkbenchTrafficDistributeJob
     protected function processSingleWorkbench($workbench)
     {
         $page = 1;
-        $pageSize = 20;
+        $pageSize = 100;
+
         $config = WorkbenchTrafficConfig::where('workbenchId', $workbench->id)->find();
         if (!$config) {
             Log::error("流量分发工作台 {$workbench->id} 配置获取失败");
@@ -84,7 +85,7 @@ class WorkbenchTrafficDistributeJob
             ->whereNotLike('a.userName', '%_offline%')
             ->whereNotLike('a.userName', '%_delete%')
             ->leftJoin('workbench_traffic_config_item wti', "wti.wechatAccountId = a.id AND wti.workbenchId = {$workbench->id} AND wti.createTime BETWEEN {$todayStart} AND {$todayEnd}")
-            ->field('a.id,a.userName,a.realName,COUNT(wti.id) as todayCount')
+            ->field('a.id,a.userName,a.realName,a.nickname,COUNT(wti.id) as todayCount')
             ->group('a.id')
             ->having('todayCount <= ' . $config['maxPerDay'])
             ->select();
@@ -137,6 +138,14 @@ class WorkbenchTrafficDistributeJob
                     'wechatFriendId' => $friend['id'],
                     'toAccountId' => $account['id']
                 ], true);
+                Db::table('s2_wechat_friend')
+                    ->where('id',$friend['id'])
+                    ->update([
+                        'accountId' => $account['id'],
+                        'accountUserName' => $account['userName'],
+                        'accountRealName' => $account['realName'],
+                        'accountNickname' => $account['nickname'],
+                        ]);
                 // 写入分配记录表
                 Db::name('workbench_traffic_config_item')->insert([
                     'workbenchId' => $workbench->id,
