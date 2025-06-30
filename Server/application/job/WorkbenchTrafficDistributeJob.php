@@ -198,6 +198,7 @@ class WorkbenchTrafficDistributeJob
             ->join('workbench_traffic_config_item wtci', 'wtci.wechatFriendId = wf.id AND wtci.workbenchId = ' . $config['workbenchId'], 'left')
             ->where([
                 ['wf.isDeleted', '=', 0],
+                ['wf.isPassed', '=', 1],
                 //['sa.departmentId', '=', $workbench->companyId],
                 ['wtci.id', 'null', null]
             ])
