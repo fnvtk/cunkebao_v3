@@ -687,6 +687,7 @@ class WorkbenchController extends Controller
                         $config->endTime = $param['endTime'];
                         $config->devices = json_encode($param['devices']);
                         $config->pools = json_encode($param['pools']);
+                        $config->account = json_encode($param['account']);
                         $config->updateTime = time();
                         $config->save();
                     }
