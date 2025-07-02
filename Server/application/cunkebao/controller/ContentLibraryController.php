@@ -904,7 +904,7 @@ class ContentLibraryController extends Controller
                 // 从s2_wechat_moments表获取朋友圈数据
                 $moments = Db::table('s2_wechat_moments')
                     ->where([
-                        'wechatFriendId' => $friend['id'],
+                        'userName' => $friend['wechatId'],
                         'wechatAccountId' => $friend['wechatAccountId']
                     ])
                     ->order('createTime', 'desc')
