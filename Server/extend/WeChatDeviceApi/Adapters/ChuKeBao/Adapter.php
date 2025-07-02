@@ -576,7 +576,7 @@ class Adapter implements WeChatServiceInterface
             ->where('wechatId', $wechatId)
             ->order('createTime', 'desc')
             ->find();
-        return $record;
+        return $record ?: [];
     }
 
     // 获取最新的一条添加好友任务记录的创建时间
