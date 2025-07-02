@@ -26,8 +26,10 @@ return [
     'name'           => 'thinkphp',
     'count'          => 4,
     'daemonize'      => false,
-    'pidFile'        => __DIR__ . '/../runtime/worker.pid',
-    'logFile'        => __DIR__ . '/../runtime/workerman.log',
+    'pidFile'    => __DIR__ . '/../runtime/worker.pid',
+    'logFile'    => __DIR__ . '/../runtime/workerman.log',
+    'stdoutFile' => __DIR__ . '/../runtime/stdout.log',
+    'daemonize'  => true, // 你用 -d 时会自动变 true
 
     // 支持事件回调
     // onWorkerStart
