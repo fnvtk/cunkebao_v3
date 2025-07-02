@@ -224,11 +224,11 @@ class WorkbenchAutoLikeJob
             $webSocket = new WebSocketController(['userName' => $username, 'password' => $password, 'accountId' => $toAccountId]);
             
             // 查询未点赞的朋友圈
-            $moments = $this->getUnlikedMoments($friend['friendId']);
+            $moments = $this->getUnlikedMoments($friend['wechatId']);
             if (empty($moments) || count($moments) == 0) {
                 //采集最新朋友圈
                 $webSocket->getMoments(['wechatFriendId' => $friend['friendId'], 'wechatAccountId' => $friend['wechatAccountId']]);
-                $moments = $this->getUnlikedMoments($friend['friendId']);
+                $moments = $this->getUnlikedMoments($friend['wechatId']);
             }
             
             
@@ -269,16 +269,16 @@ class WorkbenchAutoLikeJob
 
     /**
      * 获取未点赞的朋友圈
-     * @param int $friendId
+     * @param int $wechatId
      * @return \think\Collection
      */
-    protected function getUnlikedMoments($friendId)
+    protected function getUnlikedMoments($wechatId)
     {
         return Db::table('s2_wechat_moments')
             ->alias('wm')
             ->join('workbench_auto_like_item wali', 'wali.momentsId = wm.id', 'left')
             ->where([
-                ['wm.wechatFriendId', '=', $friendId],
+                ['wm.userName', '=', $wechatId],
                 ['wali.id', 'null', null]
             ])
             ->where('wm.update_time', '>=', time() - 86400)
