@@ -167,7 +167,7 @@ class WorkbenchAutoLikeJob
         $list = Db::table('s2_company_account')
             ->alias('ca')
             ->join(['s2_wechat_account' => 'wa'], 'ca.id = wa.deviceAccountId')
-            ->join(['s2_wechat_friend' => 'wf'], 'ca.id = wf.accountId AND wf.wechatAccountId = wa.id')
+            ->join(['s2_wechat_friend' => 'wf'], 'wf.wechatAccountId = wa.id')
             ->join('workbench_auto_like_item wali', 'wali.wechatFriendId = wf.id AND wali.workbenchId = ' . $config['workbenchId'], 'left')
             ->where([
                 'ca.status' => 0,
