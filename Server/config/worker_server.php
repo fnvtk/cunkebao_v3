@@ -26,7 +26,7 @@ return [
     'name'           => 'thinkphp',
     'count'          => 4,
     'daemonize'      => false,
-    'pidFile'        => Env::get('runtime_path') . 'worker.pid',
+    'pidFile'        => Env::get('app.runtime_path') . 'worker.pid',
 
     // 支持事件回调
     // onWorkerStart
