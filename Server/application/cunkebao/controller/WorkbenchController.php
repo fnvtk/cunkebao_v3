@@ -887,13 +887,11 @@ class WorkbenchController extends Controller
             ['wali.workbenchId', '=', $workbenchId]
         ];
 
- 
-
         // 查询点赞记录
         $list = Db::name('workbench_auto_like_item')->alias('wali')
-            ->join(['s2_wechat_moments' => 'wm'], 'wm.snsId = wali.snsId', 'left')
-            ->join(['s2_wechat_account' => 'wa'], 'wa.id = wali.wechatAccountId', 'left')
-            ->join(['s2_wechat_friend' => 'wf'], 'wf.id = wm.wechatFriendId', 'left')
+            ->join(['s2_wechat_moments' => 'wm'], 'wali.snsId = wm.snsId')
+            ->join(['s2_wechat_account' => 'wa'], 'wali.wechatAccountId = wa.id')
+            ->join(['s2_wechat_friend' => 'wf'], 'wali.wechatFriendId = wf.id')
             ->field([
                 'wali.id',
                 'wali.workbenchId',
@@ -913,6 +911,7 @@ class WorkbenchController extends Controller
             ])
             ->where($where)
             ->order('wali.createTime', 'desc')
+            ->group('wali.id')
             ->page($page, $limit)
             ->select();
 
