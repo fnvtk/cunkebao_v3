@@ -76,7 +76,13 @@ class WorkbenchMomentsJob
                 if (!$config) {
                     continue;
                 }
-
+                $startTime = strtotime(date('Y-m-d '. $config['startTime']));
+                $endTime = strtotime(date('Y-m-d '. $config['endTime']));
+                // 如果时间不符，则跳过
+                if($startTime > time() || $endTime < time()){
+                    continue;
+                }
+               
                 // 获取设备
                 $devices = $this->getDevice($workbench, $config);
                 if (empty($devices)) {
@@ -267,7 +273,7 @@ class WorkbenchMomentsJob
     protected function getContentLibrary($workbench, $config)
     {
         $contentids = json_decode($config['contentLibraries'], true);
-        if (empty($contentids)) {
+        if (empty($contentids)) { 
             return false;
         }
 
