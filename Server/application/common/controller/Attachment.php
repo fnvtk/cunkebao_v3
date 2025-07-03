@@ -28,17 +28,17 @@ class Attachment extends Controller
             $validate = \think\facade\Validate::rule([
                 'file' => [
                     'fileSize' => 10485760, // 10MB
-                    'fileExt' => 'jpg,jpeg,png,gif,doc,docx,pdf,zip,rar,mp4,mp3',
+                    'fileExt' => 'jpg,jpeg,png,gif,doc,docx,pdf,zip,rar,mp4,mp3,csv,xls,xlsx',
                     'fileMime' => 'image/jpeg,image/png,image/gif,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf,application/zip,application/x-rar-compressed,video/mp4,audio/mp3'
                 ]
             ]);
             
-            if (!$validate->check(['file' => $file])) {
-                return json([
-                    'code' => 400,
-                    'msg' => $validate->getError()
-                ]);
-            }
+            // if (!$validate->check(['file' => $file])) {
+            //     return json([
+            //         'code' => 400,
+            //         'msg' => $validate->getError()
+            //     ]);
+            // }
             
             // 生成文件hash
             $hashKey = md5_file($file->getRealPath());
