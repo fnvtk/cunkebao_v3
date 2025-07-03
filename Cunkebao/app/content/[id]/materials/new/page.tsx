@@ -52,6 +52,10 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
   }
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (images.length >= 9) {
+      showToast("最多只能上传9张图片", "error")
+      return
+    }
     const file = event.target.files?.[0]
     if (!file) return
 
@@ -352,11 +356,11 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
                         variant="outline" 
                         onClick={handleUploadImage} 
                         className="w-full py-8 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-blue-300 bg-white hover:bg-blue-50"
-                        disabled={loading}
+                        disabled={loading || images.length >= 9}
                       >
                         <UploadCloud className="h-8 w-8 mb-2 text-gray-400" />
                         <span>点击上传图片</span>
-                        <span className="text-xs text-gray-500 mt-1">支持 JPG、PNG 格式</span>
+                        <span className="text-xs text-gray-500 mt-1">{`已上传${images.length}张，最多可上传9张`}</span>
                       </Button>
                       <input
                         type="file"

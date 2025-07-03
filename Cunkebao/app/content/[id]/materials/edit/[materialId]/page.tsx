@@ -15,6 +15,7 @@ import { showToast } from "@/lib/toast"
 import Image from "next/image"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { useRef } from "react"
 
 interface ApiResponse<T = any> {
   code: number
@@ -77,6 +78,7 @@ export default function EditMaterialPage({ params }: { params: Promise<{ id: str
   const [iconUrl, setIconUrl] = useState<string>("")
   const [videoUrl, setVideoUrl] = useState<string>("")
   const [comment, setComment] = useState("")
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 获取素材详情
   useEffect(() => {
@@ -153,22 +155,56 @@ export default function EditMaterialPage({ params }: { params: Promise<{ id: str
     fetchMaterialDetail()
   }, [resolvedParams.materialId, router])
 
-  // 模拟上传图片
+  // 替换handleUploadImage为：
   const handleUploadImage = () => {
-    // 这里应该是真实的图片上传逻辑
-    // 为了演示，这里模拟添加一些示例图片URL
-    const mockImageUrls = [
-      "https://picsum.photos/id/237/200/300",
-      "https://picsum.photos/id/238/200/300",
-      "https://picsum.photos/id/239/200/300"
-    ]
-    
-    const randomIndex = Math.floor(Math.random() * mockImageUrls.length)
-    const newImage = mockImageUrls[randomIndex]
-    
-    if (!images.includes(newImage)) {
-      setImages([...images, newImage])
-      setPreviewUrls([...previewUrls, newImage])
+    if (images.length >= 9) {
+      showToast("最多只能上传9张图片", "error")
+      return
+    }
+    fileInputRef.current?.click()
+  }
+
+  // 新增真实上传逻辑
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (images.length >= 9) {
+      showToast("最多只能上传9张图片", "error")
+      return
+    }
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      showToast("请选择图片文件", "error")
+      return
+    }
+
+    showToast("正在上传图片...", "loading")
+    const formData = new FormData()
+    formData.append("file", file)
+
+    try {
+      const token = localStorage.getItem('token');
+      const headers: HeadersInit = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/attachment/upload`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      })
+
+      const result = await response.json()
+      if (result.code === 200 && result.data?.url) {
+        setImages((prev) => [...prev, result.data.url])
+        setPreviewUrls((prev) => [...prev, result.data.url])
+        showToast("图片上传成功", "success")
+      } else {
+        showToast(result.msg || "图片上传失败", "error")
+      }
+    } catch (error: any) {
+      showToast(error?.message || "图片上传失败", "error")
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
@@ -450,12 +486,20 @@ export default function EditMaterialPage({ params }: { params: Promise<{ id: str
                         variant="outline" 
                         onClick={handleUploadImage} 
                         className="w-full py-8 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-blue-300 bg-white hover:bg-blue-50"
+                        disabled={images.length >= 9}
                       >
                         <UploadCloud className="h-8 w-8 mb-2 text-gray-400" />
                         <span>点击上传图片</span>
-                        <span className="text-xs text-gray-500 mt-1">支持 JPG、PNG 格式</span>
+                        <span className="text-xs text-gray-500 mt-1">{`已上传${images.length}张，最多可上传9张`}</span>
                       </Button>
                     </div>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      className="hidden"
+                      accept="image/*"
+                    />
                     {previewUrls.length > 0 && (
                       <div className="mt-2">
                         <Label className="font-bold mb-2">已上传图片</Label>
