@@ -76,15 +76,15 @@ export default function NewContentLibraryPage() {
       return
     }
 
-    if (formData.sourceType === "friends" && formData.selectedFriends.length === 0) {
-      showToast("请选择微信好友", "error")
-      return
-    }
+    // if (formData.sourceType === "friends" && formData.selectedFriends.length === 0) {
+    //   showToast("请选择微信好友", "error")
+    //   return
+    // }
 
-    if (formData.sourceType === "groups" && formData.selectedGroups.length === 0) {
-      showToast("请选择聊天群", "error")
-      return
-    }
+    // if (formData.sourceType === "groups" && formData.selectedGroups.length === 0) {
+    //   showToast("请选择聊天群", "error")
+    //   return
+    // }
 
     setLoading(true)
     try {
