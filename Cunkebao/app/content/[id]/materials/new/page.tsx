@@ -115,10 +115,10 @@ export default function NewMaterialPage({ params }: { params: { id: string } }) 
       showToast("请输入内容", "error")
       return
     }
-    if (!comment) {
-      showToast("请输入评论内容", "error")
-      return
-    }
+    // if (!comment) {
+    //   showToast("请输入评论内容", "error")
+    //   return
+    // }
     if (materialType === 1 && images.length === 0) {
       showToast("请上传图片", "error")
       return
