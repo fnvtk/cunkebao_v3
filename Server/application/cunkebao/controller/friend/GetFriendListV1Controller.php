@@ -33,37 +33,46 @@ class GetFriendListV1Controller extends BaseController
 
             $where = [];
             if ($this->getUserInfo('isAdmin') == 1) {
-                $where[] = ['dw.companyId','=',$this->getUserInfo('companyId')];
-                $where[] = ['wf.deleteTime','=',0];
+                $where[] = ['isDeleted','=',0];
             } else {
-                $where[] = ['dw.companyId','=',$this->getUserInfo('companyId')];
-                $where[] = ['wf.deleteTime','=',0];
-                //$where[] = ['wf.userId','=',$this->getUserInfo('id')];
+                $where[] = ['isDeleted','=',0];
             }
 
             
             if(!empty($keyword)){
-                $where[] = ['wa1.nickname','like','%'.$keyword.'%'];
+                $where[] = ['nickname|alias|wechatId','like','%'.$keyword.'%'];
             }
+
+
+            $devices = Db::name('device_wechat_login')
+                ->where(['companyId' => $this->getUserInfo('companyId'),'alive' => 1])
+                ->order('id desc')
+                ->group('wechatId');
 
             if(!empty($deviceIds) && is_array($deviceIds)){
-                $where[] = ['dw.deviceId','in',$deviceIds];
+                $devices = $devices->whereIn('deviceId',$deviceIds);
             }
+            $devices = $devices->column('wechatId');
 
+            $where[] = ['ownerWechatId','in',$devices];
 
-
-            $data = WechatFriendShipModel::alias('wf')
-                ->field(['wa1.nickname','wa1.avatar','wa1.alias','wf.id','wf.wechatId','wa2.nickname as ownerNickname','wa2.alias as ownerAlias','wa2.wechatId as ownerWechatId','wf.createTime'])
-                ->Join('wechat_account wa1','wf.wechatId = wa1.wechatId')
-                ->Join('wechat_account wa2','wf.ownerWechatId = wa2.wechatId')
-                ->join('device_wechat_login dw','wa2.wechatId = dw.wechatId AND alive = 1 AND dw.companyId = '.$this->getUserInfo('companyId'))
-                ->join('device d','dw.deviceId = d.id AND d.deleteTime = 0 AND d.companyId = '.$this->getUserInfo('companyId'))
+            $data = Db::table('s2_wechat_friend')
+                ->field(['nickname','avatar','alias','id','wechatId','ownerNickname','ownerAlias','ownerWechatId','createTime'])
                 ->where($where);
-
             $total = $data->count();
-            $list = $data->page($page, $limit)->order('wf.id DESC')->group('wf.id')->select();
+            $list = $data->page($page, $limit)->order('id DESC')->select();
 
 
+//            $data = WechatFriendShipModel::alias('wf')
+//                ->field(['wa1.nickname','wa1.avatar','wa1.alias','wf.id','wf.wechatId','wa2.nickname as ownerNickname','wa2.alias as ownerAlias','wa2.wechatId as ownerWechatId','wf.createTime'])
+//                ->Join('wechat_account wa1','wf.wechatId = wa1.wechatId')
+//                ->Join('wechat_account wa2','wf.ownerWechatId = wa2.wechatId')
+//                ->where($where);
+//
+//            $total = $data->count();
+//            $list = $data->page($page, $limit)->order('wf.id DESC')->group('wf.id')->select();
+
+           
 
 
             return json([
