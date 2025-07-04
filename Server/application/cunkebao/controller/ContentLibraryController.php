@@ -1390,8 +1390,25 @@ class ContentLibraryController extends Controller
             }
             
             // 判断内容类型 (0=未知, 1=图片, 2=链接, 3=视频, 4=文本, 5=小程序, 6=图文)
-            $contentType = $this->determineContentType($moment['content'] ?? '', $resUrls, $urls);
-            
+            if($moment['type'] == 1) {
+                //图文
+                $contentType = 6;
+            }elseif ($moment['type'] == 3){
+                //链接
+                $contentType = 2;
+            }elseif ($moment['type'] == 15){
+                //视频
+                $contentType = 3;
+            }elseif ($moment['type'] == 2){
+                //纯文本
+                $contentType = 4;
+            }elseif ($moment['type'] == 30){
+                //小程序
+                $contentType = 5;
+            }else{
+                $contentType = 1;
+            }
+
             // 如果不存在，则创建新的内容项目
             $item = new ContentItem();
             $item->libraryId = $libraryId;
