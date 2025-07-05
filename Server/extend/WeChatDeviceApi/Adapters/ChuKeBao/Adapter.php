@@ -235,7 +235,7 @@ class Adapter implements WeChatServiceInterface
     {
 
         $tasks = Db::name('task_customer')
-            ->whereIn('status', [1,3])
+            ->whereIn('status', [1,2,3])
             ->limit(50)
             ->select();
 
@@ -451,6 +451,7 @@ class Adapter implements WeChatServiceInterface
         try {
             $id = Db::table('s2_wechat_friend')
                 ->where('ownerWechatId', $wxId)
+                ->where(['isPassed' => 1,'isDeleted' => 0])
                 ->where('phone|alias|wechatId', 'like', $phone . '%')
                 ->order('createTime', 'desc')
                 ->value('id');
